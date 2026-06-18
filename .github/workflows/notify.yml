@@ -1,1 +1,28 @@
+name: Hatirlatma ve Gorev Bildirimleri
 
+"on":
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  bildirim-kontrol:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Depoyu indir
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bagimliliklari yukle
+        working-directory: functions-free
+        run: npm install
+
+      - name: Bildirimleri kontrol et ve gonder
+        working-directory: functions-free
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node check-and-notify.js
