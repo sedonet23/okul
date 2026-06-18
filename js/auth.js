@@ -3,10 +3,12 @@
    ==================================================================== */
 
 function girisEkraniGoster(){
-  // Giriş ekranı devre dışı
+  // Devre dışı
 }
+
 function girisEkraniGizle(){
   document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').style.display = 'flex';
   document.getElementById('app').classList.add('ready');
 }
 
@@ -19,7 +21,6 @@ function cikisYap(){
 }
 
 function authDinleyiciKur(){
-  // Giriş atlanıyor, uygulama direkt başlatılıyor
   girisEkraniGizle();
-  uygulamaBaslat();
+  if(typeof uygulamaBaslat === 'function') uygulamaBaslat();
 }
