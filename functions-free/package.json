@@ -1,1 +1,11 @@
+{
+  "name": "okul-yonetim-bildirim-kontrol",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GitHub Actions üzerinde çalışarak vadesi gelen hatırlatıcı/görevler için Firebase Cloud Messaging ile push bildirimi gönderir.",
+  "main": "check-and-notify.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}
 
