@@ -23,7 +23,7 @@
   </div>
 </div>
 
-<div id="loginScreen" class="login-screen hidden">
+<div id="loginScreen" class="login-screen">
   <div class="login-box">
     <div class="brand-mark">OY</div>
     <h2>Okul Yönetim Paneli</h2>
@@ -57,8 +57,17 @@
       <button class="nav-tab" data-tab="notlar">Notlar</button>
       <button class="nav-tab" data-tab="notDefteri">Not Defteri</button>
       <button class="nav-tab" data-tab="ayarlar">Ayarlar</button>
+      <div class="nav-separator">— Çizelgeler —</div>
+      <button class="nav-tab" data-tab="sosyalKulupler">Sosyal Kulüpler</button>
+      <button class="nav-tab" data-tab="belirliGunler">Belirli Gün/Haftalar</button>
+      <button class="nav-tab" data-tab="zumre">Zümre</button>
+      <button class="nav-tab" data-tab="sok">ŞÖK</button>
+      <button class="nav-tab" data-tab="bepPlani">Yıllık/BEP Planı</button>
+      <button class="nav-tab" data-tab="rehberlik">Rehberlik</button>
+      <button class="nav-tab" data-tab="maarifRapor">Maarif Model Raporlar</button>
+      <button class="nav-tab" data-tab="digerEvrak">Diğer Evraklar</button>
     </nav>
-    <div class="nav-foot" style="display:none"><button class="btn btn-ghost btn-sm btn-block" id="cikisBtn">Çıkış Yap</button></div>
+    <div class="nav-foot"><button class="btn btn-ghost btn-sm btn-block" id="cikisBtn">Çıkış Yap</button></div>
   </aside>
 
   <main class="content">
@@ -213,6 +222,78 @@
         <p style="color:var(--text-muted);font-size:13px;">Yedekteki kayıtlar eklenir/güncellenir; yedekte olmayan mevcut kayıtlar silinmez.</p>
         <input type="file" id="yedekDosya" accept="application/json" onchange="yedektenGeriYukle(this.files[0])">
       </div>
+    </section>
+
+    <!-- SOSYAL KULÜPLER -->
+    <section id="tab-sosyalKulupler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Sosyal Kulüpler</div><div class="page-sub">Kulüp evrak ve aylık faaliyet takibi</div></div>
+        <button class="btn btn-amber" onclick="sosyalKulupModalAc()">+ Yeni Kulüp</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="sosyalKuluplerTablo"></div></div>
+    </section>
+
+    <!-- BELİRLİ GÜN VE HAFTALAR -->
+    <section id="tab-belirliGunler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Belirli Gün ve Haftalar</div><div class="page-sub">Görev dağılım çizelgesi</div></div>
+        <button class="btn btn-amber" onclick="belirliGunModalAc()">+ Yeni Etkinlik</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="belirliGunlerTablo"></div></div>
+    </section>
+
+    <!-- ZÜMRE -->
+    <section id="tab-zumre" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Zümre Toplantıları</div><div class="page-sub">Zümre toplantı takip çizelgesi</div></div>
+        <button class="btn btn-amber" onclick="zumreModalAc()">+ Yeni Zümre</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="zumreTablo"></div></div>
+    </section>
+
+    <!-- ŞÖK -->
+    <section id="tab-sok" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">ŞÖK</div><div class="page-sub">Şiddet önleme kurulu takip çizelgesi</div></div>
+        <button class="btn btn-amber" onclick="sokModalAc()">+ Kayıt Ekle</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="sokTablo"></div></div>
+    </section>
+
+    <!-- YILLIK / BEP PLANI -->
+    <section id="tab-bepPlani" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Yıllık / BEP Planları</div><div class="page-sub">Öğretmen bazlı yıllık plan ve BEP takibi</div></div>
+        <button class="btn btn-amber" onclick="bepModalAc()">+ Kayıt Ekle</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="bepTablo"></div></div>
+    </section>
+
+    <!-- REHBERLİK -->
+    <section id="tab-rehberlik" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Rehberlik</div><div class="page-sub">Sınıf danışmanı ve aylık rehberlik takibi</div></div>
+        <button class="btn btn-amber" onclick="rehberlikModalAc()">+ Kayıt Ekle</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="rehberlikTablo"></div></div>
+    </section>
+
+    <!-- MAARİF MODEL AYLIK RAPORLAR -->
+    <section id="tab-maarifRapor" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Maarif Model Aylık Raporlar</div><div class="page-sub">Ders ve sınıf bazlı aylık rapor takibi</div></div>
+        <button class="btn btn-amber" onclick="maarifModalAc()">+ Kayıt Ekle</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="maarifTablo"></div></div>
+    </section>
+
+    <!-- DİĞER EVRAKLAR -->
+    <section id="tab-digerEvrak" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Diğer Evraklar</div><div class="page-sub">Veli toplantı tutanakları ve diğer belgeler</div></div>
+        <button class="btn btn-amber" onclick="digerEvrakModalAc()">+ Yeni Evrak</button>
+      </div>
+      <div class="card" style="overflow-x:auto;"><div id="digerEvrakTablo"></div></div>
     </section>
 
   </main>
