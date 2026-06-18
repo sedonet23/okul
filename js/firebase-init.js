@@ -28,7 +28,15 @@ const COL = {
   notDefteri:'oy_notDefteri',
   evrak:'oy_evrakTakibi',
   notlar:'oy_notlar',
-  cihazlar:'oy_cihazTokenleri'
+  cihazlar:'oy_cihazTokenleri',
+  sosyalKulupler:'oy_sosyalKulupler',
+  belirliGunler:'oy_belirliGunler',
+  zumre:'oy_zumre',
+  sok:'oy_sok',
+  bepPlani:'oy_bepPlani',
+  rehberlik:'oy_rehberlik',
+  maarifRapor:'oy_maarifRapor',
+  digerEvrak:'oy_digerEvrak'
 };
 
 let db = null;
@@ -60,4 +68,3 @@ function firebaseyiBaslat(){
     return false;
   }
 }
-
