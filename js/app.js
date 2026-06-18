@@ -523,6 +523,14 @@ function baglantilariKur(){
   db.collection(COL.notDefteri).onSnapshot(s=>{ notDefteri = s.docs.map(d=>({id:d.id,...d.data()})); renderNotDefteri(); }, hataGoster);
   db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); }, hataGoster);
   db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); }, hataGoster);
+  db.collection(COL.sosyalKulupler).onSnapshot(s=>{ sosyalKulupler = s.docs.map(d=>({id:d.id,...d.data()})); renderSosyalKulupler(); }, hataGoster);
+  db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunler = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); }, hataGoster);
+  db.collection(COL.zumre).onSnapshot(s=>{ zumreListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderZumre(); }, hataGoster);
+  db.collection(COL.sok).onSnapshot(s=>{ sokListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderSok(); }, hataGoster);
+  db.collection(COL.bepPlani).onSnapshot(s=>{ bepListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBepPlani(); }, hataGoster);
+  db.collection(COL.rehberlik).onSnapshot(s=>{ rehberlikListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderRehberlik(); }, hataGoster);
+  db.collection(COL.maarifRapor).onSnapshot(s=>{ maarifListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderMaarifRapor(); }, hataGoster);
+  db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
@@ -535,6 +543,277 @@ function uygulamaBaslat(){
   baglantilariKur();
   pushDurumGuncelle();
   pushOnMessageDinleyiciKur();
+}
+
+/* ============================================================
+   YENİ MODÜLLER: SOSYAL KULÜPLER, BELİRLİ GÜN/HAFTALAR,
+   ZÜMRE, ŞÖK, BEP PLANI, REHBERLİK, MAARİF RAPOR, DİĞER EVRAK
+   ============================================================ */
+
+const AYLAR_KISALT = ['Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran'];
+const DONEMLER = ['Sene Başı','2.Dönem','Sene Sonu'];
+
+let sosyalKulupler=[], belirliGunler=[], zumreListesi=[], sokListesi=[], bepListesi=[], rehberlikListesi=[], maarifListesi=[], digerEvrakListesi=[];
+
+/* ---- YARDIMCI: tikli tablo ---- */
+function tikHucresi(kayitId, alan, deger, koleksiyon){
+  const durum = deger ? '✓' : '–';
+  const renk = deger ? 'color:var(--sage);font-weight:700;' : 'color:var(--text-muted);';
+  return `<td style="text-align:center;cursor:pointer;${renk}" onclick="tikToggle('${koleksiyon}','${kayitId}','${alan}',${!deger})">${durum}</td>`;
+}
+function tikToggle(koleksiyon, id, alan, yeniDeger){
+  if(!db) return;
+  db.collection(koleksiyon).doc(id).update({[alan]: yeniDeger}).catch(err=>toast('Hata: '+err.message));
+}
+
+/* ============ SOSYAL KULÜPLER ============ */
+function renderSosyalKulupler(){
+  const el = document.getElementById('sosyalKuluplerTablo');
+  if(!el) return;
+  if(!sosyalKulupler.length){ el.innerHTML='<p class="empty-state">Henüz kulüp kaydı yok. + butonuyla ekleyin.</p>'; return; }
+  const ayAlanlar = ['yillikPlan','topluHizmetPlani',...AYLAR_KISALT.map(a=>a.toLowerCase().replace('ş','s').replace('ı','i').replace('ü','u').replace('ç','c').replace('ğ','g')), 'yilSonuRaporu'];
+  const basliklar = ['Yıllık Plan','Toplum Hizmet Planı',...AYLAR_KISALT,'Yıl Sonu Raporu'];
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Kulüp Adı</th><th>Danışman Öğretmen</th>
+    ${basliklar.map(b=>`<th style="text-align:center;font-size:11px;">${b}</th>`).join('')}
+    <th></th>
+  </tr></thead><tbody>
+    ${sosyalKulupler.map(k=>`<tr>
+      <td><strong>${escapeHtml(k.kulupAdi)}</strong></td>
+      <td>${escapeHtml(k.danismanOgretmen||'')}</td>
+      ${ayAlanlar.map(a=>tikHucresi(k.id,a,k[a],COL.sosyalKulupler)).join('')}
+      <td><button class="btn btn-ghost btn-sm" onclick='sosyalKulupModalAc(${JSON.stringify(k)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function sosyalKulupModalAc(k){
+  modalAc(k?'Kulüp Düzenle':'Yeni Kulüp', `
+    <div class="form-group"><label>Kulüp Adı</label><input id="f_kulupAdi" value="${escapeHtml(k?.kulupAdi||'')}"></div>
+    <div class="form-group"><label>Danışman Öğretmen</label><input id="f_danismanOgretmen" value="${escapeHtml(k?.danismanOgretmen||'')}"></div>
+  `, ()=>{
+    const veri = { kulupAdi: document.getElementById('f_kulupAdi').value.trim(), danismanOgretmen: document.getElementById('f_danismanOgretmen').value.trim() };
+    if(!veri.kulupAdi){ toast('Kulüp adı zorunlu.'); return; }
+    kaydet(COL.sosyalKulupler, k?.id||null, veri); modalKapat();
+  }, k ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.sosyalKulupler).doc(k.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ BELİRLİ GÜN VE HAFTALAR ============ */
+function renderBelirliGunler(){
+  const el = document.getElementById('belirliGunlerTablo');
+  if(!el) return;
+  if(!belirliGunler.length){ el.innerHTML='<p class="empty-state">Henüz etkinlik kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Ay</th><th>Tarih</th><th>Belirli Gün / Hafta</th><th>Görevli Öğretmen</th><th style="text-align:center;">Takip</th><th></th>
+  </tr></thead><tbody>
+    ${belirliGunler.map(g=>`<tr>
+      <td>${escapeHtml(g.ay||'')}</td>
+      <td>${escapeHtml(g.tarih||'')}</td>
+      <td>${escapeHtml(g.etkinlikAdi||'')}</td>
+      <td>${escapeHtml(g.gorevliOgretmen||'')}</td>
+      ${tikHucresi(g.id,'tamamlandi',g.tamamlandi,COL.belirliGunler)}
+      <td><button class="btn btn-ghost btn-sm" onclick='belirliGunModalAc(${JSON.stringify(g)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function belirliGunModalAc(g){
+  const AYLAR_TR = ['Eylül','Ekim','Kasım','Aralık','Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos'];
+  modalAc(g?'Etkinlik Düzenle':'Yeni Etkinlik', `
+    <div class="form-group"><label>Ay</label><select id="f_ay">${AYLAR_TR.map(a=>`<option ${g?.ay===a?'selected':''}>${a}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Tarih / Hafta Bilgisi</label><input id="f_tarihBilgi" value="${escapeHtml(g?.tarih||'')}"></div>
+    <div class="form-group"><label>Belirli Gün / Hafta Adı</label><input id="f_etkinlikAdi" value="${escapeHtml(g?.etkinlikAdi||'')}"></div>
+    <div class="form-group"><label>Görevli Öğretmen</label><input id="f_gorevliOgretmen" value="${escapeHtml(g?.gorevliOgretmen||'')}"></div>
+  `, ()=>{
+    const veri = { ay: document.getElementById('f_ay').value, tarih: document.getElementById('f_tarihBilgi').value.trim(), etkinlikAdi: document.getElementById('f_etkinlikAdi').value.trim(), gorevliOgretmen: document.getElementById('f_gorevliOgretmen').value.trim() };
+    if(!veri.etkinlikAdi){ toast('Etkinlik adı zorunlu.'); return; }
+    kaydet(COL.belirliGunler, g?.id||null, veri); modalKapat();
+  }, g ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.belirliGunler).doc(g.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ ZÜMRE ============ */
+function renderZumre(){
+  const el = document.getElementById('zumreTablo');
+  if(!el) return;
+  if(!zumreListesi.length){ el.innerHTML='<p class="empty-state">Henüz zümre kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Zümre</th>
+    ${DONEMLER.map(d=>`<th style="text-align:center;">${d}</th>`).join('')}
+    <th></th>
+  </tr></thead><tbody>
+    ${zumreListesi.map(z=>`<tr>
+      <td><strong>${escapeHtml(z.zumreAdi||'')}</strong></td>
+      ${tikHucresi(z.id,'seneBasi',z.seneBasi,COL.zumre)}
+      ${tikHucresi(z.id,'ikincDonem',z.ikincDonem,COL.zumre)}
+      ${tikHucresi(z.id,'seneSonu',z.seneSonu,COL.zumre)}
+      <td><button class="btn btn-ghost btn-sm" onclick='zumreModalAc(${JSON.stringify(z)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function zumreModalAc(z){
+  modalAc(z?'Zümre Düzenle':'Yeni Zümre', `
+    <div class="form-group"><label>Zümre Adı</label><input id="f_zumreAdi" value="${escapeHtml(z?.zumreAdi||'')}"></div>
+  `, ()=>{
+    const veri = { zumreAdi: document.getElementById('f_zumreAdi').value.trim() };
+    if(!veri.zumreAdi){ toast('Zümre adı zorunlu.'); return; }
+    kaydet(COL.zumre, z?.id||null, veri); modalKapat();
+  }, z ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.zumre).doc(z.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ ŞÖK ============ */
+function renderSok(){
+  const el = document.getElementById('sokTablo');
+  if(!el) return;
+  if(!sokListesi.length){ el.innerHTML='<p class="empty-state">Henüz ŞÖK kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Sınıf</th>
+    ${DONEMLER.map(d=>`<th style="text-align:center;">${d}</th>`).join('')}
+    <th></th>
+  </tr></thead><tbody>
+    ${sokListesi.map(s=>`<tr>
+      <td><strong>${escapeHtml(s.sinif||'')}</strong></td>
+      ${tikHucresi(s.id,'seneBasi',s.seneBasi,COL.sok)}
+      ${tikHucresi(s.id,'ikincDonem',s.ikincDonem,COL.sok)}
+      ${tikHucresi(s.id,'seneSonu',s.seneSonu,COL.sok)}
+      <td><button class="btn btn-ghost btn-sm" onclick='sokModalAc(${JSON.stringify(s)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function sokModalAc(s){
+  modalAc(s?'ŞÖK Düzenle':'Yeni ŞÖK Kaydı', `
+    <div class="form-group"><label>Sınıf</label><input id="f_sokSinif" value="${escapeHtml(s?.sinif||'')}"></div>
+  `, ()=>{
+    const veri = { sinif: document.getElementById('f_sokSinif').value.trim() };
+    if(!veri.sinif){ toast('Sınıf zorunlu.'); return; }
+    kaydet(COL.sok, s?.id||null, veri); modalKapat();
+  }, s ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.sok).doc(s.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ BEP PLANI ============ */
+function renderBepPlani(){
+  const el = document.getElementById('bepTablo');
+  if(!el) return;
+  if(!bepListesi.length){ el.innerHTML='<p class="empty-state">Henüz BEP/Yıllık Plan kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Öğretmen</th>
+    <th style="text-align:center;">Yıllık Plan</th>
+    <th style="text-align:center;">BEP</th>
+    <th></th>
+  </tr></thead><tbody>
+    ${bepListesi.map(b=>`<tr>
+      <td><strong>${escapeHtml(b.ogretmenAdi||'')}</strong></td>
+      ${tikHucresi(b.id,'yillikPlan',b.yillikPlan,COL.bepPlani)}
+      ${tikHucresi(b.id,'bep',b.bep,COL.bepPlani)}
+      <td><button class="btn btn-ghost btn-sm" onclick='bepModalAc(${JSON.stringify(b)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function bepModalAc(b){
+  modalAc(b?'Kayıt Düzenle':'Yeni BEP/Yıllık Plan Kaydı', `
+    <div class="form-group"><label>Öğretmen Adı</label><input id="f_bepOgretmen" value="${escapeHtml(b?.ogretmenAdi||'')}"></div>
+  `, ()=>{
+    const veri = { ogretmenAdi: document.getElementById('f_bepOgretmen').value.trim() };
+    if(!veri.ogretmenAdi){ toast('Öğretmen adı zorunlu.'); return; }
+    kaydet(COL.bepPlani, b?.id||null, veri); modalKapat();
+  }, b ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.bepPlani).doc(b.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ REHBERLİK ============ */
+function renderRehberlik(){
+  const el = document.getElementById('rehberlikTablo');
+  if(!el) return;
+  if(!rehberlikListesi.length){ el.innerHTML='<p class="empty-state">Henüz rehberlik kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Sınıf</th><th>Danışman Öğretmen</th>
+    <th style="text-align:center;">Yıllık Plan</th>
+    <th style="text-align:center;">Dönem Sonu</th>
+    <th style="text-align:center;">Yıl Sonu</th>
+    ${AYLAR_KISALT.map(a=>`<th style="text-align:center;font-size:11px;">${a}</th>`).join('')}
+    <th></th>
+  </tr></thead><tbody>
+    ${rehberlikListesi.map(r=>`<tr>
+      <td><strong>${escapeHtml(r.sinif||'')}</strong></td>
+      <td>${escapeHtml(r.danismanOgretmen||'')}</td>
+      ${tikHucresi(r.id,'yillikPlan',r.yillikPlan,COL.rehberlik)}
+      ${tikHucresi(r.id,'donemSonuRaporu',r.donemSonuRaporu,COL.rehberlik)}
+      ${tikHucresi(r.id,'yilSonuRaporu',r.yilSonuRaporu,COL.rehberlik)}
+      ${AYLAR_KISALT.map(a=>{const key='ay_'+a.toLowerCase().replace(/[şğıüöç]/g,c=>({ş:'s',ğ:'g',ı:'i',ü:'u',ö:'o',ç:'c'}[c]||c)); return tikHucresi(r.id,key,r[key],COL.rehberlik);}).join('')}
+      <td><button class="btn btn-ghost btn-sm" onclick='rehberlikModalAc(${JSON.stringify(r)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function rehberlikModalAc(r){
+  modalAc(r?'Kayıt Düzenle':'Yeni Rehberlik Kaydı', `
+    <div class="form-group"><label>Sınıf</label><input id="f_rhSinif" value="${escapeHtml(r?.sinif||'')}"></div>
+    <div class="form-group"><label>Danışman Öğretmen</label><input id="f_rhDanisman" value="${escapeHtml(r?.danismanOgretmen||'')}"></div>
+  `, ()=>{
+    const veri = { sinif: document.getElementById('f_rhSinif').value.trim(), danismanOgretmen: document.getElementById('f_rhDanisman').value.trim() };
+    if(!veri.sinif){ toast('Sınıf zorunlu.'); return; }
+    kaydet(COL.rehberlik, r?.id||null, veri); modalKapat();
+  }, r ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.rehberlik).doc(r.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ MAARİF MODEL AYLIK RAPORLAR ============ */
+function renderMaarifRapor(){
+  const el = document.getElementById('maarifTablo');
+  if(!el) return;
+  if(!maarifListesi.length){ el.innerHTML='<p class="empty-state">Henüz rapor kaydı yok.</p>'; return; }
+  const siniflar = [...new Set(maarifListesi.map(m=>m.sinif))].sort();
+  el.innerHTML = siniflar.map(sinif=>{
+    const kayitlar = maarifListesi.filter(m=>m.sinif===sinif);
+    return `<h3 style="margin:18px 0 8px;">${escapeHtml(sinif)}. Sınıf</h3>
+    <table class="table"><thead><tr>
+      <th>Ders</th>
+      ${AYLAR_KISALT.map(a=>`<th style="text-align:center;font-size:11px;">${a}</th>`).join('')}
+      <th style="text-align:center;font-size:11px;">Sene Sonu</th>
+      <th></th>
+    </tr></thead><tbody>
+      ${kayitlar.map(m=>`<tr>
+        <td><strong>${escapeHtml(m.ders||'')}</strong></td>
+        ${AYLAR_KISALT.map(a=>{const key='ay_'+a.toLowerCase().replace(/[şğıüöç]/g,c=>({ş:'s',ğ:'g',ı:'i',ü:'u',ö:'o',ç:'c'}[c]||c)); return tikHucresi(m.id,key,m[key],COL.maarifRapor);}).join('')}
+        ${tikHucresi(m.id,'seneSonu',m.seneSonu,COL.maarifRapor)}
+        <td><button class="btn btn-ghost btn-sm" onclick='maarifModalAc(${JSON.stringify(m)})'>Düzenle</button></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  }).join('');
+}
+function maarifModalAc(m){
+  modalAc(m?'Kayıt Düzenle':'Yeni Rapor Kaydı', `
+    <div class="form-group"><label>Sınıf (örn: 5, 6, 7, 8)</label><input id="f_mrSinif" value="${escapeHtml(m?.sinif||'')}"></div>
+    <div class="form-group"><label>Ders</label><input id="f_mrDers" value="${escapeHtml(m?.ders||'')}"></div>
+  `, ()=>{
+    const veri = { sinif: document.getElementById('f_mrSinif').value.trim(), ders: document.getElementById('f_mrDers').value.trim() };
+    if(!veri.sinif||!veri.ders){ toast('Sınıf ve ders zorunlu.'); return; }
+    kaydet(COL.maarifRapor, m?.id||null, veri); modalKapat();
+  }, m ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.maarifRapor).doc(m.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============ DİĞER EVRAKLAR ============ */
+function renderDigerEvrak(){
+  const el = document.getElementById('digerEvrakTablo');
+  if(!el) return;
+  if(!digerEvrakListesi.length){ el.innerHTML='<p class="empty-state">Henüz evrak kaydı yok.</p>'; return; }
+  el.innerHTML = `<table class="table"><thead><tr>
+    <th>Öğretmen</th><th>Evrak Çeşidi</th><th>Sınıf</th><th>Tarih</th><th></th>
+  </tr></thead><tbody>
+    ${digerEvrakListesi.sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||'')).map(e=>`<tr>
+      <td>${escapeHtml(e.ogretmen||'')}</td>
+      <td>${escapeHtml(e.evrakCesidi||'')}</td>
+      <td>${escapeHtml(e.sinif||'')}</td>
+      <td>${formatTarih(e.tarih?.slice?.(0,10)||e.tarih||'')}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='digerEvrakModalAc(${JSON.stringify(e)})'>Düzenle</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function digerEvrakModalAc(e){
+  modalAc(e?'Evrak Düzenle':'Yeni Evrak', `
+    <div class="form-group"><label>Öğretmen</label><input id="f_deOgretmen" value="${escapeHtml(e?.ogretmen||'')}"></div>
+    <div class="form-group"><label>Evrak Çeşidi</label><input id="f_deEvrakCesidi" value="${escapeHtml(e?.evrakCesidi||'')}"></div>
+    <div class="form-group"><label>Sınıf</label><input id="f_deSinif" value="${escapeHtml(e?.sinif||'')}"></div>
+    <div class="form-group"><label>Tarih</label><input type="date" id="f_deTarih" value="${e?.tarih?.slice?.(0,10)||''}"></div>
+  `, ()=>{
+    const veri = { ogretmen: document.getElementById('f_deOgretmen').value.trim(), evrakCesidi: document.getElementById('f_deEvrakCesidi').value.trim(), sinif: document.getElementById('f_deSinif').value.trim(), tarih: document.getElementById('f_deTarih').value };
+    if(!veri.ogretmen){ toast('Öğretmen adı zorunlu.'); return; }
+    kaydet(COL.digerEvrak, e?.id||null, veri); modalKapat();
+  }, e ? ()=>{ if(confirm('Silinsin mi?')){ db.collection(COL.digerEvrak).doc(e.id).delete(); modalKapat(); } } : null);
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -551,4 +830,3 @@ document.addEventListener('DOMContentLoaded', ()=>{
     authDinleyiciKur();
   }
 });
-
