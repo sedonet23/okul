@@ -1,13 +1,9 @@
 /* ====================================================================
-   GİRİŞ / ÇIKIŞ
-   Tek yönetici hesabı kullanılır. Bu hesabı Firebase Console >
-   Authentication > Users sekmesinden elle oluşturmanız gerekir
-   (e-posta + şifre ile "Add user").
+   GİRİŞ / ÇIKIŞ — Devre dışı bırakıldı, uygulama herkese açık
    ==================================================================== */
 
 function girisEkraniGoster(){
-  document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('app').classList.remove('ready');
+  // Giriş ekranı devre dışı
 }
 function girisEkraniGizle(){
   document.getElementById('loginScreen').classList.add('hidden');
@@ -15,31 +11,15 @@ function girisEkraniGizle(){
 }
 
 function girisYap(e){
-  e.preventDefault();
-  const epostaEl = document.getElementById('loginEposta');
-  const sifreEl = document.getElementById('loginSifre');
-  const hataEl = document.getElementById('loginHata');
-  hataEl.classList.remove('show');
-  auth.signInWithEmailAndPassword(epostaEl.value.trim(), sifreEl.value)
-    .catch(err=>{
-      hataEl.textContent = 'Giriş başarısız: e-posta veya şifre hatalı.';
-      hataEl.classList.add('show');
-      console.error(err);
-    });
+  if(e) e.preventDefault();
 }
 
 function cikisYap(){
-  auth.signOut();
+  // Devre dışı
 }
 
 function authDinleyiciKur(){
-  auth.onAuthStateChanged(kullanici=>{
-    if(kullanici){
-      girisEkraniGizle();
-      uygulamaBaslat();
-    } else {
-      girisEkraniGoster();
-    }
-  });
+  // Giriş atlanıyor, uygulama direkt başlatılıyor
+  girisEkraniGizle();
+  uygulamaBaslat();
 }
-
