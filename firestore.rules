@@ -1,0 +1,15 @@
+// Bu kuralları Firebase Console > Firestore Database > Kurallar (Rules)
+// sekmesine yapıştırıp "Yayınla" (Publish) demeniz gerekir — bu dosya
+// otomatik olarak Firebase'e yüklenmez.
+//
+// Mantık: Sadece giriş yapmış (Authentication ile doğrulanmış) kullanıcı
+// okuyup yazabilir. Uygulamada tek bir yönetici hesabı kullandığınız için
+// bu, verilerinizi internetteki herkesten korumak için yeterlidir.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
