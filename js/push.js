@@ -50,4 +50,3 @@ function pushOnMessageDinleyiciKur(){
     toast(`${baslik}: ${govde}`);
   });
 }
-

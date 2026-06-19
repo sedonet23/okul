@@ -25,7 +25,6 @@ const COL = {
   nobet:'oy_nobetProgrami',
   hatirlaticilar:'oy_hatirlaticilar',
   gorevler:'oy_gorevler',
-  notDefteri:'oy_notDefteri',
   evrak:'oy_evrakTakibi',
   notlar:'oy_notlar',
   cihazlar:'oy_cihazTokenleri',
