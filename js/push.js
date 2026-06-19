@@ -28,7 +28,7 @@ async function bildirimleriAc(){
   try{
     const izin = await Notification.requestPermission();
     if(izin !== 'granted'){ toast('Bildirim izni verilmedi.'); pushDurumGuncelle(); return; }
-    const kayit = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    const kayit = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: kayit });
     if(!token){ toast('Token alınamadı, lütfen tekrar deneyin.'); return; }
     await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({
