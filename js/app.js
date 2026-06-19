@@ -222,7 +222,7 @@ function renderHatirlaticilar(){
       <input type="checkbox" style="width:auto;" ${h.tamamlandi?'checked':''} onchange="hatirlaticiTamamlandiToggle('${h.id}', this.checked)">
       <div class="reminder-body">
         <div class="reminder-title">${escapeHtml(h.baslik)}</div>
-        <div class="reminder-meta">${formatTarih(h.tarih)}${h.saat?' · '+h.saat:''}${h.aciklama?' · '+escapeHtml(h.aciklama):''} — push: ${h.bildirimGonderildi?'gönderildi':'bekliyor'}</div>
+        <div class="reminder-meta">${formatTarih(h.tarih)}${h.saat?' · '+h.saat:''}${h.kategori?' · '+escapeHtml(h.kategori):''}${h.aciklama?' · '+escapeHtml(h.aciklama):''}</div>
       </div>
       <span class="badge badge-${oncelikRengi(h.oncelik)}">${escapeHtml(h.oncelik||'Orta')}</span>
       <button class="btn btn-ghost btn-sm" onclick="hatirlaticiModalAc('${h.id}')">Düzenle</button>
