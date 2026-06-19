@@ -1,0 +1,9 @@
+{
+  "name": "okul-bildirim",
+  "version": "1.0.0",
+  "private": true,
+  "main": "check-and-notify.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0"
+  }
+}
