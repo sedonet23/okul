@@ -1,369 +1,423 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Okul Yönetim Paneli</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1F3330">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-  (function(){
-    var kayitliTema = localStorage.getItem('oyTema');
-    if(kayitliTema === 'dark' || (!kayitliTema && window.matchMedia('(prefers-color-scheme: dark)').matches)){
-      document.documentElement.setAttribute('data-theme','dark');
-    }
-  })();
-</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Okul Yönetim Sistemi (OYS)</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script defer src="app.js"></script>
+    <script defer src="nobet.js"></script>
+    <script defer src="excel-import.js"></script>
+    <script defer src="cizelgeler.js"></script>
 </head>
 <body>
 
-<div id="configWarning" class="config-warning">
-  <div class="config-box">
-    <h2>Firebase Bağlantısı Gerekli</h2>
-    <p><code>js/firebase-init.js</code> dosyasındaki <strong>firebaseConfig</strong> ve <strong>VAPID_KEY</strong> değerlerini kendi Firebase projenizin bilgileriyle doldurmanız gerekiyor. Adım adım kurulum için depodaki <strong>README.md</strong> dosyasına bakın.</p>
-  </div>
-</div>
-
-<div id="loginScreen" class="login-screen">
-  <div class="login-box">
-    <div class="brand-mark">OY</div>
-    <h2>Okul Yönetim Paneli</h2>
-    <div class="login-sub">Devam etmek için giriş yapın.</div>
-    <form id="loginForm">
-      <div class="form-group"><label>E-posta</label><input type="email" id="loginEposta" required autocomplete="username"></div>
-      <div class="form-group"><label>Şifre</label><input type="password" id="loginSifre" required autocomplete="current-password"></div>
-      <button type="submit" class="btn btn-primary btn-block">Giriş Yap</button>
-      <div class="login-error" id="loginHata"></div>
-    </form>
-  </div>
-</div>
-
-<div class="app" id="app">
-
-  <aside class="sidebar">
-    <div class="sidebar-head">
-      <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
-      <div class="brand">
-        <div class="brand-mark">OY</div>
-        <div style="min-width:0;">
-          <div class="brand-title">Okul Yönetimi</div>
-          <div class="brand-sub" id="bugunMetni"></div>
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-placeholder">
+                <i class="fa-solid fa-school fa-2x"></i>
+            </div>
+            <h3>OKUL YÖNETİMİ</h3>
         </div>
-      </div>
-      <button class="theme-toggle in-sidebar" id="temaDugmesi" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
-    </div>
-    <nav class="nav">
-      <button class="nav-tab active" data-tab="panel"><span class="nt-ico">▦</span><span class="nt-label">Genel Bakış</span></button>
-      <button class="nav-tab" data-tab="ogretmenler"><span class="nt-ico">Öğ</span><span class="nt-label">Öğretmenler</span></button>
-      <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico">Dr</span><span class="nt-label">Ders Programı</span></button>
-      <button class="nav-tab" data-tab="nobet"><span class="nt-ico">Nb</span><span class="nt-label">Nöbet Programı</span></button>
-      <button class="nav-tab" data-tab="hatirlaticilar"><span class="nt-ico">!</span><span class="nt-label">Hatırlatıcılar</span></button>
-      <button class="nav-tab" data-tab="gorevler"><span class="nt-ico">✓</span><span class="nt-label">Görevler</span></button>
-      <button class="nav-tab" data-tab="evrak"><span class="nt-ico">Ev</span><span class="nt-label">Evrak Takibi</span></button>
-      <button class="nav-tab" data-tab="notlar"><span class="nt-ico">●</span><span class="nt-label">Notlar</span></button>
-      <div class="nav-separator">— Çizelgeler —</div>
-      <button class="nav-tab" data-tab="sosyalKulupler"><span class="nt-ico">Sk</span><span class="nt-label">Sosyal Kulüpler</span></button>
-      <button class="nav-tab" data-tab="belirliGunler"><span class="nt-ico">Bg</span><span class="nt-label">Belirli Gün/Haftalar</span></button>
-      <button class="nav-tab" data-tab="zumre"><span class="nt-ico">Zm</span><span class="nt-label">Zümre</span></button>
-      <button class="nav-tab" data-tab="sok"><span class="nt-ico">Şk</span><span class="nt-label">ŞÖK</span></button>
-      <button class="nav-tab" data-tab="bepPlani"><span class="nt-ico">Bp</span><span class="nt-label">Yıllık/BEP Planı</span></button>
-      <button class="nav-tab" data-tab="rehberlik"><span class="nt-ico">Rh</span><span class="nt-label">Rehberlik</span></button>
-      <button class="nav-tab" data-tab="maarifRapor"><span class="nt-ico">Mr</span><span class="nt-label">Maarif Model Raporlar</span></button>
-      <button class="nav-tab" data-tab="digerEvrak"><span class="nt-ico">Dğ</span><span class="nt-label">Diğer Evraklar</span></button>
-      <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico">⚙</span><span class="nt-label">Ayarlar</span></button>
-    </nav>
-    <div class="nav-foot"><button class="btn btn-ghost btn-sm btn-block" id="cikisBtn">Çıkış Yap</button></div>
-  </aside>
-
-  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
-    <div class="topbar">
-      <button class="hamburger-btn" id="topbarHamburger" title="Menüyü aç" aria-label="Menüyü aç"><span></span><span></span><span></span></button>
-      <div class="topbar-title">Okul Yönetim Paneli</div>
-      <button class="theme-toggle" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
+        <ul class="sidebar-menu">
+            <li class="active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Kontrol Paneli</li>
+            <li onclick="switchTab('ogretmenler')"><i class="fa-solid fa-user-tie"></i> Öğretmen Bilgileri</li>
+            <li onclick="switchTab('nobet')"><i class="fa-solid fa-calendar-check"></i> Aylık Nöbet Modülü</li>
+            <li onclick="switchTab('cizelgeler')"><i class="fa-solid fa-table-list"></i> Kulüp & Çizelgeler</li>
+            <li onclick="switchTab('periyodik')"><i class="fa-solid fa-arrow-rotate-left"></i> Periyodik İşler</li>
+            <li onclick="switchTab('notlar-gorevler')"><i class="fa-solid fa-clipboard-list"></i> Notlar & Görevler</li>
+            <li onclick="switchTab('ayarlar')"><i class="fa-solid fa-gear"></i> Sistem Ayarları</li>
+        </ul>
     </div>
 
-    <main class="content">
+    <div class="main-content">
+        
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-gauge-high"></i> Canlı Kontrol Paneli</h2>
+                <div class="current-date" id="live-date">--.--.----</div>
+            </div>
+            
+            <div class="dashboard-grid-top">
+                <div class="live-card status-box" id="zil-sayac-box">
+                    <div class="live-icon"><i class="fa-solid fa-bell-ring fa-beat"></i></div>
+                    <div class="live-info">
+                        <h4 id="zil-durum-metni">Durum Hesaplanıyor...</h4>
+                        <h2 id="zil-kalan-sure">--:--</h2>
+                    </div>
+                </div>
+                <div class="live-card amir-box">
+                    <div class="live-icon"><i class="fa-solid fa-user-shield"></i></div>
+                    <div class="live-info">
+                        <h4>Günün Nöbetçi Amiri</h4>
+                        <h3 id="dash-nobetci-amir">Yükleniyor...</h3>
+                        <p id="dash-amir-tel">-</p>
+                    </div>
+                </div>
+            </div>
 
-    <section id="tab-panel" class="tab-panel active">
-      <div class="page-header"><div><div class="page-title">Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
-      <div class="dash-grid" id="dashStats"></div>
-      <div class="dash-cols">
-        <div class="card"><h3>Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
-        <div class="card"><h3>Bugün Nöbetçi Öğretmenler</h3><div id="dashBugunNobet"></div></div>
-      </div>
-      <div class="dash-cols">
-        <div class="card"><h3>Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
-        <div class="card"><h3>Görev Durumu</h3><div id="dashGorevler"></div></div>
-      </div>
-    </section>
+            <div class="dashboard-grid-main">
+                <div class="dashboard-card sticky-table-container">
+                    <h3><i class="fa-solid fa-chalkboard-user"></i> Şu An Dersteki Sınıflar</h3>
+                    <table id="dash-aktif-dersler-tablo">
+                        <thead>
+                            <tr><th>Sınıf</th><th>Ders</th><th>Öğretmen</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="3" class="text-center">Ders saatleri dışındayız veya veri girilmedi.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
 
-    <section id="tab-ogretmenler" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Öğretmenler</div><div class="page-sub">Okuldaki öğretmenlerin bilgileri</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogretmenExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <input type="file" id="ogretmenExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogretmenExceliIceAktar(this.files[0]); this.value='';">
-          <button class="btn btn-amber" onclick="ogretmenModalAc()">+ Yeni Öğretmen</button>
+                <div class="dashboard-card">
+                    <h3><i class="fa-solid fa-users-gear"></i> Bugünün Nöbetçi Dağılımı</h3>
+                    <ul class="live-list" id="dash-nobetci-listesi">
+                        <li><i class="fa-solid fa-circle-notch fa-spin"></i> Nöbet verileri yükleniyor...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dashboard-grid-bottom">
+                <div class="dashboard-card">
+                    <h3><i class="fa-solid fa-sticky-note"></i> Son Eklenen Notlar</h3>
+                    <div class="dash-notes-grid" id="dash-son-notlar"></div>
+                </div>
+                <div class="dashboard-card">
+                    <h3><i class="fa-solid fa-hourglass-half"></i> Bekleyen Kritik İşler</h3>
+                    <ul class="task-summary-list" id="dash-kritik-isler"></ul>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="card">
-        <input type="text" id="ogretmenArama" placeholder="Ada veya branşa göre ara..." oninput="renderOgretmenler()" style="margin-bottom:16px;max-width:320px;">
-        <div style="overflow-x:auto;">
-          <table class="table">
-            <thead><tr><th>Ad Soyad</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
-            <tbody id="ogretmenlerTablo"></tbody>
-          </table>
+
+        <div id="ogretmenler-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-user-tie"></i> Öğretmen Bilgi Sistemi</h2>
+                <button class="btn btn-primary" onclick="openModal('ogretmen-modal')"><i class="fa-solid fa-plus"></i> Yeni Öğretmen Ekle</button>
+            </div>
+            <div class="table-card sticky-table-container">
+                <table id="ogretmen-ana-tablo">
+                    <thead>
+                        <tr>
+                            <th>Adı Soyadı</th>
+                            <th>Ünvan</th>
+                            <th>Derece / Kademe</th>
+                            <th>Branş</th>
+                            <th>Telefon</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ogretmen-liste-body"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
-    </section>
 
-    <section id="tab-dersProgrami" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Ders Programı</div><div class="page-sub">Bir hücreye tıklayarak ders ekleyin/düzenleyin</div></div>
-        <div class="page-header-actions">
-          <select id="dersSinifSecimi" onchange="sinifDegisti(this.value)" style="width:auto;"></select>
-          <button class="btn btn-ghost btn-sm" onclick="yeniSinifEkleDers()">+ Yeni Sınıf</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('dersExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <input type="file" id="dersExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
+        <div id="nobet-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-calendar-days"></i> Tarih Bazlı Aylık Nöbet Yönetimi</h2>
+                <div class="action-group">
+                    <input type="month" id="nobet-ay-secici" class="form-control-inline">
+                    <button class="btn btn-success" onclick="document.getElementById('excel-file-input').click()"><i class="fa-solid fa-file-excel"></i> Excel'den Yükle</button>
+                    <input type="file" id="excel-file-input" style="display:none" accept=".xlsx, .xls">
+                    <button class="btn btn-primary" onclick="openModal('nobet-yer-modal')"><i class="fa-solid fa-map-location-dot"></i> Nöbet Yerleri</button>
+                </div>
+            </div>
+            
+            <div class="table-card sticky-table-container">
+                <table id="aylik-nobet-tablosu">
+                    <thead id="aylik-nobet-header">
+                        </thead>
+                    <tbody id="aylik-nobet-body">
+                        <tr><td colspan="5" class="text-center">Lütfen bir ay seçin veya Excel yükleyin.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
-      <div class="card cizelge-wrap"><table class="schedule-grid sch" id="dersGridTablo"></table></div>
-    </section>
 
-    <section id="tab-nobet" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Nöbet Programı</div><div class="page-sub">Haftalık nöbet yeri ve görevli öğretmen dağılımı</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="yeniKonumEkle()">+ Yeni Nöbet Yeri</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('nobetExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <input type="file" id="nobetExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
+        <div id="cizelgeler-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-table-list"></i> Sosyal Kulüpler & Kurul Çizelgeleri</h2>
+            </div>
+            <div class="card cizelge-ayarlar-kart">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Kulüp Seçin</label>
+                        <select id="cizelge-kulup-select" onchange="loadKulupTablosu()"></select>
+                    </div>
+                </div>
+            </div>
+            <div class="table-card sticky-table-container custom-checkbox-table">
+                <table id="kulup-etkinlik-tablosu">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col">Öğretmen Adı Soyadı</th>
+                            <th>Kulüp Danışmanlığı</th>
+                            <th>ŞÖK Katılımı</th>
+                            <th>Zümre Görevi</th>
+                            <th>Maarif Modülü</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kulup-etkinlik-body"></tbody>
+                </table>
+            </div>
         </div>
-      </div>
-      <div class="card cizelge-wrap"><table class="schedule-grid sch" id="nobetGridTablo"></table></div>
-    </section>
 
-    <section id="tab-hatirlaticilar" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Hatırlatıcılar</div><div class="page-sub">Vadesi gelenler için push bildirimi gönderilir (GitHub Actions ile)</div></div>
-        <button class="btn btn-amber" onclick="hatirlaticiModalAc()">+ Yeni Hatırlatıcı</button>
-      </div>
-      <div class="card">
-        <div style="margin-bottom:14px;display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="hatirlaticiFiltreSec('tumu')">Tümü</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="bekleyen" onclick="hatirlaticiFiltreSec('bekleyen')">Bekleyen</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="tamamlanan" onclick="hatirlaticiFiltreSec('tamamlanan')">Tamamlanan</button>
+        <div id="periyodik-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-arrow-rotate-left"></i> Periyodik İdari İşlerin Takibi</h2>
+                <button class="btn btn-primary" onclick="openModal('periyodik-modal')"><i class="fa-solid fa-plus"></i> Yeni İdari İş Ekle</button>
+            </div>
+            <div id="periyodik-liste-container">
+                </div>
         </div>
-        <div id="hatirlaticiListesi"></div>
-      </div>
-    </section>
 
-    <section id="tab-gorevler" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Görevler</div><div class="page-sub">Kartları sürükleyip bırakarak durumunu değiştirin</div></div>
-        <button class="btn btn-amber" onclick="gorevModalAc()">+ Yeni Görev</button>
-      </div>
-      <div class="kanban">
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapilacak')">
-          <div class="kanban-col-header"><span>Yapılacak</span><span id="sayacYapilacak">0</span></div>
-          <div id="kolonYapilacak"></div>
+        <div id="notlar-gorevler-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-clipboard-list"></i> Not Defteri ve Görev Yöneticisi</h2>
+            </div>
+            <div class="split-view">
+                <div class="split-side card">
+                    <h3><i class="fa-solid fa-sticky-note"></i> Kurumsal Not Al</h3><br>
+                    <form id="not-form" onsubmit="saveNot(event)">
+                        <div class="form-group">
+                            <label>Not Başlığı</label>
+                            <input type="text" id="not-baslik" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Not İçeriği</label>
+                            <textarea id="not-icerik" rows="5" required class="form-control"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Notu Kaydet</button>
+                    </form>
+                    <hr class="divider">
+                    <div class="notes-vertical-list" id="notlar-liste-hedef"></div>
+                </div>
+                <div class="split-main card">
+                    <div class="flex-header">
+                        <h3><i class="fa-solid fa-tasks"></i> Görev Atama ve Yönetimi</h3>
+                        <button class="btn btn-sm btn-secondary" onclick="openModal('gorev-modal')">Yeni Görev</button>
+                    </div><br>
+                    <div class="kanban-board">
+                        <div class="kanban-col">
+                            <h4>Bekliyor</h4>
+                            <div class="kanban-cards" id="kanban-bekliyor"></div>
+                        </div>
+                        <div class="kanban-col">
+                            <h4>İşlemde</h4>
+                            <div class="kanban-cards" id="kanban-islemde"></div>
+                        </div>
+                        <div class="kanban-col">
+                            <h4>Tamamlandı</h4>
+                            <div class="kanban-cards" id="kanban-tamamlandi"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapiliyor')">
-          <div class="kanban-col-header"><span>Yapılıyor</span><span id="sayacYapiliyor">0</span></div>
-          <div id="kolonYapiliyor"></div>
+
+        <div id="aylar-tab" class="tab-content">
+            <div id="ayarlar-tab" class="tab-content">
+                <div class="content-header">
+                    <h2><i class="fa-solid fa-gear"></i> Sistem Zaman ve Ders Ayarları</h2>
+                </div>
+                <div class="card">
+                    <h3><i class="fa-solid fa-clock"></i> 7 Ders Saati ve Esnek Zil Zamanı Ayarları</h3><br>
+                    <div class="form-group">
+                        <label>Öğle Arası Hangi Dersten Sonra?</label>
+                        <select id="ayarlar-ogle-arasi-sonrasi" class="form-control-inline">
+                            <option value="3">3. Dersten Sonra</option>
+                            <option value="4" selected>4. Dersten Sonra</option>
+                            <option value="5">5. Dersten Sonra</option>
+                        </select>
+                    </div>
+                    <div class="table-card">
+                        <table>
+                            <thead>
+                                <tr><th>Ders Periyodu</th><th>Başlangıç Saati</th><th>Bitiş Saati</th></tr>
+                            </thead>
+                            <tbody id="ders-saatleri-inputs-body">
+                                </tbody>
+                        </table>
+                    </div><br>
+                    <button class="btn btn-success" onclick="saveDersSaatleri()"><i class="fa-solid fa-floppy-disk"></i> Saat Ayarlarını Kaydet</button>
+                </div>
+            </div>
         </div>
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'tamamlandi')">
-          <div class="kanban-col-header"><span>Tamamlandı</span><span id="sayacTamamlandi">0</span></div>
-          <div id="kolonTamamlandi"></div>
-        </div>
-      </div>
-    </section>
 
-    <section id="tab-evrak" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Evrak Takibi</div><div class="page-sub">Resmi yazı, dilekçe ve tutanakların durumu</div></div>
-        <button class="btn btn-amber" onclick="evrakModalAc()">+ Yeni Evrak</button>
-      </div>
-      <div class="card">
-        <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="evrakFiltreSec('tumu')">Tümü</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Beklemede" onclick="evrakFiltreSec('Beklemede')">Beklemede</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="İşlemde" onclick="evrakFiltreSec('İşlemde')">İşlemde</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Tamamlandı" onclick="evrakFiltreSec('Tamamlandı')">Tamamlandı</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Arşivlendi" onclick="evrakFiltreSec('Arşivlendi')">Arşivlendi</button>
-        </div>
-        <div id="evrakListesi"></div>
-      </div>
-    </section>
-
-    <section id="tab-notlar" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Notlar</div><div class="page-sub">Genel amaçlı kısa notlarınız</div></div>
-        <button class="btn btn-amber" onclick="notlarModalAc()">+ Yeni Not</button>
-      </div>
-      <div class="notes-grid" id="notlarGrid"></div>
-    </section>
-
-    <!-- SOSYAL KULÜPLER -->
-    <section id="tab-sosyalKulupler" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Sosyal Kulüpler</div><div class="page-sub">Kulüp evrak ve aylık faaliyet takibi — hücreye tıklayarak teslim edildi olarak işaretleyin</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('sosyalKulupler')">+ Yeni Kulüp</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="sosyalKuluplerTablo"></div></div>
-    </section>
-
-    <!-- BELİRLİ GÜN VE HAFTALAR -->
-    <section id="tab-belirliGunler" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Belirli Gün ve Haftalar</div><div class="page-sub">Görev dağılım çizelgesi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="belirliGunModalAc()">+ Yeni Etkinlik</button>
-        </div>
-      </div>
-      <div class="card" id="belirliGunlerTablo"></div>
-    </section>
-
-    <!-- ZÜMRE -->
-    <section id="tab-zumre" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Zümre Toplantıları</div><div class="page-sub">Zümre toplantı takip çizelgesi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('zumre')">+ Yeni Zümre</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="zumreTablo"></div></div>
-    </section>
-
-    <!-- ŞÖK -->
-    <section id="tab-sok" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">ŞÖK</div><div class="page-sub">Şiddet önleme kurulu takip çizelgesi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('sok')">+ Kayıt Ekle</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="sokTablo"></div></div>
-    </section>
-
-    <!-- YILLIK / BEP PLANI -->
-    <section id="tab-bepPlani" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Yıllık / BEP Planları</div><div class="page-sub">Öğretmen bazlı yıllık plan ve BEP takibi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('bepPlani')">+ Kayıt Ekle</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="bepTablo"></div></div>
-    </section>
-
-    <!-- REHBERLİK -->
-    <section id="tab-rehberlik" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Rehberlik</div><div class="page-sub">Sınıf danışmanı ve aylık rehberlik takibi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('rehberlik')">+ Kayıt Ekle</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="rehberlikTablo"></div></div>
-    </section>
-
-    <!-- MAARİF MODEL AYLIK RAPORLAR -->
-    <section id="tab-maarifRapor" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Maarif Model Aylık Raporlar</div><div class="page-sub">Ders ve sınıf bazlı aylık rapor takibi</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('maarifRapor')">+ Kayıt Ekle</button>
-        </div>
-      </div>
-      <div class="card cizelge-wrap"><div id="maarifTablo"></div></div>
-    </section>
-
-    <!-- DİĞER EVRAKLAR -->
-    <section id="tab-digerEvrak" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Diğer Evraklar</div><div class="page-sub">Veli toplantı tutanakları ve diğer belgeler — teslim alınca tikleyin</div></div>
-        <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
-          <button class="btn btn-amber" onclick="digerEvrakModalAc()">+ Yeni Evrak</button>
-        </div>
-      </div>
-      <div class="card" id="digerEvrakTablo"></div>
-    </section>
-
-    <section id="tab-ayarlar" class="tab-panel">
-      <div class="page-header"><div><div class="page-title">Ayarlar</div><div class="page-sub">Bildirimler, tema, içe/dışa aktarma</div></div></div>
-
-      <div class="card" style="margin-bottom:18px;">
-        <h3>Excel Çizelgelerini İçe Aktar</h3>
-        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-          Sosyal Kulüpler, Belirli Gün ve Haftalar, ŞÖK, ZÜMRE, Yıllık/BEP Planı, Rehberlik, Maarif Model Aylık Raporlar
-          ve Diğer sayfalarını içeren tek bir Excel dosyasını (sekme adlarına göre otomatik eşleştirilir) burada yükleyin.
-          Mevcut çizelge satırları korunur, eşleşen satırlar güncellenir.
-        </p>
-        <button class="btn btn-primary" onclick="document.getElementById('cizelgeExcelInput').click()">Excel Dosyası Seç</button>
-        <input type="file" id="cizelgeExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="tumCizelgeleriIceAktar(this.files[0]); this.value='';">
-      </div>
-
-      <div class="card" style="margin-bottom:18px;">
-        <h3>Push Bildirimleri</h3>
-        <p style="color:var(--ink-muted);font-size:13px;">Bu cihazda tarayıcı bildirimi almak için açın. Bildirimlerin gerçek zamanlı tetiklenmesi, GitHub Actions üzerinde her 15 dakikada bir çalışan kontrol betiğine bağlıdır.</p>
-        <button class="btn btn-primary" id="bildirimAcBtn">Bildirimleri Aç</button>
-        <div class="push-status"><span class="push-dot" id="pushDot"></span><span id="pushMetin">Durum kontrol ediliyor...</span></div>
-      </div>
-
-      <div class="card" style="margin-bottom:18px;">
-        <h3>Verileri Dışa Aktar</h3>
-        <p style="color:var(--ink-muted);font-size:13px;">Tüm modüllerdeki verileriniz tek bir JSON dosyasına kaydedilir.</p>
-        <button class="btn btn-primary" onclick="tumVerileriYedekle()">JSON Olarak İndir</button>
-      </div>
-      <div class="card">
-        <h3>Yedekten Geri Yükle</h3>
-        <p style="color:var(--ink-muted);font-size:13px;">Yedekteki kayıtlar eklenir/güncellenir; yedekte olmayan mevcut kayıtlar silinmez.</p>
-        <input type="file" id="yedekDosya" accept="application/json" onchange="yedektenGeriYukle(this.files[0])">
-      </div>
-    </section>
-
-    </main>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <h3 id="modalTitle"></h3>
-    <div id="modalBody"></div>
-    <div class="modal-actions">
-      <button class="btn btn-danger" id="modalSilBtn" style="display:none;margin-right:auto;">Sil</button>
-      <button class="btn btn-ghost" onclick="modalKapat()">Vazgeç</button>
-      <button class="btn btn-primary" id="modalKaydetBtn">Kaydet</button>
     </div>
-  </div>
-</div>
 
-<div class="toast" id="toast"></div>
+    <div id="ogretmen-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="ogretmen-modal-title">Öğretmen Kayıt Formu</h3>
+                <span class="close-btn" onclick="closeModal('ogretmen-modal')">&times;</span>
+            </div>
+            <form id="ogretmen-form" onsubmit="saveOgretmen(event)">
+                <input type="hidden" id="ogretmen-id">
+                <div class="form-group">
+                    <label>Adı Soyadı</label>
+                    <input type="text" id="ogr-ad" required class="form-control">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ünvan</label>
+                        <select id="ogr-unvan" class="form-control">
+                            <option value="Öğretmen">Öğretmen</option>
+                            <option value="Müdür">Müdür</option>
+                            <option value="Müdür Yardımcısı">Müdür Yardımcısı</option>
+                            <option value="Rehber Öğretmen">Rehber Öğretmen</option>
+                            <option value="İdari Personel">İdari Personel</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Derece</label>
+                        <input type="number" id="ogr-derece" min="1" max="9" value="1" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Kademe</label>
+                        <input type="number" id="ogr-kademe" min="1" max="3" value="1" class="form-control">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Branş</label>
+                        <input type="text" id="ogr-brans" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Telefon</label>
+                        <input type="tel" id="ogr-tel" required class="form-control" placeholder="05XXXXXXXXX">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Kaydet</button>
+            </form>
+        </div>
+    </div>
 
-<script src="js/firebase-init.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/push.js"></script>
-<script src="js/cizelgeler.js"></script>
-<script src="js/excel-import.js"></script>
-<script src="js/app.js"></script>
-<script src="js/ui.js"></script>
+    <div id="ogretmen-detay-modal" class="modal-overlay">
+        <div class="modal-box modal-lg">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-id-card"></i> Öğretmen Detay Profili</h3>
+                <span class="close-btn" onclick="closeModal('ogretmen-detay-modal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="detay-profil-ust">
+                    <div class="detay-avatar"><i class="fa-solid fa-user-gear fa-3x"></i></div>
+                    <div class="detay-isim-kart">
+                        <h2 id="detay-ogr-ad">Ahmet Yılmaz</h2>
+                        <p id="detay-ogr-altbilgi">Müdür Yardımcısı — Derece: 1/3</p>
+                    </div>
+                </div>
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" onclick="switchModalTab('detay-idari')">İdari Görevler & Çizelgeler</button>
+                    <button class="modal-tab-btn" onclick="switchModalTab('detay-program')">Ders Programı (7 Saat)</button>
+                </div>
+                <div id="detay-idari-content" class="modal-tab-panel active">
+                    <ul class="detay-bilgi-listesi">
+                        <li><strong>Branş:</strong> <span id="detay-brans">-</span></li>
+                        <li><strong>Telefon:</strong> <span id="detay-tel">-</span></li>
+                        <li><strong>Sosyal Kulüp:</strong> <span id="detay-kulup">-</span></li>
+                        <li><strong>ŞÖK Komisyonu:</strong> <span id="detay-sok">-</span></li>
+                        <li><strong>Zümre Görevi:</strong> <span id="detay-zumre">-</span></li>
+                        <li><strong>Maarif Durumu:</strong> <span id="detay-maarif">-</span></li>
+                    </ul>
+                </div>
+                <div id="detay-program-content" class="modal-tab-panel">
+                    <div class="sticky-table-container">
+                        <table class="text-center">
+                            <thead>
+                                <tr><th>Gün</th><th>1</th><th>2</th><th>3</th><th>4</th><th>Öğle</th><th>5</th><th>6</th><th>7</th></tr>
+                            </thead>
+                            <tbody id="detay-ders-program-body">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="nobet-yer-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Nöbet Yerleri Tanımlama</h3>
+                <span class="close-btn" onclick="closeModal('nobet-yer-modal')">&times;</span>
+            </div>
+            <form id="nobet-yer-form" onsubmit="saveNobetYeri(event)">
+                <div class="form-group">
+                    <label>Yeni Nöbet Konumu Ekle</label>
+                    <div class="input-group">
+                        <input type="text" id="yeni-nobet-yeri-adi" class="form-control" required placeholder="Örn: Bahçe, Kantin Katı">
+                        <button type="submit" class="btn btn-primary">Ekle</button>
+                    </div>
+                </div>
+            </form>
+            <ul class="nobet-yer-listesi" id="nobet-yerleri-liste-hedef"></ul>
+        </div>
+    </div>
+
+    <div id="gorev-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Yeni İdari Görev Atama</h3>
+                <span class="close-btn" onclick="closeModal('gorev-modal')">&times;</span>
+            </div>
+            <form id="gorev-form" onsubmit="saveGorev(event)">
+                <div class="form-group">
+                    <label>Görev Başlığı / Tanımı</label>
+                    <input type="text" id="gor-baslik" required class="form-control">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Öncelik</label>
+                        <select id="gor-oncelik" class="form-control">
+                            <option value="Düşük">Düşük</option>
+                            <option value="Orta" selected>Orta</option>
+                            <option value="Yüksek">Yüksek</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Son Gün</label>
+                        <input type="date" id="gor-tarih" required class="form-control">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Görevi Tanımla</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="periyodik-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Yeni Periyodik İdari İş Kaydı</h3>
+                <span class="close-btn" onclick="closeModal('periyodik-modal')">&times;</span>
+            </div>
+            <form id="periyodik-form" onsubmit="savePeriyodikIs(event)">
+                <div class="form-group">
+                    <label>İşin Adı / Türü</label>
+                    <input type="text" id="peri-ad" required class="form-control" placeholder="Örn: Ek Ders İşlemleri, İŞKUR Bildirimi">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Başlangıç Tarihi</label>
+                        <input type="date" id="peri-baslangic" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Bitiş Tarihi</label>
+                        <input type="date" id="peri-bitis" required class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Özel Notlar (Opsiyonel)</label>
+                    <textarea id="peri-not" rows="3" class="form-control"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">İşi Takvime Ekle</button>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>
