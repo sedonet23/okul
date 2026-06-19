@@ -4,12 +4,16 @@
 
 function girisEkraniGoster(){
   document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('app').classList.remove('ready');
   document.getElementById('app').style.display = 'none';
 }
 
 function girisEkraniGizle(){
   document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('app').style.display = 'block';
+  const appEl = document.getElementById('app');
+  appEl.style.display = '';       // CSS'e bırak
+  appEl.classList.add('ready');   // eski CSS: #app.ready { display:flex }
+  appEl.style.cssText = appEl.style.cssText; // force reflow
 }
 
 function girisYap(e){
@@ -20,9 +24,6 @@ function girisYap(e){
   hataEl.classList.remove('show');
 
   auth.signInWithEmailAndPassword(epostaEl.value.trim(), sifreEl.value)
-    .then(() => {
-      // authDinleyiciKur zaten onAuthStateChanged ile halleder
-    })
     .catch(err => {
       hataEl.textContent = 'Giriş başarısız: e-posta veya şifre hatalı.';
       hataEl.classList.add('show');
@@ -43,4 +44,4 @@ function authDinleyiciKur(){
       girisEkraniGoster();
     }
   });
-}w
+}
