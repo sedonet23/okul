@@ -21,7 +21,7 @@
         <button class="hamburger-btn" onclick="toggleMenu()">
             <i class="fa-solid fa-bars"></i>
         </button>
-        <div class="mobile-title">Okul Yönetimi</div>
+        <div class="mobile-title">Okul Yönetim Paneli</div>
     </div>
 
     <div class="sidebar" id="main-sidebar">
@@ -42,12 +42,16 @@
         </ul>
     </div>
 
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleMenu()"></div>
+
     <div class="main-content">
+        
         <div id="dashboard-tab" class="tab-content active">
             <div class="content-header">
                 <h2><i class="fa-solid fa-gauge-high"></i> Canlı Kontrol Paneli</h2>
                 <div class="current-date" id="live-date">--.--.----</div>
             </div>
+            
             <div class="dashboard-grid-top">
                 <div class="live-card status-box" id="zil-sayac-box">
                     <div class="live-icon"><i class="fa-solid fa-bell-ring fa-beat"></i></div>
@@ -65,14 +69,20 @@
                     </div>
                 </div>
             </div>
+
             <div class="dashboard-grid-main">
                 <div class="dashboard-card sticky-table-container">
                     <h3><i class="fa-solid fa-chalkboard-user"></i> Şu An Dersteki Sınıflar</h3>
-                    <table id="dash-aktif-dersler-tablo">
-                        <thead><tr><th>Sınıf</th><th>Ders</th><th>Öğretmen</th></tr></thead>
-                        <tbody><tr><td colspan="3" class="text-center">Ders saatleri dışındayız veya veri girilmedi.</td></tr></tbody>
+                    <table>
+                        <thead>
+                            <tr><th>Sınıf</th><th>Ders</th><th>Öğretmen</th></tr>
+                        </thead>
+                        <tbody id="dash-aktif-dersler-tablo">
+                            <tr><td colspan="3" class="text-center">Ders saatleri dışındayız veya veri girilmedi.</td></tr>
+                        </tbody>
                     </table>
                 </div>
+
                 <div class="dashboard-card">
                     <h3><i class="fa-solid fa-users-gear"></i> Bugünün Nöbetçi Dağılımı</h3>
                     <ul class="live-list" id="dash-nobetci-listesi">
@@ -80,6 +90,7 @@
                     </ul>
                 </div>
             </div>
+
             <div class="dashboard-grid-bottom">
                 <div class="dashboard-card">
                     <h3><i class="fa-solid fa-sticky-note"></i> Son Eklenen Notlar</h3>
@@ -95,17 +106,134 @@
         <div id="ogretmenler-tab" class="tab-content">
             <div class="content-header">
                 <h2><i class="fa-solid fa-user-tie"></i> Öğretmen Bilgi Sistemi</h2>
-                <button class="btn btn-primary" onclick="openModal('ogretmen-modal')"><i class="fa-solid fa-plus"></i> Yeni Öğretmen Ekle</button>
+                <button class="btn btn-primary" onclick="openModal('ogretmen-modal')"><i class="fa-solid fa-plus"></i> Yeni Ekle</button>
             </div>
             <div class="table-card sticky-table-container">
                 <table id="ogretmen-ana-tablo">
-                    <thead><tr><th>Adı Soyadı</th><th>Ünvan</th><th>Derece / Kademe</th><th>Branş</th><th>Telefon</th><th>İşlemler</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Adı Soyadı</th>
+                            <th>Ünvan</th>
+                            <th>Derece/Kademe</th>
+                            <th>Branş</th>
+                            <th>Telefon</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
                     <tbody id="ogretmen-liste-body"></tbody>
                 </table>
             </div>
         </div>
 
         <div id="nobet-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-calendar-days"></i> Aylık Nöbet Planı</h2>
+                <div class="action-group">
+                    <input type="month" id="nobet-ay-secici" class="form-control-inline">
+                    <button class="btn btn-success" onclick="document.getElementById('excel-file-input').click()"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                    <input type="file" id="excel-file-input" style="display:none" accept=".xlsx, .xls">
+                    <button class="btn btn-primary" onclick="openModal('nobet-yer-modal')"><i class="fa-solid fa-map-location-dot"></i> Yerler</button>
+                </div>
+            </div>
+            <div class="table-card sticky-table-container">
+                <table id="aylik-nobet-tablosu">
+                    <thead id="aylik-nobet-header"></thead>
+                    <tbody id="aylik-nobet-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="cizelgeler-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-table-list"></i> Kulüp & Kurul Görevleri</h2>
+            </div>
+            <div class="card" style="margin-bottom:15px; padding:15px;">
+                <label style="font-weight:600; display:block; margin-bottom:5px;">İncelenecek Kulüp Seçimi:</label>
+                <select id="cizelge-kulup-select" onchange="loadKulupTablosu()" class="form-control"></select>
+            </div>
+            <div class="table-card sticky-table-container">
+                <table id="kulup-etkinlik-tablosu">
+                    <thead>
+                        <tr>
+                            <th>Öğretmen Bilgisi</th>
+                            <th>Kulüp Danışmanlığı</th>
+                            <th>ŞÖK Katılımı</th>
+                            <th>Zümre Görevi</th>
+                            <th>Maarif Modülü</th>
+                        </tr>
+                    </thead>
+                    <tbody id="kulup-etkinlik-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="periyodik-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-arrow-rotate-left"></i> Periyodik İş Takibi</h2>
+                <button class="btn btn-primary" onclick="openModal('periyodik-modal')"><i class="fa-solid fa-plus"></i> Yeni İş</button>
+            </div>
+            <div id="periyodik-liste-container"></div>
+        </div>
+
+        <div id="notlar-gorevler-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-clipboard-list"></i> Notlar & Görevler</h2>
+            </div>
+            <div class="split-view">
+                <div class="split-side card">
+                    <h3>Not Al</h3>
+                    <form id="not-form" onsubmit="saveNot(event)">
+                        <div class="form-group"><label>Başlık</label><input type="text" id="not-baslik" required class="form-control"></div>
+                        <div class="form-group"><label>İçerik</label><textarea id="not-icerik" rows="4" required class="form-control"></textarea></div>
+                        <button type="submit" class="btn btn-primary">Kaydet</button>
+                    </form>
+                    <div class="notes-vertical-list" id="notlar-liste-hedef" style="margin-top:15px;"></div>
+                </div>
+                <div class="split-main card">
+                    <h3>Görev Kanbany</h3>
+                    <button class="btn btn-primary" onclick="openModal('gorev-modal')" style="margin:10px 0;">Yeni Görev Ekle</button>
+                    <div class="kanban-board">
+                        <div class="kanban-col"><h4>Bekliyor</h4><div id="kanban-bekliyor"></div></div>
+                        <div class="kanban-col"><h4>İşlemde</h4><div id="kanban-islemde"></div></div>
+                        <div class="kanban-col"><h4>Bitti</h4><div id="kanban-tamamlandi"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="ayarlar-tab" class="tab-content">
+            <div class="content-header">
+                <h2><i class="fa-solid fa-gear"></i> Zaman ve Ders Ayarları</h2>
+            </div>
+            <div class="card">
+                <div class="form-group">
+                    <label>Öğle Arası Hangi Dersten Sonra?</label>
+                    <select id="ayarlar-ogle-arasi-sonrasi" class="form-control">
+                        <option value="3">3. Dersten Sonra</option>
+                        <option value="4" selected>4. Dersten Sonra</option>
+                        <option value="5">5. Dersten Sonra</option>
+                    </select>
+                </div>
+                <div class="table-card">
+                    <table>
+                        <thead><tr><th>Ders</th><th>Giriş</th><th>Çıkış</th></tr></thead>
+                        <tbody id="ders-saatleri-inputs-body"></tbody>
+                    </table>
+                </div><br>
+                <button class="btn btn-success" onclick="saveDersSaatleri()">Ayarları Kaydet</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="ogretmen-modal" class="modal-overlay"><div class="modal-box"><h3>Öğretmen Formu</h3><span class="close-btn" onclick="closeModal('ogretmen-modal')">&times;</span><form id="ogretmen-form" onsubmit="saveOgretmen(event)"><input type="hidden" id="ogretmen-id"><div class="form-group"><label>Ad Soyad</label><input type="text" id="ogr-ad" required class="form-control"></div><div class="form-group"><label>Ünvan</label><select id="ogr-unvan" class="form-control"><option value="Öğretmen">Öğretmen</option><option value="Müdür Yard.">Müdür Yard.</option></select></div><div class="form-group"><label>Branş</label><input type="text" id="ogr-brans" required class="form-control"></div><div class="form-group"><label>Telefon</label><input type="tel" id="ogr-tel" required class="form-control"></div><button type="submit" class="btn btn-primary">Kaydet</button></form></div></div>
+    <div id="nobet-yer-modal" class="modal-overlay"><div class="modal-box"><h3>Nöbet Konumları</h3><span class="close-btn" onclick="closeModal('nobet-yer-modal')">&times;</span><form id="nobet-yer-form" onsubmit="saveNobetYeri(event)"><div class="form-group"><input type="text" id="yeni-nobet-yeri-adi" class="form-control" required placeholder="Konum adı"><button type="submit" class="btn btn-primary" style="margin-top:5px;">Ekle</button></div></form><ul id="nobet-yerleri-liste-hedef"></ul></div></div>
+    <div id="gorev-modal" class="modal-overlay"><div class="modal-box"><h3>Görev Tanımı</h3><span class="close-btn" onclick="closeModal('gorev-modal')">&times;</span><form id="gorev-form" onsubmit="saveGorev(event)"><div class="form-group"><label>Görev</label><input type="text" id="gor-baslik" required class="form-control"></div><div class="form-group"><label>Öncelik</label><select id="gor-oncelik" class="form-control"><option value="Orta">Orta</option><option value="Yüksek">Yüksek</option></select></div><div class="form-group"><label>Tarih</label><input type="date" id="gor-tarih" required class="form-control"></div><button type="submit" class="btn btn-primary">Ata</button></form></div></div>
+    <div id="periyodik-modal" class="modal-overlay"><div class="modal-box"><h3>Periyodik İş Kaydı</h3><span class="close-btn" onclick="closeModal('periyodik-modal')">&times;</span><form id="periyodik-form" onsubmit="savePeriyodikIs(event)"><div class="form-group"><label>İş Adı</label><input type="text" id="peri-ad" required class="form-control"></div><div class="form-group"><label>Başlangıç</label><input type="date" id="peri-baslangic" required class="form-control"></div><div class="form-group"><label>Bitiş</label><input type="date" id="peri-bitis" required class="form-control"></div><button type="submit" class="btn btn-primary">Ekle</button></form></div></div>
+    <div id="ogretmen-detay-modal" class="modal-overlay"><div class="modal-box"><h3>Öğretmen Profili</h3><span class="close-btn" onclick="closeModal('ogretmen-detay-modal')">&times;</span><div id="detay-ogr-ad" style="font-weight:700;"></div><div id="detay-idari-content"></div></div></div>
+
+</body>
+</html>
             <div class="content-header">
                 <h2><i class="fa-solid fa-calendar-days"></i> Tarih Bazlı Aylık Nöbet Yönetimi</h2>
                 <div class="action-group">
