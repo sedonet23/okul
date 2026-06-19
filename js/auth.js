@@ -1,22 +1,21 @@
 /* ================================================================
-   GİRİŞ / ÇIKIŞ — DEVRE DIŞI
-   Uygulama herkese açık çalışıyor.
+   js/auth.js
+   GİRİŞ EKRANI KALDIRILDI — uygulama artık oturum açma gerektirmeden
+   doğrudan çalışır. Firestore kuralları da "allow read, write: if true"
+   olarak açıldı (bkz. firestore.rules). Bu fonksiyonlar geriye dönük
+   uyumluluk için boş/no-op bırakıldı; index.html'de login formu yok.
    ================================================================ */
 
-function girisEkraniGoster(){ }
-
+function girisEkraniGoster(){ /* no-op: login ekranı kaldırıldı */ }
 function girisEkraniGizle(){
-  const ls = document.getElementById('loginScreen');
-  if(ls) ls.style.display = 'none';
   const app = document.getElementById('app');
-  if(app){ app.style.display = 'flex'; app.classList.add('ready','show'); }
+  if(app) app.classList.add('ready','show');
 }
-
 function girisYap(e){ if(e) e.preventDefault(); }
-
-function cikisYap(){ }
+function cikisYap(){ /* no-op: girişsiz modda çıkış işlemi yok */ }
 
 function authDinleyiciKur(){
+  // Oturum kontrolü yapılmadan uygulama doğrudan başlatılır.
   girisEkraniGizle();
   if(typeof uygulamaBaslat === 'function') uygulamaBaslat();
 }
