@@ -1,23 +1,23 @@
 /* ====================================================================
-   BÄ°LDÄ°RÄ°M KONTROL BETÄ°ÄÄ°
-   GitHub Actions tarafÄ±ndan zamanlanmÄ±ÅŸ olarak (varsayÄ±lan: her 15
-   dakikada bir) Ã§alÄ±ÅŸtÄ±rÄ±lÄ±r. Firestore'daki hatÄ±rlatÄ±cÄ± ve gÃ¶revleri
-   kontrol eder, vadesi gelmiÅŸ ve henÃ¼z bildirimi gÃ¶nderilmemiÅŸ olanlar
-   iÃ§in kayÄ±tlÄ± tÃ¼m cihazlara Firebase Cloud Messaging ile push
-   bildirimi gÃ¶nderir.
+   BİLDİRİM KONTROL BETİĞİ
+   GitHub Actions tarafından zamanlanmış olarak (varsayılan: her 15
+   dakikada bir) çalıştırılır. Firestore'daki hatırlatıcı ve görevleri
+   kontrol eder, vadesi gelmiş ve henüz bildirimi gönderilmemiş olanlar
+   için kayıtlı tüm cihazlara Firebase Cloud Messaging ile push
+   bildirimi gönderir.
 
-   Gerekli ortam deÄŸiÅŸkeni: FIREBASE_SERVICE_ACCOUNT
-   (Firebase Console > Proje AyarlarÄ± > Hizmet HesaplarÄ± > Yeni Ã–zel
-   Anahtar OluÅŸtur ile indirilen JSON dosyasÄ±nÄ±n TAM Ä°Ã‡ERÄ°ÄÄ°.
-   Bu deÄŸer GitHub deposunda Settings > Secrets and variables > Actions
-   bÃ¶lÃ¼mÃ¼ne "FIREBASE_SERVICE_ACCOUNT" adÄ±yla eklenmelidir. ASLA kod
-   iÃ§ine veya depoya yazÄ±lmamalÄ±dÄ±r.)
+   Gerekli ortam değişkeni: FIREBASE_SERVICE_ACCOUNT
+   (Firebase Console > Proje Ayarları > Hizmet Hesapları > Yeni Özel
+   Anahtar Oluştur ile indirilen JSON dosyasının TAM İÇERİĞİ.
+   Bu değer GitHub deposunda Settings > Secrets and variables > Actions
+   bölümüne "FIREBASE_SERVICE_ACCOUNT" adıyla eklenmelidir. ASLA kod
+   içine veya depoya yazılmamalıdır.)
    ==================================================================== */
 const admin = require('firebase-admin');
 
 function pad(n){ return n.toString().padStart(2, '0'); }
 
-// TÃ¼rkiye sabit UTC+3 kullanÄ±r (yaz saati uygulamasÄ± yoktur).
+// Türkiye sabit UTC+3 kullanır (yaz saati uygulaması yoktur).
 function turkiyeSimdi(){
   const simdi = new Date(Date.now() + 3 * 60 * 60 * 1000);
   const tarihISO = `${simdi.getUTCFullYear()}-${pad(simdi.getUTCMonth() + 1)}-${pad(simdi.getUTCDate())}`;
@@ -28,7 +28,7 @@ function turkiyeSimdi(){
 async function main(){
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
   if(!serviceAccountJson){
-    console.error('FIREBASE_SERVICE_ACCOUNT ortam deÄŸiÅŸkeni bulunamadÄ±. GitHub Secrets ayarlarÄ±nÄ± kontrol edin.');
+    console.error('FIREBASE_SERVICE_ACCOUNT ortam değişkeni bulunamadı. GitHub Secrets ayarlarını kontrol edin.');
     process.exit(1);
   }
   const serviceAccount = JSON.parse(serviceAccountJson);
@@ -37,7 +37,7 @@ async function main(){
 
   const { tarihISO: bugunISO, saatHHMM: suankiSaat } = turkiyeSimdi();
   const esikSimdi = `${bugunISO} ${suankiSaat}`;
-  console.log(`Kontrol zamanÄ± (TÃ¼rkiye saatiyle): ${esikSimdi}`);
+  console.log(`Kontrol zamanı (Türkiye saatiyle): ${esikSimdi}`);
 
   const gonderilecekler = []; // {baslik, govde, koleksiyon, docId}
 
@@ -48,7 +48,7 @@ async function main(){
     const esik = `${v.tarih} ${v.saat || '00:00'}`;
     if(esik <= esikSimdi){
       gonderilecekler.push({
-        baslik: `HatÄ±rlatÄ±cÄ±: ${v.baslik || ''}`,
+        baslik: `Hatırlatıcı: ${v.baslik || ''}`,
         govde: v.aciklama || `Tarih: ${v.tarih}${v.saat ? ' ' + v.saat : ''}`,
         koleksiyon: 'oy_hatirlaticilar',
         docId: doc.id
@@ -62,7 +62,7 @@ async function main(){
     if(v.durum === 'tamamlandi' || v.bildirimGonderildi || !v.sonTarih) return;
     if(v.sonTarih <= bugunISO){
       gonderilecekler.push({
-        baslik: `GÃ¶rev Vadesi: ${v.baslik || ''}`,
+        baslik: `Görev Vadesi: ${v.baslik || ''}`,
         govde: v.aciklama || `Son tarih: ${v.sonTarih}`,
         koleksiyon: 'oy_gorevler',
         docId: doc.id
@@ -71,7 +71,7 @@ async function main(){
   });
 
   if(gonderilecekler.length === 0){
-    console.log('GÃ¶nderilecek bildirim yok.');
+    console.log('Gönderilecek bildirim yok.');
     return;
   }
 
@@ -80,7 +80,7 @@ async function main(){
   const tokens = tokenDocs.map(t=>t.token).filter(Boolean);
 
   if(tokens.length === 0){
-    console.log('KayÄ±tlÄ± cihaz token bulunamadÄ±. Uygulamada Ayarlar > Bildirimleri AÃ§ ile bir cihaz kaydedin.');
+    console.log('Kayıtlı cihaz token bulunamadı. Uygulamada Ayarlar > Bildirimleri Aç ile bir cihaz kaydedin.');
   }
 
   const gecersizTokenler = new Set();
@@ -98,15 +98,15 @@ async function main(){
             if(kod === 'messaging/registration-token-not-registered' || kod === 'messaging/invalid-registration-token'){
               gecersizTokenler.add(tokens[i]);
             }
-            console.warn('GÃ¶nderim hatasÄ±:', kod);
+            console.warn('Gönderim hatası:', kod);
           }
         });
-        console.log(`GÃ¶nderildi: "${item.baslik}" (${yanit.successCount}/${tokens.length} cihaza ulaÅŸtÄ±)`);
+        console.log(`Gönderildi: "${item.baslik}" (${yanit.successCount}/${tokens.length} cihaza ulaştı)`);
       }catch(err){
-        console.error('GÃ¶nderim sÄ±rasÄ±nda hata:', err.message);
+        console.error('Gönderim sırasında hata:', err.message);
       }
     }
-    // AynÄ± bildirimi tekrar tekrar gÃ¶ndermemek iÃ§in iÅŸaretle.
+    // Aynı bildirimi tekrar tekrar göndermemek için işaretle.
     await db.collection(item.koleksiyon).doc(item.docId).update({ bildirimGonderildi: true });
   }
 
@@ -115,7 +115,7 @@ async function main(){
     if(eslesen) await db.collection('oy_cihazTokenleri').doc(eslesen.id).delete();
   }
 
-  console.log(`Toplam ${gonderilecekler.length} bildirim iÅŸlendi.`);
+  console.log(`Toplam ${gonderilecekler.length} bildirim işlendi.`);
 }
 
 main().catch(err=>{
