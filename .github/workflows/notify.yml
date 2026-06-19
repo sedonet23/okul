@@ -1,6 +1,6 @@
-name: Hatirlatma ve Gorev Bildirimleri
+name: Hatırlatıcı ve Görev Bildirimlerini Kontrol Et
 
-"on":
+on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch: {}
@@ -17,11 +17,11 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Bagimliliklari yukle
+      - name: Bağımlılıkları yükle
         working-directory: functions-free
         run: npm install
 
-      - name: Bildirimleri kontrol et ve gonder
+      - name: Kontrol betiğini çalıştır
         working-directory: functions-free
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
