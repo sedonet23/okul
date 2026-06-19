@@ -1,111 +1,63 @@
-/* ====================================================================
-   js/cizelgeler.js
-   Excel'deki 6 "X işaretli takip çizelgesi" sayfasını (Sosyal Kulüpler,
-   ŞÖK, ZÜMRE, Yıllık/BEP Planı, Rehberlik, Maarif Model Aylık Raporlar)
-   tek bir genel modülle yönetir. Her satır bir Firestore dokümanıdır;
-   sütunlar sabittir (gerçek Excel çizelgesinden alınmıştır), hücreye
-   tıklayınca o sütun için tik açılır/kapanır.
+// SOSYAL KULÜP VE KURULLAR ÇİZELGESİ MOTORU
+let kulüpListesi = dbMock.get('kulup_listesi', ["Kütüphanecilik Kulübü", "Yeşilay Kulübü", "Spor ve İzcilik Kulübü", "Tiyatro Kulübü"]);
+let cizelgelerVeri = dbMock.get('cizelgeler_veri', {}); // Yapı: { 'Kulüp Adı': { 'ogr_id': {kulup: true, sok: false...} } }
 
-   Ayrıca farklı şekle sahip iki çizelgeyi de içerir:
-   - Belirli Gün ve Haftalar (ay gruplu görev listesi)
-   - Diğer Evraklar (öğretmen/evrak/sınıf/tarih + teslim tiki)
-   ==================================================================== */
-
-const AYLAR_TAM = ['EYLÜL','EKİM','KASIM','ARALIK','OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN'];
-
-function slugAnahtar(metin){
-  const harfler = { 'ı':'i','İ':'i','ş':'s','Ş':'s','ğ':'g','Ğ':'g','ü':'u','Ü':'u','ö':'o','Ö':'o','ç':'c','Ç':'c' };
-  return String(metin).split('').map(c=>harfler[c]||c).join('')
-    .toLocaleLowerCase('en').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-}
-
-/* Her çizelge tipinin sabit sütun listesi ve satır alanları */
-const CIZELGE_TANIMLARI = {
-  sosyalKulupler: {
-    baslik: 'Sosyal Kulüpler', tabloId: 'sosyalKuluplerTablo',
-    rowEtiket: 'Kulüp Adı', extraAlan: 'danisman', extraEtiket: 'Danışman Öğretmen',
-    kolonlar: ['YILLIK PLAN','TOPLUM HİZMET PLANI', ...AYLAR_TAM, 'YIL SONU RAPORU']
-  },
-  sok: {
-    baslik: 'ŞÖK', tabloId: 'sokTablo',
-    rowEtiket: 'Sınıf', extraAlan: null,
-    kolonlar: ['SENE BAŞI','2. DÖNEM','SENE SONU']
-  },
-  zumre: {
-    baslik: 'Zümre', tabloId: 'zumreTablo',
-    rowEtiket: 'Zümre / Ders', extraAlan: null,
-    kolonlar: ['SENE BAŞI','2. DÖNEM','SENE SONU']
-  },
-  bepPlani: {
-    baslik: 'Yıllık / BEP Planı', tabloId: 'bepTablo',
-    rowEtiket: 'Öğretmen / Sınıf', extraAlan: null,
-    kolonlar: ['Yıllık Plan','BEP']
-  },
-  rehberlik: {
-    baslik: 'Rehberlik', tabloId: 'rehberlikTablo',
-    rowEtiket: 'Sınıf', extraAlan: 'danisman', extraEtiket: 'Danışman Öğretmen',
-    kolonlar: ['YILLIK PLAN','DÖNEM SONU RAPORU','YIL SONU RAPORU', ...AYLAR_TAM]
-  },
-  maarifRapor: {
-    baslik: 'Maarif Model Aylık Raporlar', tabloId: 'maarifTablo',
-    rowEtiket: 'Ders', extraAlan: 'sinifGrubu', extraEtiket: 'Sınıf',
-    kolonlar: [...AYLAR_TAM, 'SENE SONU']
-  }
-};
-
-/* tip -> dizi önbelleği (onSnapshot ile doldurulur, bkz. app.js baglantilariKur) */
-let cizelgeVerileri = { sosyalKulupler: [], sok: [], zumre: [], bepPlani: [], rehberlik: [], maarifRapor: [] };
-let belirliGunlerListesi = [];
-let digerEvrakListesi = [];
-
-/* ============== GENEL ÇİZELGE RENDER + CRUD ============== */
-function renderCizelge(tip){
-  const tanim = CIZELGE_TANIMLARI[tip];
-  const hedef = document.getElementById(tanim.tabloId);
-  if(!hedef) return;
-  const liste = [...cizelgeVerileri[tip]].sort((a,b)=> (a.ad||'').localeCompare(b.ad||'','tr'));
-
-  if(liste.length === 0){
-    hedef.innerHTML = `<div class="empty-state">Henüz kayıt yok. "+ Yeni" ile ekleyin veya Excel'den içe aktarın.</div>`;
-    return;
-  }
-
-  let html = `<table class="cizelge"><thead><tr><th class="cz-rowlabel-th">${escapeHtml(tanim.rowEtiket)}</th>`;
-  tanim.kolonlar.forEach(k=>{ html += `<th>${escapeHtml(k)}</th>`; });
-  html += `<th></th></tr></thead><tbody>`;
-
-  liste.forEach(satir=>{
-    const durumlar = satir.durumlar || {};
-    html += `<tr><td class="cz-rowlabel"><span>${escapeHtml(satir.ad||'')}${tanim.extraAlan && satir[tanim.extraAlan] ? `<span class="cz-extra">${escapeHtml(satir[tanim.extraAlan])}</span>` : ''}</span></td>`;
-    tanim.kolonlar.forEach(k=>{
-      const anahtar = slugAnahtar(k);
-      const acik = !!durumlar[anahtar];
-      html += `<td><div class="cz-check ${acik?'on':''}" onclick="cizelgeHucreToggle('${tip}','${satir.id}','${anahtar}',${!acik})">${acik?'✓':''}</div></td>`;
+function initCizelgeModulu() {
+    const select = document.getElementById('cizelge-kulup-select');
+    if (!select) return;
+    
+    select.innerHTML = '';
+    kulüpListesi.forEach(k => {
+        select.innerHTML += `<option value="${k}">${k}</option>`;
     });
-    html += `<td><button class="cz-del" title="Satırı sil" onclick="cizelgeSatirSil('${tip}','${satir.id}')">🗑</button></td></tr>`;
-  });
-  html += `</tbody></table>`;
-  hedef.innerHTML = html;
+
+    loadKulupTablosu();
 }
 
-function cizelgeHucreToggle(tip, id, anahtar, yeniDeger){
-  db.collection(COL[tip]).doc(id).update({ [`durumlar.${anahtar}`]: yeniDeger })
-    .catch(err=>toast('Güncellenemedi: '+err.message));
+function loadKulupTablosu() {
+    const kulupAdi = document.getElementById('cizelge-kulup-select').value;
+    const tbody = document.getElementById('kulup-etkinlik-body');
+    if (!tbody || !kulupAdi) return;
+
+    tbody.innerHTML = ogretmenler.length === 0 ? `<tr><td colspan="5" class="text-center">Öğretmen listesi boş olduğu için çizelge oluşturulamadı.</td></tr>` : '';
+    
+    if(!cizelgelerVeri[kulupAdi]) cizelgelerVeri[kulupAdi] = {};
+
+    ogretmenler.forEach(o => {
+        const d = cizelgelerVeri[kulupAdi][o.id] || { kulup: false, sok: false, zumre: false, maarif: false };
+        
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="sticky-col">
+                <div class="cz-rowlabel">
+                    <strong>${o.ad}</strong>
+                    <span class="cz-subtext">${o.brans}</span>
+                </div>
+            </td>
+            <td>
+                <input type="checkbox" ${d.kulup ? 'checked' : ''} onchange="updateCizelgeHucresi('${kulupAdi}', '${o.id}', 'kulup', this.checked)">
+            </td>
+            <td>
+                <input type="checkbox" ${d.sok ? 'checked' : ''} onchange="updateCizelgeHucresi('${kulupAdi}', '${o.id}', 'sok', this.checked)">
+            </td>
+            <td>
+                <input type="checkbox" ${d.zumre ? 'checked' : ''} onchange="updateCizelgeHucresi('${kulupAdi}', '${o.id}', 'zumre', this.checked)">
+            </td>
+            <td>
+                <input type="checkbox" ${d.maarif ? 'checked' : ''} onchange="updateCizelgeHucresi('${kulupAdi}', '${o.id}', 'maarif', this.checked)">
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
-function cizelgeSatirModalAc(tip){
-  const tanim = CIZELGE_TANIMLARI[tip];
-  const body = `
-    <div class="form-group"><label>${escapeHtml(tanim.rowEtiket)}</label><input id="f_czAd" placeholder="örn: ${escapeHtml(tanim.rowEtiket)}"></div>
-    ${tanim.extraAlan ? `<div class="form-group"><label>${escapeHtml(tanim.extraEtiket)}</label><input id="f_czExtra"></div>` : ''}
-  `;
-  modalAc(`${tanim.baslik} — Yeni Satır`, body, ()=>{
-    const ad = document.getElementById('f_czAd').value.trim();
-    if(!ad){ toast('Bu alan zorunludur.'); return; }
-    const veri = { ad, durumlar: {} };
-    if(tanim.extraAlan) veri[tanim.extraAlan] = document.getElementById('f_czExtra').value.trim();
-    db.collection(COL[tip]).add({ ...veri, eklenmeTarihi: new Date().toISOString() })
-      .then(()=>{ toast('Satır eklendi.'); modalKapat(); })
+function updateCizelgeHucresi(kulupAdi, ogrId, alan, deger) {
+    if(!cizelgelerVeri[kulupAdi]) cizelgelerVeri[kulupAdi] = {};
+    if(!cizelgelerVeri[kulupAdi][ogrId]) cizelgelerVeri[kulupAdi][ogrId] = { kulup: false, sok: false, zumre: false, maarif: false };
+    
+    cizelgelerVeri[kulupAdi][ogrId][alan] = deger;
+    dbMock.set('cizelgeler_veri', cizelgelerVeri);
+}
       .catch(err=>toast('Eklenemedi: '+err.message));
   }, null);
 }
