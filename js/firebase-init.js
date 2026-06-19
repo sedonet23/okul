@@ -22,7 +22,6 @@ const VAPID_KEY = "BATuvupnzSActFxWlfg12dtT-hYMIkND9S_lfA1B-FYHIwJ0aya0HHJ4fRRfi
 const COL = {
   ogretmenler:'oy_ogretmenler',
   dersProgrami:'oy_dersProgrami',
-  nobet:'oy_nobetProgrami',
   hatirlaticilar:'oy_hatirlaticilar',
   gorevler:'oy_gorevler',
   evrak:'oy_evrakTakibi',
@@ -35,7 +34,14 @@ const COL = {
   bepPlani:'oy_bepPlani',
   rehberlik:'oy_rehberlik',
   maarifRapor:'oy_maarifRapor',
-  digerEvrak:'oy_digerEvrak'
+  digerEvrak:'oy_digerEvrak',
+  // --- YENİ: Nöbet modülü + Periyodik İşler + Ders Saatleri ---
+  nobetYerleri:'oy_nobetYerleri',       // {ad, sira}
+  nobetAtamalari:'oy_nobetAtamalari',   // {tarih:'YYYY-MM-DD', yerId, ogretmenAdi}
+  nobetciAmirleri:'oy_nobetciAmirleri', // {tarih:'YYYY-MM-DD', ad, telefon}
+  resmiTatiller:'oy_resmiTatiller',     // {tarih:'YYYY-MM-DD', aciklama}
+  periyodikIsler:'oy_periyodikIsler',   // {isAdi, baslangic, bitis, tamamlandi, not, bildirimGonderildi}
+  dersSaatleri:'oy_dersSaatleri'        // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
 };
 
 let db = null;

@@ -1,172 +1,243 @@
-// AYLIK NÖBET MODÜLÜ MOTORU
-let nobetYerleri = dbMock.get('nobet_yerleri', ["Bahçe", "1. Kat Koridor", "Kantin Katı"]);
-let nobetAtamalari = dbMock.get('nobet_atamalari', {}); // Format: {'2026-06-03': {'Bahçe': 'Ahmet Y.', 'amir': 'Mehmet T.', 'amirTel': '05...'} }
+/* ====================================================================
+   js/nobet.js
+   YENİ NÖBET MODÜLÜ — tarih bazlı aylık sistem (haftalık yapının yerine).
+   Veri modeli (bkz. firebase-init.js COL):
+     nobetYerleri    : {ad, sira}                                  — dinamik nöbet konumları (sütunlar)
+     nobetAtamalari  : {tarih:'YYYY-MM-DD', yerId, ogretmenAdSoyad} — bir hücre = bir atama
+     nobetciAmirleri : {tarih:'YYYY-MM-DD', ad, telefon}            — günün nöbetçi amiri (serbest metin)
+     resmiTatiller   : {tarih:'YYYY-MM-DD', aciklama}               — silinebilir/eklenebilir tatil listesi
+   ==================================================================== */
 
-function initNobetModulu() {
-    const aySecici = document.getElementById('nobet-ay-secici');
-    if(!aySecici.value) {
-        const simdi = new Date();
-        aySecici.value = simdi.getFullYear() + "-" + (simdi.getMonth()+1).toString().padStart(2, '0');
-    }
-    
-    aySecici.removeEventListener('change', loadAylikNobetTablosu);
-    aySecici.addEventListener('change', loadAylikNobetTablosu);
-    
-    loadAylikNobetTablosu();
-    renderNobetYerleriListesi();
+let nobetYerleri = [];
+let nobetAtamalari = [];
+let nobetciAmirleri = [];
+let resmiTatiller = [];
+let nobetGoruntulenenYil, nobetGoruntulenenAy; // 0-11
+
+(function nobetAyiBugunSet(){
+  const d = new Date();
+  nobetGoruntulenenYil = d.getFullYear();
+  nobetGoruntulenenAy = d.getMonth();
+})();
+
+/* ---------- yardımcılar ---------- */
+function nobetTarihISO(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function nobetHaftasonuMu(y,m,d){ const g = new Date(y,m,d).getDay(); return g===0 || g===6; }
+function nobetTatilMi(iso){ return resmiTatiller.find(t=>t.tarih===iso); }
+function nobetAyAdiUzun(y,m){ return `${AYLAR[m]} ${y}`; }
+function nobetYerSirali(){ return [...nobetYerleri].sort((a,b)=>(a.sira||0)-(b.sira||0)); }
+function nobetHaftaAraligi(tarihISO){
+  const d = new Date(tarihISO+'T00:00:00');
+  const gun = d.getDay() || 7; // Pazartesi=1 ... Pazar=7
+  const pazartesi = new Date(d); pazartesi.setDate(d.getDate()-gun+1);
+  const gunler = [];
+  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(x.toISOString().slice(0,10)); }
+  return gunler;
 }
 
-function loadAylikNobetTablosu() {
-    const ayVal = document.getElementById('nobet-ay-secici').value; // Örn: "2026-06"
-    if(!ayVal) return;
-
-    const [yil, ay] = ayVal.split('-').map(Number);
-    const thead = document.getElementById('aylik-nobet-header');
-    const tbody = document.getElementById('aylik-nobet-body');
-
-    // Tablo Başlıklarını Çiz (Dinamik Nöbet Yerleri + Amir)
-    let headerHtml = `<tr><th class="sticky-col" style="background:var(--logo-koyu-yesil)">Tarih / Gün</th>`;
-    nobetYerleri.forEach(yer => {
-        headerHtml += `<th>${yer}</th>`;
-    });
-    headerHtml += `<th style="background:#1e293b">Nöbetçi Amir (Adı Soyadı)</th>`;
-    headerHtml += `<th style="background:#1e293b">Amir Telefon</th></tr>`;
-    thead.innerHTML = headerHtml;
-
-    // Ayın günlerini oluştur
-    tbody.innerHTML = '';
-    const toplamGun = new Date(yil, ay, 0).getDate();
-
-    for(let g=1; g<=toplamGun; g++) {
-        const tarihStr = `${yil}-${ay.toString().padStart(2,'0')}-${g.toString().padStart(2,'0')}`;
-        const tarihObje = new Date(yil, ay - 1, g);
-        const gunAdi = tarihObje.toLocaleDateString('tr-TR', { weekday: 'long' });
-        const haftaSonuMu = tarihObje.getDay() === 0 || tarihObje.getDay() === 6;
-
-        let tr = document.createElement('tr');
-        if(haftaSonuMu) {
-            tr.style.background = "#f1f5f9";
-            tr.style.color = var(--text-muted);
-        }
-
-        let tdTarih = `<td class="sticky-col"><strong>${g.toString().padStart(2,'0')}.${ay.toString().padStart(2,'0')}.${yil}</strong> <br><span style="font-size:11px; color:var(--text-muted)">${gunAdi}</span></td>`;
-        let tdHücreler = '';
-
-        // Nöbet konum seçim alanları veya kilitli hücreler
-        nobetYerleri.forEach(yer => {
-            if(haftaSonuMu) {
-                tdHücreler += `<td style="background:#e2e8f0; text-align:center; font-size:12px; font-weight:500;">HAFTASONU</td>`;
-            } else {
-                const atanmisOgrId = nobetAtamalari[tarihStr]?.[yer] || '';
-                let options = `<option value="">- Seçin -</option>`;
-                ogretmenler.forEach(o => {
-                    options += `<option value="${o.ad}" ${atanmisOgrId === o.ad ? 'selected' : ''}>${o.ad}</option>`;
-                });
-                tdHücreler += `<td><select onchange="saveNobetAtama('${tarihStr}', '${yer}', this.value)" style="width:100%; padding:4px; font-size:13px;">${options}</select></td>`;
-            }
-        });
-
-        // Serbest Metin Amir Bilgileri Hücreleri
-        if(haftaSonuMu) {
-            tdHücreler += `<td style="background:#cbd5e1;">-</td><td style="background:#cbd5e1;">-</td>`;
-        } else {
-            const amirAd = nobetAtamalari[tarihStr]?.amir || '';
-            const amirTel = nobetAtamalari[tarihStr]?.amirTel || '';
-            tdHücreler += `
-                <td><input type="text" value="${amirAd}" placeholder="Amir Adı" onchange="saveAmirAtama('${tarihStr}', 'amir', this.value)" style="width:100%; padding:4px;"></td>
-                <td><input type="tel" value="${amirTel}" placeholder="05..." onchange="saveAmirAtama('${tarihStr}', 'amirTel', this.value)" style="width:100%; padding:4px;"></td>
-            `;
-        }
-
-        tr.innerHTML = tdTarih + tdHücreler;
-        tbody.appendChild(tr);
-    }
+/* ---------- AY GEZİNME ---------- */
+function nobetAyDegistir(delta){
+  nobetGoruntulenenAy += delta;
+  if(nobetGoruntulenenAy<0){ nobetGoruntulenenAy=11; nobetGoruntulenenYil--; }
+  if(nobetGoruntulenenAy>11){ nobetGoruntulenenAy=0; nobetGoruntulenenYil++; }
+  renderNobetTakvimi();
 }
 
-function saveNobetAtama(tarih, yer, deger) {
-    if(!nobetAtamalari[tarih]) nobetAtamalari[tarih] = {};
-    nobetAtamalari[tarih][yer] = deger;
-    dbMock.set('nobet_atamalari', nobetAtamalari);
-    if(tarih === new Date().toISOString().split('T')[0]) runLiveDashboard();
+/* ---------- NÖBET YERLERİ CRUD ---------- */
+function nobetYeriEkle(){
+  const ad = prompt('Yeni nöbet yeri adı (örn: Bahçe):');
+  if(!ad || !ad.trim()) return;
+  db.collection(COL.nobetYerleri).add({ ad: ad.trim(), sira: nobetYerleri.length+1, eklenmeTarihi:new Date().toISOString() })
+    .then(()=>toast('Nöbet yeri eklendi.')).catch(err=>toast('Hata: '+err.message));
+}
+function nobetYeriDuzenle(id){
+  const yer = nobetYerleri.find(y=>y.id===id); if(!yer) return;
+  const yeniAd = prompt('Nöbet yerini yeniden adlandır:', yer.ad);
+  if(!yeniAd || !yeniAd.trim() || yeniAd.trim()===yer.ad) return;
+  db.collection(COL.nobetYerleri).doc(id).update({ ad: yeniAd.trim() })
+    .then(()=>toast('Nöbet yeri güncellendi.')).catch(err=>toast('Hata: '+err.message));
+}
+async function nobetYeriSil(id){
+  const yer = nobetYerleri.find(y=>y.id===id); if(!yer) return;
+  const bagliSayisi = nobetAtamalari.filter(a=>a.yerId===id).length;
+  const mesaj = bagliSayisi>0
+    ? `"${yer.ad}" silinsin mi? Bu yere bağlı ${bagliSayisi} nöbet ataması da silinecek.`
+    : `"${yer.ad}" nöbet yerini silmek istediğinize emin misiniz?`;
+  if(!confirm(mesaj)) return;
+  try{
+    const batch = db.batch();
+    batch.delete(db.collection(COL.nobetYerleri).doc(id));
+    nobetAtamalari.filter(a=>a.yerId===id).forEach(a=> batch.delete(db.collection(COL.nobetAtamalari).doc(a.id)) );
+    await batch.commit();
+    toast('Nöbet yeri ve bağlı atamalar silindi.');
+  }catch(err){ toast('Hata: '+err.message); }
 }
 
-function saveAmirAtama(tarih, alan, deger) {
-    if(!nobetAtamalari[tarih]) nobetAtamalari[tarih] = {};
-    nobetAtamalari[tarih][alan] = deger;
-    dbMock.set('nobet_atamalari', nobetAtamalari);
-    if(tarih === new Date().toISOString().split('T')[0]) runLiveDashboard();
+/* ---------- RESMİ TATİL LİSTESİ ---------- */
+function nobetTatilEkle(){
+  const body = `
+    <div class="form-group"><label>Tarih</label><input type="date" id="f_tatilTarih" value="${todayISO()}"></div>
+    <div class="form-group"><label>Açıklama</label><input id="f_tatilAciklama" placeholder="örn: 19 Mayıs Atatürk'ü Anma Gençlik ve Spor Bayramı"></div>
+  `;
+  modalAc('Resmi Tatil Ekle', body, ()=>{
+    const tarih = document.getElementById('f_tatilTarih').value;
+    const aciklama = document.getElementById('f_tatilAciklama').value.trim();
+    if(!tarih){ toast('Tarih zorunludur.'); return; }
+    if(nobetTatilMi(tarih)){ toast('Bu tarih zaten tatil listesinde.'); return; }
+    db.collection(COL.resmiTatiller).add({ tarih, aciklama })
+      .then(()=>{ toast('Tatil eklendi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
+  }, null);
+}
+function nobetTatilSil(id){
+  if(!confirm('Bu tatili listeden kaldırmak istiyor musunuz? (Nöbet ataması yapılabilir hale gelir.)')) return;
+  db.collection(COL.resmiTatiller).doc(id).delete().then(()=>toast('Tatil kaldırıldı.')).catch(err=>toast('Hata: '+err.message));
+}
+function renderNobetTatilListesi(){
+  const hedef = document.getElementById('nobetTatilListesi');
+  if(!hedef) return;
+  const liste = [...resmiTatiller].sort((a,b)=>a.tarih.localeCompare(b.tarih));
+  hedef.innerHTML = liste.length ? liste.map(t=>`
+    <div class="dash-row" style="display:flex;align-items:center;gap:8px;">
+      <span class="badge badge-amber">${formatTarih(t.tarih)}</span>
+      <span style="flex:1;min-width:0;">${escapeHtml(t.aciklama||'—')}</span>
+      <button class="cz-del" title="Kaldır" onclick="nobetTatilSil('${t.id}')">🗑</button>
+    </div>`).join('') : '<p class="empty-state">Resmi tatil eklenmedi.</p>';
 }
 
-// DASHBOARD İÇİN ANLIK NÖBETÇİ VERİLERİNİ HESAPLAMA VE AKTARMA
-function updateDashboardNobetçileri(bugunTarihStr) {
-    const amirHedef = document.getElementById('dash-nobetci-amir');
-    const telHedef = document.getElementById('dash-amir-tel');
-    const listeHedef = document.getElementById('dash-nobetci-listesi');
+/* ---------- ATAMA / AMİR MODALLARI ---------- */
+function nobetAtamaModalAc(tarihISO, yerId){
+  const yer = nobetYerleri.find(y=>y.id===yerId);
+  const mevcut = nobetAtamalari.find(a=>a.tarih===tarihISO && a.yerId===yerId);
+  const body = `
+    <div class="form-group"><label>Tarih / Yer</label><input value="${formatTarih(tarihISO)} — ${escapeHtml(yer?yer.ad:'')}" disabled></div>
+    <div class="form-group"><label>Nöbetçi Öğretmen</label>
+      <input id="f_nobetOgretmen" list="nobetOgretmenListesi" value="${mevcut?escapeHtml(mevcut.ogretmenAdSoyad||''):''}" placeholder="Ad Soyad yazın">
+      <datalist id="nobetOgretmenListesi">${ogretmenler.map(o=>`<option value="${escapeHtml(o.ad+' '+o.soyad)}">`).join('')}</datalist>
+    </div>
+  `;
+  modalAc(mevcut?'Nöbet Atamasını Düzenle':'Nöbet Ata', body, ()=>{
+    const ad = document.getElementById('f_nobetOgretmen').value.trim();
+    if(!ad){ toast('Öğretmen adı zorunludur.'); return; }
+    const ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(ad,'tr',{sensitivity:'base'})===0);
+    const veri = { tarih: tarihISO, yerId, ogretmenAdSoyad: ad, ogretmenId: ogretmenObj?ogretmenObj.id:'' };
+    const islem = mevcut ? db.collection(COL.nobetAtamalari).doc(mevcut.id).update(veri)
+                          : db.collection(COL.nobetAtamalari).add(veri);
+    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
+  }, mevcut ? ()=>{ if(confirm('Bu atamayı kaldırmak istiyor musunuz?')){ db.collection(COL.nobetAtamalari).doc(mevcut.id).delete(); modalKapat(); } } : null);
+}
+function nobetAmirModalAc(tarihISO){
+  const mevcut = nobetciAmirleri.find(a=>a.tarih===tarihISO);
+  const body = `
+    <div class="form-group"><label>Tarih</label><input value="${formatTarih(tarihISO)}" disabled></div>
+    <div class="form-group"><label>Nöbetçi Amir (Ad Soyad)</label><input id="f_amirAd" value="${mevcut?escapeHtml(mevcut.ad||''):''}"></div>
+    <div class="form-group"><label>Telefon</label><input id="f_amirTel" value="${mevcut?escapeHtml(mevcut.telefon||''):''}"></div>
+  `;
+  modalAc(mevcut?'Nöbetçi Amiri Düzenle':'Nöbetçi Amir Ata', body, ()=>{
+    const ad = document.getElementById('f_amirAd').value.trim();
+    const telefon = document.getElementById('f_amirTel').value.trim();
+    if(!ad){ toast('Amir adı zorunludur.'); return; }
+    const veri = { tarih: tarihISO, ad, telefon };
+    const islem = mevcut ? db.collection(COL.nobetciAmirleri).doc(mevcut.id).update(veri)
+                          : db.collection(COL.nobetciAmirleri).add(veri);
+    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
+  }, mevcut ? ()=>{ if(confirm('Bu amir atamasını kaldırmak istiyor musunuz?')){ db.collection(COL.nobetciAmirleri).doc(mevcut.id).delete(); modalKapat(); } } : null);
+}
 
-    const gununVerisi = nobetAtamalari[bugunTarihStr];
+/* ---------- AYLIK TAKVİM RENDER ---------- */
+function renderNobetTakvimi(){
+  const baslikEl = document.getElementById('nobetAyBasligi');
+  if(baslikEl) baslikEl.textContent = nobetAyAdiUzun(nobetGoruntulenenYil, nobetGoruntulenenAy);
+  const hedef = document.getElementById('nobetGridTablo');
+  if(!hedef) return;
+  const yerler = nobetYerSirali();
+  const gunSayisi = new Date(nobetGoruntulenenYil, nobetGoruntulenenAy+1, 0).getDate();
+  const bugunISO = todayISO();
 
-    if(gununVerisi) {
-        if(amirHedef) amirHedef.textContent = gununVerisi.amir || "Atanmadı";
-        if(telHedef) telHedef.textContent = gununVerisi.amirTel || "Telefon Yok";
+  if(yerler.length===0){
+    hedef.innerHTML = `<div class="empty-state">Henüz nöbet yeri tanımlanmadı. "+ Yeni Nöbet Yeri" ile ekleyin veya Excel'den içe aktarın.</div>`;
+    return;
+  }
+
+  let html = `<thead><tr><th>Tarih / Gün</th>${yerler.map(y=>`<th>${escapeHtml(y.ad)} <button class="cz-del" style="margin-left:4px;" title="Düzenle/Sil" onclick="event.stopPropagation(); nobetYerMenuAc('${y.id}')">⋮</button></th>`).join('')}<th>Nöbetçi Amir</th></tr></thead><tbody>`;
+
+  for(let d=1; d<=gunSayisi; d++){
+    const iso = nobetTarihISO(nobetGoruntulenenYil, nobetGoruntulenenAy, d);
+    const haftasonu = nobetHaftasonuMu(nobetGoruntulenenYil, nobetGoruntulenenAy, d);
+    const tatil = nobetTatilMi(iso);
+    const gunAdi = GUNADI[new Date(nobetGoruntulenenYil, nobetGoruntulenenAy, d).getDay()];
+    const bugunSinif = iso===bugunISO ? 'bugun-kolon' : '';
+
+    html += `<tr class="${bugunSinif}"><td class="sch-saat">${d} ${gunAdi}</td>`;
+    if(haftasonu){
+      html += `<td class="sch-cell nobet-kilitli" colspan="${yerler.length}">HAFTASONU</td><td class="sch-cell nobet-kilitli">—</td>`;
+    } else if(tatil){
+      html += `<td class="sch-cell nobet-tatil" colspan="${yerler.length}">RESMİ TATİL${tatil.aciklama?' — '+escapeHtml(tatil.aciklama):''}</td><td class="sch-cell nobet-tatil">—</td>`;
     } else {
-        if(amirHedef) amirHedef.textContent = "Atanmadı";
-        if(telHedef) telHedef.textContent = "-";
+      yerler.forEach(y=>{
+        const atama = nobetAtamalari.find(a=>a.tarih===iso && a.yerId===y.id);
+        html += atama
+          ? `<td class="sch-cell sch-filled" onclick="nobetAtamaModalAc('${iso}','${y.id}')"><div class="sch-ders">${escapeHtml(atama.ogretmenAdSoyad)}</div></td>`
+          : `<td class="sch-cell sch-empty" onclick="nobetAtamaModalAc('${iso}','${y.id}')">+</td>`;
+      });
+      const amir = nobetciAmirleri.find(a=>a.tarih===iso);
+      html += amir
+        ? `<td class="sch-cell sch-filled" onclick="nobetAmirModalAc('${iso}')"><div class="sch-ders">${escapeHtml(amir.ad)}</div></td>`
+        : `<td class="sch-cell sch-empty" onclick="nobetAmirModalAc('${iso}')">+</td>`;
     }
-
-    if(listeHedef) {
-        listeHedef.innerHTML = '';
-        let sayac = 0;
-        nobetYerleri.forEach(yer => {
-            const isim = gununVerisi?.[yer];
-            if(isim) {
-                sayac++;
-                listeHedef.innerHTML += `<li><i class="fa-solid fa-location-dot" style="color:var(--logo-ana-yesil)"></i> <strong>${yer}:</strong> ${isim}</li>`;
-            }
-        });
-        if(sayac === 0) listeHedef.innerHTML = '<li style="color:var(--text-muted)">Bugün için atanmış nöbetçi öğretmen bulunmuyor.</li>';
-    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  hedef.innerHTML = html;
+}
+function nobetYerMenuAc(id){
+  const secim = prompt('"d" yazıp Enter\'a basarsanız yeniden adlandırırsınız, "s" yazarsanız silersiniz:', 'd');
+  if(secim==='s') nobetYeriSil(id);
+  else if(secim==='d') nobetYeriDuzenle(id);
 }
 
-// NÖBET KONUMLARI CRUD İŞLEMLERİ
-function saveNobetYeri(e) {
-    e.preventDefault();
-    const inp = document.getElementById('yeni-nobet-yeri-adi');
-    const yeniYer = inp.value.trim();
-    if(yeniYer && !nobetYerleri.includes(yeniYer)) {
-        nobetYerleri.push(yeniYer);
-        dbMock.set('nobet_yerleri', nobetYerleri);
-        inp.value = '';
-        renderNobetYerleriListesi();
-        loadAylikNobetTablosu();
-    }
+/* ---------- BUGÜN / BU HAFTA WIDGET'LARI (Dashboard + Nöbet sekmesi) ---------- */
+function nobetGununOzeti(iso){
+  const atamalar = nobetAtamalari.filter(a=>a.tarih===iso);
+  const amir = nobetciAmirleri.find(a=>a.tarih===iso);
+  const tatil = nobetTatilMi(iso);
+  const haftasonu = nobetHaftasonuMu(...iso.split('-').map((v,i)=>i===1?parseInt(v)-1:parseInt(v)));
+  return { atamalar, amir, tatil, haftasonu };
+}
+function renderNobetBugunVeHafta(){
+  const bugunISO = todayISO();
+  const ozet = nobetGununOzeti(bugunISO);
+  const bugunHTML = ozet.haftasonu ? '<p class="empty-state">Bugün hafta sonu.</p>'
+    : ozet.tatil ? `<p class="empty-state">Bugün resmi tatil${ozet.tatil.aciklama?' — '+escapeHtml(ozet.tatil.aciklama):''}.</p>`
+    : (ozet.atamalar.length ? ozet.atamalar.map(a=>{
+        const yer = nobetYerleri.find(y=>y.id===a.yerId);
+        return `<div class="dash-row">${escapeHtml(yer?yer.ad:'?')} — <strong>${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+      }).join('') + (ozet.amir?`<div class="dash-row">Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${ozet.amir.telefon?' ('+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
+      : '<p class="empty-state">Bugün için nöbet ataması yok.</p>');
+
+  ['dashBugunNobet','nobetBugunKutu'].forEach(elId=>{
+    const el = document.getElementById(elId); if(el) el.innerHTML = bugunHTML;
+  });
+
+  const haftaKutu = document.getElementById('nobetHaftaKutu');
+  if(haftaKutu){
+    const gunler = nobetHaftaAraligi(bugunISO);
+    haftaKutu.innerHTML = gunler.map(iso=>{
+      const o = nobetGununOzeti(iso);
+      const gunAdiKisa = GUNADI[new Date(iso+'T00:00:00').getDay()];
+      const icerik = o.tatil ? `<span class="badge badge-amber">Resmi Tatil</span>`
+        : (o.atamalar.length ? o.atamalar.map(a=>{
+            const yer = nobetYerleri.find(y=>y.id===a.yerId);
+            return `<div>${escapeHtml(yer?yer.ad:'?')}: <strong>${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+          }).join('') : '<span style="color:var(--ink-muted);">Atama yok</span>');
+      return `<div class="dash-row" style="align-items:flex-start;"><strong style="min-width:90px;display:inline-block;">${gunAdiKisa} ${formatTarih(iso)}</strong><div style="flex:1;">${icerik}</div></div>`;
+    }).join('');
+  }
 }
 
-function renderNobetYerleriListesi() {
-    const dest = document.getElementById('nobet-yerleri-liste-hedef');
-    if(!dest) return;
-    dest.innerHTML = '';
-    nobetYerleri.forEach(yer => {
-        dest.innerHTML += `
-            <li style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
-                <span><i class="fa-solid fa-map-pin"></i> ${yer}</span>
-                <i class="fa-solid fa-trash-can" style="color:red; cursor:pointer;" onclick="deleteNobetYeri('${yer}')"></i>
-            </li>`;
-    });
-}
-
-function deleteNobetYeri(yerAdi) {
-    if(confirm(`"${yerAdi}" konumunu sildiğinizde bu aya ait tüm geçmiş atamalar da temizlenecektir. Onaylıyor musunuz?`)) {
-        nobetYerleri = nobetYerleri.filter(y => y !== yerAdi);
-        dbMock.set('nobet_yerleri', nobetYerleri);
-        
-        // Atamalardan eski yerleri temizle
-        Object.keys(nobetAtamalari).forEach(tar => {
-            if(nobetAtamalari[tar][yerAdi]) delete nobetAtamalari[tar][yerAdi];
-        });
-        dbMock.set('nobet_atamalari', nobetAtamalari);
-        
-        renderNobetYerleriListesi();
-        loadAylikNobetTablosu();
-        runLiveDashboard();
-    }
+/* ---------- FIRESTORE BAĞLANTILARI (app.js baglantilariKur içinden çağrılır) ---------- */
+function nobetBaglantilariKur(){
+  db.collection(COL.nobetYerleri).onSnapshot(s=>{ nobetYerleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); }, hataGoster);
+  db.collection(COL.nobetAtamalari).onSnapshot(s=>{ nobetAtamalari = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
+  db.collection(COL.nobetciAmirleri).onSnapshot(s=>{ nobetciAmirleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
+  db.collection(COL.resmiTatiller).onSnapshot(s=>{ resmiTatiller = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetTatilListesi(); renderNobetBugunVeHafta(); }, hataGoster);
 }
