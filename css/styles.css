@@ -1,80 +1,107 @@
-/* OKUL YÖNETİM SİSTEMİ KURUMSAL RENK PALETİ */
+/* ==========================================================================
+   RENKLER VE GLOBAL AYARLAR
+   ========================================================================== */
 :root {
-    --logo-koyu-yesil: #053827;
-    --logo-ana-yesil: #0A714E;
-    --logo-altin: #FEDD4B;
-    --logo-acik-yesil: #BCDD6A;
-    --logo-krem: #FFFADB;
-    
-    --bg-main: #f4f6f8;
-    --text-dark: #1e293b;
-    --text-muted: #64748b;
-    --border-color: #e2e8f0;
-    --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --logo-koyu-yesil: #0A4D34;
+    --logo-altin: #F3D03E;
+    --arka-plan: #F4F6F9;
+    --yazi-koyu: #1F2937;
+    --beyaz: #FFFFFF;
+    --gri-border: #E5E7EB;
 }
 
 * {
-    box-sizing: border-box;
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
     font-family: 'Inter', sans-serif;
 }
 
 body {
-    background-color: var(--bg-main);
-    color: var(--text-dark);
+    background-color: var(--arka-plan);
+    color: var(--yazi-koyu);
     display: flex;
+    flex-direction: column;
     min-height: 100vh;
 }
 
-/* SİDEBAR TASARIMI */
-.sidebar {
-    width: 260px;
-    background-color: var(--logo-koyu-yesil);
-    color: white;
-    position: fixed;
-    height: 100vh;
+/* ==========================================================================
+   ÜST BAR (MOBİLDE VE MASAÜSTÜNDE ORTAK)
+   ========================================================================== */
+.mobile-header {
+    background: var(--logo-koyu-yesil);
+    color: var(--beyaz);
+    padding: 15px;
     display: flex;
-    flex-direction: column;
-    z-index: 100;
+    align-items: center;
+    gap: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    z-index: 999;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.sidebar-logo {
-    padding: 25px 20px;
-    text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    background-color: rgba(0,0,0,0.15);
-}
-
-.logo-placeholder {
+.hamburger-btn {
+    background: none;
+    border: none;
     color: var(--logo-altin);
-    margin-bottom: 10px;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.sidebar-logo h3 {
-    font-size: 16px;
-    letter-spacing: 1px;
+.mobile-title {
+    font-size: 18px;
     font-weight: 600;
+}
+
+/* ==========================================================================
+   SOL SİDEBAR MENÜ (HAMBURGER YAN PANEL)
+   ========================================================================== */
+.sidebar {
+    background-color: var(--logo-koyu-yesil);
+    color: var(--beyaz);
+    position: fixed;
+    top: 60px; /* Üst barın altından başlasın */
+    left: -100%; /* Varsayılan olarak ekran dışında gizli */
+    width: 280px;
+    height: calc(100vh - 60px);
+    z-index: 1000;
+    transition: left 0.3s ease;
+    padding: 20px 10px;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+/* Menü Aktifken Soldan Ekrana Girecek */
+.sidebar.active {
+    left: 0;
+}
+
+/* Sidebar içindeki logo alanını mobilde gizleyebiliriz çünkü üst bar var */
+.sidebar-logo {
+    display: none;
 }
 
 .sidebar-menu {
     list-style: none;
-    padding: 15px 10px;
-    overflow-y: auto;
 }
 
 .sidebar-menu li {
     padding: 12px 15px;
-    margin-bottom: 6px;
-    border-radius: 6px;
+    margin-bottom: 8px;
+    border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 14px;
     font-weight: 500;
     transition: all 0.2s ease;
-    color: rgba(255,255,255,0.85);
 }
 
 .sidebar-menu li i {
@@ -83,30 +110,233 @@ body {
 }
 
 .sidebar-menu li:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-menu li.active {
     background-color: var(--logo-altin);
     color: var(--logo-koyu-yesil);
+}
+
+/* ==========================================================================
+   ANA İÇERİK ALANI
+   ========================================================================== */
+.main-content {
+    width: 100%;
+    padding: 80px 15px 20px 15px; /* Üst barın altında kalmaması için padding */
+    flex: 1;
+}
+
+/* Sayfa Başlığı Alanı */
+.content-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--gri-border);
+}
+
+.content-header h2 {
+    font-size: 20px;
+    color: var(--logo-koyu-yesil);
+}
+
+/* Üst üste binen tarih yapısını düzelten temiz sınıf */
+.current-date {
+    font-size: 14px;
+    color: #6B7280;
     font-weight: 600;
 }
 
-/* ANA İÇERİK ALANI */
-.main-content {
-    margin-left: 260px;
-    padding: 30px;
-    width: calc(100% - 260px);
-    min-height: 100vh;
-}
-
+/* Sekme İçerikleri */
 .tab-content {
     display: none;
 }
 
 .tab-content.active {
     display: block;
+}
+
+/* ==========================================================================
+   GRID VE KART YAPILARI (MOBİL ÖNCELİKLİ TEK SÜTUN)
+   ========================================================================== */
+.dashboard-grid-top,
+.dashboard-grid-main,
+.dashboard-grid-bottom,
+.split-view {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+/* Kart Tasarımları */
+.card, .dashboard-card, .live-card {
+    background: var(--beyaz);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid var(--gri-border);
+}
+
+/* Canlı Sayaç Kutuları */
+.live-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.status-box {
+    background-color: var(--logo-koyu-yesil);
+    color: var(--beyaz);
+}
+
+.status-box .live-icon {
+    color: var(--logo-altin);
+}
+
+.amir-box {
+    background-color: #1E293B;
+    color: var(--beyaz);
+}
+
+.amir-box .live-icon {
+    color: #38BDF8;
+}
+
+.live-icon {
+    font-size: 28px;
+}
+
+.live-info h4 {
+    font-size: 13px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.live-info h2 {
+    font-size: 26px;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   TABLOLAR VE LİSTELER
+   ========================================================================== */
+.sticky-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px; /* Mobilde tablonun büzüşüp yazıları ezmesini engeller */
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--gri-border);
+    font-size: 14px;
+}
+
+th {
+    background-color: #F9FAFB;
+    color: #4B5563;
+    font-weight: 600;
+}
+
+/* Form Elemanları */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.form-control, select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--gri-border);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary { background: var(--logo-koyu-yesil); color: white; }
+.btn-success { background: #10B981; color: white; }
+
+/* ==========================================================================
+   GENİŞ EKRANLAR İÇİN OPTİMİZASYON (MASAÜSTÜ)
+   ========================================================================== */
+@media screen and (min-width: 769px) {
+    .mobile-header {
+        display: none; /* Masaüstünde üst barı gizle */
+    }
+
+    .sidebar {
+        top: 0;
+        left: 0 !important; /* Her zaman görünür */
+        width: 260px;
+        height: 100vh;
+    }
+
+    .sidebar-logo {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .logo-placeholder {
+        color: var(--logo-altin);
+    }
+
+    .main-content {
+        margin-left: 260px; /* Sidebar kadar boşluk bırak */
+        padding: 30px;
+        width: calc(100% - 260px);
+    }
+
+    .content-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Masaüstünde yan yana 2'li düzenler */
+    .dashboard-grid-top,
+    .dashboard-grid-main,
+    .dashboard-grid-bottom {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .split-view {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 20px;
+    }
+}
+w    display: block;
     animation: fadeIn 0.3s ease;
 }
 
