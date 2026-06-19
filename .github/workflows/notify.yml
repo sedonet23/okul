@@ -1,28 +1,27 @@
-name: Hatırlatıcı ve Görev Bildirimlerini Kontrol Et
+name: Hatırlatıcı Bildirimleri
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
-  workflow_dispatch: {}
+    - cron: '*/15 * * * *'   # Her 15 dakikada bir
+  workflow_dispatch:           # Elle de çalıştırılabilir
 
 jobs:
-  bildirim-kontrol:
+  notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Depoyu indir
+      - name: Kodu Al
         uses: actions/checkout@v4
 
-      - name: Node.js kur
+      - name: Node.js Kur
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Bağımlılıkları yükle
-        working-directory: functions-free
-        run: npm install
+      - name: Bağımlılıkları Yükle
+        run: npm ci
 
-      - name: Kontrol betiğini çalıştır
-        working-directory: functions-free
+      - name: Bildirimleri Kontrol Et ve Gönder
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: node check-and-notify.js
