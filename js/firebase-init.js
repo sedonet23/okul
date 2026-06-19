@@ -7,7 +7,7 @@
    bu dosyayı GitHub'a (genel depoda olsa bile) göndermekte sorun yoktur.
    ==================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyCxLLlLCA0Deu7dcQchUWeY5cR5ur5FSkc",
+  apiKey: "AIzaSyDJUE-Guw0JD04xXMHPnQURtLXG91H9pCI",
   authDomain: "okul-6e302.firebaseapp.com",
   projectId: "okul-6e302",
   storageBucket: "okul-6e302.firebasestorage.app",
