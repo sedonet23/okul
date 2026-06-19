@@ -4,16 +4,12 @@
 
 function girisEkraniGoster(){
   document.getElementById('loginScreen').classList.remove('hidden');
-  document.getElementById('app').classList.remove('ready');
-  document.getElementById('app').style.display = 'none';
 }
 
 function girisEkraniGizle(){
   document.getElementById('loginScreen').classList.add('hidden');
   const appEl = document.getElementById('app');
-  appEl.style.display = '';       // CSS'e bırak
-  appEl.classList.add('ready');   // eski CSS: #app.ready { display:flex }
-  appEl.style.cssText = appEl.style.cssText; // force reflow
+  appEl.classList.add('ready');
 }
 
 function girisYap(e){
@@ -21,21 +17,43 @@ function girisYap(e){
   const epostaEl = document.getElementById('loginEposta');
   const sifreEl  = document.getElementById('loginSifre');
   const hataEl   = document.getElementById('loginHata');
+  const btn      = e.target.querySelector('button[type=submit]');
+  
   hataEl.classList.remove('show');
+  if(btn) btn.disabled = true;
+
+  if(!auth){
+    hataEl.textContent = 'Firebase bağlantısı kurulamadı. Sayfayı yenileyip tekrar deneyin.';
+    hataEl.classList.add('show');
+    if(btn) btn.disabled = false;
+    return;
+  }
 
   auth.signInWithEmailAndPassword(epostaEl.value.trim(), sifreEl.value)
+    .then(() => {
+      if(btn) btn.disabled = false;
+    })
     .catch(err => {
-      hataEl.textContent = 'Giriş başarısız: e-posta veya şifre hatalı.';
+      const mesajlar = {
+        'auth/user-not-found':    'Bu e-posta ile kayıtlı kullanıcı bulunamadı.',
+        'auth/wrong-password':    'Şifre hatalı.',
+        'auth/invalid-email':     'Geçersiz e-posta adresi.',
+        'auth/too-many-requests': 'Çok fazla başarısız deneme. Lütfen bekleyin.',
+        'auth/invalid-credential':'E-posta veya şifre hatalı.',
+      };
+      hataEl.textContent = mesajlar[err.code] || ('Hata: ' + err.code);
       hataEl.classList.add('show');
-      console.error(err);
+      console.error('Auth hatası:', err.code, err.message);
+      if(btn) btn.disabled = false;
     });
 }
 
 function cikisYap(){
-  auth.signOut();
+  if(auth) auth.signOut();
 }
 
 function authDinleyiciKur(){
+  if(!auth) return;
   auth.onAuthStateChanged(kullanici => {
     if(kullanici){
       girisEkraniGizle();
