@@ -51,6 +51,7 @@
     <nav class="nav">
       <button class="nav-tab active" data-tab="panel"><span class="nt-ico">▦</span><span class="nt-label">Genel Bakış</span></button>
       <button class="nav-tab" data-tab="ogretmenler"><span class="nt-ico">Öğ</span><span class="nt-label">Öğretmenler</span></button>
+      <button class="nav-tab" data-tab="siniflar"><span class="nt-ico">Sn</span><span class="nt-label">Sınıflar</span></button>
       <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico">Dr</span><span class="nt-label">Ders Programı</span></button>
       <button class="nav-tab" data-tab="nobet"><span class="nt-ico">Nb</span><span class="nt-label">Nöbet Programı</span></button>
       <button class="nav-tab" data-tab="hatirlaticilar"><span class="nt-ico">!</span><span class="nt-label">Hatırlatıcılar</span></button>
@@ -116,6 +117,24 @@
           <table class="table">
             <thead><tr><th>Ad Soyad</th><th>Ünvan</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
             <tbody id="ogretmenlerTablo"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-siniflar" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Sınıflar</div><div class="page-sub" id="siniflarOzet"></div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-amber" onclick="sinifModalAc()">+ Yeni Sınıf</button>
+        </div>
+      </div>
+      <div class="card">
+        <input type="text" id="sinifArama" placeholder="Sınıf adına göre ara..." oninput="renderSiniflar()" style="margin-bottom:16px;max-width:320px;">
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr><th>Sınıf</th><th>Seviye</th><th>Sınıf Öğretmeni</th><th>Öğrenci</th><th>Kız</th><th>Erkek</th><th>Derslik</th><th></th></tr></thead>
+            <tbody id="siniflarTablo"></tbody>
           </table>
         </div>
       </div>
@@ -414,6 +433,7 @@
 <script src="js/periyodik.js"></script>
 <script src="js/ogretmen-detay.js"></script>
 <script src="js/ders-saatleri.js"></script>
+<script src="js/siniflar.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 </body>
