@@ -3,6 +3,9 @@
    ==================================================================== */
 
 let siniflar = [];
+let veliler = [];
+let detaySinifId = null;
+let detaySinifSekme = 'bilgi';
 
 function sinifAdiSirala(a,b){ return String(a.ad||'').localeCompare(String(b.ad||''), 'tr'); }
 
@@ -21,7 +24,7 @@ function renderSiniflar(){
   let liste = siniflar.filter(s => !arama || (s.ad+' '+(s.seviye||'')+' '+(s.derslik||'')).toLocaleLowerCase('tr').includes(arama));
   liste.sort(sinifAdiSirala);
   tbody.innerHTML = liste.length ? liste.map(s=>`
-    <tr class="row-clickable" onclick="sinifModalAc('${s.id}')">
+    <tr class="row-clickable" onclick="sinifDetayAc('${s.id}')">
       <td>${escapeHtml(s.ad)}</td>
       <td>${escapeHtml(s.seviye||'—')}</td>
       <td>${escapeHtml(sinifOgretmeniAdi(s))}</td>
@@ -74,6 +77,102 @@ function sinifModalAc(id){
     });
     modalKapat();
   }, s ? ()=>{ if(confirm('Bu sınıfı silmek istediğinize emin misiniz? (Ders programındaki kayıtlar silinmez.)')){ db.collection(COL.siniflar).doc(s.id).delete(); modalKapat(); } } : null);
+}
+
+/* ---------- sınıf detay paneli (sekmeli) ---------- */
+function sinifDetaySekmeAc(sekme){
+  detaySinifSekme = sekme;
+  document.querySelectorAll('#detayBody .detay-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sekme===sekme));
+  document.querySelectorAll('#detayBody .detay-tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.sekme===sekme));
+}
+
+function sinifDetayAc(id){
+  const s = siniflar.find(x=>x.id===id);
+  if(!s) return;
+  detaySinifId = id;
+  detaySinifSekme = 'bilgi';
+
+  document.getElementById('detayBaslik').textContent = s.ad;
+  document.getElementById('detayAltBaslik').textContent = [s.seviye?('Seviye '+s.seviye):'', s.derslik].filter(Boolean).join(' · ') || 'Sınıf';
+  document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); sinifModalAc(id); };
+
+  document.getElementById('detayBody').innerHTML = `
+    <div class="detay-tabs">
+      <button class="detay-tab-btn active" data-sekme="bilgi" onclick="sinifDetaySekmeAc('bilgi')">Bilgiler</button>
+      <button class="detay-tab-btn" data-sekme="ders" onclick="sinifDetaySekmeAc('ders')">Ders Programı</button>
+      <button class="detay-tab-btn" data-sekme="veli" onclick="sinifDetaySekmeAc('veli')">Veli Bilgileri</button>
+    </div>
+    <div style="padding:14px 18px;">
+      <div class="detay-tab-panel active" data-sekme="bilgi" id="sinifDetayBilgi"></div>
+      <div class="detay-tab-panel" data-sekme="ders" id="sinifDetayDers"></div>
+      <div class="detay-tab-panel" data-sekme="veli" id="sinifDetayVeli"></div>
+    </div>
+  `;
+
+  sinifDetayBilgiRender(s);
+  sinifDetayDersRender(s);
+  sinifDetayVeliRender(s);
+}
+
+function sinifDetayBilgiRender(s){
+  document.getElementById('sinifDetayBilgi').innerHTML = `
+    <div class="detay-card">
+      <h4>Temel Bilgiler</h4>
+      <div class="detay-row">Sınıf Öğretmeni: ${escapeHtml(sinifOgretmeniAdi(s))}</div>
+      <div class="detay-row">Derslik: ${escapeHtml(s.derslik||'—')}</div>
+      <div class="detay-row">Öğrenci Sayısı: ${s.ogrenciSayisi||0} (Kız: ${s.kizSayisi||0} · Erkek: ${s.erkekSayisi||0})</div>
+      ${s.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(s.notlar)}</div>`:''}
+    </div>
+  `;
+}
+
+function sinifDetayDersRender(s){
+  const dersleri = dersProgrami.filter(d=>d.sinif===s.ad).sort((a,b)=> GUNLER.indexOf(a.gun)-GUNLER.indexOf(b.gun) || a.saat-b.saat);
+  const html = dersleri.length ? dersleri.map(d=>
+    `<div class="detay-row"><span class="badge badge-blue">${escapeHtml(d.gun)} · ${d.saat}.</span> ${escapeHtml(d.ders)} <span class="detay-row-muted">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`
+  ).join('') : '<p class="empty-state">Bu sınıf için ders programı girilmemiş.</p>';
+  document.getElementById('sinifDetayDers').innerHTML = `<div class="detay-card"><h4>Haftalık Ders Programı</h4>${html}</div>`;
+}
+
+function sinifDetayVeliRender(s){
+  const liste = veliler.filter(v=>v.sinifId===s.id).sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
+  const html = liste.length ? liste.map(v=>`
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span><strong>${escapeHtml(v.ogrenciAdi)}</strong> — ${escapeHtml(v.veliAdi||'—')} ${v.telefon?'· '+escapeHtml(v.telefon):''}</span>
+      <span style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="sinifVeliModalAc('${v.id}')">Düzenle</button>
+      </span>
+    </div>`).join('') : '<p class="empty-state">Henüz veli kaydı eklenmedi.</p>';
+  document.getElementById('sinifDetayVeli').innerHTML = `
+    <div class="detay-card">
+      <h4 style="display:flex;justify-content:space-between;align-items:center;">Veli Bilgileri
+        <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Ekle</button>
+      </h4>
+      ${html}
+    </div>
+  `;
+}
+
+function sinifVeliModalAc(id){
+  const v = id ? veliler.find(x=>x.id===id) : null;
+  const body = `
+    <div class="form-group"><label>Öğrenci Adı</label><input id="f_vOgrenci" value="${v?escapeHtml(v.ogrenciAdi||''):''}"></div>
+    <div class="form-group"><label>Veli Adı</label><input id="f_vVeli" value="${v?escapeHtml(v.veliAdi||''):''}"></div>
+    <div class="form-group"><label>Telefon</label><input id="f_vTelefon" value="${v?escapeHtml(v.telefon||''):''}"></div>
+    <div class="form-group"><label>Notlar</label><textarea id="f_vNotlar" rows="2">${v?escapeHtml(v.notlar||''):''}</textarea></div>
+  `;
+  modalAc(v?'Veli Bilgisi Düzenle':'Veli Bilgisi Ekle', body, ()=>{
+    const ogrenciAdi = document.getElementById('f_vOgrenci').value.trim();
+    if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
+    kaydet(COL.veliler, v?v.id:null, {
+      sinifId: detaySinifId,
+      ogrenciAdi,
+      veliAdi: document.getElementById('f_vVeli').value.trim(),
+      telefon: document.getElementById('f_vTelefon').value.trim(),
+      notlar: document.getElementById('f_vNotlar').value.trim(),
+    });
+    modalKapat();
+  }, v ? ()=>{ if(confirm('Bu veli kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.veliler).doc(v.id).delete(); modalKapat(); } } : null);
 }
 
 /* ---------- sınıf seçim listesi (Ders Programı vb. için ortak kaynak) ---------- */

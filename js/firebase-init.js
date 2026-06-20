@@ -43,7 +43,8 @@ const COL = {
   periyodikIsler:'oy_periyodikIsler',   // {isAdi, baslangic, bitis, tamamlandi, not, bildirimGonderildi}
   dersSaatleri:'oy_dersSaatleri',       // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
   // --- YENİ: Sınıflar modülü ---
-  siniflar:'oy_siniflar'                // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
+  siniflar:'oy_siniflar',               // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
+  veliler:'oy_veliler'                  // {sinifId, ogrenciAdi, veliAdi, telefon, not}
 };
 
 let db = null;

@@ -13,6 +13,7 @@ function adGeciyorMu(haystack, adSoyad){
 
 function detayPanelKapat(){
   document.getElementById('detayOverlay').classList.remove('active');
+  detaySinifId = null;
 }
 
 function ogretmenDetayAc(id){

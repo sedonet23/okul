@@ -380,13 +380,13 @@ function renderDashboard(){
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
   const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
   document.getElementById('dashStats').innerHTML = `
-    <div class="card stat-card"><div class="stat-num">${ogretmenler.length}</div><div class="stat-label">Öğretmen</div></div>
-    <div class="card stat-card"><div class="stat-num">${siniflar.length}</div><div class="stat-label">Sınıf</div></div>
-    <div class="card stat-card"><div class="stat-num">${toplamOgrenci}</div><div class="stat-label">Öğrenci</div></div>
-    <div class="card stat-card"><div class="stat-num">${kadinOgretmen} / ${erkekOgretmen}</div><div class="stat-label">Kadın / Erkek Öğretmen</div></div>
-    <div class="card stat-card"><div class="stat-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-label">Açık Görev</div></div>
-    <div class="card stat-card"><div class="stat-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-label">Bekleyen Hatırlatıcı</div></div>
-    <div class="card stat-card"><div class="stat-num">${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-label">Açık Evrak</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${ogretmenler.length}</div><div class="stat-chip-label">Öğretmen</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${siniflar.length}</div><div class="stat-chip-label">Sınıf</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${toplamOgrenci}</div><div class="stat-chip-label">Öğrenci</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${kadinOgretmen} / ${erkekOgretmen}</div><div class="stat-chip-label">Kadın / Erkek Öğretmen</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-chip-label">Açık Görev</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Hatırlatıcı</div></div>
+    <div class="stat-chip"><div class="stat-chip-num">${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
   `;
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
   document.getElementById('dashBugunDersler').innerHTML = !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
@@ -459,7 +459,7 @@ function tumVerileriYedekle(){
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
-    siniflar,
+    siniflar, veliler,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
@@ -479,7 +479,7 @@ async function yedektenGeriYukle(file){
     if(!confirm("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?")) return;
     const eslemeler = [
       [data.ogretmenler, COL.ogretmenler],[data.dersProgrami, COL.dersProgrami],
-      [data.siniflar, COL.siniflar],
+      [data.siniflar, COL.siniflar],[data.veliler, COL.veliler],
       [data.nobetYerleri, COL.nobetYerleri],[data.nobetAtamalari, COL.nobetAtamalari],
       [data.nobetciAmirleri, COL.nobetciAmirleri],[data.resmiTatiller, COL.resmiTatiller],
       [data.hatirlaticilar, COL.hatirlaticilar],[data.gorevler, COL.gorevler],
@@ -511,8 +511,9 @@ function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); }, hataGoster);
-  db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); }, hataGoster);
-  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); }, hataGoster);
+  db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } }, hataGoster);
+  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
+  db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayVeliRender(sn); } }, hataGoster);
   nobetBaglantilariKur();
   db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
   db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
