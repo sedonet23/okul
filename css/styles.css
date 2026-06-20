@@ -59,35 +59,35 @@
 }
 
 [data-theme="dark"]{
-  --bg-app:        #0F1A15;
-  --bg-app-soft:   #15211B;
+  --bg-app:        #11201A;
+  --bg-app-soft:   #182921;
   --bg-sidebar:    #07241A;
   --bg-sidebar-2:  #0C3024;
-  --bg-card:       #16241D;
-  --bg-topbar:     #16241D;
-  --ink:           #E7F1EA;
-  --ink-soft:      #C2D2C7;
-  --ink-muted:     #8AA092;
-  --ink-on-dark:   #E7F1EA;
-  --ink-on-dark-muted: #93AC9C;
+  --bg-card:       #1E322A;
+  --bg-topbar:     #1E322A;
+  --ink:           #F2F8F4;
+  --ink-soft:      #CBDCD2;
+  --ink-muted:     #9BB5A8;
+  --ink-on-dark:   #EAF3EC;
+  --ink-on-dark-muted: #A0BBAB;
 
-  --amber:         #E0B23F;
+  --amber:         #E6BD52;
   --amber-deep:    #F0C766;
   --amber-soft:    #4A3B17;
   --amber-wash:    #2B2310;
 
-  --green-success: #4FB37E;
-  --green-success-wash: #163524;
-  --blue-info:     #6CA3C2;
-  --blue-info-wash:#1B2C36;
-  --red-danger:    #D97B6C;
-  --red-danger-wash:#36211D;
-  --gray-muted:    #8D9389;
-  --gray-muted-wash:#222D27;
-  --brand-light-wash: #1E2E14;
+  --green-success: #5FC18E;
+  --green-success-wash: #1A3D2A;
+  --blue-info:     #7FB4D2;
+  --blue-info-wash: #1F3340;
+  --red-danger:    #E08E7E;
+  --red-danger-wash: #3D261F;
+  --gray-muted:    #9CA39A;
+  --gray-muted-wash: #283530;
+  --brand-light-wash: #233A1A;
 
-  --border:        #234032;
-  --border-soft:   #1C2F25;
+  --border:        #345242;
+  --border-soft:   #284335;
   --shadow-sm:     0 1px 2px rgba(0,0,0,0.30), 0 1px 1px rgba(0,0,0,0.20);
   --shadow-md:     0 6px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.22);
   --shadow-lg:     0 16px 44px rgba(0,0,0,0.50), 0 4px 12px rgba(0,0,0,0.30);
@@ -158,8 +158,8 @@ input, select, textarea{ font-family: var(--font-body); }
 
 .form-group{ margin-bottom:14px; display:flex; flex-direction:column; gap:6px; }
 .form-group label{ font-size:12.5px; font-weight:700; color: var(--ink-soft); }
-.form-row{ display:flex; gap:12px; }
-.form-row .form-group{ flex:1; }
+.form-row{ display:flex; gap:12px; min-width:0; }
+.form-row .form-group{ flex:1; min-width:0; }
 
 input[type=text], input[type=email], input[type=password], input[type=date],
 input[type=time], input[type=number], input[type=file], select, textarea{
@@ -322,6 +322,16 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
    GENEL BAKIŞ
    ========================================================= */
 .dash-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-bottom:22px; }
+.dash-stat-strip{ display:flex; flex-wrap:wrap; gap:0; }
+.dash-stat-strip .stat-chip{
+  flex:1 1 130px; padding:10px 16px; text-align:center; border-right:1px solid var(--border-soft);
+}
+.dash-stat-strip .stat-chip:last-child{ border-right:none; }
+.dash-stat-strip .stat-chip-num{ font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--ink); }
+.dash-stat-strip .stat-chip-label{ font-size:11.5px; color:var(--ink-muted); margin-top:2px; text-transform:uppercase; letter-spacing:.03em; }
+@media (max-width:640px){
+  .dash-stat-strip .stat-chip{ flex:1 1 45%; border-right:none; border-bottom:1px solid var(--border-soft); padding:10px 8px; }
+}
 .stat-card{ background: var(--bg-card); border:1px solid var(--border); border-radius: var(--radius-lg); padding:16px 18px; box-shadow: var(--shadow-sm); }
 .stat-card.card{ display:block; }
 .stat-num{ font-family: var(--font-mono); font-size:26px; font-weight:700; color: var(--ink); }
@@ -478,6 +488,14 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 .detay-row:last-child{ border-bottom:none; }
 .detay-row-muted{ font-size:12px; color: var(--ink-muted); }
 @media (max-width: 640px){ .detay-panel{ width:100%; } }
+.detay-tabs{ display:flex; gap:6px; padding:0 18px; border-bottom:1px solid var(--border-soft); flex-wrap:wrap; }
+.detay-tab-btn{
+  background:none; border:none; padding:10px 4px; font-size:13px; font-weight:600; color: var(--ink-muted);
+  cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+}
+.detay-tab-btn.active{ color: var(--ink); border-bottom-color: var(--amber); }
+.detay-tab-panel{ display:none; }
+.detay-tab-panel.active{ display:flex; flex-direction:column; gap:14px; }
 
 /* =========================================================
    DUYARLI TASARIM
