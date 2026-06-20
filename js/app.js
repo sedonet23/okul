@@ -11,7 +11,6 @@ const EVRAK_DURUMLARI = ['Beklemede','İşlemde','Tamamlandı','Arşivlendi'];
 
 let ogretmenler=[], dersProgrami=[], hatirlaticilar=[], gorevler=[], evrakTakibi=[], notlar=[];
 let seciliSinif = '';
-let ekstraSiniflar = [];
 let hatirlaticiFiltre = 'tumu';
 let evrakFiltre = 'tumu';
 let baglantilarKuruldu = false;
@@ -93,7 +92,14 @@ function ogretmenModalAc(id){
     </div>
     <div class="form-group"><label>Telefon</label><input id="f_telefon" value="${o?escapeHtml(o.telefon||''):''}"></div>
     <div class="form-group"><label>E-posta</label><input id="f_eposta" value="${o?escapeHtml(o.eposta||''):''}"></div>
-    <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label><input id="f_sorumluSinif" value="${o?escapeHtml(o.sorumluSinif||''):''}"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Cinsiyet</label><select id="f_cinsiyet">
+        <option value="" ${o&&o.cinsiyet?'':'selected'}>Belirtilmedi</option>
+        <option value="kadin" ${o&&o.cinsiyet==='kadin'?'selected':''}>Kadın</option>
+        <option value="erkek" ${o&&o.cinsiyet==='erkek'?'selected':''}>Erkek</option>
+      </select></div>
+      <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label><input id="f_sorumluSinif" value="${o?escapeHtml(o.sorumluSinif||''):''}"></div>
+    </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_notlar" rows="2">${o?escapeHtml(o.notlar||''):''}</textarea></div>
   `;
   modalAc(o?'Öğretmen Düzenle':'Öğretmen Ekle', body, ()=>{
@@ -110,6 +116,7 @@ function ogretmenModalAc(id){
       kademe: kademeVal ? parseInt(kademeVal) : null,
       telefon: document.getElementById('f_telefon').value.trim(),
       eposta: document.getElementById('f_eposta').value.trim(),
+      cinsiyet: document.getElementById('f_cinsiyet').value,
       sorumluSinif: document.getElementById('f_sorumluSinif').value.trim(),
       notlar: document.getElementById('f_notlar').value.trim(),
     });
@@ -118,11 +125,11 @@ function ogretmenModalAc(id){
 }
 
 /* ============== DERS PROGRAMI ============== */
-function dersSiniflari(){ return [...new Set([...dersProgrami.map(d=>d.sinif), ...ekstraSiniflar])].sort((a,b)=>a.localeCompare(b,'tr')); }
+function dersSiniflari(){ return sinifAdlari(); }
 function sinifDegisti(v){ seciliSinif = v; renderDersGrid(); }
 function yeniSinifEkleDers(){
-  const yeni = prompt('Yeni sınıf adı (örn: 5-A):');
-  if(yeni && yeni.trim()){ seciliSinif = yeni.trim(); if(!ekstraSiniflar.includes(seciliSinif)) ekstraSiniflar.push(seciliSinif); renderDersGrid(); }
+  // Sınıf tanımları artık Sınıflar modülünden yönetiliyor.
+  sinifModalAc();
 }
 function renderDersGrid(){
   const sel = document.getElementById('dersSinifSecimi');
@@ -369,8 +376,14 @@ function notlarModalAc(id){
 function renderDashboard(){
   document.getElementById('panelTarih').textContent = bugunMetni();
   const bugunGun = GUNADI[new Date().getDay()];
+  const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
+  const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
+  const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
   document.getElementById('dashStats').innerHTML = `
     <div class="card stat-card"><div class="stat-num">${ogretmenler.length}</div><div class="stat-label">Öğretmen</div></div>
+    <div class="card stat-card"><div class="stat-num">${siniflar.length}</div><div class="stat-label">Sınıf</div></div>
+    <div class="card stat-card"><div class="stat-num">${toplamOgrenci}</div><div class="stat-label">Öğrenci</div></div>
+    <div class="card stat-card"><div class="stat-num">${kadinOgretmen} / ${erkekOgretmen}</div><div class="stat-label">Kadın / Erkek Öğretmen</div></div>
     <div class="card stat-card"><div class="stat-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-label">Açık Görev</div></div>
     <div class="card stat-card"><div class="stat-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-label">Bekleyen Hatırlatıcı</div></div>
     <div class="card stat-card"><div class="stat-num">${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-label">Açık Evrak</div></div>
@@ -446,6 +459,7 @@ function tumVerileriYedekle(){
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
+    siniflar,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
@@ -465,6 +479,7 @@ async function yedektenGeriYukle(file){
     if(!confirm("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?")) return;
     const eslemeler = [
       [data.ogretmenler, COL.ogretmenler],[data.dersProgrami, COL.dersProgrami],
+      [data.siniflar, COL.siniflar],
       [data.nobetYerleri, COL.nobetYerleri],[data.nobetAtamalari, COL.nobetAtamalari],
       [data.nobetciAmirleri, COL.nobetciAmirleri],[data.resmiTatiller, COL.resmiTatiller],
       [data.hatirlaticilar, COL.hatirlaticilar],[data.gorevler, COL.gorevler],
@@ -497,6 +512,7 @@ function baglantilariKur(){
   baglantilarKuruldu = true;
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); }, hataGoster);
+  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); }, hataGoster);
   nobetBaglantilariKur();
   db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
   db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);

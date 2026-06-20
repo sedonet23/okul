@@ -41,7 +41,9 @@ const COL = {
   nobetciAmirleri:'oy_nobetciAmirleri', // {tarih:'YYYY-MM-DD', ad, telefon}
   resmiTatiller:'oy_resmiTatiller',     // {tarih:'YYYY-MM-DD', aciklama}
   periyodikIsler:'oy_periyodikIsler',   // {isAdi, baslangic, bitis, tamamlandi, not, bildirimGonderildi}
-  dersSaatleri:'oy_dersSaatleri'        // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
+  dersSaatleri:'oy_dersSaatleri',       // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
+  // --- YENİ: Sınıflar modülü ---
+  siniflar:'oy_siniflar'                // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
 };
 
 let db = null;
