@@ -2,14 +2,16 @@
 // sekmesine yapıştırıp "Yayınla" (Publish) demeniz gerekir — bu dosya
 // otomatik olarak Firebase'e yüklenmez.
 //
-// Mantık: Sadece giriş yapmış (Authentication ile doğrulanmış) kullanıcı
-// okuyup yazabilir. Uygulamada tek bir yönetici hesabı kullandığınız için
-// bu, verilerinizi internetteki herkesten korumak için yeterlidir.
+// NOT: Giriş ekranı kaldırıldığı (bkz. js/auth.js) için bu kurallar artık
+// herkese açık okuma/yazma izni veriyor. Güvenlik, uygulamanın adresinin
+// genel olarak paylaşılmamasına bağlıdır. Eğer ileride şifreli girişe
+// dönerseniz, alttaki satırı "if request.auth != null;" ile değiştirip
+// js/auth.js'i de buna göre güncellemeniz gerekir.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if true;
     }
   }
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Okul Yönetim Paneli</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1F3330">
+<meta name="theme-color" content="#053827">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
@@ -40,7 +40,7 @@
     <div class="sidebar-head">
       <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
       <div class="brand">
-        <div class="brand-mark">OY</div>
+        <div class="brand-mark"><img src="assets/icon-192.png" alt="Koruk İlk-Ortaokulu logosu"></div>
         <div style="min-width:0;">
           <div class="brand-title">Okul Yönetimi</div>
           <div class="brand-sub" id="bugunMetni"></div>
@@ -66,6 +66,7 @@
       <button class="nav-tab" data-tab="rehberlik"><span class="nt-ico">Rh</span><span class="nt-label">Rehberlik</span></button>
       <button class="nav-tab" data-tab="maarifRapor"><span class="nt-ico">Mr</span><span class="nt-label">Maarif Model Raporlar</span></button>
       <button class="nav-tab" data-tab="digerEvrak"><span class="nt-ico">Dğ</span><span class="nt-label">Diğer Evraklar</span></button>
+      <button class="nav-tab" data-tab="periyodikIsler"><span class="nt-ico">Pİ</span><span class="nt-label">Periyodik İşler</span></button>
       <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico">⚙</span><span class="nt-label">Ayarlar</span></button>
     </nav>
     </aside>
@@ -81,17 +82,22 @@
 
     <section id="tab-panel" class="tab-panel active">
       <div class="page-header"><div><div class="page-title">Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
+      <div class="card zil-widget" id="zilWidget"></div>
       <div class="dash-grid" id="dashStats"></div>
       <div class="dash-cols">
-        <div class="card"><h3>Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
+        <div class="card"><h3>Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
         <div class="card"><h3>Bugün Nöbetçi Öğretmenler</h3><div id="dashBugunNobet"></div></div>
       </div>
       <div class="dash-cols">
+        <div class="card"><h3>Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
         <div class="card"><h3>Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
       </div>
       <div class="dash-cols">
         <div class="card"><h3>Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
         <div class="card"><h3>Görev Durumu</h3><div id="dashGorevler"></div></div>
+      </div>
+      <div class="dash-cols">
+        <div class="card"><h3>Son Notlar</h3><div id="dashNotlar"></div></div>
       </div>
     </section>
 
@@ -108,7 +114,7 @@
         <input type="text" id="ogretmenArama" placeholder="Ada veya branşa göre ara..." oninput="renderOgretmenler()" style="margin-bottom:16px;max-width:320px;">
         <div style="overflow-x:auto;">
           <table class="table">
-            <thead><tr><th>Ad Soyad</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
+            <thead><tr><th>Ad Soyad</th><th>Ünvan</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
             <tbody id="ogretmenlerTablo"></tbody>
           </table>
         </div>
@@ -314,8 +320,26 @@
       <div class="card" id="digerEvrakTablo"></div>
     </section>
 
+    <!-- PERİYODİK İŞLER -->
+    <section id="tab-periyodikIsler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Periyodik İşler</div><div class="page-sub">Okul taşıma, ek ders, puantaj, İŞKUR gibi her ay tekrarlayan işler</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" onclick="periyodikModalAc()">+ Yeni İş</button></div>
+      </div>
+      <div class="card" id="periyodikIslerListesi"></div>
+    </section>
+
     <section id="tab-ayarlar" class="tab-panel">
       <div class="page-header"><div><div class="page-title">Ayarlar</div><div class="page-sub">Bildirimler, tema, içe/dışa aktarma</div></div></div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Ders Saatleri</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+          7 ders saatinin başlangıç/bitiş saatlerini ve öğle arasını burada düzenleyin. Süreler tamamen esnektir,
+          istediğiniz gibi değiştirebilirsiniz. Ders Programı ve Genel Bakış'taki zil sayacı buna göre hesaplanır.
+        </p>
+        <div id="dersSaatleriForm"></div>
+      </div>
 
       <div class="card" style="margin-bottom:18px;">
         <h3>Excel Çizelgelerini İçe Aktar</h3>
@@ -351,6 +375,22 @@
   </div>
 </div>
 
+<div class="detay-overlay" id="detayOverlay">
+  <div class="detay-panel">
+    <div class="detay-head">
+      <div>
+        <div class="detay-baslik" id="detayBaslik"></div>
+        <div class="detay-alt" id="detayAltBaslik"></div>
+      </div>
+      <div class="detay-head-actions">
+        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">✎ Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">✕ Kapat</button>
+      </div>
+    </div>
+    <div class="detay-body" id="detayBody"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3 id="modalTitle"></h3>
@@ -371,6 +411,9 @@
 <script src="js/cizelgeler.js"></script>
 <script src="js/excel-import.js"></script>
 <script src="js/nobet.js"></script>
+<script src="js/periyodik.js"></script>
+<script src="js/ogretmen-detay.js"></script>
+<script src="js/ders-saatleri.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui.js"></script>
 </body>
