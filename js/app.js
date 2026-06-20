@@ -67,7 +67,7 @@ function renderOgretmenler(){
   document.getElementById('ogretmenlerTablo').innerHTML = liste.length ? liste.map(o=>`
     <tr class="row-clickable" onclick="ogretmenDetayAc('${o.id}')">
       <td>${escapeHtml(o.ad+' '+o.soyad)}</td>
-      <td>${escapeHtml(o.unvan||'Öğretmen')}</td>
+      <td>${escapeHtml(o.unvan||'Öğretmen')}${o.kariyerBasamagi && o.kariyerBasamagi!=='Öğretmen' ? ` <span class="status-badge status-${kariyerBasamagiRengi(o.kariyerBasamagi)}">${escapeHtml(o.kariyerBasamagi)}</span>` : ''}</td>
       <td>${escapeHtml(o.brans||'—')}</td>
       <td>${escapeHtml(o.telefon||'—')}</td>
       <td>${escapeHtml(o.eposta||'—')}</td>
@@ -76,14 +76,24 @@ function renderOgretmenler(){
     </tr>`).join('') : `<tr><td colspan="7" class="empty-state">Henüz öğretmen eklenmedi.</td></tr>`;
 }
 const OGRETMEN_UNVANLARI = ['Öğretmen','Müdür','Müdür Yardımcısı','Rehber Öğretmen','İdari Personel'];
-function ogretmenModalAc(id){
+const OGRETMEN_KARIYER_BASAMAKLARI = ['Öğretmen','Uzman Öğretmen','Başöğretmen'];
+function kariyerBasamagiRengi(k){ if(k==='Başöğretmen') return 'aktif'; if(k==='Uzman Öğretmen') return 'bekleme'; return ''; }
+/* Müdür Yardımcıları ayrı bir koleksiyon DEĞİL — öğretmenler listesinden
+   unvan==='Müdür Yardımcısı' filtresiyle hesaplanır (bkz. firebase-init.js COL.okulBilgileri yorumu). */
+function muduYardimcilari(){
+  return ogretmenler.filter(o=>(o.unvan||'').trim()==='Müdür Yardımcısı').sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+}
+function ogretmenModalAc(id, varsayilanUnvan){
   const o = id ? ogretmenler.find(x=>x.id===id) : null;
   const body = `
     <div class="form-group"><label>Ad</label><input id="f_ad" value="${o?escapeHtml(o.ad):''}"></div>
     <div class="form-group"><label>Soyad</label><input id="f_soyad" value="${o?escapeHtml(o.soyad):''}"></div>
     <div class="form-group"><label>Ünvan</label>
-      <input id="f_unvan" list="unvanListesi" value="${o?escapeHtml(o.unvan||''):''}" placeholder="örn: Öğretmen">
+      <input id="f_unvan" list="unvanListesi" value="${o?escapeHtml(o.unvan||''):(varsayilanUnvan?escapeHtml(varsayilanUnvan):'')}" placeholder="örn: Öğretmen">
       <datalist id="unvanListesi">${OGRETMEN_UNVANLARI.map(u=>`<option value="${u}">`).join('')}</datalist>
+    </div>
+    <div class="form-group"><label>Kariyer Basamağı</label>
+      <select id="f_kariyerBasamagi">${OGRETMEN_KARIYER_BASAMAKLARI.map(k=>`<option value="${k}" ${o&&o.kariyerBasamagi===k?'selected':''}>${k}</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>Branş</label><input id="f_brans" value="${o?escapeHtml(o.brans||''):''}" placeholder="örn: Matematik"></div>
     <div class="form-row">
@@ -111,6 +121,7 @@ function ogretmenModalAc(id){
     kaydet(COL.ogretmenler, o?o.id:null, {
       ad, soyad,
       unvan: document.getElementById('f_unvan').value.trim(),
+      kariyerBasamagi: document.getElementById('f_kariyerBasamagi').value,
       brans: document.getElementById('f_brans').value.trim(),
       derece: dereceVal ? parseInt(dereceVal) : null,
       kademe: kademeVal ? parseInt(kademeVal) : null,
@@ -122,6 +133,44 @@ function ogretmenModalAc(id){
     });
     modalKapat();
   }, o ? ()=>{ if(confirm('Bu öğretmeni silmek istediğinize emin misiniz?')){ db.collection(COL.ogretmenler).doc(o.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============== OKUL BİLGİLERİ ============== */
+let okulBilgileriAyari = null;
+function renderMuduYardimcilariListesi(){
+  const hedef = document.getElementById('muduYardimcilariListesi');
+  if(!hedef) return;
+  const liste = muduYardimcilari();
+  hedef.innerHTML = liste.length ? `<ul class="mudur-yardimcilari-liste">${liste.map(o=>`
+    <li class="mudur-yardimcisi-item">
+      <div class="mudur-yardimcisi-info">
+        <div class="mudur-yardimcisi-ad">${escapeHtml(o.ad+' '+o.soyad)}</div>
+        <div class="mudur-yardimcisi-telefon">${escapeHtml(o.telefon||'Telefon kayıtlı değil')}</div>
+      </div>
+      <div class="mudur-yardimcisi-actions">
+        <button class="btn btn-ghost btn-sm" onclick="ogretmenModalAc('${o.id}')">Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="muduYardimcisiListedenCikar('${o.id}')">Çıkar</button>
+      </div>
+    </li>`).join('')}</ul>` : '<p class="empty-state">Henüz Müdür Yardımcısı eklenmedi.</p>';
+}
+function muduYardimcisiEkle(){ ogretmenModalAc(null, 'Müdür Yardımcısı'); }
+function muduYardimcisiListedenCikar(id){
+  if(!confirm('Bu kişiyi Müdür Yardımcıları listesinden çıkarmak istiyor musunuz? (Öğretmen kaydı silinmez, sadece ünvanı "Öğretmen" olarak güncellenir.)')) return;
+  db.collection(COL.ogretmenler).doc(id).update({unvan:'Öğretmen'}).then(()=>toast('Listeden çıkarıldı.')).catch(err=>toast('Hata: '+err.message));
+}
+function renderOkulBilgileriSayfasi(){
+  const adEl = document.getElementById('f_okulAdi');
+  const mudurEl = document.getElementById('f_okulMudur');
+  if(adEl) adEl.value = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
+  if(mudurEl) mudurEl.innerHTML = ogretmenSecenekleri(okulBilgileriAyari ? okulBilgileriAyari.mudurId : '');
+  renderMuduYardimcilariListesi();
+}
+function okulBilgileriKaydet(){
+  const okulAdi = document.getElementById('f_okulAdi').value.trim();
+  const mudurId = document.getElementById('f_okulMudur').value;
+  db.collection(COL.okulBilgileri).doc('ayarlar').set({ okulAdi, mudurId })
+    .then(()=>toast('Okul bilgileri kaydedildi.'))
+    .catch(err=>toast('Hata: '+err.message));
 }
 
 /* ============== DERS PROGRAMI ============== */
@@ -460,6 +509,7 @@ function tumVerileriYedekle(){
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
     siniflar, veliler,
+    okulBilgileri: okulBilgileriAyari || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
@@ -500,6 +550,9 @@ async function yedektenGeriYukle(file){
     if(data.dersSaatleriAyarlari){
       await db.collection(COL.dersSaatleri).doc('ayarlar').set(data.dersSaatleriAyarlari);
     }
+    if(data.okulBilgileri){
+      await db.collection(COL.okulBilgileri).doc('ayarlar').set(data.okulBilgileri);
+    }
     toast('Geri yükleme tamamlandı.');
   }catch(err){
     toast('Geri yükleme hatası: '+err.message);
@@ -510,7 +563,7 @@ async function yedektenGeriYukle(file){
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
-  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); }, hataGoster);
+  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } }, hataGoster);
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayVeliRender(sn); } }, hataGoster);
@@ -521,7 +574,7 @@ function baglantilariKur(){
   db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); }, hataGoster);
 
   ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
-    db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); }, hataGoster);
+    db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); if(tip==='sosyalKulupler') renderSosyalKuluplerListesi(); }, hataGoster);
   });
   db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); }, hataGoster);
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
@@ -529,6 +582,10 @@ function baglantilariKur(){
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard();
+  }, hataGoster);
+  db.collection(COL.okulBilgileri).doc('ayarlar').onSnapshot(doc=>{
+    okulBilgileriAyari = doc.exists ? doc.data() : null;
+    renderOkulBilgileriSayfasi();
   }, hataGoster);
 }
 

@@ -26,6 +26,14 @@ function menuDaralt(){ document.body.classList.toggle('nav-collapsed'); }
 function menuAcKapat(){ document.body.classList.toggle('nav-open'); }
 function menuKapat(){ document.body.classList.remove('nav-open'); }
 
+/* ---------- accordion (Ayarlar > Ders Saatleri, v4.0) ---------- */
+function toggleAccordion(headerEl){
+  const content = headerEl.nextElementSibling;
+  const aciliyor = !headerEl.classList.contains('open');
+  headerEl.classList.toggle('open', aciliyor);
+  if(content) content.classList.toggle('open', aciliyor);
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   temaUygula(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 

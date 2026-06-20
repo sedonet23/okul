@@ -152,19 +152,32 @@ function belirliGunToggle(id, deger){
 }
 function belirliGunModalAc(id){
   const e = id ? belirliGunlerListesi.find(x=>x.id===id) : null;
+  const seciliIdler = (e && e.gorevliOgretmenler) ? e.gorevliOgretmenler : [];
   const body = `
     <div class="form-group"><label>Başlık</label><input id="f_bghBaslik" value="${e?escapeHtml(e.baslik):''}" placeholder="örn: Cumhuriyet Bayramı"></div>
     <div class="form-group"><label>Tarih / Dönem</label><input id="f_bghTarih" value="${e?escapeHtml(e.tarih||''):''}" placeholder="örn: 29 Ekim ya da 'Ekim ayının 3. haftası'"></div>
     <div class="form-group"><label>Ay Grubu</label><input id="f_bghAyGrubu" value="${e?escapeHtml(e.ayGrubu||''):''}" placeholder="örn: EKİM"></div>
-    <div class="form-group"><label>Görevli Öğretmen(ler)</label><input id="f_bghGorevli" value="${e?escapeHtml(e.gorevliOgretmen||''):''}"></div>
+    <div class="form-group">
+      <label>Görevli Öğretmen(ler)</label>
+      <div id="bghOgretmenSecimi" class="multi-select-list">
+        ${ogretmenler.length ? ogretmenler.map(o=>`
+          <div class="multi-select-item">
+            <input type="checkbox" id="bgh_o_${o.id}" value="${o.id}" ${seciliIdler.includes(o.id)?'checked':''}>
+            <label for="bgh_o_${o.id}">${escapeHtml(o.ad+' '+o.soyad)}</label>
+          </div>`).join('') : '<p class="empty-state">Önce Öğretmenler sekmesinden öğretmen ekleyin.</p>'}
+      </div>
+      ${(e && e.gorevliOgretmen && !seciliIdler.length) ? `<div class="detay-row-muted" style="margin-top:6px;font-size:12px;">Excel'den içe aktarılan eski kayıt: "${escapeHtml(e.gorevliOgretmen)}" — yukarıdan seçim yaparsanız güncellenir.</div>` : ''}
+    </div>
   `;
   modalAc(e?'Etkinliği Düzenle':'Yeni Etkinlik', body, ()=>{
     const baslik = document.getElementById('f_bghBaslik').value.trim();
     if(!baslik){ toast('Başlık zorunludur.'); return; }
+    const seciliOgretmenler = Array.from(document.querySelectorAll('#bghOgretmenSecimi input[type="checkbox"]:checked')).map(el=>el.value);
+    const gorevliOgretmen = seciliOgretmenler.length ? seciliOgretmenler.map(oid=>ogretmenAdi(oid)).join(', ') : (e?e.gorevliOgretmen||'':'');
     const veri = {
       baslik, tarih: document.getElementById('f_bghTarih').value.trim(),
       ayGrubu: document.getElementById('f_bghAyGrubu').value.trim().toLocaleUpperCase('tr'),
-      gorevliOgretmen: document.getElementById('f_bghGorevli').value.trim()
+      gorevliOgretmenler: seciliOgretmenler, gorevliOgretmen
     };
     const islem = e ? db.collection(COL.belirliGunler).doc(e.id).update(veri)
                      : db.collection(COL.belirliGunler).add({...veri, tamamlandi:false, sira: belirliGunlerListesi.length+1});
@@ -212,4 +225,112 @@ function digerEvrakModalAc(id){
                      : db.collection(COL.digerEvrak).add({...veri, teslimEdildi:true});
     islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
   }, e ? ()=>{ if(confirm('Bu evrak kaydını silmek istiyor musunuz?')){ db.collection(COL.digerEvrak).doc(e.id).delete(); modalKapat(); } } : null);
+}
+
+/* ============== SOSYAL KULÜPLER (ÖZEL) ============== */
+function renderSosyalKuluplerListesi(){
+  const hedef = document.getElementById('sosyalKuluplerListesi');
+  if(!hedef) return;
+  
+  const liste = [...cizelgeVerileri.sosyalKulupler].sort((a,b)=> (a.ad||'').localeCompare(b.ad||'','tr'));
+  
+  if(liste.length === 0){
+    hedef.style.display = 'none';
+    return;
+  }
+  
+  hedef.style.display = 'block';
+  hedef.innerHTML = `<div class="card sosyal-kulupler-listesi">
+    <h3>Kulüp Yönetimi</h3>
+    ${liste.map(k=>`
+      <div class="kulup-row">
+        <div style="flex:1;">
+          <div class="kulup-ad" style="font-weight:600;">${escapeHtml(k.ad)}</div>
+          <div style="font-size:12px; color:var(--ink-muted);">
+            Danışman: ${escapeHtml(k.danisman||'—')}
+          </div>
+          ${k.ogretmenler && k.ogretmenler.length > 0 ? `
+            <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">
+              Öğretmenler: ${k.ogretmenler.map(oid=>ogretmenAdi(oid)).join(', ')}
+            </div>
+          ` : ''}
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+            <input type="checkbox" ${k.aktif !== false ? 'checked' : ''} onchange="sosyalKulupDurumDegistir('${k.id}', this.checked)">
+            <span style="font-size:12px;">Aktif</span>
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="sosyalKulupModalAc('${k.id}')">Düzenle</button>
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+function sosyalKulupDurumDegistir(id, aktif){
+  const kulup = cizelgeVerileri.sosyalKulupler.find(x=>x.id===id);
+  if(kulup) kulup.aktif = aktif;
+}
+
+function sosyalKulupModalAc(id){
+  const k = id ? cizelgeVerileri.sosyalKulupler.find(x=>x.id===id) : null;
+  const body = `
+    <div class="form-group"><label>Kulüp Adı</label><input id="f_kAd" value="${k?escapeHtml(k.ad):''}" placeholder="örn: Robotik Kulübü"></div>
+    <div class="form-group"><label>Danışman Öğretmen</label><input id="f_kDanisman" value="${k?escapeHtml(k.danisman||''):''}" placeholder="Danışman adını yazın"></div>
+    <div class="form-group">
+      <label>Kulüp Öğretmenleri (Birden fazla seçebilirsiniz)</label>
+      <div id="ogretmenlerSecimi" style="border:1px solid var(--border); border-radius:6px; padding:12px; max-height:200px; overflow-y:auto; background:var(--bg-app-soft);">
+        ${ogretmenler.map(o=>`
+          <label style="display:flex; align-items:center; gap:8px; padding:6px 0; cursor:pointer;">
+            <input type="checkbox" value="${o.id}" ${k && k.ogretmenler && k.ogretmenler.includes(o.id)?'checked':''}>
+            <span>${escapeHtml(o.ad+' '+o.soyad)}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <input type="checkbox" id="f_kAktif" ${k && k.aktif !== false ? 'checked' : ''}>
+        <span>Aktif Kulüp</span>
+      </label>
+    </div>
+  `;
+  modalAc(k?'Kulüp Düzenle':'Yeni Kulüp', body, ()=>{
+    const ad = document.getElementById('f_kAd').value.trim();
+    if(!ad){ toast('Kulüp adı zorunludur.'); return; }
+    
+    const seciliOgretmenler = Array.from(document.querySelectorAll('#ogretmenlerSecimi input[type="checkbox"]:checked'))
+      .map(el=>el.value);
+    
+    const veri = {
+      ad,
+      danisman: document.getElementById('f_kDanisman').value.trim(),
+      ogretmenler: seciliOgretmenler,
+      aktif: document.getElementById('f_kAktif').checked,
+      durumlar: k ? k.durumlar : {}
+    };
+    
+    const islem = k ? db.collection(COL.sosyalKulupler).doc(k.id).update(veri)
+                   : db.collection(COL.sosyalKulupler).add({...veri, eklenmeTarihi: new Date().toISOString()});
+    
+    islem.then(()=>{ toast('Kulüp kaydedildi.'); modalKapat(); })
+      .catch(err=>toast('Hata: '+err.message));
+  }, k ? ()=>{ if(confirm('Bu kulübü silmek istediğinize emin misiniz?')){ db.collection(COL.sosyalKulupler).doc(k.id).delete(); modalKapat(); } } : null);
+}
+
+function sosyalKuluplerKaydet(){
+  if(!db){ toast('Firebase bağlantısı yok.'); return; }
+  
+  let kaydedilen = 0;
+  cizelgeVerileri.sosyalKulupler.forEach(k=>{
+    if(k.id){
+      db.collection(COL.sosyalKulupler).doc(k.id).update({
+        aktif: k.aktif !== false ? true : false,
+        ogretmenler: k.ogretmenler || [],
+        danisman: k.danisman || ''
+      }).then(()=>kaydedilen++).catch(err=>console.error('Kaydet hatası:', err));
+    }
+  });
+  
+  toast(`✓ ${cizelgeVerileri.sosyalKulupler.length} kulüp kaydedildi.`);
 }

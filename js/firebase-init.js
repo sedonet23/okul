@@ -44,7 +44,14 @@ const COL = {
   dersSaatleri:'oy_dersSaatleri',       // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
   // --- YENİ: Sınıflar modülü ---
   siniflar:'oy_siniflar',               // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
-  veliler:'oy_veliler'                  // {sinifId, ogrenciAdi, veliAdi, telefon, not}
+  veliler:'oy_veliler',                 // {sinifId, ogrenciAdi, veliAdi, telefon, not}
+  // --- YENİ: Okul Bilgileri (v4.0) ---
+  okulBilgileri:'oy_okulBilgileri'      // tek doküman (id:'ayarlar'): {okulAdi, mudurId}
+                                         // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:
+                                         // "Müdür Yardımcısı" zaten oy_ogretmenler içinde bir ünvan seçeneğidir (bkz. app.js OGRETMEN_UNVANLARI).
+                                         // Aynı kişi için iki ayrı kayıt (öğretmen + MY) tutmak veri tekrarına ve
+                                         // senkron sorunlarına yol açar; bu yüzden MY listesi öğretmenler içinden
+                                         // unvan==='Müdür Yardımcısı' filtresiyle hesaplanır (bkz. app.js muduYardimcilari()).
 };
 
 let db = null;

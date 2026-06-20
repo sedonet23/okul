@@ -97,6 +97,24 @@ async function dersProgramiExceliIceAktar(file){
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
 
+/* ============== ORTAK: AD SOYAD'A GÖRE ÖĞRETMEN BUL/EKLE ==============
+   Nöbet Excel'inde geçen ama Öğretmenler listesinde olmayan adlar için
+   otomatik öğretmen kaydı oluşturur (varsayilanUnvan verilirse o ünvanla,
+   örn. Nöbetçi Amir sütunundaki adlar "Müdür Yardımcısı" olarak eklenir). */
+async function ogretmenBulVeyaEkle(adSoyad, varsayilanUnvan){
+  if(!adSoyad) return null;
+  let ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
+  if(ogretmenObj) return ogretmenObj;
+  const parcalar = adSoyad.trim().split(/\s+/);
+  const soyad = parcalar.length>1 ? parcalar.pop() : '';
+  const ad = parcalar.join(' ') || adSoyad.trim();
+  const veri = { ad, soyad, unvan: varsayilanUnvan||'', brans:'', telefon:'', eposta:'', sorumluSinif:'' };
+  const ref = await db.collection(COL.ogretmenler).add({...veri, eklenmeTarihi:new Date().toISOString()});
+  ogretmenObj = { id: ref.id, ...veri };
+  ogretmenler.push(ogretmenObj); // sonraki satırlarda tekrar oluşturmamak için yerelde de güncelle
+  return ogretmenObj;
+}
+
 /* ============== NÖBET PROGRAMI (tarih bazlı, aylık) ============== */
 async function nobetExceliIceAktar(file){
   if(!file) return;
@@ -127,7 +145,7 @@ async function nobetExceliIceAktar(file){
       yerEslemesi[i] = yer.id;
     }
 
-    let atamaEklenen=0, atamaGuncellenen=0, tatilEklenen=0, amirEklenen=0, atlanan=0;
+    let atamaEklenen=0, atamaGuncellenen=0, tatilEklenen=0, amirEklenen=0, atlanan=0, yeniOgretmenEklenen=0;
     for(let r=headerIdx+1; r<aoa.length; r++){
       const row = aoa[r]; if(!row || cTarih===-1) continue;
       const tarihHam = row[cTarih];
@@ -153,7 +171,8 @@ async function nobetExceliIceAktar(file){
         const adSoyad = String(row[i]||'').trim();
         if(!adSoyad) continue;
         const yerId = yerEslemesi[i];
-        const ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
+        let ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
+        if(!ogretmenObj){ ogretmenObj = await ogretmenBulVeyaEkle(adSoyad); yeniOgretmenEklenen++; }
         const veri = { tarih: tarihISO, yerId, ogretmenAdSoyad: adSoyad, ogretmenId: ogretmenObj?ogretmenObj.id:'' };
         const mevcut = nobetAtamalari.find(a=>a.tarih===tarihISO && a.yerId===yerId);
         if(mevcut){ await db.collection(COL.nobetAtamalari).doc(mevcut.id).update(veri); atamaGuncellenen++; }
@@ -163,14 +182,15 @@ async function nobetExceliIceAktar(file){
       if(cAmir!==-1){
         const amirAd = String(row[cAmir]||'').trim();
         if(amirAd){
+          const amirOgretmen = await ogretmenBulVeyaEkle(amirAd, 'Müdür Yardımcısı');
           const mevcutAmir = nobetciAmirleri.find(a=>a.tarih===tarihISO);
-          const veri = { tarih: tarihISO, ad: amirAd, telefon: mevcutAmir?mevcutAmir.telefon||'':'' };
+          const veri = { tarih: tarihISO, ad: amirAd, telefon: amirOgretmen?(amirOgretmen.telefon||''):'', ogretmenId: amirOgretmen?amirOgretmen.id:'' };
           if(mevcutAmir){ await db.collection(COL.nobetciAmirleri).doc(mevcutAmir.id).update(veri); }
           else { await db.collection(COL.nobetciAmirleri).add(veri); amirEklenen++; }
         }
       }
     }
-    toast(`Nöbet çizelgesi içe aktarıldı: ${atamaEklenen} atama eklendi, ${atamaGuncellenen} güncellendi, ${tatilEklenen} tatil eklendi.`);
+    toast(`Nöbet çizelgesi içe aktarıldı: ${atamaEklenen} atama eklendi, ${atamaGuncellenen} güncellendi, ${tatilEklenen} tatil eklendi${yeniOgretmenEklenen?`, ${yeniOgretmenEklenen} yeni öğretmen kaydı oluşturuldu`:''}.`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
 function gununTariniDdMmYyyyToISO(str){

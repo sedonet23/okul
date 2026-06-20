@@ -46,8 +46,14 @@ function ogretmenDetayAc(id){
   ) : '<p class="empty-state">Nöbet ataması yok.</p>';
 
   /* ---- Kulüp / Rehberlik danışmanlığı ---- */
-  const kulupler = (cizelgeVerileri.sosyalKulupler||[]).filter(s=>adGeciyorMu(s.danisman, adSoyad));
-  const kulupHtml = kulupler.length ? kulupler.map(k=>`<div class="detay-row">${escapeHtml(k.ad)}</div>`).join('') : '<p class="empty-state">Danışmanı olduğu kulüp yok.</p>';
+  const kulupler = (cizelgeVerileri.sosyalKulupler||[]).filter(s=> adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id)));
+  const kulupHtml = kulupler.length ? kulupler.map(k=>{
+    const belirliGunler = (belirliGunlerListesi||[]).filter(e=>adGeciyorMu(e.gorevliOgretmen, k.ad));
+    const ilgiliGunler = belirliGunler.length ? belirliGunler.map(e=>
+      `<span class="cz-check ${e.tamamlandi?'on':''}" style="display:inline-flex;margin-right:4px;font-size:10px;">${e.tamamlandi?'✓':''}</span>`
+    ).join('') : '';
+    return `<div class="detay-row">${escapeHtml(k.ad)}${ilgiliGunler ? `<span style="margin-left:8px;color:var(--ink-muted);font-size:11px;">Görevler: ${ilgiliGunler}</span>` : ''}</div>`;
+  }).join('') : '<p class="empty-state">Danışmanı olduğu kulüp yok.</p>';
 
   const rehberlikler = (cizelgeVerileri.rehberlik||[]).filter(s=>adGeciyorMu(s.danisman, adSoyad));
   const rehberlikHtml = rehberlikler.length ? rehberlikler.map(r=>`<div class="detay-row">${escapeHtml(r.ad)} (sınıf danışmanlığı)</div>`).join('') : '';
@@ -57,7 +63,7 @@ function ogretmenDetayAc(id){
   const bepHtml = bepKayitlari.length ? bepKayitlari.map(b=>`<div class="detay-row">${escapeHtml(b.ad)}</div>`).join('') : '';
 
   /* ---- Belirli Gün ve Haftalar ---- */
-  const belirliGunler = (belirliGunlerListesi||[]).filter(e=>adGeciyorMu(e.gorevliOgretmen, adSoyad));
+  const belirliGunler = (belirliGunlerListesi||[]).filter(e=> (e.gorevliOgretmenler && e.gorevliOgretmenler.includes(id)) || adGeciyorMu(e.gorevliOgretmen, adSoyad));
   const belirliGunHtml = belirliGunler.length ? belirliGunler.map(e=>
     `<div class="detay-row"><span class="cz-check ${e.tamamlandi?'on':''}" style="margin-right:6px;display:inline-flex;">${e.tamamlandi?'✓':''}</span>${escapeHtml(e.baslik)} <span class="detay-row-muted">${escapeHtml(e.tarih||'')}</span></div>`
   ).join('') : '<p class="empty-state">Görevli olduğu etkinlik yok.</p>';
@@ -74,6 +80,7 @@ function ogretmenDetayAc(id){
       <div class="detay-row">Telefon: ${escapeHtml(o.telefon||'—')}</div>
       <div class="detay-row">E-posta: ${escapeHtml(o.eposta||'—')}</div>
       ${o.sorumluSinif?`<div class="detay-row">Sorumlu Sınıf: ${escapeHtml(o.sorumluSinif)}</div>`:''}
+      ${o.kariyerBasamagi && o.kariyerBasamagi!=='Öğretmen' ? `<div class="detay-row">Kariyer Basamağı: <span class="status-badge status-${kariyerBasamagiRengi(o.kariyerBasamagi)}">${escapeHtml(o.kariyerBasamagi)}</span></div>` : ''}
       ${(o.derece||o.kademe)?`<div class="detay-row">${o.derece?'Derece: '+o.derece:''}${o.derece&&o.kademe?' · ':''}${o.kademe?'Kademe: '+o.kademe:''}</div>`:''}
       ${o.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(o.notlar)}</div>`:''}
     </div>

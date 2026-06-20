@@ -108,18 +108,23 @@ function renderNobetTatilListesi(){
 function nobetAtamaModalAc(tarihISO, yerId){
   const yer = nobetYerleri.find(y=>y.id===yerId);
   const mevcut = nobetAtamalari.find(a=>a.tarih===tarihISO && a.yerId===yerId);
+  const siraliOgretmenler = [...ogretmenler].sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
   const body = `
     <div class="form-group"><label>Tarih / Yer</label><input value="${formatTarih(tarihISO)} — ${escapeHtml(yer?yer.ad:'')}" disabled></div>
     <div class="form-group"><label>Nöbetçi Öğretmen</label>
-      <input id="f_nobetOgretmen" list="nobetOgretmenListesi" value="${mevcut?escapeHtml(mevcut.ogretmenAdSoyad||''):''}" placeholder="Ad Soyad yazın">
-      <datalist id="nobetOgretmenListesi">${ogretmenler.map(o=>`<option value="${escapeHtml(o.ad+' '+o.soyad)}">`).join('')}</datalist>
+      ${siraliOgretmenler.length ? `
+        <select id="f_nobetOgretmen">
+          <option value="">Seçiniz</option>
+          ${siraliOgretmenler.map(o=>`<option value="${o.id}" ${mevcut && mevcut.ogretmenId===o.id?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}
+        </select>
+      ` : '<p class="empty-state">Önce Öğretmenler sekmesinden öğretmen ekleyin.</p>'}
     </div>
   `;
   modalAc(mevcut?'Nöbet Atamasını Düzenle':'Nöbet Ata', body, ()=>{
-    const ad = document.getElementById('f_nobetOgretmen').value.trim();
-    if(!ad){ toast('Öğretmen adı zorunludur.'); return; }
-    const ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(ad,'tr',{sensitivity:'base'})===0);
-    const veri = { tarih: tarihISO, yerId, ogretmenAdSoyad: ad, ogretmenId: ogretmenObj?ogretmenObj.id:'' };
+    const sel = document.getElementById('f_nobetOgretmen');
+    if(!sel || !sel.value){ toast('Öğretmen seçimi zorunludur.'); return; }
+    const ogretmenObj = ogretmenler.find(o=>o.id===sel.value);
+    const veri = { tarih: tarihISO, yerId, ogretmenAdSoyad: `${ogretmenObj.ad} ${ogretmenObj.soyad}`, ogretmenId: ogretmenObj.id };
     const islem = mevcut ? db.collection(COL.nobetAtamalari).doc(mevcut.id).update(veri)
                           : db.collection(COL.nobetAtamalari).add(veri);
     islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
@@ -127,16 +132,24 @@ function nobetAtamaModalAc(tarihISO, yerId){
 }
 function nobetAmirModalAc(tarihISO){
   const mevcut = nobetciAmirleri.find(a=>a.tarih===tarihISO);
+  const adaylar = muduYardimcilari();
   const body = `
     <div class="form-group"><label>Tarih</label><input value="${formatTarih(tarihISO)}" disabled></div>
-    <div class="form-group"><label>Nöbetçi Amir (Ad Soyad)</label><input id="f_amirAd" value="${mevcut?escapeHtml(mevcut.ad||''):''}"></div>
-    <div class="form-group"><label>Telefon</label><input id="f_amirTel" value="${mevcut?escapeHtml(mevcut.telefon||''):''}"></div>
+    <div class="form-group"><label>Nöbetçi Amir</label>
+      ${adaylar.length ? `
+        <select id="f_amirId" onchange="document.getElementById('f_amirTel').value = (this.selectedOptions[0] ? this.selectedOptions[0].dataset.tel : '')||'';">
+          <option value="">Seçiniz</option>
+          ${adaylar.map(o=>`<option value="${o.id}" data-tel="${escapeHtml(o.telefon||'')}" data-ad="${escapeHtml(o.ad+' '+o.soyad)}" ${mevcut && mevcut.ogretmenId===o.id?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}
+        </select>
+      ` : '<p class="empty-state">Henüz Müdür Yardımcısı tanımlanmadı. Öğretmenler sekmesinde (veya Okul Bilgileri sekmesinde "+ Yeni Müdür Yardımcısı" ile) ünvanı "Müdür Yardımcısı" olan bir kayıt ekleyin.</p>'}
+    </div>
+    <div class="form-group"><label>Telefon</label><input id="f_amirTel" value="${mevcut?escapeHtml(mevcut.telefon||''):''}" disabled></div>
   `;
   modalAc(mevcut?'Nöbetçi Amiri Düzenle':'Nöbetçi Amir Ata', body, ()=>{
-    const ad = document.getElementById('f_amirAd').value.trim();
-    const telefon = document.getElementById('f_amirTel').value.trim();
-    if(!ad){ toast('Amir adı zorunludur.'); return; }
-    const veri = { tarih: tarihISO, ad, telefon };
+    const sel = document.getElementById('f_amirId');
+    if(!sel || !sel.value){ toast('Nöbetçi amir seçimi zorunludur.'); return; }
+    const secili = sel.selectedOptions[0];
+    const veri = { tarih: tarihISO, ad: secili.dataset.ad, telefon: secili.dataset.tel||'', ogretmenId: sel.value };
     const islem = mevcut ? db.collection(COL.nobetciAmirleri).doc(mevcut.id).update(veri)
                           : db.collection(COL.nobetciAmirleri).add(veri);
     islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
