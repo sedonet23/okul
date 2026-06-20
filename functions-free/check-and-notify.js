@@ -70,6 +70,20 @@ async function main(){
     }
   });
 
+  const periyodikSnap = await db.collection('oy_periyodikIsler').get();
+  periyodikSnap.forEach(doc=>{
+    const v = doc.data();
+    if(v.tamamlandi || v.bildirimGonderildi || !v.bitis) return;
+    if(v.bitis <= bugunISO){
+      gonderilecekler.push({
+        baslik: `Periyodik İş Vadesi: ${v.isAdi || ''}`,
+        govde: v.not || `Bitiş tarihi: ${v.bitis}`,
+        koleksiyon: 'oy_periyodikIsler',
+        docId: doc.id
+      });
+    }
+  });
+
   if(gonderilecekler.length === 0){
     console.log('Gönderilecek bildirim yok.');
     return;
