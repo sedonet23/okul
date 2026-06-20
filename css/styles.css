@@ -12,8 +12,8 @@
   --brand-gold:         #FEDD4B;
   --brand-light-green:  #8FB84A;
 
-  --bg-app:        #F5F2E6;
-  --bg-app-soft:   #ECEADA;
+  --bg-app:        #FAFCF8;
+  --bg-app-soft:   #F1F7F0;
   --bg-sidebar:    #0B3D2B;
   --bg-sidebar-2:  #11503A;
   --bg-card:       #FFFFFF;
@@ -30,17 +30,17 @@
   --amber-wash:    #FCF2DC;
 
   --green-success: #0A714E;
-  --green-success-wash: #E2F2E9;
+  --green-success-wash: #E8F5ED;
   --blue-info:     #3D6E8C;
-  --blue-info-wash:#E4EEF2;
+  --blue-info-wash:#E9F3F7;
   --red-danger:    #B0463A;
-  --red-danger-wash:#F5E5E1;
+  --red-danger-wash:#FAEAE6;
   --gray-muted:    #8A8576;
-  --gray-muted-wash:#EAE6D9;
-  --brand-light-wash: #EEF5DF;
+  --gray-muted-wash:#F0EEE4;
+  --brand-light-wash: #F1F7E5;
 
-  --border:        #DEE3D2;
-  --border-soft:   #E8ECDF;
+  --border:        #E3EAE0;
+  --border-soft:   #EEF3EB;
   --shadow-sm:     0 1px 2px rgba(11,40,28,0.07), 0 1px 1px rgba(11,40,28,0.04);
   --shadow-md:     0 6px 16px rgba(11,40,28,0.11), 0 2px 4px rgba(11,40,28,0.06);
   --shadow-lg:     0 16px 40px rgba(11,40,28,0.20), 0 4px 10px rgba(11,40,28,0.09);
