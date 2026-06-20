@@ -36,6 +36,7 @@ async function ogretmenExceliIceAktar(file){
     const cAdSoyad = col('AD SOYAD'); const cAd = col('AD'); const cSoyad = col('SOYAD');
     const cBrans = col('BRANŞ','BRANS'); const cTel = col('TELEFON'); const cEposta = col('E-POSTA','EPOSTA','E POSTA');
     const cSorumlu = col('SORUMLU SINIF','SORUMLU SINIFI');
+    const cUnvan = col('ÜNVAN','UNVAN'); const cDerece = col('DERECE'); const cKademe = col('KADEME');
 
     let eklenen=0, guncellenen=0;
     for(let i=headerIdx+1;i<aoa.length;i++){
@@ -44,9 +45,14 @@ async function ogretmenExceliIceAktar(file){
       if(cAdSoyad!==-1 && row[cAdSoyad]){ const p=String(row[cAdSoyad]).trim().split(/\s+/); soyad=p.pop()||''; ad=p.join(' '); }
       else { ad = cAd!==-1 ? String(row[cAd]||'').trim() : ''; soyad = cSoyad!==-1 ? String(row[cSoyad]||'').trim() : ''; }
       if(!ad) continue;
+      const dereceVal = cDerece!==-1 ? parseInt(row[cDerece]) : NaN;
+      const kademeVal = cKademe!==-1 ? parseInt(row[cKademe]) : NaN;
       const veri = {
         ad, soyad,
+        unvan: cUnvan!==-1 ? String(row[cUnvan]||'').trim() : '',
         brans: cBrans!==-1 ? String(row[cBrans]||'').trim() : '',
+        derece: !isNaN(dereceVal) ? dereceVal : null,
+        kademe: !isNaN(kademeVal) ? kademeVal : null,
         telefon: cTel!==-1 ? String(row[cTel]||'').trim() : '',
         eposta: cEposta!==-1 ? String(row[cEposta]||'').trim() : '',
         sorumluSinif: cSorumlu!==-1 ? String(row[cSorumlu]||'').trim() : ''

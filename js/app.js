@@ -63,24 +63,34 @@ function modalKapat(){ document.getElementById('modalOverlay').classList.remove(
 function renderOgretmenler(){
   const aramaEl = document.getElementById('ogretmenArama');
   const arama = (aramaEl ? aramaEl.value : '').toLocaleLowerCase('tr');
-  let liste = ogretmenler.filter(o => !arama || (o.ad+' '+o.soyad+' '+(o.brans||'')).toLocaleLowerCase('tr').includes(arama));
+  let liste = ogretmenler.filter(o => !arama || (o.ad+' '+o.soyad+' '+(o.brans||'')+' '+(o.unvan||'')).toLocaleLowerCase('tr').includes(arama));
   liste.sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
   document.getElementById('ogretmenlerTablo').innerHTML = liste.length ? liste.map(o=>`
-    <tr>
+    <tr class="row-clickable" onclick="ogretmenDetayAc('${o.id}')">
       <td>${escapeHtml(o.ad+' '+o.soyad)}</td>
+      <td>${escapeHtml(o.unvan||'Öğretmen')}</td>
       <td>${escapeHtml(o.brans||'—')}</td>
       <td>${escapeHtml(o.telefon||'—')}</td>
       <td>${escapeHtml(o.eposta||'—')}</td>
       <td>${escapeHtml(o.sorumluSinif||'—')}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="ogretmenModalAc('${o.id}')">Düzenle</button></td>
-    </tr>`).join('') : `<tr><td colspan="6" class="empty-state">Henüz öğretmen eklenmedi.</td></tr>`;
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); ogretmenModalAc('${o.id}')">Düzenle</button></td>
+    </tr>`).join('') : `<tr><td colspan="7" class="empty-state">Henüz öğretmen eklenmedi.</td></tr>`;
 }
+const OGRETMEN_UNVANLARI = ['Öğretmen','Müdür','Müdür Yardımcısı','Rehber Öğretmen','İdari Personel'];
 function ogretmenModalAc(id){
   const o = id ? ogretmenler.find(x=>x.id===id) : null;
   const body = `
     <div class="form-group"><label>Ad</label><input id="f_ad" value="${o?escapeHtml(o.ad):''}"></div>
     <div class="form-group"><label>Soyad</label><input id="f_soyad" value="${o?escapeHtml(o.soyad):''}"></div>
+    <div class="form-group"><label>Ünvan</label>
+      <input id="f_unvan" list="unvanListesi" value="${o?escapeHtml(o.unvan||''):''}" placeholder="örn: Öğretmen">
+      <datalist id="unvanListesi">${OGRETMEN_UNVANLARI.map(u=>`<option value="${u}">`).join('')}</datalist>
+    </div>
     <div class="form-group"><label>Branş</label><input id="f_brans" value="${o?escapeHtml(o.brans||''):''}" placeholder="örn: Matematik"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
+    </div>
     <div class="form-group"><label>Telefon</label><input id="f_telefon" value="${o?escapeHtml(o.telefon||''):''}"></div>
     <div class="form-group"><label>E-posta</label><input id="f_eposta" value="${o?escapeHtml(o.eposta||''):''}"></div>
     <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label><input id="f_sorumluSinif" value="${o?escapeHtml(o.sorumluSinif||''):''}"></div>
@@ -90,9 +100,14 @@ function ogretmenModalAc(id){
     const ad = document.getElementById('f_ad').value.trim();
     const soyad = document.getElementById('f_soyad').value.trim();
     if(!ad || !soyad){ toast('Ad ve soyad zorunludur.'); return; }
+    const dereceVal = document.getElementById('f_derece').value;
+    const kademeVal = document.getElementById('f_kademe').value;
     kaydet(COL.ogretmenler, o?o.id:null, {
       ad, soyad,
+      unvan: document.getElementById('f_unvan').value.trim(),
       brans: document.getElementById('f_brans').value.trim(),
+      derece: dereceVal ? parseInt(dereceVal) : null,
+      kademe: kademeVal ? parseInt(kademeVal) : null,
       telefon: document.getElementById('f_telefon').value.trim(),
       eposta: document.getElementById('f_eposta').value.trim(),
       sorumluSinif: document.getElementById('f_sorumluSinif').value.trim(),
@@ -116,8 +131,10 @@ function renderDersGrid(){
   sel.innerHTML = siniflar.length ? siniflar.map(s=>`<option ${s===seciliSinif?'selected':''}>${escapeHtml(s)}</option>`).join('') : '<option>Sınıf eklenmedi</option>';
   const bugun = GUNADI[new Date().getDay()];
   let html = '<thead><tr><th>Saat</th>' + GUNLER.map(g=>`<th class="${g===bugun?'bugun-kolon':''}">${g}</th>`).join('') + '</tr></thead><tbody>';
-  for(let saat=1; saat<=8; saat++){
-    html += `<tr><td class="sch-saat">${saat}.</td>`;
+  for(let saat=1; saat<=7; saat++){
+    const bilgi = dersSaatiBilgisi(saat);
+    const saatEtiket = bilgi ? `${saat}. <span class="sch-saat-zaman">${bilgi.baslangic}–${bilgi.bitis}</span>` : `${saat}.`;
+    html += `<tr><td class="sch-saat">${saatEtiket}</td>`;
     for(const gun of GUNLER){
       const giris = dersProgrami.find(d=>d.sinif===seciliSinif && d.gun===gun && d.saat===saat);
       if(giris){
@@ -127,6 +144,11 @@ function renderDersGrid(){
       }
     }
     html += '</tr>';
+    const ara = sonrakiSegmentBilgisi(saat);
+    if(ara && ara.fark>0){
+      const araEtiket = ara.sonrakiTip==='ogle' ? `Öğle Arası (${ara.fark} dk)` : `Teneffüs (${ara.fark} dk)`;
+      html += `<tr class="sch-ara-row"><td colspan="${GUNLER.length+1}">${araEtiket}</td></tr>`;
+    }
   }
   html += '</tbody>';
   document.getElementById('dersGridTablo').innerHTML = html;
@@ -139,7 +161,7 @@ function dersModalAc(gun, saat, mevcut){
   const body = `
     <div class="form-group"><label>Sınıf</label><input id="f_sinif" value="${escapeHtml(mevcut?mevcut.sinif:(seciliSinif||''))}" placeholder="örn: 5-A"></div>
     <div class="form-group"><label>Gün</label><select id="f_gun">${GUNLER.map(g=>`<option ${g===gun?'selected':''}>${g}</option>`).join('')}</select></div>
-    <div class="form-group"><label>Ders Saati</label><select id="f_saat">${[1,2,3,4,5,6,7,8].map(s=>`<option ${s===saat?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Ders Saati</label><select id="f_saat">${[1,2,3,4,5,6,7].map(s=>`<option ${s===saat?'selected':''}>${s}</option>`).join('')}</select></div>
     <div class="form-group"><label>Ders</label><input id="f_ders" value="${mevcut?escapeHtml(mevcut.ders):''}" placeholder="örn: Matematik"></div>
     <div class="form-group"><label>Öğretmen</label><select id="f_ogretmen">${ogretmenSecenekleri(mevcut?mevcut.ogretmenId:'')}</select></div>
   `;
@@ -367,13 +389,63 @@ function renderDashboard(){
     <div class="dash-row">Yapılıyor: <strong>${gorevler.filter(g=>g.durum==='yapiliyor').length}</strong></div>
     <div class="dash-row">Tamamlandı: <strong>${gorevler.filter(g=>g.durum==='tamamlandi').length}</strong></div>
   `;
+
+  /* ---- Son Notlar ---- */
+  const notlarEl = document.getElementById('dashNotlar');
+  if(notlarEl){
+    const sonNotlar = [...notlar].sort((a,b)=>(b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||'')).slice(0,4);
+    notlarEl.innerHTML = sonNotlar.length ? sonNotlar.map(n=>`<div class="dash-row" style="cursor:pointer;" onclick="notlarModalAc('${n.id}')"><strong>${escapeHtml(n.baslik||'(Başlıksız)')}</strong> — ${escapeHtml((n.icerik||'').slice(0,70))}</div>`).join('') : '<p class="empty-state">Henüz not eklenmedi.</p>';
+  }
+
+  /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
+  renderZilSayaci(bugunGun);
+}
+
+function renderZilSayaci(bugunGun){
+  const zilEl = document.getElementById('zilWidget');
+  const suankiEl = document.getElementById('dashSuankiDers');
+  if(!zilEl) return;
+  if(!GUNLER.includes(bugunGun)){
+    zilEl.innerHTML = `<div class="zil-durum">Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
+    if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Bugün hafta sonu.</p>';
+    return;
+  }
+  const durum = suankiDersDurumu();
+  if(durum.durum==='yok'){
+    zilEl.innerHTML = `<div class="zil-durum">Ders saatleri henüz Ayarlar sayfasından girilmedi.</div>`;
+    if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
+    return;
+  }
+  const etiketler = { ders:'Şu an ders saatinde', teneffus:'Teneffüste / derse hazırlanılıyor', ogle:'Öğle arasında', bitti:'Ders saatleri sona erdi' };
+  if(durum.durum==='bitti'){
+    zilEl.innerHTML = `<div class="zil-durum">Bugünün ders saatleri sona erdi.</div>`;
+  } else {
+    const altMetin = durum.durum==='ders' ? `${durum.etiket} bitimine kalan süre`
+      : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'
+      : `${durum.etiket} başlamasına kalan süre`;
+    zilEl.innerHTML = `
+      <div><div class="zil-etiket">${etiketler[durum.durum]}</div><div class="zil-alt">${altMetin}</div></div>
+      <div class="zil-sayac">${durum.kalanDk} <span>dk</span></div>
+    `;
+  }
+  if(suankiEl){
+    if(durum.durum==='ders'){
+      const buSaatDersler = dersProgrami.filter(d=>d.gun===bugunGun && d.saat===durum.saat);
+      suankiEl.innerHTML = buSaatDersler.length ? buSaatDersler.map(d=>`<div class="dash-row">${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--ink-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bu saat için ders programı girilmemiş.</p>';
+    } else if(durum.durum==='ogle'){
+      suankiEl.innerHTML = '<p class="empty-state">Şu an öğle arası.</p>';
+    } else {
+      suankiEl.innerHTML = `<p class="empty-state">Şu an teneffüs — sıradaki: ${escapeHtml(durum.etiket)}.</p>`;
+    }
+  }
 }
 
 /* ============== YEDEKLEME ============== */
 function tumVerileriYedekle(){
   const yedek = {
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
-    nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller,
+    nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
+    dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
@@ -399,7 +471,8 @@ async function yedektenGeriYukle(file){
       [data.evrakTakibi, COL.evrak],[data.notlar, COL.notlar],
       [data.sosyalKulupler, COL.sosyalKulupler],[data.sok, COL.sok],[data.zumre, COL.zumre],
       [data.bepPlani, COL.bepPlani],[data.rehberlik, COL.rehberlik],[data.maarifRapor, COL.maarifRapor],
-      [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak]
+      [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
+      [data.periyodikIsler, COL.periyodikIsler]
     ];
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
@@ -408,6 +481,9 @@ async function yedektenGeriYukle(file){
         if(id){ await db.collection(koleksiyon).doc(id).set(veri); }
         else { await db.collection(koleksiyon).add(veri); }
       }
+    }
+    if(data.dersSaatleriAyarlari){
+      await db.collection(COL.dersSaatleri).doc('ayarlar').set(data.dersSaatleriAyarlari);
     }
     toast('Geri yükleme tamamlandı.');
   }catch(err){
@@ -432,6 +508,11 @@ function baglantilariKur(){
   });
   db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); }, hataGoster);
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
+  periyodikBaglantilariKur();
+  db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
+    dersSaatleriAyarlari = doc.exists ? doc.data() : null;
+    renderDersSaatleriForm(); renderDersGrid(); renderDashboard();
+  }, hataGoster);
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
@@ -444,6 +525,7 @@ function uygulamaBaslat(){
   baglantilariKur();
   pushDurumGuncelle();
   pushOnMessageDinleyiciKur();
+  setInterval(()=>{ renderZilSayaci(GUNADI[new Date().getDay()]); }, 30000);
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -451,7 +533,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
     btn.addEventListener('click', ()=> sekmeAc(btn.dataset.tab));
   });
   document.getElementById('modalOverlay')?.addEventListener('click', e=>{ if(e.target.id==='modalOverlay') modalKapat(); });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') modalKapat(); });
+  document.getElementById('detayOverlay')?.addEventListener('click', e=>{ if(e.target.id==='detayOverlay') detayPanelKapat(); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ modalKapat(); detayPanelKapat(); } });
   document.getElementById('bildirimAcBtn')?.addEventListener('click', bildirimleriAc);
 
   try{
