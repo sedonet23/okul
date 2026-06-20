@@ -6,44 +6,42 @@
    ========================================================= */
 
 :root{
-  /* ---- Koruk İlk-Ortaokulu logo paleti ---- */
-  --brand-green:        #0A714E;
-  --brand-green-deep:   #053827;
-  --brand-gold:         #FEDD4B;
-  --brand-light-green:  #8FB84A;
+  /* ---- MOR & KURUMSAL TEMA (KORUK İLK - ORTAOKULU) ---- */
+  --brand-purple:       #7C3AED;
+  --brand-purple-dark:  #6B21A8;
+  --brand-purple-light: #A78BFA;
+  --brand-green:        #10B981;  /* Başarı / Onay */
+  --brand-gold:         #FEDD4B;  /* Logo sadece */
+  
+  /* Kategori Renkleri */
+  --color-student:      #3B82F6;  /* Öğrenci - Mavi */
+  --color-teacher:      #10B981;  /* Öğretmen - Yeşil */
+  --color-class:        #7C3AED;  /* Sınıf - Mor */
+  --color-staff:        #F97316;  /* Personel - Turuncu */
+  
+  /* Uyarı Renkleri */
+  --color-warning:      #F97316;  /* Turuncu */
+  --color-error:        #EF4444;  /* Kırmızı */
+  --color-success:      #10B981;  /* Yeşil */
+  --color-info:         #3B82F6;  /* Mavi */
 
-  --bg-app:        #FAFCF8;
-  --bg-app-soft:   #F1F7F0;
-  --bg-sidebar:    #0B3D2B;
-  --bg-sidebar-2:  #11503A;
+  --bg-app:        #F9FAFB;
+  --bg-app-soft:   #F3F4F6;
+  --bg-sidebar:    #1F2937;
+  --bg-sidebar-2:  #111827;
   --bg-card:       #FFFFFF;
   --bg-topbar:     #FFFFFF;
-  --ink:           #1B2620;
-  --ink-soft:      #3C4A41;
-  --ink-muted:     #75807A;
-  --ink-on-dark:   #EAF3EC;
-  --ink-on-dark-muted: #A9C2B3;
+  --ink:           #111827;
+  --ink-soft:      #374151;
+  --ink-muted:     #6B7280;
+  --ink-on-dark:   #F3F4F6;
+  --ink-on-dark-muted: #D1D5DB;
 
-  --amber:         #C9971A;
-  --amber-deep:    #A87A12;
-  --amber-soft:    #F3DFA0;
-  --amber-wash:    #FCF2DC;
-
-  --green-success: #0A714E;
-  --green-success-wash: #E8F5ED;
-  --blue-info:     #3D6E8C;
-  --blue-info-wash:#E9F3F7;
-  --red-danger:    #B0463A;
-  --red-danger-wash:#FAEAE6;
-  --gray-muted:    #8A8576;
-  --gray-muted-wash:#F0EEE4;
-  --brand-light-wash: #F1F7E5;
-
-  --border:        #E3EAE0;
-  --border-soft:   #EEF3EB;
-  --shadow-sm:     0 1px 2px rgba(11,40,28,0.07), 0 1px 1px rgba(11,40,28,0.04);
-  --shadow-md:     0 6px 16px rgba(11,40,28,0.11), 0 2px 4px rgba(11,40,28,0.06);
-  --shadow-lg:     0 16px 40px rgba(11,40,28,0.20), 0 4px 10px rgba(11,40,28,0.09);
+  --border:        #E5E7EB;
+  --border-soft:   #F3F4F6;
+  --shadow-sm:     0 1px 2px rgba(0,0,0,0.05), 0 1px 1px rgba(0,0,0,0.03);
+  --shadow-md:     0 6px 16px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg:     0 16px 40px rgba(0,0,0,0.15), 0 4px 10px rgba(0,0,0,0.08);
 
   --font-display:  'Sora', 'Manrope', sans-serif;
   --font-body:      'Manrope', sans-serif;
@@ -59,35 +57,21 @@
 }
 
 [data-theme="dark"]{
-  --bg-app:        #11201A;
-  --bg-app-soft:   #182921;
-  --bg-sidebar:    #07241A;
-  --bg-sidebar-2:  #0C3024;
-  --bg-card:       #1E322A;
-  --bg-topbar:     #1E322A;
-  --ink:           #F2F8F4;
-  --ink-soft:      #CBDCD2;
-  --ink-muted:     #9BB5A8;
-  --ink-on-dark:   #EAF3EC;
-  --ink-on-dark-muted: #A0BBAB;
+  /* Koyu Tema - Mor Vurgu */
+  --bg-app:        #0F172A;
+  --bg-app-soft:   #1E293B;
+  --bg-sidebar:    #020617;
+  --bg-sidebar-2:  #0F172A;
+  --bg-card:       #1E293B;
+  --bg-topbar:     #1E293B;
+  --ink:           #F1F5F9;
+  --ink-soft:      #CBD5E1;
+  --ink-muted:     #94A3B8;
+  --ink-on-dark:   #F1F5F9;
+  --ink-on-dark-muted: #CBD5E1;
 
-  --amber:         #E6BD52;
-  --amber-deep:    #F0C766;
-  --amber-soft:    #4A3B17;
-  --amber-wash:    #2B2310;
-
-  --green-success: #5FC18E;
-  --green-success-wash: #1A3D2A;
-  --blue-info:     #7FB4D2;
-  --blue-info-wash: #1F3340;
-  --red-danger:    #E08E7E;
-  --red-danger-wash: #3D261F;
-  --gray-muted:    #9CA39A;
-  --gray-muted-wash: #283530;
-  --brand-light-wash: #233A1A;
-
-  --border:        #345242;
-  --border-soft:   #284335;
+  --border:        #334155;
+  --border-soft:   #1E293B;
   --shadow-sm:     0 1px 2px rgba(0,0,0,0.30), 0 1px 1px rgba(0,0,0,0.20);
   --shadow-md:     0 6px 16px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.22);
   --shadow-lg:     0 16px 44px rgba(0,0,0,0.50), 0 4px 12px rgba(0,0,0,0.30);
@@ -136,8 +120,8 @@ input, select, textarea{ font-family: var(--font-body); }
   white-space:nowrap;
 }
 .btn:active{ transform: translateY(1px); }
-.btn-primary{ background: var(--bg-sidebar); color:var(--ink-on-dark); }
-.btn-primary:hover{ background: var(--bg-sidebar-2); }
+.btn-primary{ background: var(--brand-purple); color: #fff; }
+.btn-primary:hover{ background: var(--brand-purple-dark); }
 .btn-amber{ background: var(--amber); color:#2A1B05; }
 [data-theme="dark"] .btn-amber{ color:#1A1305; }
 .btn-amber:hover{ background: var(--amber-deep); color:#fff; }
@@ -254,6 +238,10 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; flex-shrink:0;
 }
 .hamburger-btn span{ display:block; width:18px; height:2px; background: var(--ink-soft); border-radius:2px; transition: transform .2s ease, opacity .2s ease; }
+
+/* Sidebar hamburger menü butonunu daha açık yap */
+.sidebar-head .hamburger-btn{ background: rgba(175, 184, 74, 0.15) !important; border-color: rgba(175, 184, 74, 0.3) !important; }
+.sidebar-head .hamburger-btn span{ background: rgba(239, 245, 223, 0.8) !important; }
 .topbar-title{ font-family: var(--font-display); font-weight:600; font-size:14.5px; flex:1; }
 .theme-toggle{
   width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background: var(--bg-card);
@@ -293,6 +281,31 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 [data-theme="dark"] .nav-tab.active{ color: var(--amber-deep); }
 .nav-tab .nt-ico{ font-family: var(--font-mono); font-size:11px; width:20px; height:20px; border-radius:6px; background: rgba(237,233,218,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .nav-tab .nt-label{ overflow:hidden; text-overflow:ellipsis; }
+
+/* Açılır menü grupları */
+.nav-group-toggle{
+  display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:none; color: var(--ink-on-dark-muted);
+  font-size:13.5px; font-weight:600; padding:9px 11px; border-radius: var(--radius-sm); cursor:pointer; border-left: 3px solid transparent;
+  transition: background .12s ease, color .12s ease; white-space:nowrap; width:100%;
+}
+.nav-group-toggle:hover{ background: rgba(237,233,218,0.06); color: var(--ink-on-dark); }
+.nav-group-toggle .nt-ico{ font-family: var(--font-mono); font-size:11px; width:20px; height:20px; border-radius:6px; background: rgba(237,233,218,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.nav-group-toggle .nt-label{ overflow:hidden; text-overflow:ellipsis; flex:1; }
+.nav-group-toggle .toggle-arrow{ font-size:8px; flex-shrink:0; transition: transform .2s ease; }
+.nav-group-toggle.open .toggle-arrow{ transform: rotate(90deg); }
+
+.nav-group{
+  display:flex; flex-direction:column; gap:2px; padding: 4px 0;
+  border-left: 2px solid rgba(237,233,218,0.08);
+  margin-left: 20px;
+}
+.nav-group .nav-sub-tab{
+  font-size:12.5px;
+  padding: 6px 8px;
+  border-left: none;
+}
+.nav-group .nav-sub-tab .nt-ico{ display:none; }
+
 .nav-foot{ padding-top: 14px; border-top: 1px solid rgba(237,233,218,0.10); margin-top:10px; }
 .nav-foot .btn-ghost{ color: var(--ink-on-dark-muted); border-color: rgba(237,233,218,0.18); }
 .nav-foot .btn-ghost:hover{ background: rgba(237,233,218,0.08); color: var(--ink-on-dark); }
@@ -529,3 +542,262 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   .dash-grid{ grid-template-columns: 1fr 1fr; }
   .notes-grid{ grid-template-columns: 1fr; }
 }
+
+/* ============ ACCORDION (Ders Saatleri v4.0) ============ */
+.accordion-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.accordion-header {
+  background: var(--bg-card);
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  color: var(--ink);
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  user-select: none;
+}
+
+.accordion-header:hover {
+  background: var(--bg-app-soft);
+  border-color: var(--brand-purple);
+}
+
+.accordion-header.open {
+  background: var(--brand-purple);
+  color: #fff;
+  border-color: var(--brand-purple);
+}
+
+.accordion-header .arrow {
+  font-size: 12px;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.accordion-header.open .arrow {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.accordion-content.open {
+  max-height: 600px;
+  background: var(--bg-app-soft);
+  padding: 16px;
+  border-top: 2px solid var(--brand-purple);
+  display: block;
+}
+
+.accordion-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.accordion-content li {
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.accordion-content li:last-child {
+  border-bottom: none;
+}
+
+/* ============ DURUM ETİKETLERİ (Status Badges) v4.0 ============ */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  margin-right: 6px;
+}
+
+.status-aktif {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.status-pasif {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--ink-muted);
+}
+
+.status-bekleme {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-warning);
+}
+
+.status-tamamlandi {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.status-hata {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-error);
+}
+
+/* ============ İSTATİSTİK KARTLARI (Kategorili) v4.0 ============ */
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-purple);
+}
+
+.stat-icon {
+  font-size: 32px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.stat-icon.student { 
+  background: rgba(59, 130, 246, 0.15); 
+  color: var(--color-student);
+}
+
+.stat-icon.teacher { 
+  background: rgba(16, 185, 129, 0.15); 
+  color: var(--color-teacher);
+}
+
+.stat-icon.class { 
+  background: rgba(124, 58, 237, 0.15); 
+  color: var(--color-class);
+}
+
+.stat-icon.staff { 
+  background: rgba(249, 115, 22, 0.15); 
+  color: var(--color-staff);
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-weight: 500;
+}
+
+/* ============ MÜ YARDIMCILARI LİSTESİ (v4.0) ============ */
+.mudur-yardimcilari-liste {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-app-soft);
+}
+
+.mudur-yardimcisi-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.mudur-yardimcisi-item:last-child {
+  border-bottom: none;
+}
+
+.mudur-yardimcisi-info {
+  flex: 1;
+}
+
+.mudur-yardimcisi-ad {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mudur-yardimcisi-telefon {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 2px;
+}
+
+.mudur-yardimcisi-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.mudur-yardimcisi-actions button {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+/* ============ ÇOK-SEÇ LİSTESİ (Belirli Gün Öğretmenleri) ============ */
+.multi-select-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--bg-app-soft);
+}
+
+.multi-select-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.multi-select-item input[type="checkbox"] {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.multi-select-item label {
+  flex: 1;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.multi-select-item input:checked + label {
+  color: var(--brand-purple);
+  font-weight: 600;
+}
+
