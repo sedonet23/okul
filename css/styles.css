@@ -321,7 +321,7 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
 /* =========================================================
    GENEL BAKIŞ
    ========================================================= */
-.dash-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:22px; }
+.dash-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-bottom:22px; }
 .stat-card{ background: var(--bg-card); border:1px solid var(--border); border-radius: var(--radius-lg); padding:16px 18px; box-shadow: var(--shadow-sm); }
 .stat-card.card{ display:block; }
 .stat-num{ font-family: var(--font-mono); font-size:26px; font-weight:700; color: var(--ink); }
