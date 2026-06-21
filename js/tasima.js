@@ -93,7 +93,7 @@ function servisDetayAc(id){
     </div>
   `;
 
-  document.getElementById('detayOverlay').classList.add('open');
+  document.getElementById('detayOverlay').classList.add('active');
 }
 
 /* ---------- servise öğrenci ekleme modalı ---------- */
