@@ -103,10 +103,38 @@ function renderDenemeSinavlari(){
     <div class="evrak-row">
       <div class="evrak-body">
         <div class="evrak-title">${escapeHtml(d.ad||'Deneme Sınavı')} <span class="badge badge-blue">${escapeHtml(d.oturumTuru||'Tek Oturum')}</span></div>
-        <div class="evrak-meta">
-          ${formatTarih(d.tarih)} · ${escapeHtml(d.baslamaSaati||'—')}–${escapeHtml(d.bitisSaati||'—')} (${denemeSureHesapla(d.baslamaSaati,d.bitisSaati)})
-          ${d.oturumTuru==='İki Oturum' ? `<br>Sözel: ${escapeHtml(d.sozelBaslama||'—')}–${escapeHtml(d.sozelBitis||'—')} (${dakikayiMetneCevir(d.sozelSuresiDk)}) · Ara: ${dakikayiMetneCevir(d.araSureDk)} · Sayısal: ${escapeHtml(d.sayisalBaslama||'—')}–${escapeHtml(d.sayisalBitis||'—')} (${dakikayiMetneCevir(d.sayisalSuresiDk)})` : (d.sinavSuresiDk ? `<br>Sınav Süresi: ${dakikayiMetneCevir(d.sinavSuresiDk)}` : '')}
-          ${d.notlar?'<br>'+escapeHtml(d.notlar):''}
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+            <span style="font-size:16px;">📅</span>
+            <span>${formatTarih(d.tarih)}</span>
+          </div>
+          ${d.oturumTuru==='İki Oturum' ? `
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+              <span style="font-size:16px;">📝</span>
+              <span><strong>Sözel:</strong> ${escapeHtml(d.sozelBaslama||'—')}–${escapeHtml(d.sozelBitis||'—')} (${dakikayiMetneCevir(d.sozelSuresiDk)})</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+              <span style="font-size:16px;">🔢</span>
+              <span><strong>Sayısal:</strong> ${escapeHtml(d.sayisalBaslama||'—')}–${escapeHtml(d.sayisalBitis||'—')} (${dakikayiMetneCevir(d.sayisalSuresiDk)})</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+              <span style="font-size:16px;">⏸️</span>
+              <span><strong>Ara:</strong> ${dakikayiMetneCevir(d.araSureDk)}</span>
+            </div>
+          ` : `
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+              <span style="font-size:16px;">⏱️</span>
+              <span><strong>${escapeHtml(d.baslamaSaati||'—')}–${escapeHtml(d.bitisSaati||'—')}</strong> (${denemeSureHesapla(d.baslamaSaati,d.bitisSaati)})</span>
+            </div>
+          `}
+          ${d.sinflar?`<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);">
+            <span style="font-size:16px;">👥</span>
+            <span><strong>Sınıflar:</strong> ${escapeHtml(d.sinflar)}</span>
+          </div>`:''}
+          ${d.notlar?`<div style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:var(--ink-soft);">
+            <span style="font-size:16px;margin-top:1px;">💬</span>
+            <span>${escapeHtml(d.notlar)}</span>
+          </div>`:''}
         </div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="denemeModalAc('${d.id}')">Düzenle</button>
@@ -182,6 +210,7 @@ function denemeModalAc(id){
       </div>
     </div>
 
+    <div class="form-group"><label>Bu denemeyi yapacak sınıflar (virgülle ayırarak)</label><input id="f_dnSinflar" value="${d?escapeHtml(d.sinflar||''):''}" placeholder="örn: 11-A, 11-B, 12-A"></div>
     <div class="form-group"><label>Notlar</label><textarea id="f_dnNotlar" rows="2">${d?escapeHtml(d.notlar||''):''}</textarea></div>
   `;
   modalAc(d?'Deneme Sınavı Düzenle':'Deneme Sınavı Ekle', body, ()=>{
@@ -190,7 +219,7 @@ function denemeModalAc(id){
     const oturumTuru = document.getElementById('f_dnOturum').value;
     denemeHesapla();
 
-    let veri = { ad, tarih: document.getElementById('f_dnTarih').value, oturumTuru, notlar: document.getElementById('f_dnNotlar').value.trim() };
+    let veri = { ad, tarih: document.getElementById('f_dnTarih').value, oturumTuru, notlar: document.getElementById('f_dnNotlar').value.trim(), sinflar: document.getElementById('f_dnSinflar').value.trim() };
 
     if(oturumTuru==='İki Oturum'){
       const sozelBaslama = document.getElementById('f_dnSozBas').value;

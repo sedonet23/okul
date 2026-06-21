@@ -90,23 +90,55 @@ function renderDersSaatleriForm(){
   const hedef = document.getElementById('dersSaatleriForm');
   if(!hedef) return;
   const ayar = dersSaatleriAyarlari || dersSaatleriVarsayilan();
-  let html = '<div class="ders-saat-list">';
+  
+  let html = `<div style="margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:6px;">İlk Ders Başlama</label>
+        <input type="time" id="dsr_autoBaslama" value="${ayar.donemler[0]?.baslangic||'08:30'}" 
+               onchange="otomatikDersSaatleriniHesapla()">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:6px;">Ders Süresi (dk)</label>
+        <input type="number" id="dsr_autoSure" value="40" min="15" max="60" onchange="otomatikDersSaatleriniHesapla()">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:6px;">Teneffüs (dk)</label>
+        <input type="number" id="dsr_autoTeneffus" value="10" min="5" max="30" onchange="otomatikDersSaatleriniHesapla()">
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:6px;">Öğle Arası (dk)</label>
+        <input type="number" id="dsr_autoOgle" value="50" min="30" max="90" onchange="otomatikDersSaatleriniHesapla()">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:6px;">Öğle Arası Sonrası</label>
+        <select id="dsr_autoOgleSonrasi" onchange="otomatikDersSaatleriniHesapla()">
+          ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${ayar.ogleArasi.sonrakiDers===n?'selected':''}>Ders ${n} sonra</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="otomatikDersSaatleriniHesapla()" style="margin-bottom:12px;">🔄 Otomatik Hesapla</button>
+  </div>`;
+  
+  html += '<div class="ders-saat-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;margin-bottom:12px;">';
   ayar.donemler.forEach(d=>{
-    html += `<div class="ders-saat-row">
-      <span class="dsr-no">${d.saat}. Ders</span>
-      <input type="time" id="dsr_bas_${d.saat}" value="${d.baslangic}">
-      <span class="dsr-ayrac">–</span>
-      <input type="time" id="dsr_bit_${d.saat}" value="${d.bitis}">
+    html += `<div class="ders-saat-row" style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--border-soft);">
+      <span class="dsr-no" style="min-width:50px;font-weight:600;color:var(--ink-soft);">${d.saat}. Ders</span>
+      <input type="time" id="dsr_bas_${d.saat}" value="${d.baslangic}" style="flex:1;">
+      <span class="dsr-ayrac" style="color:var(--ink-muted);">–</span>
+      <input type="time" id="dsr_bit_${d.saat}" value="${d.bitis}" style="flex:1;">
     </div>`;
   });
   html += '</div>';
-  html += `<div class="ders-saat-ogle">
-    <div class="dsr-ogle-baslik">Öğle Arası</div>
-    <div class="ders-saat-row">
-      <select id="dsr_ogleSonrasi">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${ayar.ogleArasi.sonrakiDers===n?'selected':''}>${n}. dersten sonra</option>`).join('')}</select>
-      <input type="time" id="dsr_ogleBas" value="${ayar.ogleArasi.baslangic}">
-      <span class="dsr-ayrac">–</span>
-      <input type="time" id="dsr_ogleBit" value="${ayar.ogleArasi.bitis}">
+  html += `<div class="ders-saat-ogle" style="border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-bottom:12px;background:var(--bg-app-soft);">
+    <div class="dsr-ogle-baslik" style="font-weight:600;margin-bottom:10px;color:var(--ink);">Öğle Arası Ayarları</div>
+    <div class="ders-saat-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <select id="dsr_ogleSonrasi" style="flex:1;min-width:120px;">${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${ayar.ogleArasi.sonrakiDers===n?'selected':''}>${n}. dersten sonra</option>`).join('')}</select>
+      <input type="time" id="dsr_ogleBas" value="${ayar.ogleArasi.baslangic}" style="flex:1;min-width:80px;">
+      <span class="dsr-ayrac" style="color:var(--ink-muted);">–</span>
+      <input type="time" id="dsr_ogleBit" value="${ayar.ogleArasi.bitis}" style="flex:1;min-width:80px;">
     </div>
   </div>
   <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -114,6 +146,40 @@ function renderDersSaatleriForm(){
     <button class="btn btn-ghost" onclick="dersSaatleriVarsayilanaSifirla()">Varsayılana Sıfırla (40 dk)</button>
   </div>`;
   hedef.innerHTML = html;
+}
+
+/* Otomatik ders saatleri hesaplama fonksiyonu */
+function otomatikDersSaatleriniHesapla(){
+  const baslama = document.getElementById('dsr_autoBaslama').value;
+  const dersSure = parseInt(document.getElementById('dsr_autoSure').value) || 40;
+  const teneffus = parseInt(document.getElementById('dsr_autoTeneffus').value) || 10;
+  const ogle = parseInt(document.getElementById('dsr_autoOgle').value) || 50;
+  const ogleSonrasi = parseInt(document.getElementById('dsr_autoOgleSonrasi').value) || 4;
+  
+  if(!baslama) return;
+  
+  const [h, m] = baslama.split(':').map(Number);
+  let dakika = h * 60 + m;
+  
+  // 7 dersin saatlerini hesapla
+  for(let i = 1; i <= 7; i++){
+    const bas = dakikaToSaat(dakika);
+    const bit = dakikaToSaat(dakika + dersSure);
+    
+    document.getElementById(`dsr_bas_${i}`).value = bas;
+    document.getElementById(`dsr_bit_${i}`).value = bit;
+    
+    // Bir sonraki dersin başlangıcı
+    dakika += dersSure + (i === ogleSonrasi ? ogle : teneffus);
+  }
+  
+  // Öğle arası saatlerini güncelle
+  const ogleSonrakiDers = document.getElementById(`dsr_bas_${ogleSonrasi + 1}`);
+  const ogleSonrasıDers = document.getElementById(`dsr_bit_${ogleSonrasi}`);
+  if(ogleSonrasıDers && ogleSonrakiDers){
+    document.getElementById('dsr_ogleBas').value = ogleSonrasıDers.value;
+    document.getElementById('dsr_ogleBit').value = ogleSonrakiDers.value;
+  }
 }
 function dersSaatleriKaydet(){
   const donemler = [1,2,3,4,5,6,7].map(n=>({
