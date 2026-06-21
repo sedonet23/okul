@@ -105,17 +105,17 @@
     <main class="content">
 
     <section id="tab-panel" class="tab-panel active">
-      <div class="page-header"><div><div class="page-title">Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
+      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
 
       <!-- 1. Hero: zile kaç dk kaldığı + şu an kaçıncı ders -->
       <div class="card zil-widget" id="zilWidget"></div>
 
       <!-- 2. Hemen altında: günün nöbetçileri -->
-      <div class="card"><h3>Bugün Nöbetçi Öğretmenler</h3><div id="dashBugunNobet"></div></div>
+      <div class="card"><h3>🛡️ Bugün Nöbetçi Öğretmenler</h3><div id="dashBugunNobet"></div></div>
 
       <!-- 3. Hızlı İşlemler -->
       <div class="card">
-        <h3>Hızlı İşlemler</h3>
+        <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
           <div class="qa-item" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-evrak">📄</div><div class="qa-label">Evrak Ekle</div></div>
           <div class="qa-item" onclick="sekmeAc('nobet');"><div class="qa-icon qa-nobet">🛡️</div><div class="qa-label">Nöbet</div></div>
@@ -125,27 +125,27 @@
       </div>
 
       <div class="dash-cols">
-        <div class="card"><h3>Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
-        <div class="card"><h3>Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
+        <div class="card"><h3>📚 Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
+        <div class="card"><h3>🗓️ Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
       </div>
       <div class="dash-cols">
-        <div class="card"><h3>Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
-        <div class="card"><h3>Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
+        <div class="card"><h3>👮 Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
+        <div class="card"><h3>⏰ Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
       </div>
       <div class="dash-cols">
-        <div class="card"><h3>Yaklaşan Belirli Gün/Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
-        <div class="card"><h3>Görev Durumu</h3><div id="dashGorevler"></div></div>
+        <div class="card"><h3>🎉 Yaklaşan Belirli Gün/Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
+        <div class="card"><h3>📌 Görev Durumu</h3><div id="dashGorevler"></div></div>
       </div>
       <div class="dash-cols">
         <!-- 4. Not Alma (duyurular yerine) -->
         <div class="card">
-          <h3 style="display:flex;align-items:center;justify-content:space-between;">Not Alma <button class="btn btn-ghost btn-sm" onclick="notlarModalAc()" style="margin-left:auto;">+ Yeni Not</button></h3>
+          <h3 style="display:flex;align-items:center;justify-content:space-between;">📝 Not Alma <button class="btn btn-ghost btn-sm" onclick="notlarModalAc()" style="margin-left:auto;">➕ Yeni Not</button></h3>
           <div id="dashNotlar"></div>
         </div>
       </div>
 
       <!-- 5. İstatistikler en altta -->
-      <div class="card"><h3>Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
+      <div class="card"><h3>📊 Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
     </section>
 
     <section id="tab-ogretmenler" class="tab-panel">
@@ -172,7 +172,7 @@
       <div class="page-header">
         <div><div class="page-title">Sınıflar</div><div class="page-sub" id="siniflarOzet"></div></div>
         <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput').click()">⬆ Öğrenci Listesi Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput').click()">📥 Öğrenci Listesi Excel</button>
           <input type="file" id="ogrenciExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
           <button class="btn btn-amber" onclick="sinifModalAc()">+ Yeni Sınıf</button>
         </div>
@@ -516,7 +516,7 @@
           <button onclick="ogrenciSablonIndir()" class="btn btn-primary btn-sm" style="text-align:center;">⇩ Öğrenci Listesi</button>
         </div>
         
-        <button class="btn btn-primary" onclick="document.getElementById('cizelgeExcelInput').click()" style="margin-right:8px;">⬆ Excel Dosyası Yükle</button>
+        <button class="btn btn-primary" onclick="document.getElementById('cizelgeExcelInput').click()" style="margin-right:8px;">📤 Excel Dosyası Yükle</button>
         <input type="file" id="cizelgeExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="tumCizelgeleriIceAktar(this.files[0]); this.value='';">
       </div>
 
@@ -557,8 +557,8 @@
         <div class="detay-alt" id="detayAltBaslik"></div>
       </div>
       <div class="detay-head-actions">
-        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">✎ Düzenle</button>
-        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">✕ Kapat</button>
+        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">📝 Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">❌ Kapat</button>
       </div>
     </div>
     <div class="detay-body" id="detayBody"></div>
