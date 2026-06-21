@@ -633,3 +633,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(app) app.classList.add('ready','show');
   }
 });
+
+/* ============== ÖĞRENCİ LİSTESİ EXCEL ŞABLONU ============== */
+function ogrenciSablonIndir(){
+  const wb = XLSX.utils.book_new();
+  const basliklar = [
+    'Öğrenci Adı', 'Öğrenci No', 'Cinsiyet', 'Veli Adı', 'Yakınlık',
+    'Telefon 1', 'Telefon 2', 'Telefon 3', 'Adres', 'Sınıf', 'Servis', 'Notlar'
+  ];
+  const ornekler = [
+    ['Ayşe Demir', '1001', 'Kız', 'Fatma Demir', 'Anne', '0532 000 00 01', '0532 000 00 02', '', 'Merkez Mah. No:5', '5-A', '1. Servis', ''],
+    ['Mehmet Kaya', '1002', 'Erkek', 'Ali Kaya', 'Baba', '0533 000 00 01', '', '', 'Yıldız Mah. No:12', '5-B', '', ''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet([basliklar, ...ornekler]);
+  ws['!cols'] = basliklar.map((_,i)=>({wch: i===8||i===0?30:i===3?20:15}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Öğrenci Listesi');
+  XLSX.writeFile(wb, 'Ogrenci_Listesi_Sablonu.xlsx');
+}

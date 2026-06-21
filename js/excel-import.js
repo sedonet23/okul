@@ -410,3 +410,136 @@ async function ieDigerEvrak(aoa, sonuc){
     sonuc.eklenen++;
   }
 }
+
+/* ============== ÖĞRENCİ / VELİ LİSTESİ (SINIFLAR MODÜLÜ İÇİN) ============== */
+async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+    // Başlık satırı: "Öğrenci Adı" veya "Ad Soyad" sütunu ara
+    const headerIdx = aoa.findIndex(r=>r.some(c=>
+      normBaslik(c)==='ÖĞRENCİ ADI' || normBaslik(c)==='OGRENCI ADI' ||
+      normBaslik(c)==='AD SOYAD' || normBaslik(c)==='AD'
+    ));
+    if(headerIdx===-1){ toast('Başlık satırı bulunamadı. (Öğrenci Adı / Ad Soyad sütunu gerekli)'); return; }
+    const header = aoa[headerIdx].map(normBaslik);
+    const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
+
+    const cOgrenci = col('ÖĞRENCİ ADI','OGRENCI ADI','AD SOYAD','AD');
+    const cNo = col('ÖĞRENCİ NO','OGRENCI NO','NO','NUMARA');
+    const cCinsiyet = col('CİNSİYET','CINSIYET');
+    const cVeli = col('VELİ ADI','VELI ADI','VELİ AD SOYAD','VELI AD SOYAD','VELİ','VELI');
+    const cYakinlik = col('YAKINLIK','YAKINLIK DERECESİ','YAKINLIK DERECESI');
+    const cTel1 = col('TELEFON 1','TELEFON1','TEL 1','TEL1','TELEFON');
+    const cTel2 = col('TELEFON 2','TELEFON2','TEL 2','TEL2');
+    const cTel3 = col('TELEFON 3','TELEFON3','TEL 3','TEL3');
+    const cAdres = col('ADRES');
+    const cSinif = col('SINIF','SINIF ADI');
+    const cServis = col('SERVİS','SERVIS','SERVİS ADI','SERVIS ADI');
+    const cNotlar = col('NOTLAR','NOT');
+
+    let eklenen=0, guncellenen=0;
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row = aoa[i]; if(!row) continue;
+      const ogrenciAdi = cOgrenci!==-1 ? String(row[cOgrenci]||'').trim() : '';
+      if(!ogrenciAdi) continue;
+
+      // Sınıf belirleme: ya hedefSinifId verilmiş ya da Excel'deki sınıf adından
+      let sinifId = hedefSinifId || '';
+      if(!sinifId && cSinif!==-1){
+        const sinifAdi = String(row[cSinif]||'').trim();
+        const sinifObj = siniflar.find(s=>s.ad.localeCompare(sinifAdi,'tr',{sensitivity:'base'})===0);
+        if(sinifObj) sinifId = sinifObj.id;
+      }
+
+      // Servis belirleme
+      let servisId = '', servisAdiStr = '';
+      if(cServis!==-1){
+        const servisAdi = String(row[cServis]||'').trim();
+        const servisObj = servisler.find(s=>(s.servisAdi||'').localeCompare(servisAdi,'tr',{sensitivity:'base'})===0);
+        if(servisObj){ servisId=servisObj.id; servisAdiStr=servisObj.servisAdi; }
+      }
+
+      const tel1 = cTel1!==-1 ? String(row[cTel1]||'').trim() : '';
+      const veri = {
+        sinifId,
+        ogrenciAdi,
+        ogrenciNo: cNo!==-1 ? String(row[cNo]||'').trim() : '',
+        cinsiyet: cCinsiyet!==-1 ? String(row[cCinsiyet]||'').trim() : '',
+        veliAdi: cVeli!==-1 ? String(row[cVeli]||'').trim() : '',
+        yakinlik: cYakinlik!==-1 ? String(row[cYakinlik]||'').trim() : '',
+        telefon1: tel1,
+        telefon: tel1, // geriye dönük uyumluluk
+        telefon2: cTel2!==-1 ? String(row[cTel2]||'').trim() : '',
+        telefon3: cTel3!==-1 ? String(row[cTel3]||'').trim() : '',
+        adres: cAdres!==-1 ? String(row[cAdres]||'').trim() : '',
+        servisId,
+        servisAdi: servisAdiStr,
+        notlar: cNotlar!==-1 ? String(row[cNotlar]||'').trim() : '',
+      };
+      const mevcut = veliler.find(v=>
+        v.ogrenciAdi.localeCompare(ogrenciAdi,'tr',{sensitivity:'base'})===0 &&
+        (!sinifId || v.sinifId===sinifId)
+      );
+      if(mevcut){ await db.collection(COL.veliler).doc(mevcut.id).update(veri); guncellenen++; }
+      else { await db.collection(COL.veliler).add({...veri, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
+    }
+    toast(`Öğrenci listesi içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
+  }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
+}
+
+/* ============== SERVİS ÖĞRENCİ LİSTESİ EXCEL'DEN ============== */
+async function servisOgrenciExceliIceAktar(file, servisId, servisAdiStr){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+    const headerIdx = aoa.findIndex(r=>r.some(c=>
+      normBaslik(c)==='ÖĞRENCİ ADI' || normBaslik(c)==='OGRENCI ADI' ||
+      normBaslik(c)==='AD SOYAD' || normBaslik(c)==='AD'
+    ));
+    if(headerIdx===-1){ toast('Başlık satırı bulunamadı.'); return; }
+    const header = aoa[headerIdx].map(normBaslik);
+    const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
+    const cOgrenci = col('ÖĞRENCİ ADI','OGRENCI ADI','AD SOYAD','AD');
+    const cNo = col('ÖĞRENCİ NO','OGRENCI NO','NO','NUMARA');
+    const cSinif = col('SINIF','SINIF ADI');
+
+    let eklenen=0, atlanan=0;
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row = aoa[i]; if(!row) continue;
+      const ogrenciAdi = cOgrenci!==-1 ? String(row[cOgrenci]||'').trim() : '';
+      if(!ogrenciAdi) continue;
+
+      let sinifId = '';
+      if(cSinif!==-1){
+        const sinifAdi = String(row[cSinif]||'').trim();
+        const sinifObj = siniflar.find(s=>s.ad.localeCompare(sinifAdi,'tr',{sensitivity:'base'})===0);
+        if(sinifObj) sinifId = sinifObj.id;
+      }
+
+      const mevcut = veliler.find(v=>
+        v.ogrenciAdi.localeCompare(ogrenciAdi,'tr',{sensitivity:'base'})===0 &&
+        (!sinifId || v.sinifId===sinifId)
+      );
+      if(mevcut){
+        await db.collection(COL.veliler).doc(mevcut.id).update({ servisId, servisAdi: servisAdiStr });
+        eklenen++;
+      } else {
+        // Öğrenci yoksa yeni kayıt oluştur
+        await db.collection(COL.veliler).add({
+          ogrenciAdi, sinifId,
+          ogrenciNo: cNo!==-1 ? String(row[cNo]||'').trim() : '',
+          servisId, servisAdi: servisAdiStr,
+          veliAdi:'', yakinlik:'', telefon:'', telefon1:'', telefon2:'', telefon3:'', adres:'', notlar:'',
+          eklenmeTarihi: new Date().toISOString()
+        });
+        eklenen++;
+      }
+    }
+    toast(`Servis öğrenci listesi güncellendi: ${eklenen} öğrenci eklendi/güncellendi.`);
+  }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
+}

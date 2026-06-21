@@ -142,7 +142,7 @@ function sinifDetayVeliRender(s){
     const noEtiketi = v.ogrenciNo ? ` <span class="detay-row-muted">No: ${escapeHtml(v.ogrenciNo)}</span>` : '';
     const servisEtiketi = v.servisAdi ? ` <span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>` : '';
     return `
-    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="sinifVeliModalAc('${v.id}')">
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
       <span><strong>${escapeHtml(v.ogrenciAdi)}</strong>${noEtiketi}${cinsiyetRozeti}${servisEtiketi}<br>${escapeHtml(v.veliAdi||'—')}${v.yakinlik?` <span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>`:''}${telefonlar?'<br><span class="detay-row-muted">'+telefonlar+'</span>':''}${v.adres?'<br><span class="detay-row-muted">📍 '+escapeHtml(v.adres)+'</span>':''}</span>
       <span style="display:flex;gap:4px;flex-shrink:0;">
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
@@ -223,4 +223,77 @@ function sinifAdlari(){
   const tanimli = siniflar.map(s=>s.ad);
   const programdaGecen = dersProgrami.map(d=>d.sinif);
   return [...new Set([...tanimli, ...programdaGecen])].sort((a,b)=>a.localeCompare(b,'tr'));
+}
+
+/* ---------- öğrenci detay modalı ---------- */
+function ogrenciDetayModalAc(id){
+  const v = veliler.find(x=>x.id===id);
+  if(!v) return;
+  const sinifObj = siniflar.find(s=>s.id===v.sinifId);
+  const sinifAdi = sinifObj ? sinifObj.ad : (v.sinifId||'—');
+  const servisObj = servisler.find(s=>s.id===v.servisId);
+  const servisAdi = servisObj ? servisObj.servisAdi : (v.servisAdi||'—');
+
+  const body = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Öğrenci No</div>
+        <div style="font-weight:600;">${escapeHtml(v.ogrenciNo||'—')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Cinsiyet</div>
+        <div>${v.cinsiyet ? `<span class="badge badge-blue">${escapeHtml(v.cinsiyet)}</span>` : '—'}</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Öğrenci Adı Soyadı</div>
+      <div style="font-size:16px;font-weight:700;">${escapeHtml(v.ogrenciAdi||'—')}</div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+    <div style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Veli Adı Soyadı</div>
+      <div style="font-weight:600;">${escapeHtml(v.veliAdi||'—')} ${v.yakinlik ? `<span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>` : ''}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon1||v.telefon||'—')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon2||'—')}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon3||'—')}</div>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+    <div style="margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Adres</div>
+      <div style="font-size:13px;">📍 ${escapeHtml(v.adres||'—')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sınıf</div>
+        <div><span class="badge badge-blue">${escapeHtml(sinifAdi)}</span></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Servis</div>
+        <div>${v.servisId ? `<span class="badge badge-amber">🚌 ${escapeHtml(servisAdi)}</span>` : '<span style="color:var(--ink-muted);">Servis yok</span>'}</div>
+      </div>
+    </div>
+    ${v.notlar ? `<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>` : ''}
+    <div style="margin-top:14px;">
+      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">✎ Düzenle</button>
+    </div>
+  `;
+
+  // Sadece görüntüleme modalı (kaydet butonu yok)
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('modalTitle').textContent = `${escapeHtml(v.ogrenciAdi||'Öğrenci')} — Detay`;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalSilBtn').style.display = 'none';
+  document.getElementById('modalKaydetBtn').style.display = 'none';
+  overlay.classList.add('open');
 }
