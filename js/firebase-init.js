@@ -49,6 +49,10 @@ const COL = {
   servisler:'oy_servisler',             // {servisAdi, guzergah, soforAdi, soforTelefon, ogrenciSayisi, durum:'Aktif'|'Pasif', notlar}
   // --- YENİ: Periyodik İşler aylık şablonu (v4.0) ---
   periyodikSablon:'oy_periyodikSablon', // tek doküman (id:'sablon'): {gorevler:[{isAdi, baslangicGun, bitisGun}]}
+  // --- YENİ: Sınav İşlemleri modülü ---
+  sinavlar:'oy_sinavlar',               // {sinif, ders, ogretmenId, tarih, saat, tur:'Yazılı'|'Sınav Yolu', notlar}
+  denemeSinavlari:'oy_denemeSinavlari', // {ad, tarih, oturumTuru:'Tek Oturum'|'İki Oturum', baslamaSaati, bitisSaati, sure,
+                                         //  sayisalBaslama, sayisalBitis, sozelBaslama, sozelBitis, notlar}
   // --- YENİ: Okul Bilgileri (v4.0) ---
   okulBilgileri:'oy_okulBilgileri'      // tek doküman (id:'ayarlar'): {okulAdi, mudurId}
                                          // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:

@@ -513,7 +513,8 @@ function yedekVerisiOlustur(){
     periyodikSablon: periyodikSablonu || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
-    belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
+    belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi,
+    sinavlar, denemeSinavlari
   };
 }
 function tumVerileriYedekle(){
@@ -541,7 +542,8 @@ async function yedektenGeriYukle(file){
       [data.sosyalKulupler, COL.sosyalKulupler],[data.sok, COL.sok],[data.zumre, COL.zumre],
       [data.bepPlani, COL.bepPlani],[data.rehberlik, COL.rehberlik],[data.maarifRapor, COL.maarifRapor],
       [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
-      [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler]
+      [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler],
+      [data.sinavlar, COL.sinavlar],[data.denemeSinavlari, COL.denemeSinavlari]
     ];
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
@@ -587,6 +589,7 @@ function baglantilariKur(){
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
+  sinavBaglantilariKur();
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard();
