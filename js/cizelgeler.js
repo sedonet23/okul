@@ -139,7 +139,7 @@ function renderBelirliGunler(){
         <div class="cz-check ${e.tamamlandi?'on':''}" onclick="belirliGunToggle('${e.id}',${!e.tamamlandi})">${e.tamamlandi?'✓':''}</div>
         <div class="bgh-main">
           <div class="bgh-title">${escapeHtml(e.baslik)}</div>
-          <div class="bgh-meta">${escapeHtml(e.tarih||'')}${e.gorevliOgretmen?' · '+escapeHtml(e.gorevliOgretmen):''}</div>
+          <div class="bgh-meta">${e.tarihISO?formatTarih(e.tarihISO)+' · ':''}${escapeHtml(e.tarih||'')}${e.gorevliOgretmen?' · '+escapeHtml(e.gorevliOgretmen):''}</div>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="belirliGunModalAc('${e.id}')">Düzenle</button>
       </div>`;
@@ -155,7 +155,10 @@ function belirliGunModalAc(id){
   const seciliIdler = (e && e.gorevliOgretmenler) ? e.gorevliOgretmenler : [];
   const body = `
     <div class="form-group"><label>Başlık</label><input id="f_bghBaslik" value="${e?escapeHtml(e.baslik):''}" placeholder="örn: Cumhuriyet Bayramı"></div>
-    <div class="form-group"><label>Tarih / Dönem</label><input id="f_bghTarih" value="${e?escapeHtml(e.tarih||''):''}" placeholder="örn: 29 Ekim ya da 'Ekim ayının 3. haftası'"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Tarih (anasayfada hatırlatma için)</label><input type="date" id="f_bghTarihISO" value="${e?(e.tarihISO||''):''}"></div>
+      <div class="form-group"><label>Tarih / Dönem (serbest metin)</label><input id="f_bghTarih" value="${e?escapeHtml(e.tarih||''):''}" placeholder="örn: 29 Ekim ya da 'Ekim ayının 3. haftası'"></div>
+    </div>
     <div class="form-group"><label>Ay Grubu</label><input id="f_bghAyGrubu" value="${e?escapeHtml(e.ayGrubu||''):''}" placeholder="örn: EKİM"></div>
     <div class="form-group">
       <label>Görevli Öğretmen(ler)</label>
@@ -176,16 +179,42 @@ function belirliGunModalAc(id){
     const gorevliOgretmen = seciliOgretmenler.length ? seciliOgretmenler.map(oid=>ogretmenAdi(oid)).join(', ') : (e?e.gorevliOgretmen||'':'');
     const veri = {
       baslik, tarih: document.getElementById('f_bghTarih').value.trim(),
+      tarihISO: document.getElementById('f_bghTarihISO').value,
       ayGrubu: document.getElementById('f_bghAyGrubu').value.trim().toLocaleUpperCase('tr'),
       gorevliOgretmenler: seciliOgretmenler, gorevliOgretmen
     };
     const islem = e ? db.collection(COL.belirliGunler).doc(e.id).update(veri)
                      : db.collection(COL.belirliGunler).add({...veri, tamamlandi:false, sira: belirliGunlerListesi.length+1});
-    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
+    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); renderYaklasanEtkinlikler(); }).catch(err=>toast('Hata: '+err.message));
   }, e ? ()=>{ if(confirm('Bu etkinliği silmek istiyor musunuz?')){ db.collection(COL.belirliGunler).doc(e.id).delete(); modalKapat(); } } : null);
 }
 
-/* ============== DİĞER EVRAKLAR ============== */
+/* ---- Anasayfa: Yaklaşan Belirli Gün/Haftalar widget'ı ---- */
+function yaklasanGunSayisi(tarihISO){
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  const hedef = new Date(tarihISO+'T00:00:00');
+  return Math.round((hedef - bugun) / 86400000);
+}
+function renderYaklasanEtkinlikler(){
+  const hedef = document.getElementById('dashYaklasanEtkinlikler');
+  if(!hedef) return;
+  const YAKLASAN_GUN_PENCERESI = 30; // bu kaç gün içindekiler gösterilsin
+  const liste = belirliGunlerListesi
+    .filter(e => e.tarihISO && !e.tamamlandi)
+    .map(e => ({...e, kalanGun: yaklasanGunSayisi(e.tarihISO)}))
+    .filter(e => e.kalanGun >= 0 && e.kalanGun <= YAKLASAN_GUN_PENCERESI)
+    .sort((a,b)=>a.kalanGun-b.kalanGun)
+    .slice(0,6);
+  hedef.innerHTML = liste.length ? liste.map(e=>{
+    const kalanMetin = e.kalanGun===0 ? 'Bugün' : e.kalanGun===1 ? 'Yarın' : `${e.kalanGun} gün sonra`;
+    return `<div class="dash-row" style="cursor:pointer;" onclick="sekmeAc('belirliGunler'); belirliGunModalAc('${e.id}');">
+      <span class="badge badge-amber">${kalanMetin}</span> ${escapeHtml(e.baslik)}
+      ${e.gorevliOgretmen?`<span style="color:var(--text-muted)"> — ${escapeHtml(e.gorevliOgretmen)}</span>`:''}
+    </div>`;
+  }).join('') : '<p class="empty-state">Önümüzdeki 30 gün içinde planlı etkinlik yok.</p>';
+}
+
+
 function renderDigerEvrak(){
   const hedef = document.getElementById('digerEvrakTablo');
   if(!hedef) return;

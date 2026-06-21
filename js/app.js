@@ -98,7 +98,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
     <div class="form-group"><label>Branş</label><input id="f_brans" value="${o?escapeHtml(o.brans||''):''}" placeholder="örn: Matematik"></div>
     <div class="form-row">
       <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
-      <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3,4].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
     </div>
     <div class="form-group"><label>Telefon</label><input id="f_telefon" value="${o?escapeHtml(o.telefon||''):''}"></div>
     <div class="form-group"><label>E-posta</label><input id="f_eposta" value="${o?escapeHtml(o.eposta||''):''}"></div>
@@ -461,6 +461,7 @@ function renderDashboard(){
 
   /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
   renderZilSayaci(bugunGun);
+  if(typeof renderYaklasanEtkinlikler === 'function') renderYaklasanEtkinlikler();
 }
 
 function renderZilSayaci(bugunGun){
@@ -585,7 +586,7 @@ function baglantilariKur(){
   ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
     db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); if(tip==='sosyalKulupler') renderSosyalKuluplerListesi(); }, hataGoster);
   });
-  db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); }, hataGoster);
+  db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); renderYaklasanEtkinlikler(); }, hataGoster);
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
