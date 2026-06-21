@@ -77,6 +77,16 @@ function firebaseyiBaslat(){
     db = firebase.firestore();
     auth = firebase.auth();
     firebaseHazir = true;
+    // Veriler cihaz hafızasında (IndexedDB) tutulsun, uygulama offline açılabilsin.
+    db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+      if(err.code === 'failed-precondition'){
+        console.warn('Offline destek: birden fazla sekme açık, sadece ilk sekmede etkin.');
+      } else if(err.code === 'unimplemented'){
+        console.warn('Offline destek: bu tarayıcı desteklemiyor.');
+      } else {
+        console.warn('Offline destek etkinleştirilemedi:', err);
+      }
+    });
     try{
       if(firebase.messaging.isSupported()) messaging = firebase.messaging();
     }catch(e){ console.warn('Bu tarayıcı push bildirimlerini desteklemiyor.', e); }

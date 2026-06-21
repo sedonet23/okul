@@ -503,8 +503,8 @@ function renderZilSayaci(bugunGun){
 }
 
 /* ============== YEDEKLEME ============== */
-function tumVerileriYedekle(){
-  const yedek = {
+function yedekVerisiOlustur(){
+  return {
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
@@ -515,6 +515,9 @@ function tumVerileriYedekle(){
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
   };
+}
+function tumVerileriYedekle(){
+  const yedek = yedekVerisiOlustur();
   const blob = new Blob([JSON.stringify(yedek,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

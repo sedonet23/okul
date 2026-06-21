@@ -34,6 +34,18 @@ function toggleAccordion(headerEl){
   if(content) content.classList.toggle('open', aciliyor);
 }
 
+function uygulamadanCik(){
+  if(!confirm('Uygulamadan çıkmak istediğinize emin misiniz?')) return;
+  // PWA (standalone) modda sekmeyi kapatmayı dener; tarayıcı sekmesinde
+  // güvenlik nedeniyle window.close() çalışmazsa kullanıcıyı bilgilendirir.
+  window.close();
+  setTimeout(()=>{
+    if(!document.hidden){
+      toast('Tarayıcı bu sekmenin otomatik kapatılmasına izin vermiyor. Sekmeyi elle kapatabilirsiniz.');
+    }
+  }, 300);
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   temaUygula(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
 
@@ -41,6 +53,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const temaBtn2 = document.getElementById('temaDugmesiTopbar');
   if(temaBtn1) temaBtn1.addEventListener('click', temaDegistir);
   if(temaBtn2) temaBtn2.addEventListener('click', temaDegistir);
+
+  const cikisBtn = document.getElementById('cikisBtn');
+  if(cikisBtn) cikisBtn.addEventListener('click', uygulamadanCik);
 
   const sidebarHamburger = document.getElementById('sidebarHamburger');
   const topbarHamburger = document.getElementById('topbarHamburger');
