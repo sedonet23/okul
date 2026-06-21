@@ -7,7 +7,6 @@
      nobetciAmirleri : {tarih:'YYYY-MM-DD', ad, telefon}            — günün nöbetçi amiri (serbest metin)
      resmiTatiller   : {tarih:'YYYY-MM-DD', aciklama}               — silinebilir/eklenebilir tatil listesi
    ==================================================================== */
-
 let nobetYerleri = [];
 let nobetAtamalari = [];
 let nobetciAmirleri = [];
@@ -253,4 +252,192 @@ function nobetBaglantilariKur(){
   db.collection(COL.nobetAtamalari).onSnapshot(s=>{ nobetAtamalari = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
   db.collection(COL.nobetciAmirleri).onSnapshot(s=>{ nobetciAmirleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
   db.collection(COL.resmiTatiller).onSnapshot(s=>{ resmiTatiller = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetTatilListesi(); renderNobetBugunVeHafta(); }, hataGoster);
+}
+
+/* ====================================================================
+   ESNEK EXCEL İÇE AKTARMA — NÖBET (v4.0)
+   Not: js/excel-import.js'teki eski nobetExceliIceAktar() fonksiyonu,
+   script yükleme sırası nedeniyle (nobet.js index.html'de ondan SONRA
+   yükleniyor) burada tanımlanan yeni sürüm tarafından geçersiz kılınır.
+   excel-import.js'teki diğer 3 fonksiyon (öğretmen / ders programı /
+   çizelgeler) dokunulmadan aynen çalışmaya devam eder.
+
+   excelOkuDosya / excelTarihHucresiISO / excelAdiSadelestir /
+   excelOgretmenEslestir yardımcıları, sütun başlığı tamamen sabit
+   olmayan diğer modül içe aktarmalarında da (Öğretmenler, Ders
+   Programı, Sınıflar/Öğrenciler, Kulüpler, Belirli Gün/Haftalar,
+   Evrak Takip) yeniden kullanılabilir — niyetle genel tutuldu.
+   ==================================================================== */
+
+function excelOkuDosya(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      try{
+        const wb = XLSX.read(e.target.result, { type:'array', cellDates:true });
+        resolve(wb);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = ()=> reject(new Error('Dosya okunamadı.'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function excelTarihHucresiISO(deger){
+  if(deger instanceof Date && !isNaN(deger)) return deger.toISOString().slice(0,10);
+  if(typeof deger === 'number'){
+    const ms = Math.round((deger - 25569) * 86400 * 1000); // Excel 1900 tarih sistemi
+    const d = new Date(ms);
+    if(!isNaN(d)) return d.toISOString().slice(0,10);
+  }
+  return null;
+}
+
+/* "ASLIHAN YAPAR (BAHÇE-GİRİŞ K.)" -> "ASLIHAN YAPAR" */
+function excelAdiSadelestir(metin){
+  return String(metin||'').replace(/\(.*?\)/g,'').trim();
+}
+
+function excelOgretmenEslestir(adSoyad){
+  const aranan = excelAdiSadelestir(adSoyad).toLocaleLowerCase('tr');
+  if(!aranan) return null;
+  return ogretmenler.find(o=> `${o.ad} ${o.soyad}`.toLocaleLowerCase('tr').trim() === aranan) || null;
+}
+
+/* ---------- NÖBET: dosya seçilince çalışır ---------- */
+async function nobetExceliIceAktar(file){
+  if(!file) return;
+  try{
+    const wb = await excelOkuDosya(file);
+    // "VERİ" / "DATA" / "REFERANS" gibi referans sayfaları hariç tut.
+    const adaylar = wb.SheetNames.filter(ad=> !/^veri$|^data$|^referans$/i.test(ad.trim()));
+    if(!adaylar.length){ toast('Uygun bir ay sayfası bulunamadı.'); return; }
+    const sayfaAdi = adaylar[adaylar.length-1]; // workbook'taki en son sekme = en güncel ay
+    const sayfa = wb.Sheets[sayfaAdi];
+    const satirlar = XLSX.utils.sheet_to_json(sayfa, { header:1, defval:'' });
+
+    // Başlık satırını bul: "AMİR" geçen hücrenin olduğu satır.
+    let baslikIdx = -1, amirCol = -1;
+    for(let i=0;i<Math.min(6,satirlar.length);i++){
+      const c = (satirlar[i]||[]).findIndex(h=>/amir/i.test(String(h)));
+      if(c>-1){ baslikIdx=i; amirCol=c; break; }
+    }
+    if(baslikIdx===-1){ toast(`"${sayfaAdi}" sayfasında "NÖBETÇİ AMİR" başlığı bulunamadı.`); return; }
+
+    const tarihIdxBulunan = (satirlar[baslikIdx]||[]).findIndex(h=>/tarih|gün|date/i.test(String(h)));
+    const tarihCol = tarihIdxBulunan>-1 ? tarihIdxBulunan : 0;
+
+    const altBaslik = satirlar[baslikIdx+1] || [];
+    const ornekSatir = satirlar.slice(baslikIdx+2).find(r=> (r||[]).some(v=>v!=='')) || [];
+
+    const kolonlar = [];
+    for(let c=tarihCol+1; c<amirCol; c++){
+      const etiketHam = String(altBaslik[c]||'').trim();
+      const ornek = excelAdiSadelestir(ornekSatir[c]||'');
+      kolonlar.push({
+        index:c,
+        onerilenEtiket: etiketHam || `Sütun ${c+1}`,
+        ornekDeger: ornek,
+        onerilenRol: 'yer'
+      });
+    }
+
+    nobetIceAktarOnayModalAc(sayfaAdi, satirlar, baslikIdx, tarihCol, amirCol, kolonlar);
+  }catch(err){
+    console.error(err);
+    toast('Excel okunamadı: '+err.message);
+  }
+}
+
+/* ---------- Onay / düzeltme ekranı ---------- */
+function nobetIceAktarOnayModalAc(sayfaAdi, satirlar, baslikIdx, tarihCol, amirCol, kolonlar){
+  const satirHtml = (k) => `
+    <div class="form-row ek-satir" style="align-items:flex-end;gap:8px;margin-bottom:10px;">
+      <div class="form-group" style="flex:2;">
+        <label>Sütun ${k.index+1}${k.ornekDeger?' — örn: "'+escapeHtml(k.ornekDeger)+'"':''}</label>
+        <input class="ek_etiket" value="${escapeHtml(k.onerilenEtiket)}" placeholder="Nöbet yeri adı, örn: Bahçe">
+      </div>
+      <div class="form-group" style="flex:1;">
+        <select class="ek_rol">
+          <option value="yer" selected>Nöbet Yeri</option>
+          <option value="yoksay">Yoksay</option>
+        </select>
+      </div>
+    </div>`;
+  const body = `
+    <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+      "<strong>${escapeHtml(sayfaAdi)}</strong>" sayfası algılandı. "Nöbetçi Amir" sütunu otomatik bulundu (Sütun ${amirCol+1}). Aşağıdaki sütunların hangi nöbet yerine ait olduğunu kontrol edip gerekirse düzeltin.
+    </p>
+    <div id="nobetEslemeSatirlari">${kolonlar.map(satirHtml).join('')}</div>
+  `;
+  modalAc(`İçe Aktar — ${sayfaAdi}`, body, async ()=>{
+    const satirEls = Array.from(document.querySelectorAll('#nobetEslemeSatirlari .ek-satir'));
+    const eslemeler = kolonlar.map((k,i)=>({
+      index: k.index,
+      etiket: satirEls[i].querySelector('.ek_etiket').value.trim(),
+      rol: satirEls[i].querySelector('.ek_rol').value
+    })).filter(e=>e.rol==='yer' && e.etiket);
+
+    if(!eslemeler.length){ toast('En az bir nöbet yeri eşlemesi gerekli.'); return; }
+    modalKapat();
+    await nobetVerisiniUygula(satirlar, baslikIdx, tarihCol, amirCol, eslemeler);
+  }, null);
+}
+
+/* ---------- Eşlemeler onaylandıktan sonra Firestore'a yazar ---------- */
+async function nobetVerisiniUygula(satirlar, baslikIdx, tarihCol, amirCol, eslemeler){
+  toast('İçe aktarılıyor, lütfen bekleyin...');
+
+  // 1) Eşlenen etiketlere karşılık gelen nöbet yerlerini bul/oluştur.
+  const yerIdMap = {};
+  let yeniSira = nobetYerleri.length;
+  for(const e of eslemeler){
+    const mevcutYer = nobetYerleri.find(y=> y.ad.toLocaleLowerCase('tr')===e.etiket.toLocaleLowerCase('tr'));
+    if(mevcutYer){
+      yerIdMap[e.index] = mevcutYer.id;
+    } else {
+      yeniSira++;
+      const ref = await db.collection(COL.nobetYerleri).add({ ad:e.etiket, sira:yeniSira, eklenmeTarihi:new Date().toISOString() });
+      yerIdMap[e.index] = ref.id;
+    }
+  }
+
+  let atamaSayisi=0, amirSayisi=0, gunSayisi=0;
+  let batch = db.batch();
+  let batchSayac = 0;
+
+  for(let r=baslikIdx+2; r<satirlar.length; r++){
+    const satir = satirlar[r] || [];
+    if(!satir.length || satir.every(v=>v==='')) continue;
+    const iso = excelTarihHucresiISO(satir[tarihCol]);
+    if(!iso) continue;
+    gunSayisi++;
+
+    for(const e of eslemeler){
+      const ham = satir[e.index];
+      if(!ham || String(ham).trim()==='') continue;
+      const adSoyad = excelAdiSadelestir(ham);
+      const ogretmenObj = excelOgretmenEslestir(adSoyad);
+      const yerId = yerIdMap[e.index];
+      const mevcut = nobetAtamalari.find(a=>a.tarih===iso && a.yerId===yerId);
+      const veri = { tarih: iso, yerId, ogretmenAdSoyad: ogretmenObj?`${ogretmenObj.ad} ${ogretmenObj.soyad}`:adSoyad, ogretmenId: ogretmenObj?ogretmenObj.id:null };
+      const ref = mevcut ? db.collection(COL.nobetAtamalari).doc(mevcut.id) : db.collection(COL.nobetAtamalari).doc();
+      batch.set(ref, veri); batchSayac++; atamaSayisi++;
+    }
+
+    const amirHam = satir[amirCol];
+    if(amirHam && String(amirHam).trim()!==''){
+      const adSoyad = excelAdiSadelestir(amirHam);
+      const ogretmenObj = excelOgretmenEslestir(adSoyad);
+      const mevcutAmir = nobetciAmirleri.find(a=>a.tarih===iso);
+      const veri = { tarih: iso, ad: adSoyad, telefon: ogretmenObj?(ogretmenObj.telefon||''):'', ogretmenId: ogretmenObj?ogretmenObj.id:null };
+      const ref = mevcutAmir ? db.collection(COL.nobetciAmirleri).doc(mevcutAmir.id) : db.collection(COL.nobetciAmirleri).doc();
+      batch.set(ref, veri); batchSayac++; amirSayisi++;
+    }
+
+    if(batchSayac>=400){ await batch.commit(); batch = db.batch(); batchSayac=0; }
+  }
+  if(batchSayac>0) await batch.commit();
+
+  toast(`İçe aktarıldı: ${gunSayisi} gün · ${atamaSayisi} nöbet ataması · ${amirSayisi} amir ataması.`);
 }
