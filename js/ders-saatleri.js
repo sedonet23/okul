@@ -112,7 +112,7 @@ function renderDersSaatleriForm(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Öğle Arası (dk)</label>
-          <input type="number" id="dsr_autoOgle" value="50" min="30" max="90" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;" onchange="otomatikDersSaatleriniHesapla()">
+          <input type="number" id="dsr_autoOgle" value="50" min="0" max="90" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;" onchange="otomatikDersSaatleriniHesapla()">
         </div>
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Öğle Sonrası</label>
@@ -168,7 +168,8 @@ function otomatikDersSaatleriniHesapla(){
   const baslama = document.getElementById('dsr_autoBaslama').value;
   const dersSure = parseInt(document.getElementById('dsr_autoSure').value) || 40;
   const teneffus = parseInt(document.getElementById('dsr_autoTeneffus').value) || 10;
-  const ogle = parseInt(document.getElementById('dsr_autoOgle').value) || 50;
+  const ogleRaw = document.getElementById('dsr_autoOgle').value;
+  const ogle = ogleRaw === '' ? 50 : (parseInt(ogleRaw) || 0);
   const ogleSonrasi = parseInt(document.getElementById('dsr_autoOgleSonrasi').value) || 4;
   
   if(!baslama) return;

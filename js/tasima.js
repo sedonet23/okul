@@ -56,16 +56,16 @@ function servisDetayAc(id){
     ? servisOgrencileri.map(v=>{
         const sinifObj = siniflar.find(s=>s.id===v.sinifId);
         const sinifAdi = sinifObj ? sinifObj.ad : (v.sinifId||'—');
+        const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).map(t=>telefonEtiketle(v,t)).join(' · ');
         return `
         <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span>
             <strong>${escapeHtml(v.ogrenciAdi)}</strong>
             ${v.ogrenciNo ? ` <span class="detay-row-muted">No: ${escapeHtml(v.ogrenciNo)}</span>` : ''}
             <span class="badge badge-blue">${escapeHtml(sinifAdi)}</span>
-            ${v.cinsiyet ? ` <span class="badge badge-gray">${escapeHtml(v.cinsiyet)}</span>` : ''}
-            <br>${escapeHtml(v.veliAdi||'—')}
-            ${v.yakinlik ? ` <span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>` : ''}
-            ${v.telefon1||v.telefon ? `<br><span class="detay-row-muted">${escapeHtml(v.telefon1||v.telefon||'')}</span>` : ''}
+            ${v.cinsiyet ? ` <span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>` : ''}
+            <br>👤 ${escapeHtml(v.veliAdi||'—')}
+            ${telefonlar ? `<br><span class="detay-row-muted">📞 ${telefonlar}</span>` : ''}
           </span>
         </div>`;
       }).join('')
@@ -74,19 +74,19 @@ function servisDetayAc(id){
   document.getElementById('detayBody').innerHTML = `
     <div style="padding:14px 18px;">
       <div class="detay-card">
-        <h4>Servis Bilgileri</h4>
-        <div class="detay-row">Şoför: ${escapeHtml(s.soforAdi||'—')}${s.soforTelefon ? ' · ' + escapeHtml(s.soforTelefon) : ''}</div>
-        <div class="detay-row">Güzergah: ${escapeHtml(s.guzergah||'—')}</div>
+        <h4>🚌 Servis Bilgileri</h4>
+        <div class="detay-row">👨‍✈️ Şoför: ${escapeHtml(s.soforAdi||'—')}${s.soforTelefon ? ' · 📞 ' + escapeHtml(s.soforTelefon) : ''}</div>
+        <div class="detay-row">🗺️ Güzergah: ${escapeHtml(s.guzergah||'—')}</div>
         <div class="detay-row">Durum: <span class="badge badge-${servisDurumRengi(s.durum)}">${escapeHtml(s.durum||'Aktif')}</span></div>
-        ${s.notlar ? `<div class="detay-row detay-row-muted">${escapeHtml(s.notlar)}</div>` : ''}
+        ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
       </div>
       <div class="detay-card">
-        <h4 style="display:flex;justify-content:space-between;align-items:center;">
-          Servis Öğrenci Listesi (${servisOgrencileri.length})
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-ghost btn-sm" onclick="servisOgrenciExcelIceAktarModalAc('${id}')">⇧ Excel'den Ekle</button>
-            <button class="btn btn-amber btn-sm" onclick="servisOgrenciEkleModalAc('${id}')">+ Öğrenci Ekle</button>
-          </div>
+        <h4 class="detay-card-header">
+          <span class="detay-card-title">🧑‍🎓 Servis Öğrenci Listesi (${servisOgrencileri.length})</span>
+          <span class="detay-card-actions">
+            <button class="btn btn-ghost btn-sm" onclick="servisOgrenciExcelIceAktarModalAc('${id}')">📥 Excel'den Ekle</button>
+            <button class="btn btn-amber btn-sm" onclick="servisOgrenciEkleModalAc('${id}')">➕ Öğrenci Ekle</button>
+          </span>
         </h4>
         ${ogrenciListeHtml}
       </div>

@@ -20,7 +20,12 @@ function escapeHtml(str){
   if(str===null||str===undefined) return '';
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+/* Bir telefon numarasını, varsa velinin yakınlık derecesiyle ("Anne: 0532...") birlikte biçimlendirir. */
+function telefonEtiketle(v, telefon){
+  if(!telefon) return '';
+  return v && v.yakinlik ? `${escapeHtml(v.yakinlik)}: ${escapeHtml(telefon)}` : escapeHtml(telefon);
+}
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function formatTarih(iso){ if(!iso) return ''; const p = iso.split('-'); return p.length===3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; }
 function bugunMetni(){ const d=new Date(); return `${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}, ${GUNADI[d.getDay()]}`; }
 function oncelikRengi(o){ if(o==='Yüksek') return 'brick'; if(o==='Orta') return 'amber'; return 'sage'; }
@@ -469,7 +474,7 @@ function renderZilSayaci(bugunGun){
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
   if(!GUNLER.includes(bugunGun)){
-    zilEl.innerHTML = `<div class="zil-durum">Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🌤️ Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Bugün hafta sonu.</p>';
     return;
   }
@@ -479,9 +484,9 @@ function renderZilSayaci(bugunGun){
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
     return;
   }
-  const etiketler = { ders:`Şu an ${durum.etiket}`, teneffus:'Teneffüste / derse hazırlanılıyor', ogle:'Öğle arasında', bitti:'Ders saatleri sona erdi' };
+  const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi' };
   if(durum.durum==='bitti'){
-    zilEl.innerHTML = `<div class="zil-durum">Bugünün ders saatleri sona erdi.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
   } else {
     const altMetin = durum.durum==='ders' ? `Bitimine kalan süre`
       : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'

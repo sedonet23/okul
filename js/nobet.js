@@ -30,7 +30,7 @@ function nobetHaftaAraligi(tarihISO){
   const gun = d.getDay() || 7; // Pazartesi=1 ... Pazar=7
   const pazartesi = new Date(d); pazartesi.setDate(d.getDate()-gun+1);
   const gunler = [];
-  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(x.toISOString().slice(0,10)); }
+  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(nobetTarihISO(x.getFullYear(), x.getMonth(), x.getDate())); }
   return gunler;
 }
 
