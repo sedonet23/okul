@@ -46,10 +46,10 @@ function renderSiniflar(){
 function sinifModalAc(id){
   const s = id ? siniflar.find(x=>x.id===id) : null;
   const body = `
-    <div class="form-group"><label>Sınıf Adı</label><input id="f_sAd" value="${s?escapeHtml(s.ad):''}" placeholder="örn: 5-A"></div>
+    <div class="form-group"><label>Sınıf Adı</label><input id="f_sAd" value="${s?escapeHtml(s.ad):''}\" placeholder="örn: 5-A"></div>
     <div class="form-row">
-      <div class="form-group"><label>Seviye</label><input id="f_sSeviye" value="${s?escapeHtml(s.seviye||''):''}" placeholder="örn: 5"></div>
-      <div class="form-group"><label>Derslik</label><input id="f_sDerslik" value="${s?escapeHtml(s.derslik||''):''}" placeholder="örn: B Blok 3. Kat"></div>
+      <div class="form-group"><label>Seviye</label><input id="f_sSeviye" value="${s?escapeHtml(s.seviye||''):''}\" placeholder="örn: 5"></div>
+      <div class="form-group"><label>Derslik</label><input id="f_sDerslik" value="${s?escapeHtml(s.derslik||''):''}\" placeholder="örn: B Blok 3. Kat"></div>
     </div>
     <div class="form-group"><label>Sınıf Öğretmeni</label><select id="f_sOgretmen">${ogretmenSecenekleri(s?s.sinifOgretmeniId:'')}</select></div>
     <div class="form-row">
@@ -79,13 +79,14 @@ function sinifModalAc(id){
   }, s ? ()=>{ if(confirm('Bu sınıfı silmek istediğinize emin misiniz? (Ders programındaki kayıtlar silinmez.)')){ db.collection(COL.siniflar).doc(s.id).delete(); modalKapat(); } } : null);
 }
 
-/* ---------- sınıf detay paneli (sekmeli) ---------- */
+/* ---------- detay panel sekme ---------- */
 function sinifDetaySekmeAc(sekme){
   detaySinifSekme = sekme;
   document.querySelectorAll('#detayBody .detay-tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.sekme===sekme));
   document.querySelectorAll('#detayBody .detay-tab-panel').forEach(p=>p.classList.toggle('active', p.dataset.sekme===sekme));
 }
 
+/* ---------- sınıf detay paneli ---------- */
 function sinifDetayAc(id){
   const s = siniflar.find(x=>x.id===id);
   if(!s) return;
@@ -100,32 +101,68 @@ function sinifDetayAc(id){
     <div class="detay-tabs">
       <button class="detay-tab-btn active" data-sekme="bilgi" onclick="sinifDetaySekmeAc('bilgi')">Bilgiler</button>
       <button class="detay-tab-btn" data-sekme="ders" onclick="sinifDetaySekmeAc('ders')">Ders Programı</button>
-      <button class="detay-tab-btn" data-sekme="veli" onclick="sinifDetaySekmeAc('veli')">Veli Bilgileri</button>
+      <button class="detay-tab-btn" data-sekme="ogrenci" onclick="sinifDetaySekmeAc('ogrenci')">Öğrenciler</button>
     </div>
     <div style="padding:14px 18px;">
       <div class="detay-tab-panel active" data-sekme="bilgi" id="sinifDetayBilgi"></div>
       <div class="detay-tab-panel" data-sekme="ders" id="sinifDetayDers"></div>
-      <div class="detay-tab-panel" data-sekme="veli" id="sinifDetayVeli"></div>
+      <div class="detay-tab-panel" data-sekme="ogrenci" id="sinifDetayOgrenci"></div>
     </div>
   `;
 
   sinifDetayBilgiRender(s);
   sinifDetayDersRender(s);
-  sinifDetayVeliRender(s);
+  sinifDetayOgrenciRender(s);
+
+  /* ← PANEL AÇMA — bu satır eksikti */
+  document.getElementById('detayOverlay').classList.add('active');
 }
 
+/* ---------- bilgi sekmesi ---------- */
 function sinifDetayBilgiRender(s){
+  const ogrenciler = veliler.filter(v=>v.sinifId===s.id);
+  const gercekKiz   = ogrenciler.filter(v=>v.cinsiyet==='Kız').length;
+  const gercekErkek = ogrenciler.filter(v=>v.cinsiyet==='Erkek').length;
+  const toplamOgrenci = ogrenciler.length;
+
   document.getElementById('sinifDetayBilgi').innerHTML = `
     <div class="detay-card">
       <h4>Temel Bilgiler</h4>
-      <div class="detay-row">Sınıf Öğretmeni: ${escapeHtml(sinifOgretmeniAdi(s))}</div>
+      <div class="detay-row">Sınıf Öğretmeni: <strong>${escapeHtml(sinifOgretmeniAdi(s))}</strong></div>
       <div class="detay-row">Derslik: ${escapeHtml(s.derslik||'—')}</div>
-      <div class="detay-row">Öğrenci Sayısı: ${s.ogrenciSayisi||0} (Kız: ${s.kizSayisi||0} · Erkek: ${s.erkekSayisi||0})</div>
+      <div class="detay-row">
+        Öğrenci: <strong>${toplamOgrenci}</strong> &nbsp;·&nbsp;
+        Kız: <strong style="color:#c0392b;">${gercekKiz}</strong> &nbsp;·&nbsp;
+        Erkek: <strong style="color:#2980b9;">${gercekErkek}</strong>
+        ${toplamOgrenci !== (s.ogrenciSayisi||0) ? `<span style="font-size:12px;color:var(--ink-muted);"> (kayıt: ${s.ogrenciSayisi||0})</span>` : ''}
+      </div>
       ${s.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(s.notlar)}</div>`:''}
+    </div>
+    <div class="detay-card">
+      <h4 style="display:flex;justify-content:space-between;align-items:center;">
+        Öğrenci Listesi (${toplamOgrenci})
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
+        </div>
+      </h4>
+      ${ogrenciler.length ? ogrenciler.sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr')).map(v=>`
+        <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
+          <span>
+            <strong>${escapeHtml(v.ogrenciAdi)}</strong>
+            ${v.ogrenciNo?`<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>`:''}
+            ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
+            ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
+            <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}</span>
+          </span>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
+        </div>`).join('')
+      : '<p class="empty-state">Henüz öğrenci eklenmedi.</p>'}
     </div>
   `;
 }
 
+/* ---------- ders sekmesi ---------- */
 function sinifDetayDersRender(s){
   const dersleri = dersProgrami.filter(d=>d.sinif===s.ad).sort((a,b)=> GUNLER.indexOf(a.gun)-GUNLER.indexOf(b.gun) || a.saat-b.saat);
   const html = dersleri.length ? dersleri.map(d=>
@@ -134,29 +171,65 @@ function sinifDetayDersRender(s){
   document.getElementById('sinifDetayDers').innerHTML = `<div class="detay-card"><h4>Haftalık Ders Programı</h4>${html}</div>`;
 }
 
-function sinifDetayVeliRender(s){
-  const liste = veliler.filter(v=>v.sinifId===s.id).sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
-  const html = liste.length ? liste.map(v=>{
-    const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).map(escapeHtml).join(' · ');
-    const cinsiyetRozeti = v.cinsiyet ? ` <span class="badge badge-blue">${escapeHtml(v.cinsiyet)}</span>` : '';
-    const noEtiketi = v.ogrenciNo ? ` <span class="detay-row-muted">No: ${escapeHtml(v.ogrenciNo)}</span>` : '';
-    const servisEtiketi = v.servisAdi ? ` <span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>` : '';
+/* ---------- öğrenci sekmesi (tam liste + filtre) ---------- */
+function sinifDetayOgrenciRender(s){
+  const ogrenciler = veliler.filter(v=>v.sinifId===s.id)
+    .sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
+
+  const html = ogrenciler.length ? ogrenciler.map(v=>{
+    const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).join(' · ');
     return `
     <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
-      <span><strong>${escapeHtml(v.ogrenciAdi)}</strong>${noEtiketi}${cinsiyetRozeti}${servisEtiketi}<br>${escapeHtml(v.veliAdi||'—')}${v.yakinlik?` <span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>`:''}${telefonlar?'<br><span class="detay-row-muted">'+telefonlar+'</span>':''}${v.adres?'<br><span class="detay-row-muted">📍 '+escapeHtml(v.adres)+'</span>':''}</span>
-      <span style="display:flex;gap:4px;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
+      <span>
+        <strong>${escapeHtml(v.ogrenciAdi)}</strong>
+        ${v.ogrenciNo?`<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>`:''}
+        ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
+        ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
+        <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}${v.yakinlik?' ('+escapeHtml(v.yakinlik)+')':''}</span>
+        ${telefonlar?`<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>`:''}
       </span>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
     </div>`;
-  }).join('') : '<p class="empty-state">Henüz öğrenci kaydı eklenmedi.</p>';
-  document.getElementById('sinifDetayVeli').innerHTML = `
+  }).join('') : '<p class="empty-state">Henüz öğrenci eklenmedi.</p>';
+
+  document.getElementById('sinifDetayOgrenci').innerHTML = `
     <div class="detay-card">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;">Öğrenci / Veli Listesi (${liste.length})
-        <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Ekle</button>
+      <h4 style="display:flex;justify-content:space-between;align-items:center;">
+        Öğrenci Listesi (${ogrenciler.length})
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
+        </div>
       </h4>
       ${html}
     </div>
   `;
+}
+
+/* ---------- Excel'den öğrenci ekleme modalı ---------- */
+function sinifOgrenciExcelModalAc(sinifId){
+  const s = siniflar.find(x=>x.id===sinifId);
+  if(!s) return;
+  const body = `
+    <p style="margin:0 0 10px;color:var(--ink-muted);font-size:13px;">
+      <strong>${escapeHtml(s.ad)}</strong> sınıfına Excel'den öğrenci ekler.
+    </p>
+    <div class="form-group">
+      <label>Excel Dosyası (.xlsx / .xls)</label>
+      <input type="file" id="sinif_excelDosya" accept=".xlsx,.xls">
+    </div>
+    <p style="font-size:12px;color:var(--ink-muted);margin:8px 0 0;">
+      Sütunlar: <strong>Öğrenci Adı · Öğrenci No · Cinsiyet · Veli Adı · Yakınlık · Telefon 1 · Telefon 2 · Telefon 3 · Adres · Servis · Notlar</strong>
+    </p>
+  `;
+  modalAc(`Excel'den Öğrenci Ekle — ${escapeHtml(s.ad)}`, body, async ()=>{
+    const dosya = document.getElementById('sinif_excelDosya').files[0];
+    if(!dosya){ toast('Lütfen Excel dosyası seçin.'); return; }
+    modalKapat();
+    await ogrenciVeliExceliIceAktar(dosya, sinifId);
+    const sGuncel = siniflar.find(x=>x.id===sinifId);
+    if(sGuncel) { sinifDetayBilgiRender(sGuncel); sinifDetayOgrenciRender(sGuncel); }
+  });
 }
 
 const VELI_YAKINLIK_SECENEKLERI = ['Anne', 'Baba', 'Diğer'];
@@ -166,7 +239,7 @@ function sinifVeliModalAc(id){
   const body = `
     <div class="form-row">
       <div class="form-group"><label>Öğrenci Adı</label><input id="f_vOgrenci" value="${v?escapeHtml(v.ogrenciAdi||''):''}"></div>
-      <div class="form-group"><label>Öğrenci No</label><input id="f_vOgrenciNo" value="${v?escapeHtml(v.ogrenciNo||''):''}" placeholder="örn: 1024"></div>
+      <div class="form-group"><label>Öğrenci No</label><input id="f_vOgrenciNo" value="${v?escapeHtml(v.ogrenciNo||''):''}\" placeholder="örn: 1024"></div>
     </div>
     <div class="form-group"><label>Cinsiyet</label>
       <select id="f_vCinsiyet">
@@ -181,9 +254,9 @@ function sinifVeliModalAc(id){
         <select id="f_vYakinlik">${VELI_YAKINLIK_SECENEKLERI.map(y=>`<option ${v&&v.yakinlik===y?'selected':''}>${y}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="form-group"><label>Telefon 1</label><input id="f_vTelefon1" value="${v?escapeHtml(v.telefon1||v.telefon||''):''}" placeholder="05xx xxx xx xx"></div>
-    <div class="form-group"><label>Telefon 2</label><input id="f_vTelefon2" value="${v?escapeHtml(v.telefon2||''):''}" placeholder="05xx xxx xx xx"></div>
-    <div class="form-group"><label>Telefon 3</label><input id="f_vTelefon3" value="${v?escapeHtml(v.telefon3||''):''}" placeholder="05xx xxx xx xx"></div>
+    <div class="form-group"><label>Telefon 1</label><input id="f_vTelefon1" value="${v?escapeHtml(v.telefon1||v.telefon||''):''}\" placeholder="05xx xxx xx xx"></div>
+    <div class="form-group"><label>Telefon 2</label><input id="f_vTelefon2" value="${v?escapeHtml(v.telefon2||''):''}\" placeholder="05xx xxx xx xx"></div>
+    <div class="form-group"><label>Telefon 3</label><input id="f_vTelefon3" value="${v?escapeHtml(v.telefon3||''):''}\" placeholder="05xx xxx xx xx"></div>
     <div class="form-group"><label>Adres</label><textarea id="f_vAdres" rows="2" placeholder="örn: Mahalle, sokak, no...">${v?escapeHtml(v.adres||''):''}</textarea></div>
     <div class="form-group"><label>Servis</label>
       <select id="f_vServis">
@@ -193,7 +266,7 @@ function sinifVeliModalAc(id){
     </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_vNotlar" rows="2">${v?escapeHtml(v.notlar||''):''}</textarea></div>
   `;
-  modalAc(v?'Öğrenci / Veli Bilgisi Düzenle':'Öğrenci / Veli Bilgisi Ekle', body, ()=>{
+  modalAc(v?'Öğrenci Düzenle':'Yeni Öğrenci Ekle', body, ()=>{
     const ogrenciAdi = document.getElementById('f_vOgrenci').value.trim();
     if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
     const servisId = document.getElementById('f_vServis').value;
@@ -207,43 +280,29 @@ function sinifVeliModalAc(id){
       telefon1: document.getElementById('f_vTelefon1').value.trim(),
       telefon2: document.getElementById('f_vTelefon2').value.trim(),
       telefon3: document.getElementById('f_vTelefon3').value.trim(),
-      telefon: document.getElementById('f_vTelefon1').value.trim(), // geriye dönük uyumluluk
+      telefon: document.getElementById('f_vTelefon1').value.trim(),
       adres: document.getElementById('f_vAdres').value.trim(),
       servisId,
       servisAdi: servisId ? (servisler.find(sv=>sv.id===servisId)||{}).servisAdi||'' : '',
       notlar: document.getElementById('f_vNotlar').value.trim(),
     });
     modalKapat();
-  }, v ? ()=>{ if(confirm('Bu öğrenci/veli kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.veliler).doc(v.id).delete(); modalKapat(); } } : null);
+  }, v ? ()=>{ if(confirm('Bu öğrenci kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.veliler).doc(v.id).delete(); modalKapat(); } } : null);
 }
 
-/* ---------- sınıf seçim listesi (Ders Programı vb. için ortak kaynak) ---------- */
-function sinifAdlari(){
-  // Sınıflar modülündeki tanımlı sınıflar + ders programında geçen ama henüz modüle eklenmemiş sınıflar (geriye dönük uyumluluk)
-  const tanimli = siniflar.map(s=>s.ad);
-  const programdaGecen = dersProgrami.map(d=>d.sinif);
-  return [...new Set([...tanimli, ...programdaGecen])].sort((a,b)=>a.localeCompare(b,'tr'));
-}
-
-/* ---------- öğrenci detay modalı ---------- */
+/* ---------- öğrenci detay modalı (görüntüleme) ---------- */
 function ogrenciDetayModalAc(id){
   const v = veliler.find(x=>x.id===id);
   if(!v) return;
   const sinifObj = siniflar.find(s=>s.id===v.sinifId);
-  const sinifAdi = sinifObj ? sinifObj.ad : (v.sinifId||'—');
+  const sinifAdi = sinifObj ? sinifObj.ad : '—';
   const servisObj = servisler.find(s=>s.id===v.servisId);
   const servisAdi = servisObj ? servisObj.servisAdi : (v.servisAdi||'—');
 
   const body = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Öğrenci No</div>
-        <div style="font-weight:600;">${escapeHtml(v.ogrenciNo||'—')}</div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Cinsiyet</div>
-        <div>${v.cinsiyet ? `<span class="badge badge-blue">${escapeHtml(v.cinsiyet)}</span>` : '—'}</div>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Öğrenci No</div><div style="font-weight:600;">${escapeHtml(v.ogrenciNo||'—')}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Cinsiyet</div><div>${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:'—'}</div></div>
     </div>
     <div style="margin-bottom:12px;">
       <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Öğrenci Adı Soyadı</div>
@@ -252,21 +311,12 @@ function ogrenciDetayModalAc(id){
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <div style="margin-bottom:8px;">
       <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Veli Adı Soyadı</div>
-      <div style="font-weight:600;">${escapeHtml(v.veliAdi||'—')} ${v.yakinlik ? `<span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>` : ''}</div>
+      <div style="font-weight:600;">${escapeHtml(v.veliAdi||'—')} ${v.yakinlik?`<span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>`:''}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div>
-        <div style="font-size:13px;">${escapeHtml(v.telefon1||v.telefon||'—')}</div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div>
-        <div style="font-size:13px;">${escapeHtml(v.telefon2||'—')}</div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div>
-        <div style="font-size:13px;">${escapeHtml(v.telefon3||'—')}</div>
-      </div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div><div style="font-size:13px;">${escapeHtml(v.telefon1||v.telefon||'—')}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div><div style="font-size:13px;">${escapeHtml(v.telefon2||'—')}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div><div style="font-size:13px;">${escapeHtml(v.telefon3||'—')}</div></div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <div style="margin-bottom:8px;">
@@ -274,26 +324,25 @@ function ogrenciDetayModalAc(id){
       <div style="font-size:13px;">📍 ${escapeHtml(v.adres||'—')}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sınıf</div>
-        <div><span class="badge badge-blue">${escapeHtml(sinifAdi)}</span></div>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Servis</div>
-        <div>${v.servisId ? `<span class="badge badge-amber">🚌 ${escapeHtml(servisAdi)}</span>` : '<span style="color:var(--ink-muted);">Servis yok</span>'}</div>
-      </div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sınıf</div><div><span class="badge badge-blue">${escapeHtml(sinifAdi)}</span></div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Servis</div><div>${v.servisId?`<span class="badge badge-amber">🚌 ${escapeHtml(servisAdi)}</span>`:'<span style="color:var(--ink-muted);">Servis yok</span>'}</div></div>
     </div>
-    ${v.notlar ? `<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>` : ''}
+    ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">
       <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">✎ Düzenle</button>
     </div>
   `;
 
-  // Sadece görüntüleme modalı (kaydet butonu yok)
-  const overlay = document.getElementById('modalOverlay');
   document.getElementById('modalTitle').textContent = `${escapeHtml(v.ogrenciAdi||'Öğrenci')} — Detay`;
   document.getElementById('modalBody').innerHTML = body;
   document.getElementById('modalSilBtn').style.display = 'none';
   document.getElementById('modalKaydetBtn').style.display = 'none';
-  overlay.classList.add('open');
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+/* ---------- sınıf seçim listesi ---------- */
+function sinifAdlari(){
+  const tanimli = siniflar.map(s=>s.ad);
+  const programdaGecen = dersProgrami.map(d=>d.sinif);
+  return [...new Set([...tanimli, ...programdaGecen])].sort((a,b)=>a.localeCompare(b,'tr'));
 }
