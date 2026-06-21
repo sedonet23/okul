@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
   (function(){
@@ -22,6 +23,13 @@
       document.documentElement.setAttribute('data-theme','dark');
     }
   })();
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./service-worker.js').catch(function(err){
+        console.warn('Service worker kaydedilemedi:', err);
+      });
+    });
+  }
 </script>
 </head>
 <body>
@@ -81,6 +89,8 @@
       
       <button class="nav-tab" data-tab="okulBilgileri"><span class="nt-ico">🏫</span><span class="nt-label">Okul Bilgileri</span></button>
       <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico">⚙</span><span class="nt-label">Ayarlar</span></button>
+    </nav>
+    <button class="nav-cikis-btn" id="cikisBtn" title="Uygulamadan çık"><span class="nt-ico">⏻</span><span class="nt-label">Çıkış</span></button>
     </aside>
 
   <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
@@ -484,6 +494,12 @@
         <p style="color:var(--ink-muted);font-size:13px;">Tüm modüllerdeki verileriniz tek bir JSON dosyasına kaydedilir.</p>
         <button class="btn btn-primary" onclick="tumVerileriYedekle()">JSON Olarak İndir</button>
       </div>
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Google Drive Yedekleme</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Tüm veriler belirli aralıklarla otomatik olarak, istediğiniz zaman da manuel olarak Google Drive'a JSON yedeği olarak kaydedilir.</p>
+        <button class="btn btn-primary" id="driveYedekBtn">Şimdi Drive'a Yedekle</button>
+        <div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px;" id="driveYedekDurum">Durum kontrol ediliyor...</div>
+      </div>
       <div class="card">
         <h3>Yedekten Geri Yükle</h3>
         <p style="color:var(--ink-muted);font-size:13px;">Yedekteki kayıtlar eklenir/güncellenir; yedekte olmayan mevcut kayıtlar silinmez.</p>
@@ -537,6 +553,7 @@
 <script src="js/siniflar.js"></script>
 <script src="js/tasima.js"></script>
 <script src="js/app.js"></script>
+<script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
 </body>
 </html>
