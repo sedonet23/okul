@@ -14,7 +14,7 @@
    4) Oluşan İstemci Kimliğini (Client ID) aşağıdaki GOOGLE_CLIENT_ID alanına yapıştırın.
    ==================================================================== */
 
-const GOOGLE_CLIENT_ID = "BURAYA_GOOGLE_CLIENT_ID"; // örn: 123456789-abc.apps.googleusercontent.com
+const GOOGLE_CLIENT_ID = "738103486583-c4r0acm0h4msqn04ntu5dkvgl545jvnt.apps.googleusercontent.com";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_KLASOR_ADI = "Okul Yönetim Paneli Yedekleri";
 const YEDEK_ARALIGI_GUN = 7; // otomatik yedekleme sıklığı
