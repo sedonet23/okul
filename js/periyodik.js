@@ -9,6 +9,24 @@
    ==================================================================== */
 
 let periyodikIsler = [];
+let periyodikSablonu = [];
+
+/* Sedat'ın okulda her ay tekrarlayan rutin işleri — kullanıcı bunları
+   "Şablonu Düzenle" ile istediği gibi değiştirebilir/silebilir/ekleyebilir.
+   Gün sayıları ayın kaçıncı günü olduğunu belirtir (ör. 1-5 = ayın ilk 5 günü). */
+const PERIYODIK_SABLON_VARSAYILAN = [
+  { isAdi:'Personel Puantaj İşlemleri', baslangicGun:1,  bitisGun:5  },
+  { isAdi:'Ek Ders İşlemleri',          baslangicGun:1,  bitisGun:10 },
+  { isAdi:'İŞKUR İşlemleri',            baslangicGun:1,  bitisGun:7  },
+  { isAdi:'Maaş Değişiklikleri',        baslangicGun:15, bitisGun:20 },
+  { isAdi:'Taşıma İşlemleri',           baslangicGun:1,  bitisGun:3  },
+  { isAdi:'Nöbet İşlemleri',            baslangicGun:25, bitisGun:30 },
+];
+
+function gunToISO(yil, ay0, gun){
+  const sonGun = new Date(yil, ay0+1, 0).getDate();
+  return `${yil}-${pad2(ay0+1)}-${pad2(Math.min(Math.max(gun,1), sonGun))}`;
+}
 
 function periyodikGrupAnahtari(p){
   const t = p.bitis || p.baslangic;
@@ -93,4 +111,71 @@ function periyodikBaglantilariKur(){
     periyodikIsler = s.docs.map(d=>({id:d.id,...d.data()}));
     renderPeriyodikIsler();
   }, hataGoster);
+  db.collection(COL.periyodikSablon).doc('sablon').onSnapshot(doc=>{
+    periyodikSablonu = doc.exists ? (doc.data().gorevler||[]) : [];
+    renderPeriyodikSablonOzet();
+  }, hataGoster);
+}
+
+/* ============== AYLIK ŞABLON ============== */
+function renderPeriyodikSablonOzet(){
+  const hedef = document.getElementById('periyodikSablonOzet');
+  if(!hedef) return;
+  hedef.textContent = periyodikSablonu.length
+    ? `${periyodikSablonu.length} görev tanımlı — "Bu Ayın Görevlerini Oluştur" ile tek tıkla ekleyebilirsiniz.`
+    : 'Henüz şablon tanımlanmadı. "Şablonu Düzenle" ile puantaj, ek ders, İŞKUR gibi her ay tekrarlayan görevlerinizi bir kez tanımlayın.';
+}
+
+function periyodikSablonSatirHtml(g){
+  return `
+    <div class="sablon-satir" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <input class="sb_isAdi" style="flex:2;" value="${escapeHtml(g.isAdi||'')}" placeholder="İş Adı, örn: Personel Puantaj İşlemleri">
+      <input class="sb_bas" type="number" min="1" max="31" style="flex:1;" value="${g.baslangicGun||1}" title="Başlangıç günü">
+      <input class="sb_bit" type="number" min="1" max="31" style="flex:1;" value="${g.bitisGun||1}" title="Bitiş günü">
+      <button class="cz-del" title="Satırı kaldır" onclick="this.closest('.sablon-satir').remove()">🗑</button>
+    </div>`;
+}
+function periyodikSablonSatirEkle(){
+  document.getElementById('sablonSatirlari').insertAdjacentHTML('beforeend', periyodikSablonSatirHtml({isAdi:'',baslangicGun:1,bitisGun:1}));
+}
+function periyodikSablonModalAc(){
+  const liste = periyodikSablonu.length ? periyodikSablonu : PERIYODIK_SABLON_VARSAYILAN;
+  const body = `
+    <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İş adını ve ayın kaçıncı gününden kaçıncı gününe kadar yapılacağını girin (örn. 1-5 = ayın ilk 5 günü). "Bu Ayın Görevlerini Oluştur" dediğinizde bu satırlar, içinde bulunduğunuz ayın gerçek tarihlerine dönüştürülür.</p>
+    <div style="display:flex;gap:8px;font-size:11.5px;color:var(--ink-muted);margin-bottom:6px;">
+      <div style="flex:2;">İş Adı</div><div style="flex:1;">Başl. Günü</div><div style="flex:1;">Bitiş Günü</div><div style="width:30px;"></div>
+    </div>
+    <div id="sablonSatirlari">${liste.map(periyodikSablonSatirHtml).join('')}</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:4px;" onclick="periyodikSablonSatirEkle()">+ Görev Satırı Ekle</button>
+  `;
+  modalAc('Aylık Şablonu Düzenle', body, ()=>{
+    const gorevler = Array.from(document.querySelectorAll('#sablonSatirlari .sablon-satir')).map(satir=>({
+      isAdi: satir.querySelector('.sb_isAdi').value.trim(),
+      baslangicGun: parseInt(satir.querySelector('.sb_bas').value)||1,
+      bitisGun: parseInt(satir.querySelector('.sb_bit').value)||1,
+    })).filter(g=>g.isAdi);
+    db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler })
+      .then(()=>{ toast('Şablon kaydedildi.'); modalKapat(); })
+      .catch(err=>toast('Hata: '+err.message));
+  }, null);
+}
+
+async function periyodikAyOlustur(){
+  if(!periyodikSablonu.length){ toast('Önce "Şablonu Düzenle" ile görevlerinizi tanımlayın.'); return; }
+  const d = new Date();
+  const yil = d.getFullYear(), ay0 = d.getMonth();
+  let olusturulan = 0, atlanan = 0;
+  for(const g of periyodikSablonu){
+    if(!g.isAdi) continue;
+    const baslangic = gunToISO(yil, ay0, g.baslangicGun);
+    const bitis = gunToISO(yil, ay0, g.bitisGun);
+    const ayAnahtari = bitis.slice(0,7);
+    const zatenVar = periyodikIsler.some(p=>p.isAdi===g.isAdi && periyodikGrupAnahtari(p)===ayAnahtari);
+    if(zatenVar){ atlanan++; continue; }
+    try{
+      await db.collection(COL.periyodikIsler).add({ isAdi:g.isAdi, baslangic, bitis, tamamlandi:false, not:'', bildirimGonderildi:false });
+      olusturulan++;
+    }catch(err){ toast('Hata: '+err.message); return; }
+  }
+  toast(olusturulan ? `${olusturulan} görev oluşturuldu${atlanan?`, ${atlanan} zaten vardı`:''}.` : 'Bu ayın tüm şablon görevleri zaten mevcut.');
 }

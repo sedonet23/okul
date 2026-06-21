@@ -58,4 +58,17 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('.nav-tab').forEach(btn=>{
     btn.addEventListener('click', menuKapat);
   });
+
+  /* ---------- Çizelgeler açılır menüsü (sol menü) ---------- */
+  const cizelgelerToggle = document.getElementById('cizelgelerToggle');
+  const cizelgelerMenu = document.getElementById('cizelgelerMenu');
+  if(cizelgelerToggle && cizelgelerMenu){
+    cizelgelerToggle.addEventListener('click', ()=>{
+      const aciliyor = cizelgelerMenu.style.display === 'none';
+      cizelgelerMenu.style.display = aciliyor ? 'block' : 'none';
+      cizelgelerToggle.classList.toggle('open', aciliyor);
+      const ok = cizelgelerToggle.querySelector('.toggle-arrow');
+      if(ok) ok.textContent = aciliyor ? '▼' : '▶';
+    });
+  }
 });

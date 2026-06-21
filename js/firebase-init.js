@@ -45,6 +45,10 @@ const COL = {
   // --- YENİ: Sınıflar modülü ---
   siniflar:'oy_siniflar',               // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
   veliler:'oy_veliler',                 // {sinifId, ogrenciAdi, veliAdi, telefon, not}
+  // --- YENİ: Taşıma modülü (v4.0) ---
+  servisler:'oy_servisler',             // {servisAdi, guzergah, soforAdi, soforTelefon, ogrenciSayisi, durum:'Aktif'|'Pasif', notlar}
+  // --- YENİ: Periyodik İşler aylık şablonu (v4.0) ---
+  periyodikSablon:'oy_periyodikSablon', // tek doküman (id:'sablon'): {gorevler:[{isAdi, baslangicGun, bitisGun}]}
   // --- YENİ: Okul Bilgileri (v4.0) ---
   okulBilgileri:'oy_okulBilgileri'      // tek doküman (id:'ayarlar'): {okulAdi, mudurId}
                                          // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:

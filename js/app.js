@@ -478,11 +478,11 @@ function renderZilSayaci(bugunGun){
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
     return;
   }
-  const etiketler = { ders:'Şu an ders saatinde', teneffus:'Teneffüste / derse hazırlanılıyor', ogle:'Öğle arasında', bitti:'Ders saatleri sona erdi' };
+  const etiketler = { ders:`Şu an ${durum.etiket}`, teneffus:'Teneffüste / derse hazırlanılıyor', ogle:'Öğle arasında', bitti:'Ders saatleri sona erdi' };
   if(durum.durum==='bitti'){
     zilEl.innerHTML = `<div class="zil-durum">Bugünün ders saatleri sona erdi.</div>`;
   } else {
-    const altMetin = durum.durum==='ders' ? `${durum.etiket} bitimine kalan süre`
+    const altMetin = durum.durum==='ders' ? `Bitimine kalan süre`
       : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'
       : `${durum.etiket} başlamasına kalan süre`;
     zilEl.innerHTML = `
@@ -508,8 +508,9 @@ function tumVerileriYedekle(){
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
-    siniflar, veliler,
+    siniflar, veliler, servisler,
     okulBilgileri: okulBilgileriAyari || undefined,
+    periyodikSablon: periyodikSablonu || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi
@@ -537,7 +538,7 @@ async function yedektenGeriYukle(file){
       [data.sosyalKulupler, COL.sosyalKulupler],[data.sok, COL.sok],[data.zumre, COL.zumre],
       [data.bepPlani, COL.bepPlani],[data.rehberlik, COL.rehberlik],[data.maarifRapor, COL.maarifRapor],
       [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
-      [data.periyodikIsler, COL.periyodikIsler]
+      [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler]
     ];
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
@@ -552,6 +553,9 @@ async function yedektenGeriYukle(file){
     }
     if(data.okulBilgileri){
       await db.collection(COL.okulBilgileri).doc('ayarlar').set(data.okulBilgileri);
+    }
+    if(data.periyodikSablon){
+      await db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler: data.periyodikSablon });
     }
     toast('Geri yükleme tamamlandı.');
   }catch(err){
@@ -579,6 +583,7 @@ function baglantilariKur(){
   db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); }, hataGoster);
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
+  tasimaBaglantilariKur();
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard();
