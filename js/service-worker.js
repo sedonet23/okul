@@ -3,7 +3,7 @@
    Firestore verileri ayrıca firebase-init.js içindeki enablePersistence ile
    tarayıcı/cihaz hafızasında (IndexedDB) tutulur — bu dosya sadece statik dosyaları yönetir. */
 
-const CACHE_ADI = 'oy-cache-v1';
+const CACHE_ADI = 'oy-cache-v2';
 
 const ONBELLEGE_ALINACAKLAR = [
   './',

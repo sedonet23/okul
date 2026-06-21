@@ -74,16 +74,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
     btn.addEventListener('click', menuKapat);
   });
 
-  /* ---------- Çizelgeler açılır menüsü (sol menü) ---------- */
-  const cizelgelerToggle = document.getElementById('cizelgelerToggle');
-  const cizelgelerMenu = document.getElementById('cizelgelerMenu');
-  if(cizelgelerToggle && cizelgelerMenu){
-    cizelgelerToggle.addEventListener('click', ()=>{
-      const aciliyor = cizelgelerMenu.style.display === 'none';
-      cizelgelerMenu.style.display = aciliyor ? 'block' : 'none';
-      cizelgelerToggle.classList.toggle('open', aciliyor);
-      const ok = cizelgelerToggle.querySelector('.toggle-arrow');
-      if(ok) ok.textContent = aciliyor ? '▼' : '▶';
-    });
-  }
+  /* ---------- Çizelgeler açılır menüsü (sol menü) ----------
+     Event delegation kullanılır: buton DOM'a sonradan eklenmiş/başka bir
+     script tarafından yeniden oluşturulmuş olsa bile çalışmaya devam eder. */
+  document.addEventListener('click', (e)=>{
+    const toggleBtn = e.target.closest('#cizelgelerToggle');
+    if(!toggleBtn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const menu = document.getElementById('cizelgelerMenu');
+    if(!menu) return;
+    const aciliyor = getComputedStyle(menu).display === 'none';
+    menu.style.display = aciliyor ? 'flex' : 'none';
+    toggleBtn.classList.toggle('open', aciliyor);
+    const ok = toggleBtn.querySelector('.toggle-arrow');
+    if(ok) ok.textContent = aciliyor ? '▼' : '▶';
+  });
 });
