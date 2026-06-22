@@ -854,3 +854,125 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   font-weight: 600;
 }
 
+
+/* ===== v4.0.1 FIX: Mobile Responsive & Accordion Improvements ===== */
+
+/* FIX: Accordion max-height animation improvement */
+.accordion-content {
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  opacity: 0;
+}
+
+.accordion-content.open {
+  max-height: 90vh;
+  opacity: 1;
+  overflow-y: auto;
+  background: var(--bg-app-soft);
+  padding: 16px;
+  border-top: 2px solid var(--brand-purple);
+  display: block;
+}
+
+/* Tablet (600px - 768px) */
+@media (max-width: 768px) and (min-width: 600px) {
+  input[type="time"],
+  input[type="number"],
+  select {
+    padding: 7px 10px;
+    font-size: 13px;
+  }
+  
+  .accordion-content.open {
+    padding: 12px;
+  }
+}
+
+/* Mobile (< 600px) */
+@media (max-width: 599px) {
+  .accordion-content.open {
+    max-height: 80vh;
+    padding: 12px 8px;
+  }
+  
+  input[type="time"],
+  input[type="number"],
+  input[type="text"],
+  input[type="date"],
+  select {
+    padding: 6px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+  
+  div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  
+  div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+  
+  .btn, button {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 40px;
+  }
+  
+  .dash-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .accordion-header {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 359px) {
+  input[type="time"],
+  input[type="number"],
+  select {
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+  
+  .btn, button {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}
+
+/* Accessibility: Touch targets */
+@media (max-width: 768px) {
+  button, input[type="button"], input[type="checkbox"], input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  select {
+    min-height: 44px;
+    padding: 10px 8px;
+  }
+}
+
+/* Scrollbar styling for accordion */
+.accordion-content.open::-webkit-scrollbar {
+  width: 6px;
+}
+
+.accordion-content.open::-webkit-scrollbar-track {
+  background: var(--bg-app-soft);
+}
+
+.accordion-content.open::-webkit-scrollbar-thumb {
+  background: var(--brand-purple);
+  border-radius: 3px;
+}
+
+.accordion-content.open::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-purple);
+  opacity: 0.8;
+}
