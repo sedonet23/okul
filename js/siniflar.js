@@ -127,24 +127,24 @@ function sinifDetayBilgiRender(s){
 
   document.getElementById('sinifDetayBilgi').innerHTML = `
     <div class="detay-card">
-      <h4>📋 Temel Bilgiler</h4>
-      <div class="detay-row">👩‍🏫 Sınıf Öğretmeni: <strong>${escapeHtml(sinifOgretmeniAdi(s))}</strong></div>
-      <div class="detay-row">🏫 Derslik: ${escapeHtml(s.derslik||'—')}</div>
+      <h4>Temel Bilgiler</h4>
+      <div class="detay-row">Sınıf Öğretmeni: <strong>${escapeHtml(sinifOgretmeniAdi(s))}</strong></div>
+      <div class="detay-row">Derslik: ${escapeHtml(s.derslik||'—')}</div>
       <div class="detay-row">
         Öğrenci: <strong>${toplamOgrenci}</strong> &nbsp;·&nbsp;
         Kız: <strong style="color:#c0392b;">${gercekKiz}</strong> &nbsp;·&nbsp;
         Erkek: <strong style="color:#2980b9;">${gercekErkek}</strong>
         ${toplamOgrenci !== (s.ogrenciSayisi||0) ? `<span style="font-size:12px;color:var(--ink-muted);"> (kayıt: ${s.ogrenciSayisi||0})</span>` : ''}
       </div>
-      ${s.notlar?`<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>`:''}
+      ${s.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(s.notlar)}</div>`:''}
     </div>
     <div class="detay-card">
-      <h4 class="detay-card-header">
-        <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${toplamOgrenci})</span>
-        <span class="detay-card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
-          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
-        </span>
+      <h4 style="display:flex;justify-content:space-between;align-items:center;">
+        Öğrenci Listesi (${toplamOgrenci})
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
+        </div>
       </h4>
       ${ogrenciler.length ? ogrenciler.sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr')).map(v=>`
         <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
@@ -177,7 +177,12 @@ function sinifDetayOgrenciRender(s){
     .sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
 
   const html = ogrenciler.length ? ogrenciler.map(v=>{
-    const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).map(t=>telefonEtiketle(v,t)).join(' · ');
+    const tel1 = v.telefon1||v.telefon; const tel2 = v.telefon2; const tel3 = v.telefon3;
+    const telefonlar = [
+      tel1 ? `${tel1}${v.yakinlik?' ('+v.yakinlik+')':''}` : null,
+      tel2 ? `${tel2}${v.yakinlik2?' ('+v.yakinlik2+')':''}` : null,
+      tel3 ? `${tel3}${v.yakinlik3?' ('+v.yakinlik3+')':''}` : null
+    ].filter(Boolean).join(' · ');
     return `
     <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
       <span>
@@ -186,7 +191,7 @@ function sinifDetayOgrenciRender(s){
         ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
         ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
         <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}${v.yakinlik?' ('+escapeHtml(v.yakinlik)+')':''}</span>
-        ${telefonlar?`<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${telefonlar}</span>`:''}
+        ${telefonlar?`<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>`:''}
       </span>
       <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
     </div>`;
@@ -194,12 +199,12 @@ function sinifDetayOgrenciRender(s){
 
   document.getElementById('sinifDetayOgrenci').innerHTML = `
     <div class="detay-card">
-      <h4 class="detay-card-header">
-        <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${ogrenciler.length})</span>
-        <span class="detay-card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
-          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
-        </span>
+      <h4 style="display:flex;justify-content:space-between;align-items:center;">
+        Öğrenci Listesi (${ogrenciler.length})
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
+        </div>
       </h4>
       ${html}
     </div>
@@ -248,15 +253,36 @@ function sinifVeliModalAc(id){
         <option ${v&&v.cinsiyet==='Erkek'?'selected':''}>Erkek</option>
       </select>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Veli Adı</label><input id="f_vVeli" value="${v?escapeHtml(v.veliAdi||''):''}"></div>
-      <div class="form-group"><label>Yakınlık Derecesi</label>
-        <select id="f_vYakinlik">${VELI_YAKINLIK_SECENEKLERI.map(y=>`<option ${v&&v.yakinlik===y?'selected':''}>${y}</option>`).join('')}</select>
+    <div style="border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:10px;margin-bottom:10px;background:var(--bg-app-soft);">
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">İletişim 1</div>
+      <div class="form-row">
+        <div class="form-group"><label>Veli Adı</label><input id="f_vVeli" value="${v?escapeHtml(v.veliAdi||''):''}" placeholder="örn: Fatma Demir"></div>
+        <div class="form-group"><label>Yakınlık</label>
+          <select id="f_vYakinlik">${VELI_YAKINLIK_SECENEKLERI.map(y=>`<option ${v&&v.yakinlik===y?'selected':''}>${y}</option>`).join('')}</select>
+        </div>
       </div>
+      <div class="form-group"><input id="f_vTelefon1" value="${v?escapeHtml(v.telefon1||v.telefon||''):''}" placeholder="Telefon 1 — 05xx xxx xx xx"></div>
     </div>
-    <div class="form-group"><label>Telefon 1</label><input id="f_vTelefon1" value="${v?escapeHtml(v.telefon1||v.telefon||''):''}\" placeholder="05xx xxx xx xx"></div>
-    <div class="form-group"><label>Telefon 2</label><input id="f_vTelefon2" value="${v?escapeHtml(v.telefon2||''):''}\" placeholder="05xx xxx xx xx"></div>
-    <div class="form-group"><label>Telefon 3</label><input id="f_vTelefon3" value="${v?escapeHtml(v.telefon3||''):''}\" placeholder="05xx xxx xx xx"></div>
+    <div style="border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:10px;margin-bottom:10px;background:var(--bg-app-soft);">
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">İletişim 2 (opsiyonel)</div>
+      <div class="form-row">
+        <div class="form-group"><label>Veli Adı</label><input id="f_vVeli2" value="${v?escapeHtml(v.veliAdi2||''):''}" placeholder="örn: Ali Demir"></div>
+        <div class="form-group"><label>Yakınlık</label>
+          <select id="f_vYakinlik2">${VELI_YAKINLIK_SECENEKLERI.map(y=>`<option ${v&&v.yakinlik2===y?'selected':''}>${y}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><input id="f_vTelefon2" value="${v?escapeHtml(v.telefon2||''):''}" placeholder="Telefon 2 — 05xx xxx xx xx"></div>
+    </div>
+    <div style="border:1px solid var(--border-soft);border-radius:var(--radius-md);padding:10px;margin-bottom:10px;background:var(--bg-app-soft);">
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">İletişim 3 (opsiyonel)</div>
+      <div class="form-row">
+        <div class="form-group"><label>Veli Adı</label><input id="f_vVeli3" value="${v?escapeHtml(v.veliAdi3||''):''}" placeholder="örn: Ayşe Demir"></div>
+        <div class="form-group"><label>Yakınlık</label>
+          <select id="f_vYakinlik3">${VELI_YAKINLIK_SECENEKLERI.map(y=>`<option ${v&&v.yakinlik3===y?'selected':''}>${y}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="form-group"><input id="f_vTelefon3" value="${v?escapeHtml(v.telefon3||''):''}" placeholder="Telefon 3 — 05xx xxx xx xx"></div>
+    </div>
     <div class="form-group"><label>Adres</label><textarea id="f_vAdres" rows="2" placeholder="örn: Mahalle, sokak, no...">${v?escapeHtml(v.adres||''):''}</textarea></div>
     <div class="form-group"><label>Servis</label>
       <select id="f_vServis">
@@ -278,7 +304,11 @@ function sinifVeliModalAc(id){
       veliAdi: document.getElementById('f_vVeli').value.trim(),
       yakinlik: document.getElementById('f_vYakinlik').value,
       telefon1: document.getElementById('f_vTelefon1').value.trim(),
+      veliAdi2: document.getElementById('f_vVeli2').value.trim(),
+      yakinlik2: document.getElementById('f_vYakinlik2').value,
       telefon2: document.getElementById('f_vTelefon2').value.trim(),
+      veliAdi3: document.getElementById('f_vVeli3').value.trim(),
+      yakinlik3: document.getElementById('f_vYakinlik3').value,
       telefon3: document.getElementById('f_vTelefon3').value.trim(),
       telefon: document.getElementById('f_vTelefon1').value.trim(),
       adres: document.getElementById('f_vAdres').value.trim(),
@@ -314,9 +344,21 @@ function ogrenciDetayModalAc(id){
       <div style="font-weight:600;">${escapeHtml(v.veliAdi||'—')} ${v.yakinlik?`<span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>`:''}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon1||v.telefon)||'—'}</div></div>
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon2)||'—'}</div></div>
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon3)||'—'}</div></div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1${v.yakinlik?' ('+escapeHtml(v.yakinlik)+')':''}</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon1||v.telefon||'—')}</div>
+        ${v.veliAdi?`<div style="font-size:11px;color:var(--ink-muted);">${escapeHtml(v.veliAdi)}</div>`:''}
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2${v.yakinlik2?' ('+escapeHtml(v.yakinlik2)+')':''}</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon2||'—')}</div>
+        ${v.veliAdi2?`<div style="font-size:11px;color:var(--ink-muted);">${escapeHtml(v.veliAdi2)}</div>`:''}
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3${v.yakinlik3?' ('+escapeHtml(v.yakinlik3)+')':''}</div>
+        <div style="font-size:13px;">${escapeHtml(v.telefon3||'—')}</div>
+        ${v.veliAdi3?`<div style="font-size:11px;color:var(--ink-muted);">${escapeHtml(v.veliAdi3)}</div>`:''}
+      </div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <div style="margin-bottom:8px;">
@@ -329,7 +371,7 @@ function ogrenciDetayModalAc(id){
     </div>
     ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">
-      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">📝 Düzenle</button>
+      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">✎ Düzenle</button>
     </div>
   `;
 
