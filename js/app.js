@@ -593,20 +593,25 @@ function renderDashboard(){
   /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
   renderZilSayaci(bugunGun);
   if(typeof renderYaklasanEtkinlikler === 'function') renderYaklasanEtkinlikler();
+  tatilModuKartlariniUygula();
+}
+
+function tatilModuKartlariniUygula(){
+  const tatil = dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu;
+  document.querySelectorAll('.tatil-gizle').forEach(el=>{
+    el.style.display = tatil ? 'none' : '';
+  });
 }
 
 function renderZilSayaci(bugunGun){
   const zilEl = document.getElementById('zilWidget');
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
-  ['dashBugunNobet','nobetBugunKutu','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{const el=document.getElementById(id);if(el){const c=el.closest('.card');if(c)c.style.display='';} });
+  // Kart görünürlüğü tatilModuKartlariniUygula() tarafından yönetilir
   const ayar = dersSaatleriAyarlari;
   if(ayar && ayar.tatilModu){
     // Tatil modu: gizlenecek kartlar
-    ['dashBugunNobet','nobetBugunKutu','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el){ el.innerHTML=''; const card = el.closest('.card'); if(card) card.style.display='none'; }
-    });
+    // Kart gizleme tatilModuKartlariniUygula() tarafından yapılır
     // Okul açılış sayacı
     const acilisTarihi = ayar.okulAcilisTarihi;
     let sayacHTML = '';
@@ -758,7 +763,7 @@ function baglantilariKur(){
   sinavBaglantilariKur();
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
-    renderDersSaatleriForm(); renderDersGrid(); renderDashboard();
+    renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
   }, hataGoster);
   db.collection(COL.okulBilgileri).doc('ayarlar').onSnapshot(doc=>{
     okulBilgileriAyari = doc.exists ? doc.data() : null;
