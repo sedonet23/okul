@@ -54,8 +54,7 @@ const COL = {
   denemeSinavlari:'oy_denemeSinavlari', // {ad, tarih, oturumTuru:'Tek Oturum'|'İki Oturum', baslamaSaati, bitisSaati, sure,
                                          //  sayisalBaslama, sayisalBitis, sozelBaslama, sozelBitis, notlar}
   // --- YENİ: Okul Bilgileri (v4.0) ---
-  okulBilgileri:'oy_okulBilgileri',      // tek doküman (id:'ayarlar'): {okulAdi, mudurId}
-  dersListesi:'oy_dersListesi'          // {ad} — Ders Programı + Öğretmen Branşı + Sınav İşlemleri'nde ortak seçim listesi
+  okulBilgileri:'oy_okulBilgileri'      // tek doküman (id:'ayarlar'): {okulAdi, mudurId}
                                          // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:
                                          // "Müdür Yardımcısı" zaten oy_ogretmenler içinde bir ünvan seçeneğidir (bkz. app.js OGRETMEN_UNVANLARI).
                                          // Aynı kişi için iki ayrı kayıt (öğretmen + MY) tutmak veri tekrarına ve

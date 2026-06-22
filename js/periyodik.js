@@ -129,9 +129,9 @@ function renderPeriyodikSablonOzet(){
 function periyodikSablonSatirHtml(g){
   return `
     <div class="sablon-satir" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-      <input class="sb_isAdi" style="flex:2;min-width:0;" value="${escapeHtml(g.isAdi||'')}" placeholder="İş Adı, örn: Personel Puantaj İşlemleri">
-      <input class="sb_bas" type="number" min="1" max="31" style="flex:0 0 48px;min-width:48px;" value="${g.baslangicGun||1}" title="Başlangıç günü">
-      <input class="sb_bit" type="number" min="1" max="31" style="flex:0 0 48px;min-width:48px;" value="${g.bitisGun||1}" title="Bitiş günü">
+      <input class="sb_isAdi" style="flex:2;" value="${escapeHtml(g.isAdi||'')}" placeholder="İş Adı, örn: Personel Puantaj İşlemleri">
+      <input class="sb_bas" type="number" min="1" max="31" style="flex:1;" value="${g.baslangicGun||1}" title="Başlangıç günü">
+      <input class="sb_bit" type="number" min="1" max="31" style="flex:1;" value="${g.bitisGun||1}" title="Bitiş günü">
       <button class="cz-del" title="Satırı kaldır" onclick="this.closest('.sablon-satir').remove()">🗑</button>
     </div>`;
 }
@@ -143,7 +143,7 @@ function periyodikSablonModalAc(){
   const body = `
     <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İş adını ve ayın kaçıncı gününden kaçıncı gününe kadar yapılacağını girin (örn. 1-5 = ayın ilk 5 günü). "Bu Ayın Görevlerini Oluştur" dediğinizde bu satırlar, içinde bulunduğunuz ayın gerçek tarihlerine dönüştürülür.</p>
     <div style="display:flex;gap:8px;font-size:11.5px;color:var(--ink-muted);margin-bottom:6px;">
-      <div style="flex:2;">İş Adı</div><div style="flex:0 0 48px;text-align:center;">Başl.</div><div style="flex:0 0 48px;text-align:center;">Bitiş</div><div style="width:30px;"></div>
+      <div style="flex:2;">İş Adı</div><div style="flex:1;">Başl. Günü</div><div style="flex:1;">Bitiş Günü</div><div style="width:30px;"></div>
     </div>
     <div id="sablonSatirlari">${liste.map(periyodikSablonSatirHtml).join('')}</div>
     <button class="btn btn-ghost btn-sm" style="margin-top:4px;" onclick="periyodikSablonSatirEkle()">+ Görev Satırı Ekle</button>
