@@ -229,7 +229,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
       <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
       <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3,4].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
     </div>
-    <div class="form-group"><label>TC Kimlik No</label><input id="f_tcNo" value="${o?escapeHtml(o.tcNo||''): ''}" placeholder="00000000000" maxlength="11" inputmode="numeric"></div>
+    <div class="form-group"><label>TC Kimlik No</label><input id="f_tcNo" value="${o?escapeHtml(o.tcNo||''): ''}" placeholder="12345678900" maxlength="11" inputmode="numeric"></div>
     <div class="form-group"><label>Telefon</label><input id="f_telefon" value="${o?escapeHtml(o.telefon||''):''}"></div>
     <div class="form-group"><label>E-posta</label><input id="f_eposta" value="${o?escapeHtml(o.eposta||''):''}"></div>
     <div class="form-row">
@@ -238,7 +238,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
         <option value="kadin" ${o&&o.cinsiyet==='kadin'?'selected':''}>Kadın</option>
         <option value="erkek" ${o&&o.cinsiyet==='erkek'?'selected':''}>Erkek</option>
       </select></div>
-      <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label><select id="f_sorumluSinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=="undefined"?[...siniflar].sort((a,b)=>a.ad.localeCompare(b.ad,"tr")):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${o&&o.sorumluSinif===s.ad?"selected":""}>${escapeHtml(s.ad)}</option>`).join("")}</select></div>
+      <div class="form-group"><label>Rehberlik Sınıfı</label><select id="f_sorumluSinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=="undefined"?[...siniflar].sort((a,b)=>a.ad.localeCompare(b.ad,"tr")):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${o&&o.sorumluSinif===s.ad?"selected":""}>${escapeHtml(s.ad)}</option>`).join("")}</select></div>
     </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_notlar" rows="2">${o?escapeHtml(o.notlar||''):''}</textarea></div>
   `;
