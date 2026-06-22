@@ -222,8 +222,8 @@ function renderNobetBugunVeHafta(){
     : ozet.tatil ? `<p class="empty-state">Bugün resmi tatil${ozet.tatil.aciklama?' — '+escapeHtml(ozet.tatil.aciklama):''}.</p>`
     : (ozet.atamalar.length ? ozet.atamalar.map(a=>{
         const yer = nobetYerleri.find(y=>y.id===a.yerId);
-        return `<div class="dash-row">${escapeHtml(yer?yer.ad:'?')} — <strong>${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
-      }).join('') + (ozet.amir?`<div class="dash-row">Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${ozet.amir.telefon?' ('+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
+        return `<div class="dash-row"><span style="margin-right:6px;">🛡️</span><strong>${escapeHtml(yer?yer.ad:'?')}</strong> — ${escapeHtml(a.ogretmenAdSoyad)}</div>`;
+      }).join('') + (ozet.amir?`<div class="dash-row"><span style="margin-right:6px;">👔</span><strong>Nöbetçi Amir:</strong> ${escapeHtml(ozet.amir.ad)}${ozet.amir.telefon?' ('+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
       : '<p class="empty-state">Bugün için nöbet ataması yok.</p>');
 
   ['dashBugunNobet','nobetBugunKutu'].forEach(elId=>{
@@ -239,7 +239,7 @@ function renderNobetBugunVeHafta(){
       const icerik = o.tatil ? `<span class="badge badge-amber">Resmi Tatil</span>`
         : (o.atamalar.length ? o.atamalar.map(a=>{
             const yer = nobetYerleri.find(y=>y.id===a.yerId);
-            return `<div>${escapeHtml(yer?yer.ad:'?')}: <strong>${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+            return `<div style="margin-bottom:4px;"><span style="margin-right:4px;">🛡️</span><strong>${escapeHtml(yer?yer.ad:'?')}:</strong> ${escapeHtml(a.ogretmenAdSoyad)}</div>`;
           }).join('') : '<span style="color:var(--ink-muted);">Atama yok</span>');
       return `<div class="dash-row" style="align-items:flex-start;"><strong style="min-width:90px;display:inline-block;">${gunAdiKisa} ${formatTarih(iso)}</strong><div style="flex:1;">${icerik}</div></div>`;
     }).join('');

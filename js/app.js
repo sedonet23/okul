@@ -101,7 +101,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
       <select id="f_brans">
         <option value="">— Seçiniz —</option>
         ${bransSecenekleri(o?o.brans||'':'')}
-        ${o&&o.brans&&!branslar.find(b=>b.ad===o.brans)?`<option value="${escapeHtml(o.brans)}" selected>${escapeHtml(o.brans)}</option>`:''}
+        ${o&&o.brans&&!branslar.find(function(b){return b.ad===o.brans;})?('<option value="'+escapeHtml(o.brans)+'" selected>'+escapeHtml(o.brans)+'</option>'):''}
       </select>
     </div>
     <div class="form-row">
@@ -119,7 +119,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
       <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label>
         <select id="f_sorumluSinif">
           <option value="">— Seçiniz —</option>
-          ${sinifAdlari().map(s=>\`<option value="\${s}" \${o&&o.sorumluSinif===s?'selected':''}>\${escapeHtml(s)}</option>\`).join('')}
+          ${sinifAdlari().map(function(s){ return '<option value="'+escapeHtml(s)+'"'+(o&&o.sorumluSinif===s?' selected':'')+'>'+escapeHtml(s)+'</option>'; }).join('')}
         </select>
       </div>
     </div>
@@ -234,8 +234,8 @@ function dersModalAc(gun, saat, mevcut){
     <div class="form-group"><label>Ders</label>
       <select id="f_ders">
         <option value="">— Seçiniz —</option>
-        ${dersler.map(d=>`<option value="${d.ad}" ${mevcut&&mevcut.ders===d.ad?'selected':''}>${escapeHtml(d.ad)}</option>`).join('')}
-        ${mevcut&&mevcut.ders&&!dersler.find(d=>d.ad===mevcut.ders)?`<option value="${escapeHtml(mevcut.ders)}" selected>${escapeHtml(mevcut.ders)}</option>`:''}
+        ${dersler.map(function(d){ return '<option value="'+escapeHtml(d.ad)+'"'+(mevcut&&mevcut.ders===d.ad?' selected':'')+'>'+escapeHtml(d.ad)+'</option>'; }).join('')}
+        ${mevcut&&mevcut.ders&&!dersler.find(function(d){return d.ad===mevcut.ders;})?('<option value="'+escapeHtml(mevcut.ders)+'" selected>'+escapeHtml(mevcut.ders)+'</option>'):''}
       </select>
     </div>
     <div class="form-group"><label>Öğretmen</label><select id="f_ogretmen">${ogretmenSecenekleri(mevcut?mevcut.ogretmenId:'')}</select></div>
@@ -466,12 +466,13 @@ function renderDashboard(){
     const el = document.getElementById(id);
     if(el) el.style.display = tatilModu ? 'none' : '';
   });
-  const tatilKart = document.getElementById('dashTatilSayacKart');
-  if(tatilKart) tatilKart.style.display = tatilModu ? '' : 'none';
+  const tatilSayaciKart = document.getElementById('tatilSayaciKart');
+  if(tatilSayaciKart) tatilSayaciKart.style.display = tatilModu ? '' : 'none';
 
-  if(tatilModu){
-    const sayacEl = document.getElementById('dashTatilSayac');
-    if(sayacEl) sayacEl.innerHTML = tatilGeriSayim(okulAyarlariVerisi.okulAcilisTarihi);
+  if(tatilModu && okulAyarlariVerisi && okulAyarlariVerisi.okulAcilisTarihi){
+    tatilSayaciniBaslat();
+  } else {
+    tatilSayaciniDur();
   }
 
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
@@ -821,17 +822,88 @@ function renderOkulAyarlariFormu(){
   if(acilisRow) acilisRow.style.display = (okulAyarlariVerisi && okulAyarlariVerisi.tatilModu) ? '' : 'none';
 }
 
+/* ====== TAT İL MODU GERİ SAYIM (v4.0.1) ====== */
+let tatilSayacıInterval = null;
+
+function tatilSayaciniGuncelle(){
+  const tatilCheck = document.getElementById('tatilModuToggle');
+  const acilisInput = document.getElementById('okulAcilisTarihi');
+  
+  if(!tatilCheck || !tatilCheck.checked || !acilisInput || !acilisInput.value){
+    return;
+  }
+  
+  const simdi = new Date();
+  const acilisTarihi = new Date(acilisInput.value + 'T00:00:00');
+  
+  if(acilisTarihi <= simdi){
+    ['tatilGun','tatilSaat','tatilDakika','tatilSaniye'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.textContent = '0';
+    });
+    return;
+  }
+  
+  const fark = acilisTarihi - simdi;
+  const gunler = Math.floor(fark / (1000 * 60 * 60 * 24));
+  const saatler = Math.floor((fark % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const dakikalar = Math.floor((fark % (1000 * 60 * 60)) / (1000 * 60));
+  const saniyeler = Math.floor((fark % (1000 * 60)) / 1000);
+  
+  document.getElementById('tatilGun').textContent = gunler.toString().padStart(2, '0');
+  document.getElementById('tatilSaat').textContent = saatler.toString().padStart(2, '0');
+  document.getElementById('tatilDakika').textContent = dakikalar.toString().padStart(2, '0');
+  document.getElementById('tatilSaniye').textContent = saniyeler.toString().padStart(2, '0');
+}
+
+function tatilSayaciniBaslat(){
+  if(tatilSayacıInterval){
+    clearInterval(tatilSayacıInterval);
+  }
+  tatilSayaciniGuncelle();
+  tatilSayacıInterval = setInterval(()=>{
+    tatilSayaciniGuncelle();
+  }, 1000);
+}
+
+function tatilSayaciniDur(){
+  if(tatilSayacıInterval){
+    clearInterval(tatilSayacıInterval);
+    tatilSayacıInterval = null;
+  }
+}
+
 function tatilModuDegisti(){
   const tatilCheck = document.getElementById('tatilModuToggle');
   const acilisRow = document.getElementById('tatilAcilisRow');
-  if(acilisRow) acilisRow.style.display = tatilCheck && tatilCheck.checked ? '' : 'none';
+  const tatilSayaciKart = document.getElementById('tatilSayaciKart');
+  
+  if(!tatilCheck) return;
+  
+  const tatilModu = tatilCheck.checked;
+  if(acilisRow) acilisRow.style.display = tatilModu ? '' : 'none';
+  
+  if(tatilModu){
+    tatilSayaciniBaslat();
+    if(tatilSayaciKart) tatilSayaciKart.style.display = '';
+  } else {
+    tatilSayaciniDur();
+    if(tatilSayaciKart) tatilSayaciKart.style.display = 'none';
+  }
 }
 
 function okulAyarlariKaydet(){
   const tatilModu = !!(document.getElementById('tatilModuToggle') && document.getElementById('tatilModuToggle').checked);
   const okulAcilisTarihi = document.getElementById('okulAcilisTarihi') ? document.getElementById('okulAcilisTarihi').value : '';
   db.collection(COL.okulAyarlari).doc('ayarlar').set({ tatilModu, okulAcilisTarihi })
-    .then(()=>toast('Okul ayarları kaydedildi.'))
+    .then(()=>{
+      toast('Okul ayarları kaydedildi.');
+      if(tatilModu){
+        tatilSayaciniBaslat();
+      } else {
+        tatilSayaciniDur();
+      }
+    })
     .catch(err=>toast('Hata: '+err.message));
 }
 

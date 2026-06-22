@@ -26,12 +26,33 @@ function menuDaralt(){ document.body.classList.toggle('nav-collapsed'); }
 function menuAcKapat(){ document.body.classList.toggle('nav-open'); }
 function menuKapat(){ document.body.classList.remove('nav-open'); }
 
-/* ---------- accordion (Ayarlar > Ders Saatleri, v4.0) ---------- */
+/* ---------- accordion (Ayarlar > Ders Saatleri, v4.0.1) FIX ---------- */
 function toggleAccordion(headerEl){
   const content = headerEl.nextElementSibling;
+  if(!content) return;
+  
   const aciliyor = !headerEl.classList.contains('open');
-  headerEl.classList.toggle('open', aciliyor);
-  if(content) content.classList.toggle('open', aciliyor);
+  
+  if(aciliyor){
+    // AÇILIYOR: max-height'ı scrollHeight'ı set et
+    content.style.maxHeight = content.scrollHeight + 'px';
+    headerEl.classList.add('open');
+    content.classList.add('open');
+  } else {
+    // KAPANIYOR: max-height'ı 0 yap (CSS transition ile animate)
+    content.style.maxHeight = '0';
+    headerEl.classList.remove('open');
+    content.classList.remove('open');
+  }
+  
+  // Animasyon bitince max-height'ı temizle
+  const onTransitionEnd = ()=>{
+    if(aciliyor){
+      content.style.maxHeight = 'none';
+    }
+    content.removeEventListener('transitionend', onTransitionEnd);
+  };
+  content.addEventListener('transitionend', onTransitionEnd);
 }
 
 function uygulamadanCik(){
