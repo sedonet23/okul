@@ -257,5 +257,6 @@ function tasimaBaglantilariKur(){
   db.collection(COL.servisler).onSnapshot(s=>{
     servisler = s.docs.map(d=>({id:d.id,...d.data()}));
     renderServisler();
+    renderVeriSekmesi();
   }, hataGoster);
 }

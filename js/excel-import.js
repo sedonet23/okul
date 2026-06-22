@@ -543,3 +543,69 @@ async function servisOgrenciExceliIceAktar(file, servisId, servisAdiStr){
     toast(`Servis öğrenci listesi güncellendi: ${eklenen} öğrenci eklendi/güncellendi.`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
+
+/* ============== SINIFLAR (Veri sekmesi) ============== */
+async function siniflarExceliIceAktar(file){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+    const headerIdx = aoa.findIndex(r=>r.some(c=>['SINIF ADI','SINIF','AD'].includes(normBaslik(c))));
+    if(headerIdx === -1){ toast('Başlık satırı bulunamadı (SINIF ADI sütunu gerekli).'); return; }
+    const header = aoa[headerIdx].map(normBaslik);
+    const col = (...adlar)=>{ for(const a of adlar){ const i = header.indexOf(a); if(i!==-1) return i; } return -1; };
+    const cAd = col('SINIF ADI','SINIF','AD'); const cSeviye = col('SEVİYE','SEVIYE');
+    const cSube = col('ŞUBE','SUBE'); const cDerslik = col('DERSLİK','DERSLIK');
+    const cOgretmen = col('SINIF ÖĞRETMENİ','SINIF OGRETMENI','ÖĞRETMEN','OGRETMEN');
+
+    let eklenen=0, guncellenen=0;
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row = aoa[i]; if(!row) continue;
+      const ad = cAd!==-1 ? String(row[cAd]||'').trim() : '';
+      if(!ad) continue;
+      let sinifOgretmeniId = '';
+      if(cOgretmen!==-1 && row[cOgretmen]){
+        const adSoyad = String(row[cOgretmen]).trim();
+        const o = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
+        if(o) sinifOgretmeniId = o.id;
+      }
+      const veri = {
+        ad,
+        seviye: cSeviye!==-1 ? String(row[cSeviye]||'').trim() : '',
+        sube: cSube!==-1 ? String(row[cSube]||'').trim() : '',
+        derslik: cDerslik!==-1 ? String(row[cDerslik]||'').trim() : '',
+        sinifOgretmeniId
+      };
+      const mevcut = siniflar.find(s=>s.ad.localeCompare(ad,'tr',{sensitivity:'base'})===0);
+      if(mevcut){ await db.collection(COL.siniflar).doc(mevcut.id).update(veri); guncellenen++; }
+      else { await db.collection(COL.siniflar).add({...veri, ogrenciSayisi:0, kizSayisi:0, erkekSayisi:0, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
+    }
+    toast(`Sınıflar içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
+  }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
+}
+
+/* ============== DERS / BRANŞ LİSTESİ (Veri sekmesi) ============== */
+async function dersListesiExceliIceAktar(file){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+    const headerIdx = aoa.findIndex(r=>r.some(c=>['DERS','BRANŞ','BRANS','DERS/BRANŞ','AD'].includes(normBaslik(c))));
+    const cAd = headerIdx!==-1 ? aoa[headerIdx].map(normBaslik).findIndex(h=>['DERS','BRANŞ','BRANS','DERS/BRANŞ','AD'].includes(h)) : 0;
+    const baslangic = headerIdx!==-1 ? headerIdx+1 : 0;
+
+    let eklenen=0, atlanan=0;
+    for(let i=baslangic;i<aoa.length;i++){
+      const row = aoa[i]; if(!row) continue;
+      const ad = String(row[cAd]||'').trim();
+      if(!ad) continue;
+      if(dersListesi.some(d=>(d.ad||'').localeCompare(ad,'tr',{sensitivity:'base'})===0)){ atlanan++; continue; }
+      await db.collection(COL.dersListesi).add({ ad });
+      dersListesi.push({ ad }); // aynı dosyada tekrar geçen aynı isim ikinci kez eklenmesin
+      eklenen++;
+    }
+    toast(`Ders/Branş listesi güncellendi: ${eklenen} eklendi, ${atlanan} zaten listede olduğu için atlandı.`);
+  }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
+}
