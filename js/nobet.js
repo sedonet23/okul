@@ -235,7 +235,7 @@ function renderNobetBugunVeHafta(){
     : (ozet.atamalar.length ? ozet.atamalar.map(a=>{
         const yer = nobetYerleri.find(y=>y.id===a.yerId);
         return `<div class="dash-row">${nobetYeriIkon(yer?yer.ad:'')} ${escapeHtml(yer?yer.ad:'?')} — <strong>👤 ${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
-      }).join('') + (ozet.amir?`<div class="dash-row">👮 Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${ozet.amir.telefon?' (📞 '+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
+      }).join('') + (ozet.amir?`<div class="dash-row">👮 Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${(()=>{ const ogr=ogretmenler.find(o=>o.id===ozet.amir.ogretmenId); const tel=ogr?ogr.telefon:ozet.amir.telefon; return tel?' (📞 '+escapeHtml(tel)+')':''; })()}</div>`:'')
       : '<p class="empty-state">📭 Bugün için nöbet ataması yok.</p>');
 
   ['dashBugunNobet','nobetBugunKutu'].forEach(elId=>{

@@ -11,6 +11,7 @@ const EVRAK_DURUMLARI = ['Beklemede','İşlemde','Tamamlandı','Arşivlendi'];
 
 let ogretmenler=[], dersProgrami=[], hatirlaticilar=[], gorevler=[], evrakTakibi=[], notlar=[];
 let dersListesi=[];
+let bransListesi=[];
 let seciliSinif = '';
 let hatirlaticiFiltre = 'tumu';
 let evrakFiltre = 'tumu';
@@ -61,16 +62,19 @@ function telefonEtiketle(v, telefon){
   return v && v.yakinlik ? `${escapeHtml(v.yakinlik)}: ${escapeHtml(telefon)}` : escapeHtml(telefon);
 }
 
-/* ---------- DERS / BRANŞ ORTAK LİSTESİ ---------- */
+/* ---------- DERS LİSTESİ ---------- */
+const DERS_SELECT_YENI = '__yeni_ders_ekle__';
+const BRANS_SELECT_YENI = '__yeni_brans_ekle__';
+
 function dersListesiEkle(){
-  const ad = prompt('Yeni ders/branş adı (örn: Matematik):');
+  const ad = prompt('Yeni ders adı (örn: Matematik):');
   if(!ad || !ad.trim()) return;
-  if(dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu ders/branş zaten listede.'); return; }
+  if(dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu ders zaten listede.'); return; }
   db.collection(COL.dersListesi).add({ ad: ad.trim() })
-    .then(()=>toast('Eklendi.')).catch(err=>toast('Hata: '+err.message));
+    .then(()=>toast('Ders eklendi.')).catch(err=>toast('Hata: '+err.message));
 }
 function dersListesiSil(id){
-  if(!confirm('Bu ders/branşı listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
+  if(!confirm('Bu dersi listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
   db.collection(COL.dersListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
 }
 function renderDersListesiYonetim(){
@@ -80,10 +84,8 @@ function renderDersListesiYonetim(){
     <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;">
       <span>📚 ${escapeHtml(d.ad)}</span>
       <button class="btn btn-ghost btn-sm" onclick="dersListesiSil('${d.id}')">🗑️</button>
-    </div>`).join('') : '<p class="empty-state">Henüz ders/branş eklenmedi.</p>';
+    </div>`).join('') : '<p class="empty-state">Henüz ders eklenmedi.</p>';
 }
-/* Ders/branş seçimi için ortak <select> üretir. Listede yoksa "+ Yeni Ekle" seçeneğiyle birlikte. */
-const DERS_SELECT_YENI = '__yeni_ders_ekle__';
 function dersSelectHtml(id, seciliDeger){
   const secili = seciliDeger || '';
   const varMi = !secili || dersListesi.some(d=>d.ad===secili);
@@ -91,18 +93,59 @@ function dersSelectHtml(id, seciliDeger){
     <option value="">Seçiniz</option>
     ${dersListesi.map(d=>`<option value="${escapeHtml(d.ad)}" ${d.ad===secili?'selected':''}>${escapeHtml(d.ad)}</option>`).join('')}
     ${!varMi && secili ? `<option value="${escapeHtml(secili)}" selected>${escapeHtml(secili)} (listede yok)</option>` : ''}
-    <option value="${DERS_SELECT_YENI}">➕ Yeni Ders/Branş Ekle…</option>
+    <option value="${DERS_SELECT_YENI}">➕ Yeni Ders Ekle…</option>
   </select>`;
 }
 function dersSelectDegisti(id){
   const el = document.getElementById(id);
   if(!el || el.value !== DERS_SELECT_YENI) return;
-  const ad = prompt('Yeni ders/branş adı:');
+  const ad = prompt('Yeni ders adı:');
   if(!ad || !ad.trim()){ el.value=''; return; }
   const temizAd = ad.trim();
   db.collection(COL.dersListesi).add({ ad: temizAd }).then(()=>{
-    // onSnapshot dersListesi'ni güncelleyecek; seçili değeri korumak için select'i yeniden çiziyoruz.
     el.outerHTML = dersSelectHtml(id, temizAd);
+  }).catch(err=>toast('Hata: '+err.message));
+}
+
+/* ---------- BRANŞ LİSTESİ ---------- */
+function bransListesiEkle(){
+  const ad = prompt('Yeni branş adı (örn: Sınıf Öğretmenliği):');
+  if(!ad || !ad.trim()) return;
+  if(bransListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu branş zaten listede.'); return; }
+  db.collection(COL.bransListesi).add({ ad: ad.trim() })
+    .then(()=>toast('Branş eklendi.')).catch(err=>toast('Hata: '+err.message));
+}
+function bransListesiSil(id){
+  if(!confirm('Bu branşı listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
+  db.collection(COL.bransListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
+}
+function renderBransListesiYonetim(){
+  const hedef = document.getElementById('bransListesiYonetim');
+  if(!hedef) return;
+  hedef.innerHTML = bransListesi.length ? bransListesi.map(d=>`
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>🎓 ${escapeHtml(d.ad)}</span>
+      <button class="btn btn-ghost btn-sm" onclick="bransListesiSil('${d.id}')">🗑️</button>
+    </div>`).join('') : '<p class="empty-state">Henüz branş eklenmedi.</p>';
+}
+function bransSelectHtml(id, seciliDeger){
+  const secili = seciliDeger || '';
+  const varMi = !secili || bransListesi.some(d=>d.ad===secili);
+  return `<select id="${id}" onchange="bransSelectDegisti('${id}')">
+    <option value="">Seçiniz</option>
+    ${bransListesi.map(d=>`<option value="${escapeHtml(d.ad)}" ${d.ad===secili?'selected':''}>${escapeHtml(d.ad)}</option>`).join('')}
+    ${!varMi && secili ? `<option value="${escapeHtml(secili)}" selected>${escapeHtml(secili)} (listede yok)</option>` : ''}
+    <option value="${BRANS_SELECT_YENI}">➕ Yeni Branş Ekle…</option>
+  </select>`;
+}
+function bransSelectDegisti(id){
+  const el = document.getElementById(id);
+  if(!el || el.value !== BRANS_SELECT_YENI) return;
+  const ad = prompt('Yeni branş adı:');
+  if(!ad || !ad.trim()){ el.value=''; return; }
+  const temizAd = ad.trim();
+  db.collection(COL.bransListesi).add({ ad: temizAd }).then(()=>{
+    el.outerHTML = bransSelectHtml(id, temizAd);
   }).catch(err=>toast('Hata: '+err.message));
 }
 function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
@@ -174,17 +217,19 @@ function ogretmenModalAc(id, varsayilanUnvan){
     <div class="form-group"><label>Ad</label><input id="f_ad" value="${o?escapeHtml(o.ad):''}"></div>
     <div class="form-group"><label>Soyad</label><input id="f_soyad" value="${o?escapeHtml(o.soyad):''}"></div>
     <div class="form-group"><label>Ünvan</label>
-      <input id="f_unvan" list="unvanListesi" value="${o?escapeHtml(o.unvan||''):(varsayilanUnvan?escapeHtml(varsayilanUnvan):'')}" placeholder="örn: Öğretmen">
-      <datalist id="unvanListesi">${OGRETMEN_UNVANLARI.map(u=>`<option value="${u}">`).join('')}</datalist>
+      <select id="f_unvan">
+        ${OGRETMEN_UNVANLARI.map(u=>`<option value="${u}" ${(o&&o.unvan===u)||(varsayilanUnvan&&varsayilanUnvan===u)?'selected':''}>${u}</option>`).join('')}
+      </select>
     </div>
     <div class="form-group"><label>Kariyer Basamağı</label>
       <select id="f_kariyerBasamagi">${OGRETMEN_KARIYER_BASAMAKLARI.map(k=>`<option value="${k}" ${o&&o.kariyerBasamagi===k?'selected':''}>${k}</option>`).join('')}</select>
     </div>
-    <div class="form-group"><label>Branş</label>${dersSelectHtml('f_brans', o?o.brans||'':'')}</div>
+    <div class="form-group"><label>Branş</label>${bransSelectHtml('f_brans', o?o.brans||'':'')}</div>
     <div class="form-row">
       <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
       <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3,4].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
     </div>
+    <div class="form-group"><label>TC Kimlik No</label><input id="f_tcNo" value="${o?escapeHtml(o.tcNo||''): ''}" placeholder="00000000000" maxlength="11" inputmode="numeric"></div>
     <div class="form-group"><label>Telefon</label><input id="f_telefon" value="${o?escapeHtml(o.telefon||''):''}"></div>
     <div class="form-group"><label>E-posta</label><input id="f_eposta" value="${o?escapeHtml(o.eposta||''):''}"></div>
     <div class="form-row">
@@ -210,6 +255,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
       brans: document.getElementById('f_brans').value.trim(),
       derece: dereceVal ? parseInt(dereceVal) : null,
       kademe: kademeVal ? parseInt(kademeVal) : null,
+      tcNo: document.getElementById('f_tcNo').value.trim(),
       telefon: document.getElementById('f_telefon').value.trim(),
       eposta: document.getElementById('f_eposta').value.trim(),
       cinsiyet: document.getElementById('f_cinsiyet').value,
@@ -523,7 +569,7 @@ function renderDashboard(){
     <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('evrak')"><div class="stat-chip-num">📄 ${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
   `;
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
-  document.getElementById('dashBugunDersler').innerHTML = !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
+  document.getElementById('dashBugunDersler').innerHTML = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu) ? '<p class="empty-state">🏖️ Tatil modu aktif.</p>' : !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
     (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--text-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
 
   /* "Bugün Nöbetçi Öğretmenler" kartı artık js/nobet.js > renderNobetBugunVeHafta() tarafından dolduruluyor. */
@@ -721,6 +767,10 @@ function baglantilariKur(){
   db.collection(COL.dersListesi).onSnapshot(s=>{
     dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
     renderDersListesiYonetim();
+  }, hataGoster);
+  db.collection(COL.bransListesi).onSnapshot(s=>{
+    bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+    renderBransListesiYonetim();
   }, hataGoster);
 }
 
