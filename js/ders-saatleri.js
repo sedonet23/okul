@@ -165,13 +165,11 @@ function renderDersSaatleriForm(){
         <input type="checkbox" id="dsr_tatilModu" ${ayar.tatilModu?'checked':''} onchange="document.getElementById('dsr_tatilModuNotWrap').style.display=this.checked?'block':'none';" style="width:18px;height:18px;">
         🏖️ Tatil Modu (yaz tatili vb. — ana sayfadaki ders sayacını devre dışı bırakır)
       </label>
-      <div id="dsr_tatilModuNotWrap" style="margin-top:8px;display:${ayar.tatilModu?'block':'none'};">
+      <div id="dsr_tatilModuNotWrap" style="margin-top:10px;display:${ayar.tatilModu?'block':'none'};">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Okulun açılacağı tarih (sayaç için)</label>
+        <input type="date" id="dsr_okulAcilisTarihi" value="${escapeHtml(ayar.okulAcilisTarihi||'')" style="margin-bottom:10px;">
         <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Not (opsiyonel)</label>
-        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')}" placeholder="Okullar ... tarihinde açılıyor" style="margin-bottom:8px;">
-        <input type="date" id="dsr_okulAcilisTarihi" value="${escapeHtml(ayar.okulAcilisTarihi||'')}">
-      </div>
-        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Not (opsiyonel, örn: "Okullar 8 Eylül'de açılıyor")</label>
-        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')}" placeholder="Okullar ... tarihinde açılıyor">
+        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')" placeholder="örn: Okullar 14 Eylül'de açılıyor">
       </div>
     </div>
 
