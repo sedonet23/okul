@@ -46,7 +46,7 @@ function sinavModalAc(id){
   const body = `
     <div class="form-row">
       <div class="form-group"><label>Sınıf</label><input id="f_snSinif" value="${s?escapeHtml(s.sinif||''):''}" placeholder="örn: 7-A"></div>
-      <div class="form-group"><label>Ders</label><input id="f_snDers" value="${s?escapeHtml(s.ders||''):''}" placeholder="örn: Matematik"></div>
+      <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
     </div>
     <div class="form-group"><label>Öğretmen</label><select id="f_snOgretmen">${ogretmenSecenekleri(s?s.ogretmenId:'')}</select></div>
     <div class="form-row">

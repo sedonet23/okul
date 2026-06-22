@@ -127,24 +127,24 @@ function sinifDetayBilgiRender(s){
 
   document.getElementById('sinifDetayBilgi').innerHTML = `
     <div class="detay-card">
-      <h4>Temel Bilgiler</h4>
-      <div class="detay-row">Sınıf Öğretmeni: <strong>${escapeHtml(sinifOgretmeniAdi(s))}</strong></div>
-      <div class="detay-row">Derslik: ${escapeHtml(s.derslik||'—')}</div>
+      <h4>📋 Temel Bilgiler</h4>
+      <div class="detay-row">👩‍🏫 Sınıf Öğretmeni: <strong>${escapeHtml(sinifOgretmeniAdi(s))}</strong></div>
+      <div class="detay-row">🏫 Derslik: ${escapeHtml(s.derslik||'—')}</div>
       <div class="detay-row">
         Öğrenci: <strong>${toplamOgrenci}</strong> &nbsp;·&nbsp;
         Kız: <strong style="color:#c0392b;">${gercekKiz}</strong> &nbsp;·&nbsp;
         Erkek: <strong style="color:#2980b9;">${gercekErkek}</strong>
         ${toplamOgrenci !== (s.ogrenciSayisi||0) ? `<span style="font-size:12px;color:var(--ink-muted);"> (kayıt: ${s.ogrenciSayisi||0})</span>` : ''}
       </div>
-      ${s.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(s.notlar)}</div>`:''}
+      ${s.notlar?`<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>`:''}
     </div>
     <div class="detay-card">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;">
-        Öğrenci Listesi (${toplamOgrenci})
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
-          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
-        </div>
+      <h4 class="detay-card-header">
+        <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${toplamOgrenci})</span>
+        <span class="detay-card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
+        </span>
       </h4>
       ${ogrenciler.length ? ogrenciler.sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr')).map(v=>`
         <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
@@ -177,7 +177,7 @@ function sinifDetayOgrenciRender(s){
     .sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
 
   const html = ogrenciler.length ? ogrenciler.map(v=>{
-    const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).join(' · ');
+    const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).map(t=>telefonEtiketle(v,t)).join(' · ');
     return `
     <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
       <span>
@@ -186,7 +186,7 @@ function sinifDetayOgrenciRender(s){
         ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
         ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
         <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}${v.yakinlik?' ('+escapeHtml(v.yakinlik)+')':''}</span>
-        ${telefonlar?`<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>`:''}
+        ${telefonlar?`<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${telefonlar}</span>`:''}
       </span>
       <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
     </div>`;
@@ -194,12 +194,12 @@ function sinifDetayOgrenciRender(s){
 
   document.getElementById('sinifDetayOgrenci').innerHTML = `
     <div class="detay-card">
-      <h4 style="display:flex;justify-content:space-between;align-items:center;">
-        Öğrenci Listesi (${ogrenciler.length})
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">⬆ Excel'den Ekle</button>
-          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">+ Öğrenci Ekle</button>
-        </div>
+      <h4 class="detay-card-header">
+        <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${ogrenciler.length})</span>
+        <span class="detay-card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
+        </span>
       </h4>
       ${html}
     </div>
@@ -314,9 +314,9 @@ function ogrenciDetayModalAc(id){
       <div style="font-weight:600;">${escapeHtml(v.veliAdi||'—')} ${v.yakinlik?`<span class="badge badge-gray">${escapeHtml(v.yakinlik)}</span>`:''}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div><div style="font-size:13px;">${escapeHtml(v.telefon1||v.telefon||'—')}</div></div>
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div><div style="font-size:13px;">${escapeHtml(v.telefon2||'—')}</div></div>
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div><div style="font-size:13px;">${escapeHtml(v.telefon3||'—')}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 1</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon1||v.telefon)||'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 2</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon2)||'—'}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">İletişim 3</div><div style="font-size:13px;">${telefonEtiketle(v, v.telefon3)||'—'}</div></div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <div style="margin-bottom:8px;">
@@ -329,7 +329,7 @@ function ogrenciDetayModalAc(id){
     </div>
     ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">
-      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">✎ Düzenle</button>
+      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">📝 Düzenle</button>
     </div>
   `;
 
