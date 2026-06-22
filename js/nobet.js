@@ -30,7 +30,7 @@ function nobetHaftaAraligi(tarihISO){
   const gun = d.getDay() || 7; // Pazartesi=1 ... Pazar=7
   const pazartesi = new Date(d); pazartesi.setDate(d.getDate()-gun+1);
   const gunler = [];
-  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(x.toISOString().slice(0,10)); }
+  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(nobetTarihISO(x.getFullYear(), x.getMonth(), x.getDate())); }
   return gunler;
 }
 
@@ -142,13 +142,13 @@ function nobetAmirModalAc(tarihISO){
         </select>
       ` : '<p class="empty-state">Henüz Müdür Yardımcısı tanımlanmadı. Öğretmenler sekmesinde (veya Okul Bilgileri sekmesinde "+ Yeni Müdür Yardımcısı" ile) ünvanı "Müdür Yardımcısı" olan bir kayıt ekleyin.</p>'}
     </div>
-    <div class="form-group"><label>Telefon</label><input id="f_amirTel" value="${mevcut?escapeHtml(mevcut.telefon||''):''}" disabled></div>
+    <div class="form-group"><label>Telefon (değiştirilebilir)</label><input id="f_amirTel" value="${mevcut?escapeHtml(mevcut.telefon||''): ''}" placeholder="05xx xxx xx xx"></div>
   `;
   modalAc(mevcut?'Nöbetçi Amiri Düzenle':'Nöbetçi Amir Ata', body, ()=>{
     const sel = document.getElementById('f_amirId');
     if(!sel || !sel.value){ toast('Nöbetçi amir seçimi zorunludur.'); return; }
     const secili = sel.selectedOptions[0];
-    const veri = { tarih: tarihISO, ad: secili.dataset.ad, telefon: secili.dataset.tel||'', ogretmenId: sel.value };
+    const veri = { tarih: tarihISO, ad: secili.dataset.ad, telefon: (document.getElementById('f_amirTel')||{value:''}).value.trim()||secili.dataset.tel||'', ogretmenId: sel.value };
     const islem = mevcut ? db.collection(COL.nobetciAmirleri).doc(mevcut.id).update(veri)
                           : db.collection(COL.nobetciAmirleri).add(veri);
     islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
@@ -215,16 +215,28 @@ function nobetGununOzeti(iso){
   const haftasonu = nobetHaftasonuMu(...iso.split('-').map((v,i)=>i===1?parseInt(v)-1:parseInt(v)));
   return { atamalar, amir, tatil, haftasonu };
 }
+/* Nöbet yeri adına göre uygun bir emoji seçer (görsel zenginlik). */
+function nobetYeriIkon(ad){
+  const a = (ad||'').toLocaleLowerCase('tr');
+  if(a.includes('bahçe')||a.includes('bahce')) return '🌳';
+  if(a.includes('kapı')||a.includes('kapi')||a.includes('giriş')||a.includes('giris')) return '🚪';
+  if(a.includes('kantin')||a.includes('yemekhane')) return '🍽️';
+  if(a.includes('koridor')) return '🚶';
+  if(a.includes('merdiven')) return '🪜';
+  if(a.includes('servis')||a.includes('otopark')) return '🚌';
+  if(a.includes('tuvalet')) return '🚻';
+  return '📍';
+}
 function renderNobetBugunVeHafta(){
   const bugunISO = todayISO();
   const ozet = nobetGununOzeti(bugunISO);
-  const bugunHTML = ozet.haftasonu ? '<p class="empty-state">Bugün hafta sonu.</p>'
-    : ozet.tatil ? `<p class="empty-state">Bugün resmi tatil${ozet.tatil.aciklama?' — '+escapeHtml(ozet.tatil.aciklama):''}.</p>`
+  const bugunHTML = ozet.haftasonu ? '<p class="empty-state">🌤️ Bugün hafta sonu.</p>'
+    : ozet.tatil ? `<p class="empty-state">🎉 Bugün resmi tatil${ozet.tatil.aciklama?' — '+escapeHtml(ozet.tatil.aciklama):''}.</p>`
     : (ozet.atamalar.length ? ozet.atamalar.map(a=>{
         const yer = nobetYerleri.find(y=>y.id===a.yerId);
-        return `<div class="dash-row"><span style="margin-right:6px;">🛡️</span><strong>${escapeHtml(yer?yer.ad:'?')}</strong> — ${escapeHtml(a.ogretmenAdSoyad)}</div>`;
-      }).join('') + (ozet.amir?`<div class="dash-row"><span style="margin-right:6px;">👔</span><strong>Nöbetçi Amir:</strong> ${escapeHtml(ozet.amir.ad)}${ozet.amir.telefon?' ('+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
-      : '<p class="empty-state">Bugün için nöbet ataması yok.</p>');
+        return `<div class="dash-row">${nobetYeriIkon(yer?yer.ad:'')} ${escapeHtml(yer?yer.ad:'?')} — <strong>👤 ${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+      }).join('') + (ozet.amir?`<div class="dash-row">👮 Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${ozet.amir.telefon?' (📞 '+escapeHtml(ozet.amir.telefon)+')':''}</div>`:'')
+      : '<p class="empty-state">📭 Bugün için nöbet ataması yok.</p>');
 
   ['dashBugunNobet','nobetBugunKutu'].forEach(elId=>{
     const el = document.getElementById(elId); if(el) el.innerHTML = bugunHTML;
@@ -236,11 +248,11 @@ function renderNobetBugunVeHafta(){
     haftaKutu.innerHTML = gunler.map(iso=>{
       const o = nobetGununOzeti(iso);
       const gunAdiKisa = GUNADI[new Date(iso+'T00:00:00').getDay()];
-      const icerik = o.tatil ? `<span class="badge badge-amber">Resmi Tatil</span>`
+      const icerik = o.tatil ? `<span class="badge badge-amber">🎉 Resmi Tatil</span>`
         : (o.atamalar.length ? o.atamalar.map(a=>{
             const yer = nobetYerleri.find(y=>y.id===a.yerId);
-            return `<div style="margin-bottom:4px;"><span style="margin-right:4px;">🛡️</span><strong>${escapeHtml(yer?yer.ad:'?')}:</strong> ${escapeHtml(a.ogretmenAdSoyad)}</div>`;
-          }).join('') : '<span style="color:var(--ink-muted);">Atama yok</span>');
+            return `<div>${nobetYeriIkon(yer?yer.ad:'')} ${escapeHtml(yer?yer.ad:'?')}: <strong>👤 ${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+          }).join('') : '<span style="color:var(--ink-muted);">📭 Atama yok</span>');
       return `<div class="dash-row" style="align-items:flex-start;"><strong style="min-width:90px;display:inline-block;">${gunAdiKisa} ${formatTarih(iso)}</strong><div style="flex:1;">${icerik}</div></div>`;
     }).join('');
   }
@@ -293,7 +305,7 @@ function excelTarihHucresiISO(deger){
   return null;
 }
 
-/* "ASLIHAN YAPAR (BAHÇE-GİRİŞ K.)" -> "ASLIHAN YAPAR" */
+/* "(BAHÇE-GİRİŞ K.)" */
 function excelAdiSadelestir(metin){
   return String(metin||'').replace(/\(.*?\)/g,'').trim();
 }

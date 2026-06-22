@@ -50,7 +50,7 @@ function dersSaatleriSegmentleri(){
   const segs = (ayar.donemler||[]).map(d=>({
     tip:'ders', saat:d.saat, bas:saatToDakika(d.baslangic), bit:saatToDakika(d.bitis), etiket:`${d.saat}. Ders`
   }));
-  if(ayar.ogleArasi && ayar.ogleArasi.baslangic && ayar.ogleArasi.bitis){
+  if(ayar.ogleArasiVarMi!==false && ayar.ogleArasi && ayar.ogleArasi.baslangic && ayar.ogleArasi.bitis){
     segs.push({ tip:'ogle', bas:saatToDakika(ayar.ogleArasi.baslangic), bit:saatToDakika(ayar.ogleArasi.bitis), etiket:'Öğle Arası' });
   }
   segs.sort((a,b)=>a.bas-b.bas);
@@ -79,7 +79,8 @@ function suankiDersDurumu(){
       return { durum: s.tip==='ogle'?'ogle':'ders', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bit-simdiDk };
     }
     if(simdiDk < s.bas){
-      return { durum:'teneffus', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bas-simdiDk };
+      const ilkDersmi = i===0;
+      return { durum: ilkDersmi?'baslamadi':'teneffus', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bas-simdiDk };
     }
   }
   return { durum:'bitti' };
@@ -112,7 +113,7 @@ function renderDersSaatleriForm(){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Öğle Arası (dk)</label>
-          <input type="number" id="dsr_autoOgle" value="50" min="30" max="90" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;" onchange="otomatikDersSaatleriniHesapla()">
+          <input type="number" id="dsr_autoOgle" value="50" min="0" max="90" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;" onchange="otomatikDersSaatleriniHesapla()">
         </div>
         <div>
           <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Öğle Sonrası</label>
@@ -143,14 +144,34 @@ function renderDersSaatleriForm(){
 
     <!-- ÖĞLE ARASI -->
     <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-bottom:14px;background:var(--bg-app-soft);">
-      <div style="font-weight:600;margin-bottom:8px;color:var(--ink);font-size:13px;">🍽️ Öğle Arası</div>
-      <div style="display:grid;grid-template-columns:1fr 0.8fr 0.2fr 0.8fr;gap:6px;align-items:flex-end;">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);font-size:13px;cursor:pointer;margin-bottom:${ayar.ogleArasiVarMi!==false?'10px':'0'};">
+        <input type="checkbox" id="dsr_ogleArasiVarMi" ${ayar.ogleArasiVarMi!==false?'checked':''} onchange="document.getElementById('dsr_ogleArasiAlanlari').style.display=this.checked?'grid':'none'; document.getElementById('dsr_ogleArasiBaslik').style.marginBottom=this.checked?'10px':'0';" style="width:18px;height:18px;">
+        <span id="dsr_ogleArasiBaslik">🍽️ Öğle Arası Var</span>
+      </label>
+      <div id="dsr_ogleArasiAlanlari" style="display:${ayar.ogleArasiVarMi!==false?'grid':'none'};grid-template-columns:1fr 0.8fr 0.2fr 0.8fr;gap:6px;align-items:flex-end;">
         <select id="dsr_ogleSonrasi" style="padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;">
           ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${ayar.ogleArasi.sonrakiDers===n?'selected':''}>${n}. ders</option>`).join('')}
         </select>
         <input type="time" id="dsr_ogleBas" value="${ayar.ogleArasi.baslangic}" style="padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;">
         <div style="text-align:center;color:var(--ink-muted);">–</div>
         <input type="time" id="dsr_ogleBit" value="${ayar.ogleArasi.bitis}" style="padding:6px;border:1px solid var(--border);border-radius:4px;background:var(--bg-card);font-size:12px;">
+      </div>
+      <p style="color:var(--ink-muted);font-size:11.5px;margin-top:6px;${ayar.ogleArasiVarMi!==false?'display:none;':''}" id="dsr_ogleArasiYokNotu">Öğle arası kapalı — ana sayfada hiçbir zaman "Öğle Arası" gösterilmeyecek, o saatler normal teneffüs gibi sayılacak.</p>
+    </div>
+
+    <!-- TATİL MODU -->
+    <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-bottom:14px;background:var(--bg-app-soft);">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="dsr_tatilModu" ${ayar.tatilModu?'checked':''} onchange="document.getElementById('dsr_tatilModuNotWrap').style.display=this.checked?'block':'none';" style="width:18px;height:18px;">
+        🏖️ Tatil Modu (yaz tatili vb. — ana sayfadaki ders sayacını devre dışı bırakır)
+      </label>
+      <div id="dsr_tatilModuNotWrap" style="margin-top:8px;display:${ayar.tatilModu?'block':'none'};">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Not (opsiyonel)</label>
+        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')}" placeholder="Okullar ... tarihinde açılıyor" style="margin-bottom:8px;">
+        <input type="date" id="dsr_okulAcilisTarihi" value="${escapeHtml(ayar.okulAcilisTarihi||'')}">
+      </div>
+        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Not (opsiyonel, örn: "Okullar 8 Eylül'de açılıyor")</label>
+        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')}" placeholder="Okullar ... tarihinde açılıyor">
       </div>
     </div>
 
@@ -168,7 +189,8 @@ function otomatikDersSaatleriniHesapla(){
   const baslama = document.getElementById('dsr_autoBaslama').value;
   const dersSure = parseInt(document.getElementById('dsr_autoSure').value) || 40;
   const teneffus = parseInt(document.getElementById('dsr_autoTeneffus').value) || 10;
-  const ogle = parseInt(document.getElementById('dsr_autoOgle').value) || 50;
+  const ogleRaw = document.getElementById('dsr_autoOgle').value;
+  const ogle = ogleRaw === '' ? 50 : (parseInt(ogleRaw) || 0);
   const ogleSonrasi = parseInt(document.getElementById('dsr_autoOgleSonrasi').value) || 4;
   
   if(!baslama) return;
@@ -202,12 +224,16 @@ function dersSaatleriKaydet(){
     baslangic: document.getElementById('dsr_bas_'+n).value || '00:00',
     bitis: document.getElementById('dsr_bit_'+n).value || '00:00'
   }));
+  const ogleArasiVarMi = !!document.getElementById('dsr_ogleArasiVarMi').checked;
   const ogleArasi = {
     sonrakiDers: parseInt(document.getElementById('dsr_ogleSonrasi').value),
     baslangic: document.getElementById('dsr_ogleBas').value || '',
     bitis: document.getElementById('dsr_ogleBit').value || ''
   };
-  db.collection(COL.dersSaatleri).doc('ayarlar').set({ donemler, ogleArasi })
+  const tatilModu = !!document.getElementById('dsr_tatilModu').checked;
+  const tatilModuNotu = (document.getElementById('dsr_tatilModuNot').value||'').trim();
+  const okulAcilisTarihi = (document.getElementById('dsr_okulAcilisTarihi')?document.getElementById('dsr_okulAcilisTarihi').value||'':'');
+  db.collection(COL.dersSaatleri).doc('ayarlar').set({ donemler, ogleArasi, ogleArasiVarMi, tatilModu, tatilModuNotu, okulAcilisTarihi })
     .then(()=>toast('Ders saatleri kaydedildi.'))
     .catch(err=>toast('Hata: '+err.message));
 }

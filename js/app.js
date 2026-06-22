@@ -10,19 +10,102 @@ const EVRAK_TURLERI = ['Gelen Evrak','Giden Evrak','İç Yazışma','Tutanak','D
 const EVRAK_DURUMLARI = ['Beklemede','İşlemde','Tamamlandı','Arşivlendi'];
 
 let ogretmenler=[], dersProgrami=[], hatirlaticilar=[], gorevler=[], evrakTakibi=[], notlar=[];
-let dersler=[], branslar=[];
-let okulAyarlariVerisi = null; // {tatilModu, okulAcilisTarihi}
+let dersListesi=[];
 let seciliSinif = '';
 let hatirlaticiFiltre = 'tumu';
 let evrakFiltre = 'tumu';
 let baglantilarKuruldu = false;
 
 /* ---------- yardımcılar ---------- */
+/* ============== VERİ SEKMESİ (merkezi Excel içe aktarma) ============== */
+function renderVeriSekmesi(){
+  const sinifSel = document.getElementById('veriSinifSecimi');
+  if(sinifSel){
+    const onceki = sinifSel.value;
+    sinifSel.innerHTML = '<option value="">Sınıf seçiniz…</option>' + siniflar
+      .sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+      .map(s=>`<option value="${s.id}">${escapeHtml(s.ad)}</option>`).join('');
+    if(onceki) sinifSel.value = onceki;
+  }
+  const servisSel = document.getElementById('veriServisSecimi');
+  if(servisSel){
+    const onceki = servisSel.value;
+    servisSel.innerHTML = '<option value="">Servis seçiniz…</option>' + servisler
+      .sort((a,b)=>(a.guzergah||'').localeCompare(b.guzergah||'','tr'))
+      .map(s=>`<option value="${s.id}" data-ad="${escapeHtml(s.guzergah||'')}">${escapeHtml(s.guzergah||'—')}</option>`).join('');
+    if(onceki) servisSel.value = onceki;
+  }
+}
+function veriOgrenciExcelYukle(input){
+  const sinifId = document.getElementById('veriSinifSecimi').value;
+  if(!sinifId){ toast('Önce sınıf seçin.'); input.value=''; return; }
+  if(input.files[0]) ogrenciVeliExceliIceAktar(input.files[0], sinifId);
+  input.value='';
+}
+function veriServisOgrenciExcelYukle(input){
+  const sel = document.getElementById('veriServisSecimi');
+  const servisId = sel.value;
+  if(!servisId){ toast('Önce servis seçin.'); input.value=''; return; }
+  const servisAdi = sel.selectedOptions[0]?.dataset.ad || '';
+  if(input.files[0]) servisOgrenciExceliIceAktar(input.files[0], servisId, servisAdi);
+  input.value='';
+}
+
 function escapeHtml(str){
   if(str===null||str===undefined) return '';
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function todayISO(){ return new Date().toISOString().slice(0,10); }
+/* Bir telefon numarasını, varsa velinin yakınlık derecesiyle ("Anne: 0532...") birlikte biçimlendirir. */
+function telefonEtiketle(v, telefon){
+  if(!telefon) return '';
+  return v && v.yakinlik ? `${escapeHtml(v.yakinlik)}: ${escapeHtml(telefon)}` : escapeHtml(telefon);
+}
+
+/* ---------- DERS / BRANŞ ORTAK LİSTESİ ---------- */
+function dersListesiEkle(){
+  const ad = prompt('Yeni ders/branş adı (örn: Matematik):');
+  if(!ad || !ad.trim()) return;
+  if(dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu ders/branş zaten listede.'); return; }
+  db.collection(COL.dersListesi).add({ ad: ad.trim() })
+    .then(()=>toast('Eklendi.')).catch(err=>toast('Hata: '+err.message));
+}
+function dersListesiSil(id){
+  if(!confirm('Bu ders/branşı listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
+  db.collection(COL.dersListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
+}
+function renderDersListesiYonetim(){
+  const hedef = document.getElementById('dersListesiYonetim');
+  if(!hedef) return;
+  hedef.innerHTML = dersListesi.length ? dersListesi.map(d=>`
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>📚 ${escapeHtml(d.ad)}</span>
+      <button class="btn btn-ghost btn-sm" onclick="dersListesiSil('${d.id}')">🗑️</button>
+    </div>`).join('') : '<p class="empty-state">Henüz ders/branş eklenmedi.</p>';
+}
+/* Ders/branş seçimi için ortak <select> üretir. Listede yoksa "+ Yeni Ekle" seçeneğiyle birlikte. */
+const DERS_SELECT_YENI = '__yeni_ders_ekle__';
+function dersSelectHtml(id, seciliDeger){
+  const secili = seciliDeger || '';
+  const varMi = !secili || dersListesi.some(d=>d.ad===secili);
+  return `<select id="${id}" onchange="dersSelectDegisti('${id}')">
+    <option value="">Seçiniz</option>
+    ${dersListesi.map(d=>`<option value="${escapeHtml(d.ad)}" ${d.ad===secili?'selected':''}>${escapeHtml(d.ad)}</option>`).join('')}
+    ${!varMi && secili ? `<option value="${escapeHtml(secili)}" selected>${escapeHtml(secili)} (listede yok)</option>` : ''}
+    <option value="${DERS_SELECT_YENI}">➕ Yeni Ders/Branş Ekle…</option>
+  </select>`;
+}
+function dersSelectDegisti(id){
+  const el = document.getElementById(id);
+  if(!el || el.value !== DERS_SELECT_YENI) return;
+  const ad = prompt('Yeni ders/branş adı:');
+  if(!ad || !ad.trim()){ el.value=''; return; }
+  const temizAd = ad.trim();
+  db.collection(COL.dersListesi).add({ ad: temizAd }).then(()=>{
+    // onSnapshot dersListesi'ni güncelleyecek; seçili değeri korumak için select'i yeniden çiziyoruz.
+    el.outerHTML = dersSelectHtml(id, temizAd);
+  }).catch(err=>toast('Hata: '+err.message));
+}
+function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function formatTarih(iso){ if(!iso) return ''; const p = iso.split('-'); return p.length===3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; }
 function bugunMetni(){ const d=new Date(); return `${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}, ${GUNADI[d.getDay()]}`; }
 function oncelikRengi(o){ if(o==='Yüksek') return 'brick'; if(o==='Orta') return 'amber'; return 'sage'; }
@@ -97,13 +180,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
     <div class="form-group"><label>Kariyer Basamağı</label>
       <select id="f_kariyerBasamagi">${OGRETMEN_KARIYER_BASAMAKLARI.map(k=>`<option value="${k}" ${o&&o.kariyerBasamagi===k?'selected':''}>${k}</option>`).join('')}</select>
     </div>
-    <div class="form-group"><label>Branş</label>
-      <select id="f_brans">
-        <option value="">— Seçiniz —</option>
-        ${bransSecenekleri(o?o.brans||'':'')}
-        ${o&&o.brans&&!branslar.find(function(b){return b.ad===o.brans;})?('<option value="'+escapeHtml(o.brans)+'" selected>'+escapeHtml(o.brans)+'</option>'):''}
-      </select>
-    </div>
+    <div class="form-group"><label>Branş</label>${dersSelectHtml('f_brans', o?o.brans||'':'')}</div>
     <div class="form-row">
       <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
       <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3,4].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
@@ -116,12 +193,7 @@ function ogretmenModalAc(id, varsayilanUnvan){
         <option value="kadin" ${o&&o.cinsiyet==='kadin'?'selected':''}>Kadın</option>
         <option value="erkek" ${o&&o.cinsiyet==='erkek'?'selected':''}>Erkek</option>
       </select></div>
-      <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label>
-        <select id="f_sorumluSinif">
-          <option value="">— Seçiniz —</option>
-          ${sinifAdlari().map(function(s){ return '<option value="'+escapeHtml(s)+'"'+(o&&o.sorumluSinif===s?' selected':'')+'>'+escapeHtml(s)+'</option>'; }).join('')}
-        </select>
-      </div>
+      <div class="form-group"><label>Sorumlu Sınıf (opsiyonel)</label><select id="f_sorumluSinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=="undefined"?[...siniflar].sort((a,b)=>a.ad.localeCompare(b.ad,"tr")):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${o&&o.sorumluSinif===s.ad?"selected":""}>${escapeHtml(s.ad)}</option>`).join("")}</select></div>
     </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_notlar" rows="2">${o?escapeHtml(o.notlar||''):''}</textarea></div>
   `;
@@ -231,13 +303,7 @@ function dersModalAc(gun, saat, mevcut){
     <div class="form-group"><label>Sınıf</label><input id="f_sinif" value="${escapeHtml(mevcut?mevcut.sinif:(seciliSinif||''))}" placeholder="örn: 5-A"></div>
     <div class="form-group"><label>Gün</label><select id="f_gun">${GUNLER.map(g=>`<option ${g===gun?'selected':''}>${g}</option>`).join('')}</select></div>
     <div class="form-group"><label>Ders Saati</label><select id="f_saat">${[1,2,3,4,5,6,7].map(s=>`<option ${s===saat?'selected':''}>${s}</option>`).join('')}</select></div>
-    <div class="form-group"><label>Ders</label>
-      <select id="f_ders">
-        <option value="">— Seçiniz —</option>
-        ${dersler.map(function(d){ return '<option value="'+escapeHtml(d.ad)+'"'+(mevcut&&mevcut.ders===d.ad?' selected':'')+'>'+escapeHtml(d.ad)+'</option>'; }).join('')}
-        ${mevcut&&mevcut.ders&&!dersler.find(function(d){return d.ad===mevcut.ders;})?('<option value="'+escapeHtml(mevcut.ders)+'" selected>'+escapeHtml(mevcut.ders)+'</option>'):''}
-      </select>
-    </div>
+    <div class="form-group"><label>Ders</label>${dersSelectHtml('f_ders', mevcut?mevcut.ders:'')}</div>
     <div class="form-group"><label>Öğretmen</label><select id="f_ogretmen">${ogretmenSecenekleri(mevcut?mevcut.ogretmenId:'')}</select></div>
   `;
   modalAc(mevcut?'Ders Düzenle':'Ders Ekle', body, ()=>{
@@ -441,59 +507,24 @@ function notlarModalAc(id){
 }
 
 /* ============== GENEL BAKIŞ (DASHBOARD) ============== */
-function tatilGeriSayim(acilisTarihi){
-  if(!acilisTarihi) return '';
-  const bugun = new Date(); bugun.setHours(0,0,0,0);
-  const acilis = new Date(acilisTarihi); acilis.setHours(0,0,0,0);
-  const farkMs = acilis - bugun;
-  if(farkMs <= 0) return '<p style="color:var(--sage-deep);font-weight:600;">🎉 Okul açıldı!</p>';
-  const gun = Math.ceil(farkMs / (1000*60*60*24));
-  return `<div style="text-align:center;padding:20px 0;">
-    <div style="font-size:13px;color:var(--ink-muted);margin-bottom:8px;">Okulun açılmasına</div>
-    <div style="font-size:52px;font-weight:800;color:var(--accent);line-height:1;">${gun}</div>
-    <div style="font-size:15px;font-weight:600;color:var(--ink);margin-top:6px;">gün kaldı</div>
-    <div style="font-size:12px;color:var(--ink-muted);margin-top:4px;">Açılış: ${formatTarih(acilisTarihi)}</div>
-  </div>`;
-}
-
 function renderDashboard(){
   document.getElementById('panelTarih').textContent = bugunMetni();
   const bugunGun = GUNADI[new Date().getDay()];
-  const tatilModu = okulAyarlariVerisi && okulAyarlariVerisi.tatilModu;
-
-  /* ---- Tatil modu: okul tatildeyken bazı widget'lar gizlenir ---- */
-  ['dashBugunNobetKart','dashHaftaNobetKart','dashSuankiDersKart','dashBugunDerslerKart','zilWidgetKart'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.style.display = tatilModu ? 'none' : '';
-  });
-  const tatilSayaciKart = document.getElementById('tatilSayaciKart');
-  if(tatilSayaciKart) tatilSayaciKart.style.display = tatilModu ? '' : 'none';
-
-  if(tatilModu && okulAyarlariVerisi && okulAyarlariVerisi.okulAcilisTarihi){
-    tatilSayaciniBaslat();
-  } else {
-    tatilSayaciniDur();
-  }
-
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
   const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
   document.getElementById('dashStats').innerHTML = `
-    <div class="stat-chip"><div class="stat-chip-num">${ogretmenler.length}</div><div class="stat-chip-label">Öğretmen</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${siniflar.length}</div><div class="stat-chip-label">Sınıf</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${toplamOgrenci}</div><div class="stat-chip-label">Öğrenci</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${kadinOgretmen} / ${erkekOgretmen}</div><div class="stat-chip-label">Kadın / Erkek Öğretmen</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-chip-label">Açık Görev</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Hatırlatıcı</div></div>
-    <div class="stat-chip"><div class="stat-chip-num">${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-chip-num">👨‍🏫 ${ogretmenler.length}</div><div class="stat-chip-label">Öğretmen</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🏫 ${siniflar.length}</div><div class="stat-chip-label">Sınıf</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🧑‍🎓 ${toplamOgrenci}</div><div class="stat-chip-label">Öğrenci</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-chip-num">🚺 ${kadinOgretmen} / 🚹 ${erkekOgretmen}</div><div class="stat-chip-label">Kadın / Erkek Öğretmen</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('gorevler')"><div class="stat-chip-num">📌 ${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-chip-label">Açık Görev</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('hatirlaticilar')"><div class="stat-chip-num">⏰ ${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Hatırlatıcı</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('evrak')"><div class="stat-chip-num">📄 ${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
   `;
-
-  if(!tatilModu){
-    const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
-    const dashBugunDersler = document.getElementById('dashBugunDersler');
-    if(dashBugunDersler) dashBugunDersler.innerHTML = !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
-      (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--text-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
-  }
+  const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
+  document.getElementById('dashBugunDersler').innerHTML = !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
+    (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--text-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
 
   /* "Bugün Nöbetçi Öğretmenler" kartı artık js/nobet.js > renderNobetBugunVeHafta() tarafından dolduruluyor. */
 
@@ -514,7 +545,7 @@ function renderDashboard(){
   }
 
   /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
-  if(!tatilModu) renderZilSayaci(bugunGun);
+  renderZilSayaci(bugunGun);
   if(typeof renderYaklasanEtkinlikler === 'function') renderYaklasanEtkinlikler();
 }
 
@@ -522,8 +553,39 @@ function renderZilSayaci(bugunGun){
   const zilEl = document.getElementById('zilWidget');
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
+  ['dashBugunNobet','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{const el=document.getElementById(id);if(el){const c=el.closest('.card');if(c)c.style.display='';} });
+  const ayar = dersSaatleriAyarlari;
+  if(ayar && ayar.tatilModu){
+    // Tatil modu: gizlenecek kartlar
+    ['dashBugunNobet','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el){ const card = el.closest('.card'); if(card) card.style.display='none'; }
+    });
+    // Okul açılış sayacı
+    const acilisTarihi = ayar.okulAcilisTarihi;
+    let sayacHTML = '';
+    if(acilisTarihi){
+      const acilis = new Date(acilisTarihi + 'T00:00:00');
+      const bugun = new Date(); bugun.setHours(0,0,0,0);
+      const fark = Math.ceil((acilis - bugun) / (1000*60*60*24));
+      if(fark > 0){
+        sayacHTML = `<div style="display:flex;align-items:center;justify-content:space-between;">
+          <div><div class="zil-etiket">🏖️ Tatil Modu — Okul kapalı</div><div class="zil-alt">${escapeHtml(ayar.tatilModuNotu||'Okulun açılmasına kalan süre')}</div></div>
+          <div class="zil-sayac">${fark} <span>gün</span></div>
+        </div>`;
+      } else if(fark === 0){
+        sayacHTML = `<div class="zil-durum">🎉 Bugün okul açılıyor!</div>`;
+      } else {
+        sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${ayar.tatilModuNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(ayar.tatilModuNotu)+'</div>':''}</div>`;
+      }
+    } else {
+      sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${ayar.tatilModuNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(ayar.tatilModuNotu)+'</div>':''}</div>`;
+    }
+    zilEl.innerHTML = sayacHTML;
+    return;
+  }
   if(!GUNLER.includes(bugunGun)){
-    zilEl.innerHTML = `<div class="zil-durum">Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🌤️ Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Bugün hafta sonu.</p>';
     return;
   }
@@ -533,12 +595,13 @@ function renderZilSayaci(bugunGun){
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
     return;
   }
-  const etiketler = { ders:`Şu an ${durum.etiket}`, teneffus:'Teneffüste / derse hazırlanılıyor', ogle:'Öğle arasında', bitti:'Ders saatleri sona erdi' };
+  const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
   if(durum.durum==='bitti'){
-    zilEl.innerHTML = `<div class="zil-durum">Bugünün ders saatleri sona erdi.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
   } else {
     const altMetin = durum.durum==='ders' ? `Bitimine kalan süre`
       : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'
+      : durum.durum==='baslamadi' ? 'Okulun başlamasına kalan süre'
       : `${durum.etiket} başlamasına kalan süre`;
     zilEl.innerHTML = `
       <div><div class="zil-etiket">${etiketler[durum.durum]}</div><div class="zil-alt">${altMetin}</div></div>
@@ -551,6 +614,8 @@ function renderZilSayaci(bugunGun){
       suankiEl.innerHTML = buSaatDersler.length ? buSaatDersler.map(d=>`<div class="dash-row">${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--ink-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bu saat için ders programı girilmemiş.</p>';
     } else if(durum.durum==='ogle'){
       suankiEl.innerHTML = '<p class="empty-state">Şu an öğle arası.</p>';
+    } else if(durum.durum==='baslamadi'){
+      suankiEl.innerHTML = `<p class="empty-state">Okul henüz başlamadı — ilk ders: ${escapeHtml(durum.etiket)}.</p>`;
     } else {
       suankiEl.innerHTML = `<p class="empty-state">Şu an teneffüs — sıradaki: ${escapeHtml(durum.etiket)}.</p>`;
     }
@@ -565,7 +630,6 @@ function yedekVerisiOlustur(){
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
     siniflar, veliler, servisler,
     okulBilgileri: okulBilgileriAyari || undefined,
-    okulAyarlari: okulAyarlariVerisi || undefined,
     periyodikSablon: periyodikSablonu || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
@@ -615,9 +679,6 @@ async function yedektenGeriYukle(file){
     if(data.okulBilgileri){
       await db.collection(COL.okulBilgileri).doc('ayarlar').set(data.okulBilgileri);
     }
-    if(data.okulAyarlari){
-      await db.collection(COL.okulAyarlari).doc('ayarlar').set(data.okulAyarlari);
-    }
     if(data.periyodikSablon){
       await db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler: data.periyodikSablon });
     }
@@ -633,7 +694,7 @@ function baglantilariKur(){
   baglantilarKuruldu = true;
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } }, hataGoster);
-  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
+  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayVeliRender(sn); } }, hataGoster);
   nobetBaglantilariKur();
   db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
@@ -657,18 +718,9 @@ function baglantilariKur(){
     okulBilgileriAyari = doc.exists ? doc.data() : null;
     renderOkulBilgileriSayfasi();
   }, hataGoster);
-  db.collection(COL.okulAyarlari).doc('ayarlar').onSnapshot(doc=>{
-    okulAyarlariVerisi = doc.exists ? doc.data() : null;
-    renderDashboard();
-    renderOkulAyarlariFormu();
-  }, hataGoster);
-  db.collection(COL.dersler).orderBy('ad').onSnapshot(s=>{
-    dersler = s.docs.map(d=>({id:d.id,...d.data()}));
-    renderDerslerListesi();
-  }, hataGoster);
-  db.collection(COL.branslar).orderBy('ad').onSnapshot(s=>{
-    branslar = s.docs.map(d=>({id:d.id,...d.data()}));
-    renderBranslarListesi();
+  db.collection(COL.dersListesi).onSnapshot(s=>{
+    dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+    renderDersListesiYonetim();
   }, hataGoster);
 }
 
@@ -720,194 +772,4 @@ function ogrenciSablonIndir(){
   ws['!cols'] = basliklar.map((_,i)=>({wch: i===8||i===0?30:i===3?20:15}));
   XLSX.utils.book_append_sheet(wb, ws, 'Öğrenci Listesi');
   XLSX.writeFile(wb, 'Ogrenci_Listesi_Sablonu.xlsx');
-}
-
-/* ============== DERS VE BRANŞ YÖNETİMİ ============== */
-const VARSAYILAN_DERSLER = [
-  'Türkçe','Matematik','Fen Bilimleri','Sosyal Bilgiler','İngilizce',
-  'Din Kültürü ve Ahlak Bilgisi','Beden Eğitimi ve Spor',
-  'Görsel Sanatlar','Müzik','Teknoloji ve Tasarım','Trafik Güvenliği',
-  'Bilişim Teknolojileri','Rehberlik','Satranç'
-];
-const VARSAYILAN_BRANSLAR = [
-  'Sınıf Öğretmeni','Türkçe Öğretmeni','Matematik Öğretmeni',
-  'Fen Bilimleri Öğretmeni','Sosyal Bilgiler Öğretmeni',
-  'İngilizce Öğretmeni','Din Kültürü Öğretmeni',
-  'Beden Eğitimi Öğretmeni','Görsel Sanatlar Öğretmeni',
-  'Müzik Öğretmeni','Bilişim Teknolojileri Öğretmeni',
-  'Rehber Öğretmen','PDR Öğretmeni'
-];
-
-function renderDerslerListesi(){
-  const el = document.getElementById('derslerListesi');
-  if(!el) return;
-  el.innerHTML = dersler.length
-    ? dersler.map(d=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--border-soft);">
-        <span style="font-size:13px;">${escapeHtml(d.ad)}</span>
-        <button class="btn btn-ghost btn-sm" style="color:var(--brick);" onclick="dersSil('${d.id}','${escapeHtml(d.ad)}')">✕</button>
-      </div>`).join('')
-    : '<p class="empty-state">Henüz ders eklenmedi.</p>';
-}
-
-function renderBranslarListesi(){
-  const el = document.getElementById('branslarListesi');
-  if(!el) return;
-  el.innerHTML = branslar.length
-    ? branslar.map(b=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--border-soft);">
-        <span style="font-size:13px;">${escapeHtml(b.ad)}</span>
-        <button class="btn btn-ghost btn-sm" style="color:var(--brick);" onclick="bransSil('${b.id}','${escapeHtml(b.ad)}')">✕</button>
-      </div>`).join('')
-    : '<p class="empty-state">Henüz branş eklenmedi.</p>';
-}
-
-function dersEkle(){
-  const input = document.getElementById('yeniDersInput');
-  if(!input) return;
-  const ad = input.value.trim();
-  if(!ad){ toast('Ders adı giriniz.'); return; }
-  if(dersler.find(d=>d.ad.toLowerCase()===ad.toLowerCase())){ toast('Bu ders zaten mevcut.'); return; }
-  db.collection(COL.dersler).add({ad}).then(()=>{ toast('Ders eklendi.'); input.value=''; }).catch(err=>toast('Hata: '+err.message));
-}
-
-function dersSil(id, ad){
-  if(!confirm(`"${ad}" dersini silmek istiyor musunuz?`)) return;
-  db.collection(COL.dersler).doc(id).delete().then(()=>toast('Ders silindi.')).catch(err=>toast('Hata: '+err.message));
-}
-
-function bransEkle(){
-  const input = document.getElementById('yeniBransInput');
-  if(!input) return;
-  const ad = input.value.trim();
-  if(!ad){ toast('Branş adı giriniz.'); return; }
-  if(branslar.find(b=>b.ad.toLowerCase()===ad.toLowerCase())){ toast('Bu branş zaten mevcut.'); return; }
-  db.collection(COL.branslar).add({ad}).then(()=>{ toast('Branş eklendi.'); input.value=''; }).catch(err=>toast('Hata: '+err.message));
-}
-
-function bransSil(id, ad){
-  if(!confirm(`"${ad}" branşını silmek istiyor musunuz?`)) return;
-  db.collection(COL.branslar).doc(id).delete().then(()=>toast('Branş silindi.')).catch(err=>toast('Hata: '+err.message));
-}
-
-function varsayilanDersleriYukle(){
-  if(!confirm('Varsayılan ders listesi eklensin mi? Mevcut dersler silinmez, sadece eksikler eklenir.')) return;
-  const mevcutAdlar = dersler.map(d=>d.ad.toLowerCase());
-  const batch = db.batch();
-  VARSAYILAN_DERSLER.forEach(ad=>{
-    if(!mevcutAdlar.includes(ad.toLowerCase())){
-      batch.set(db.collection(COL.dersler).doc(), {ad});
-    }
-  });
-  batch.commit().then(()=>toast('Varsayılan dersler yüklendi.')).catch(err=>toast('Hata: '+err.message));
-}
-
-function varsayilanBranslariYukle(){
-  if(!confirm('Varsayılan branş listesi eklensin mi? Mevcut branşlar silinmez, sadece eksikler eklenir.')) return;
-  const mevcutAdlar = branslar.map(b=>b.ad.toLowerCase());
-  const batch = db.batch();
-  VARSAYILAN_BRANSLAR.forEach(ad=>{
-    if(!mevcutAdlar.includes(ad.toLowerCase())){
-      batch.set(db.collection(COL.branslar).doc(), {ad});
-    }
-  });
-  batch.commit().then(()=>toast('Varsayılan branşlar yüklendi.')).catch(err=>toast('Hata: '+err.message));
-}
-
-/* ============== OKUL GENEL AYARLARI (Tatil Modu) ============== */
-function renderOkulAyarlariFormu(){
-  const tatilCheck = document.getElementById('tatilModuToggle');
-  const acilisInput = document.getElementById('okulAcilisTarihi');
-  if(tatilCheck) tatilCheck.checked = !!(okulAyarlariVerisi && okulAyarlariVerisi.tatilModu);
-  if(acilisInput) acilisInput.value = (okulAyarlariVerisi && okulAyarlariVerisi.okulAcilisTarihi) || '';
-  const acilisRow = document.getElementById('tatilAcilisRow');
-  if(acilisRow) acilisRow.style.display = (okulAyarlariVerisi && okulAyarlariVerisi.tatilModu) ? '' : 'none';
-}
-
-/* ====== TAT İL MODU GERİ SAYIM (v4.0.1) ====== */
-let tatilSayacıInterval = null;
-
-function tatilSayaciniGuncelle(){
-  const tatilCheck = document.getElementById('tatilModuToggle');
-  const acilisInput = document.getElementById('okulAcilisTarihi');
-  
-  if(!tatilCheck || !tatilCheck.checked || !acilisInput || !acilisInput.value){
-    return;
-  }
-  
-  const simdi = new Date();
-  const acilisTarihi = new Date(acilisInput.value + 'T00:00:00');
-  
-  if(acilisTarihi <= simdi){
-    ['tatilGun','tatilSaat','tatilDakika','tatilSaniye'].forEach(id=>{
-      const el = document.getElementById(id);
-      if(el) el.textContent = '0';
-    });
-    return;
-  }
-  
-  const fark = acilisTarihi - simdi;
-  const gunler = Math.floor(fark / (1000 * 60 * 60 * 24));
-  const saatler = Math.floor((fark % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const dakikalar = Math.floor((fark % (1000 * 60 * 60)) / (1000 * 60));
-  const saniyeler = Math.floor((fark % (1000 * 60)) / 1000);
-  
-  document.getElementById('tatilGun').textContent = gunler.toString().padStart(2, '0');
-  document.getElementById('tatilSaat').textContent = saatler.toString().padStart(2, '0');
-  document.getElementById('tatilDakika').textContent = dakikalar.toString().padStart(2, '0');
-  document.getElementById('tatilSaniye').textContent = saniyeler.toString().padStart(2, '0');
-}
-
-function tatilSayaciniBaslat(){
-  if(tatilSayacıInterval){
-    clearInterval(tatilSayacıInterval);
-  }
-  tatilSayaciniGuncelle();
-  tatilSayacıInterval = setInterval(()=>{
-    tatilSayaciniGuncelle();
-  }, 1000);
-}
-
-function tatilSayaciniDur(){
-  if(tatilSayacıInterval){
-    clearInterval(tatilSayacıInterval);
-    tatilSayacıInterval = null;
-  }
-}
-
-function tatilModuDegisti(){
-  const tatilCheck = document.getElementById('tatilModuToggle');
-  const acilisRow = document.getElementById('tatilAcilisRow');
-  const tatilSayaciKart = document.getElementById('tatilSayaciKart');
-  
-  if(!tatilCheck) return;
-  
-  const tatilModu = tatilCheck.checked;
-  if(acilisRow) acilisRow.style.display = tatilModu ? '' : 'none';
-  
-  if(tatilModu){
-    tatilSayaciniBaslat();
-    if(tatilSayaciKart) tatilSayaciKart.style.display = '';
-  } else {
-    tatilSayaciniDur();
-    if(tatilSayaciKart) tatilSayaciKart.style.display = 'none';
-  }
-}
-
-function okulAyarlariKaydet(){
-  const tatilModu = !!(document.getElementById('tatilModuToggle') && document.getElementById('tatilModuToggle').checked);
-  const okulAcilisTarihi = document.getElementById('okulAcilisTarihi') ? document.getElementById('okulAcilisTarihi').value : '';
-  db.collection(COL.okulAyarlari).doc('ayarlar').set({ tatilModu, okulAcilisTarihi })
-    .then(()=>{
-      toast('Okul ayarları kaydedildi.');
-      if(tatilModu){
-        tatilSayaciniBaslat();
-      } else {
-        tatilSayaciniDur();
-      }
-    })
-    .catch(err=>toast('Hata: '+err.message));
-}
-
-/* ============== BRANSLAR — Öğretmen formu için yardımcı ============== */
-function bransSecenekleri(secili){
-  return branslar.map(b=>`<option value="${escapeHtml(b.ad)}" ${secili===b.ad?'selected':''}>${escapeHtml(b.ad)}</option>`).join('');
 }

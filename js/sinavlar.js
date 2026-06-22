@@ -46,7 +46,7 @@ function sinavModalAc(id){
   const body = `
     <div class="form-row">
       <div class="form-group"><label>Sınıf</label><input id="f_snSinif" value="${s?escapeHtml(s.sinif||''):''}" placeholder="örn: 7-A"></div>
-      <div class="form-group"><label>Ders</label><input id="f_snDers" value="${s?escapeHtml(s.ders||''):''}" placeholder="örn: Matematik"></div>
+      <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
     </div>
     <div class="form-group"><label>Öğretmen</label><select id="f_snOgretmen">${ogretmenSecenekleri(s?s.ogretmenId:'')}</select></div>
     <div class="form-row">
@@ -210,7 +210,15 @@ function denemeModalAc(id){
       </div>
     </div>
 
-    <div class="form-group"><label>Bu denemeyi yapacak sınıflar (virgülle ayırarak)</label><input id="f_dnSinflar" value="${d?escapeHtml(d.sinflar||''):''}" placeholder="örn: 11-A, 11-B, 12-A"></div>
+    <div class="form-group"><label>Bu denemeyi yapacak sınıflar</label>
+      <div id="f_dnSinflarKutu" style="border:1px solid var(--border);border-radius:var(--radius-md);padding:8px;max-height:150px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px;">
+        ${(typeof siniflar!=='undefined'&&siniflar.length?[...siniflar].sort((a,b)=>a.ad.localeCompare(b.ad,'tr')):[]).map(s=>{
+          const mevcutSec = d && (d.sinflar||'').split(',').map(x=>x.trim()).includes(s.ad);
+          return '<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;white-space:nowrap;"><input type=\"checkbox\" class=\"dnSinifCb\" value=\"'+escapeHtml(s.ad)+'\" '+(mevcutSec?'checked':'')+'>'+escapeHtml(s.ad)+'</label>';
+        }).join('')}
+        ${(!siniflar||siniflar.length===0)?'<span style="color:var(--ink-muted);font-size:12px;">Önce sınıf ekleyin</span>':''}
+      </div>
+    </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_dnNotlar" rows="2">${d?escapeHtml(d.notlar||''):''}</textarea></div>
   `;
   modalAc(d?'Deneme Sınavı Düzenle':'Deneme Sınavı Ekle', body, ()=>{
@@ -219,7 +227,7 @@ function denemeModalAc(id){
     const oturumTuru = document.getElementById('f_dnOturum').value;
     denemeHesapla();
 
-    let veri = { ad, tarih: document.getElementById('f_dnTarih').value, oturumTuru, notlar: document.getElementById('f_dnNotlar').value.trim(), sinflar: document.getElementById('f_dnSinflar').value.trim() };
+    let veri = { ad, tarih: document.getElementById('f_dnTarih').value, oturumTuru, notlar: document.getElementById('f_dnNotlar').value.trim(), sinflar: Array.from(document.querySelectorAll('.dnSinifCb:checked')).map(c=>c.value).join(', ') };
 
     if(oturumTuru==='İki Oturum'){
       const sozelBaslama = document.getElementById('f_dnSozBas').value;
