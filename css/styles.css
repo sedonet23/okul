@@ -166,9 +166,6 @@ input[type=time], input[type=number], input[type=file], select, textarea{
   width:100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm);
   background: var(--bg-card); color: var(--ink); font-size: 13.5px;
 }
-input[type=number]{ appearance:textfield; -moz-appearance:textfield; text-align:center; padding-left:4px; padding-right:4px; }
-input[type=number]::-webkit-outer-spin-button,
-input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
 textarea{ resize: vertical; min-height: 70px; }
 input:focus, select:focus, textarea:focus{
   outline:none; border-color: var(--amber-deep); box-shadow: 0 0 0 3px var(--amber-wash);
@@ -366,11 +363,6 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
    ========================================================= */
 .dash-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-bottom:22px; }
 .dash-stat-strip{ display:flex; flex-wrap:wrap; gap:0; }
-.dash-card-clickable{ cursor:pointer; transition: transform .12s ease, box-shadow .12s ease; }
-.dash-card-clickable:hover{ box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.dash-card-clickable:active{ transform: translateY(0); }
-.stat-chip-clickable{ cursor:pointer; transition: background .12s ease; border-radius: var(--radius-sm); }
-.stat-chip-clickable:hover{ background: var(--bg-app-soft); }
 .dash-stat-strip .stat-chip{
   flex:1 1 130px; padding:10px 16px; text-align:center; border-right:1px solid var(--border-soft);
 }
@@ -550,10 +542,6 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 .detay-body{ padding:18px; display:flex; flex-direction:column; gap:14px; }
 .detay-card{ background: var(--bg-card); border:1px solid var(--border-soft); border-radius: var(--radius-md); padding:14px 16px; }
 .detay-card h4{ font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color: var(--ink-muted); margin-bottom:8px; }
-.detay-card-header{ display:flex; flex-wrap:wrap; gap:8px 10px; justify-content:space-between; align-items:center; }
-.detay-card-header > span.detay-card-title{ flex:1 1 100%; }
-.detay-card-header > .detay-card-actions{ display:flex; gap:6px; flex-wrap:wrap; }
-@media (min-width:480px){ .detay-card-header > span.detay-card-title{ flex:1 1 auto; } }
 .detay-row{ font-size:13.5px; padding:5px 0; border-bottom:1px solid var(--border-soft); }
 .detay-row:last-child{ border-bottom:none; }
 .detay-row-muted{ font-size:12px; color: var(--ink-muted); }
@@ -651,11 +639,19 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 
 .accordion-content.open {
-  max-height: 800px;
+  max-height: none;
+  overflow-y: auto;
+  max-height: 75vh;
   background: var(--bg-app-soft);
   padding: 16px;
   border-top: 2px solid var(--brand-purple);
   display: block;
+}
+
+#dersSaatleriForm {
+  overflow-y: auto;
+  max-height: calc(75vh - 100px);
+  padding-right: 8px;
 }
 
 .accordion-content ul {
