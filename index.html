@@ -557,14 +557,27 @@
 
       <div class="accordion-item" style="margin-bottom:18px;">
         <div class="accordion-header" onclick="toggleAccordion(this)">
-          <span>📚 Ders / Branş Listesi</span><span class="arrow">▼</span>
+          <span>📚 Ders Listesi</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content">
           <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-            Burada eklediğiniz dersler/branşlar; Öğretmen Branşı, Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.
+            Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.
           </p>
-          <button class="btn btn-amber btn-sm" onclick="dersListesiEkle()" style="margin-bottom:10px;">➕ Ders/Branş Ekle</button>
+          <button class="btn btn-amber btn-sm" onclick="dersListesiEkle()" style="margin-bottom:10px;">➕ Ders Ekle</button>
           <div id="dersListesiYonetim"></div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🎓 Branş Listesi</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Öğretmen Branşı alanında açılır listeden seçilebilir.
+          </p>
+          <button class="btn btn-amber btn-sm" onclick="bransListesiEkle()" style="margin-bottom:10px;">➕ Branş Ekle</button>
+          <div id="bransListesiYonetim"></div>
         </div>
       </div>
 
