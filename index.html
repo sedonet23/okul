@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Okul Yönetim Paneli</title>
+<title>Koruk İlk-Ortaokulu</title>
 <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
 <meta name="theme-color" content="#053827">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -48,10 +49,10 @@
   <aside class="sidebar">
     <div class="sidebar-head">
       <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
-      <div class="brand">
+      <div class="brand" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">
         <div class="brand-mark"><img src="assets/icon-192.png" alt="Koruk İlk-Ortaokulu logosu"></div>
         <div style="min-width:0;">
-          <div class="brand-title">Okul Yönetimi</div>
+          <div class="brand-title">Koruk İlk-Ortaokulu</div>
           <div class="brand-sub" id="bugunMetni"></div>
         </div>
       </div>
@@ -79,17 +80,18 @@
       </label>
       <div class="nav-group" id="cizelgelerMenu">
         <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><span class="nt-label">Sosyal Kulüpler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><span class="nt-label">Belirli Gün/Haftalar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><span class="nt-label">Belirli Gün Ve Haftalar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="zumre"><span class="nt-label">Zümre</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="sok"><span class="nt-label">ŞÖK</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><span class="nt-label">Yıllık/BEP Planı</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><span class="nt-label">Rehberlik</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><span class="nt-label">Maarif Model Raporlar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><span class="nt-label">Diğer Evraklar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><span class="nt-label">Periyodik İşler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><span class="nt-label">Aylık İşler</span></button>
       </div>
       
       <button class="nav-tab" data-tab="okulBilgileri"><span class="nt-ico">🏫</span><span class="nt-label">Okul Bilgileri</span></button>
+      <button class="nav-tab" data-tab="veri"><span class="nt-ico">📊</span><span class="nt-label">Veri</span></button>
       <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico">⚙</span><span class="nt-label">Ayarlar</span></button>
     </nav>
     <button class="nav-cikis-btn" id="cikisBtn" title="Uygulamadan çık"><span class="nt-ico">⏻</span><span class="nt-label">Çıkış</span></button>
@@ -98,24 +100,24 @@
   <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
     <div class="topbar">
       <button class="hamburger-btn" id="topbarHamburger" title="Menüyü aç" aria-label="Menüyü aç"><span></span><span></span><span></span></button>
-      <div class="topbar-title">Okul Yönetim Paneli</div>
+      <div class="topbar-title" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">Koruk İlk-Ortaokulu</div>
       <button class="theme-toggle" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
 
     <main class="content">
 
     <section id="tab-panel" class="tab-panel active">
-      <div class="page-header"><div><div class="page-title">Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
+      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
 
       <!-- 1. Hero: zile kaç dk kaldığı + şu an kaçıncı ders -->
-      <div class="card zil-widget" id="zilWidget"></div>
+      <div class="card zil-widget dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
 
       <!-- 2. Hemen altında: günün nöbetçileri -->
-      <div class="card"><h3>Bugün Nöbetçi Öğretmenler</h3><div id="dashBugunNobet"></div></div>
+      <div class="card dash-card-clickable" onclick="sekmeAc('nobet')"><h3>🛡️ Günün Nöbetçileri</h3><div id="dashBugunNobet"></div></div>
 
       <!-- 3. Hızlı İşlemler -->
       <div class="card">
-        <h3>Hızlı İşlemler</h3>
+        <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
           <div class="qa-item" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-evrak">📄</div><div class="qa-label">Evrak Ekle</div></div>
           <div class="qa-item" onclick="sekmeAc('nobet');"><div class="qa-icon qa-nobet">🛡️</div><div class="qa-label">Nöbet</div></div>
@@ -125,27 +127,27 @@
       </div>
 
       <div class="dash-cols">
-        <div class="card"><h3>Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
-        <div class="card"><h3>Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('dersProgrami')"><h3>📚 Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('dersProgrami')"><h3>🗓️ Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
       </div>
       <div class="dash-cols">
-        <div class="card"><h3>Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
-        <div class="card"><h3>Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('nobet')"><h3>👮 Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('hatirlaticilar')"><h3>⏰ Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
       </div>
       <div class="dash-cols">
-        <div class="card"><h3>Yaklaşan Belirli Gün/Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
-        <div class="card"><h3>Görev Durumu</h3><div id="dashGorevler"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('belirliGunler')"><h3>🎉 Yaklaşan Belirli Gün Ve Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('gorevler')"><h3>📌 Görev Durumu</h3><div id="dashGorevler"></div></div>
       </div>
       <div class="dash-cols">
         <!-- 4. Not Alma (duyurular yerine) -->
-        <div class="card">
-          <h3 style="display:flex;align-items:center;justify-content:space-between;">Not Alma <button class="btn btn-ghost btn-sm" onclick="notlarModalAc()" style="margin-left:auto;">+ Yeni Not</button></h3>
+        <div class="card dash-card-clickable" onclick="sekmeAc('notlar')">
+          <h3 style="display:flex;align-items:center;justify-content:space-between;">📝 Not Defteri <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); notlarModalAc()" style="margin-left:auto;">➕ Yeni Not</button></h3>
           <div id="dashNotlar"></div>
         </div>
       </div>
 
       <!-- 5. İstatistikler en altta -->
-      <div class="card"><h3>Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
+      <div class="card"><h3>📊 Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
     </section>
 
     <section id="tab-ogretmenler" class="tab-panel">
@@ -172,7 +174,7 @@
       <div class="page-header">
         <div><div class="page-title">Sınıflar</div><div class="page-sub" id="siniflarOzet"></div></div>
         <div class="page-header-actions">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput').click()">⬆ Öğrenci Listesi Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput').click()">📥 Öğrenci Listesi Excel</button>
           <input type="file" id="ogrenciExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
           <button class="btn btn-amber" onclick="sinifModalAc()">+ Yeni Sınıf</button>
         </div>
@@ -310,7 +312,7 @@
     <!-- SINAV İŞLEMLERİ -->
     <section id="tab-sinavIslemleri" class="tab-panel">
       <div class="page-header">
-        <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri, sınav yolları ve deneme sınavları</div></div>
+        <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri ve deneme sınavları</div></div>
       </div>
 
       <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -482,7 +484,62 @@
       </div>
     </section>
 
-    <section id="tab-ayarlar" class="tab-panel">
+    <section id="tab-veri" class="tab-panel">
+  <div class="page-header"><div><div class="page-title">📊 Veri</div><div class="page-sub">Tüm verileri Excel ile toplu olarak içe aktarın</div></div></div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>👨‍🏫 Öğretmenler</h3>
+    <p class="detay-row-muted">Ad, soyad, branş, telefon vb. sütunları içeren Excel dosyası.</p>
+    <input type="file" id="veriOgretmenInput" accept=".xlsx,.xls" style="display:none;" onchange="ogretmenExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgretmenInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🗓️ Ders Programı</h3>
+    <p class="detay-row-muted">Sınıf, gün, ders saati, ders adı, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <input type="file" id="veriDersInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🛡️ Nöbet</h3>
+    <p class="detay-row-muted">Tarih/gün, nöbet yeri, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <input type="file" id="veriNobetInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriNobetInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🧑‍🎓 Öğrenciler / Veliler</h3>
+    <p class="detay-row-muted">Önce hangi sınıfa yükleneceğini seçin, ardından o sınıfın Excel listesini yükleyin.</p>
+    <div class="form-group"><select id="veriSinifSecimi"><option value="">Sınıf seçiniz…</option></select></div>
+    <input type="file" id="veriOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriOgrenciExcelYukle(this)">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgrenciInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🚌 Servis Öğrencileri</h3>
+    <p class="detay-row-muted">Önce hangi servise yükleneceğini seçin, ardından o servisin öğrenci listesini yükleyin.</p>
+    <div class="form-group"><select id="veriServisSecimi"><option value="">Servis seçiniz…</option></select></div>
+    <input type="file" id="veriServisOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriServisOgrenciExcelYukle(this)">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriServisOgrenciInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🏫 Sınıflar</h3>
+    <p class="detay-row-muted">Sınıf Adı, Seviye, Şube, Derslik, Sınıf Öğretmeni sütunlarını içeren Excel dosyası.</p>
+    <input type="file" id="veriSinifExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="siniflarExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriSinifExcelInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>📚 Dersler / Branşlar</h3>
+    <p class="detay-row-muted">Tek sütun: Ders/Branş adı (örn: Matematik, Türkçe, Sınıf Öğretmenliği…).</p>
+    <input type="file" id="veriDersListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="dersListesiExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersListesiInput').click()">📥 Excel Yükle</button>
+  </div>
+</section>
+
+<section id="tab-ayarlar" class="tab-panel">
       <div class="page-header"><div><div class="page-title">Ayarlar</div><div class="page-sub">Bildirimler, tema, içe/dışa aktarma</div></div></div>
 
       <div class="accordion-item" style="margin-bottom:18px;">
@@ -491,13 +548,24 @@
         </div>
         <div class="accordion-content">
           <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-            7 ders saatinin başlangıç/bitiş saatlerini ve öğle arasını burada düzenleyin. Süreler tamamen esnektir,
-            istediğiniz gibi değiştirebilirsiniz. Ders Programı ve Genel Bakış'taki zil sayacı buna göre hesaplanır.
           </p>
           <div id="dersSaatleriForm"></div>
         </div>
       </div>
 
+
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>📚 Ders / Branş Listesi</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Burada eklediğiniz dersler/branşlar; Öğretmen Branşı, Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.
+          </p>
+          <button class="btn btn-amber btn-sm" onclick="dersListesiEkle()" style="margin-bottom:10px;">➕ Ders/Branş Ekle</button>
+          <div id="dersListesiYonetim"></div>
+        </div>
+      </div>
 
       <div class="card" style="margin-bottom:18px;">
         <h3>Excel Çizelgeleri</h3>
@@ -516,7 +584,7 @@
           <button onclick="ogrenciSablonIndir()" class="btn btn-primary btn-sm" style="text-align:center;">⇩ Öğrenci Listesi</button>
         </div>
         
-        <button class="btn btn-primary" onclick="document.getElementById('cizelgeExcelInput').click()" style="margin-right:8px;">⬆ Excel Dosyası Yükle</button>
+        <button class="btn btn-primary" onclick="document.getElementById('cizelgeExcelInput').click()" style="margin-right:8px;">📤 Excel Dosyası Yükle</button>
         <input type="file" id="cizelgeExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="tumCizelgeleriIceAktar(this.files[0]); this.value='';">
       </div>
 
@@ -557,8 +625,8 @@
         <div class="detay-alt" id="detayAltBaslik"></div>
       </div>
       <div class="detay-head-actions">
-        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">✎ Düzenle</button>
-        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">✕ Kapat</button>
+        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">📝 Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">❌ Kapat</button>
       </div>
     </div>
     <div class="detay-body" id="detayBody"></div>
