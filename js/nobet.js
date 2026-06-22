@@ -228,6 +228,22 @@ function nobetYeriIkon(ad){
   return '📍';
 }
 function renderNobetBugunVeHafta(){
+  // Tatil modunda nöbet kartlarını gizle ve içeriği temizle
+  const tatilAktif = typeof dersSaatleriAyarlari !== 'undefined' && dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu;
+  const tatilKartIds = ['dashBugunNobet','nobetBugunKutu','nobetHaftaKutu'];
+  tatilKartIds.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const card = el.closest('.card');
+    if(tatilAktif){
+      if(card) card.style.display = 'none';
+      el.innerHTML = '';
+    } else {
+      if(card) card.style.display = '';
+    }
+  });
+  if(tatilAktif) return;
+
   const bugunISO = todayISO();
   const ozet = nobetGununOzeti(bugunISO);
   const bugunHTML = ozet.haftasonu ? '<p class="empty-state">🌤️ Bugün hafta sonu.</p>'

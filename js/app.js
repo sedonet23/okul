@@ -599,13 +599,13 @@ function renderZilSayaci(bugunGun){
   const zilEl = document.getElementById('zilWidget');
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
-  ['dashBugunNobet','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{const el=document.getElementById(id);if(el){const c=el.closest('.card');if(c)c.style.display='';} });
+  ['dashBugunNobet','nobetBugunKutu','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{const el=document.getElementById(id);if(el){const c=el.closest('.card');if(c)c.style.display='';} });
   const ayar = dersSaatleriAyarlari;
   if(ayar && ayar.tatilModu){
     // Tatil modu: gizlenecek kartlar
-    ['dashBugunNobet','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{
+    ['dashBugunNobet','nobetBugunKutu','dashSuankiDers','dashBugunDersler','nobetHaftaKutu'].forEach(id=>{
       const el = document.getElementById(id);
-      if(el){ const card = el.closest('.card'); if(card) card.style.display='none'; }
+      if(el){ el.innerHTML=''; const card = el.closest('.card'); if(card) card.style.display='none'; }
     });
     // Okul açılış sayacı
     const acilisTarihi = ayar.okulAcilisTarihi;
