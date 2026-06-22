@@ -555,12 +555,12 @@ function renderZilSayaci(bugunGun){
   if(!zilEl) return;
   const ayar = dersSaatleriAyarlari;
   if(ayar && ayar.tatilModu){
-    zilEl.innerHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif — sayaç devre dışı${ayar.tatilModuNotu ? `<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">${escapeHtml(ayar.tatilModuNotu)}</div>` : ''}</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif — İyi tatiller!${ayar.tatilModuNotu ? `<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">${escapeHtml(ayar.tatilModuNotu)}</div>` : ''}</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">🏖️ Tatil modu aktif.</p>';
     return;
   }
   if(!GUNLER.includes(bugunGun)){
-    zilEl.innerHTML = `<div class="zil-durum">🌤️ Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🌤️ Bugün hafta sonu — Tatilin keyfini çıkar.</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Bugün hafta sonu.</p>';
     return;
   }
@@ -570,9 +570,9 @@ function renderZilSayaci(bugunGun){
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
     return;
   }
-  const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
+  const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / Derse hazırlanılıyor.', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
   if(durum.durum==='bitti'){
-    zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
+    zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünkü dersler bitti. Paydos!</div>`;
   } else {
     const altMetin = durum.durum==='ders' ? `Bitimine kalan süre`
       : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'
@@ -592,7 +592,7 @@ function renderZilSayaci(bugunGun){
     } else if(durum.durum==='baslamadi'){
       suankiEl.innerHTML = `<p class="empty-state">Okul henüz başlamadı — ilk ders: ${escapeHtml(durum.etiket)}.</p>`;
     } else {
-      suankiEl.innerHTML = `<p class="empty-state">Şu an teneffüs — sıradaki: ${escapeHtml(durum.etiket)}.</p>`;
+      suankiEl.innerHTML = `<p class="empty-state">Dersler bitti. ${escapeHtml(durum.etiket)}.</p>`;
     }
   }
 }
