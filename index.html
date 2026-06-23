@@ -525,6 +525,13 @@
   </div>
 
   <div class="card" style="margin-bottom:14px;">
+    <h3>📋 e-Okul Sınıf Listesi (Çoklu Sınıf)</h3>
+    <p class="detay-row-muted">e-Okul'dan indirdiğin "Sınıf Listesi" raporunun Excel çıktısı (tek dosyada birden çok sınıf olabilir — S.No, Öğrenci No, Adı, Soyadı, Cinsiyeti sütunları). Sınıf adı dosyada olmadığından, her blok için sınıfı yüklerken kendin seçeceksin. Listede olmayan mevcut öğrenciler o sınıftan silinir.</p>
+    <input type="file" id="veriEOkulInput" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriEOkulInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
     <h3>🏫 Sınıflar</h3>
     <p class="detay-row-muted">Sınıf Adı, Seviye, Şube, Derslik, Sınıf Öğretmeni sütunlarını içeren Excel dosyası.</p>
     <input type="file" id="veriSinifExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="siniflarExceliIceAktar(this.files[0]); this.value='';">
