@@ -830,3 +830,8 @@ function ogrenciSablonIndir(){
   XLSX.utils.book_append_sheet(wb, ws, 'Öğrenci Listesi');
   XLSX.writeFile(wb, 'Ogrenci_Listesi_Sablonu.xlsx');
 }
+
+
+function telefonTemizle(t){ return String(t||'').replace(/[^0-9+]/g,''); }
+function telefonAra(telefon){ const no=telefonTemizle(telefon); if(no) window.location.href=`tel:${no}`; }
+function whatsappGonder(telefon, mesaj){ let no=telefonTemizle(telefon); if(no.startsWith("0")) no="90"+no.substring(1); window.open(`https://wa.me/${no}?text=${encodeURIComponent(mesaj||"")}`,"_blank"); }

@@ -340,6 +340,8 @@ function ogrenciDetayModalAc(id){
     </div>
     ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">
+      <button class="btn btn-success btn-sm" onclick="telefonAra('${(v.telefon1||v.telefon||'').replace(/'/g,'')}')">📞 Ara</button>
+      <button class="btn btn-ghost btn-sm" onclick="whatsappGonder('${(v.telefon1||v.telefon||'').replace(/'/g,'')}', 'Merhaba')">💬 WhatsApp</button>
       <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">📝 Düzenle</button>
     </div>
   `;
