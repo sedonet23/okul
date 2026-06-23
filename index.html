@@ -178,6 +178,8 @@
           <input type="file" id="ogrenciExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulSiniflarInput').click()">📋 e-Okul Sınıf Listesi</button>
           <input type="file" id="eOkulSiniflarInput" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0]); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="raporOgrenciListesi()">🖨️ Öğrenci Listesi</button>
+          <button class="btn btn-ghost btn-sm" onclick="raporVeliIletisimListesi()">🖨️ Veli İletişim</button>
           <button class="btn btn-amber" onclick="sinifModalAc()">+ Yeni Sınıf</button>
         </div>
       </div>
@@ -200,6 +202,7 @@
           <button class="btn btn-ghost btn-sm" onclick="yeniSinifEkleDers()">+ Yeni Sınıf</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('dersExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <input type="file" id="dersExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="raporDersProgrami()">🖨️ Ders Programı</button>
         </div>
       </div>
       <div class="card cizelge-wrap"><table class="schedule-grid sch" id="dersGridTablo"></table></div>
@@ -212,6 +215,7 @@
           <button class="btn btn-ghost btn-sm" onclick="nobetYeriEkle()">+ Yeni Nöbet Yeri</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('nobetExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <input type="file" id="nobetExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="raporNobetListesi()">🖨️ Nöbet Listesi</button>
         </div>
       </div>
 
@@ -299,15 +303,36 @@
     <section id="tab-tasima" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">Taşıma</div><div class="page-sub">Servis araçları, şoför ve güzergah bilgileri</div></div>
-        <button class="btn btn-amber" onclick="servisModalAc()">+ Yeni Servis</button>
-      </div>
-      <div class="card">
-        <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="servisFiltreSec('tumu')">Tümü</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Aktif" onclick="servisFiltreSec('Aktif')">Aktif</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Pasif" onclick="servisFiltreSec('Pasif')">Pasif</button>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporServisOturmaPlan()">🖨️ Oturma Planı Raporu</button>
+          <button class="btn btn-amber" onclick="servisModalAc()">+ Yeni Servis</button>
         </div>
-        <div id="servislerListesi"></div>
+      </div>
+
+      <!-- Alt sekmeler -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm filtre-btn active" data-tasima-sekme="servisler" onclick="tasimaAltSekmeSec('servisler')">🚌 Servis Listesi</button>
+        <button class="btn btn-ghost btn-sm filtre-btn" data-tasima-sekme="oturma" onclick="tasimaAltSekmeSec('oturma')">💺 Oturma Planları</button>
+      </div>
+
+      <!-- Servis listesi bölümü -->
+      <div id="tasima-bolum-servisler">
+        <div class="card">
+          <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="servisFiltreSec('tumu')">Tümü</button>
+            <button class="btn btn-ghost btn-sm filtre-btn" data-f="Aktif" onclick="servisFiltreSec('Aktif')">Aktif</button>
+            <button class="btn btn-ghost btn-sm filtre-btn" data-f="Pasif" onclick="servisFiltreSec('Pasif')">Pasif</button>
+          </div>
+          <div id="servislerListesi"></div>
+        </div>
+      </div>
+
+      <!-- Oturma planları bölümü -->
+      <div id="tasima-bolum-oturma" style="display:none;">
+        <div class="card">
+          <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Bir servise tıklayarak oturma planını düzenleyin.</p>
+          <div id="oturmaServislerListesi"></div>
+        </div>
       </div>
     </section>
 
@@ -681,6 +706,8 @@
 <script src="js/ders-saatleri.js"></script>
 <script src="js/siniflar.js"></script>
 <script src="js/tasima.js"></script>
+<script src="js/servis-oturma.js"></script>
+<script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
 <script src="js/app.js"></script>
 <script src="js/yedekleme.js"></script>
