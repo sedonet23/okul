@@ -858,3 +858,150 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   font-weight: 600;
 }
 
+
+/* ============================================================
+   RAPOR STİLLERİ  (js/raporlama.js)
+   ============================================================ */
+
+/* Disabled buton görünümü (telefon yoksa) */
+.btn.od-disabled,
+.btn[disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================================
+   SERVİS OTURMA PLANI STİLLERİ  (js/servis-oturma.js)
+   ============================================================ */
+
+/* Araç gövdesi */
+.so-arac-govde {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 280px;
+  padding: 12px;
+  background: #f8f7ff;
+  border-radius: 12px;
+  border: 2px solid #c4b5fd;
+}
+
+/* Şoför sırası */
+.so-sofor-sira {
+  display: flex;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+  border-bottom: 2px dashed #c4b5fd;
+  margin-bottom: 4px;
+}
+
+/* Koltuk sırası */
+.so-sira {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Koridor boşluğu */
+.so-koridor {
+  width: 18px;
+  flex-shrink: 0;
+}
+
+/* Tekil koltuk */
+.so-koltuk {
+  width: 64px;
+  height: 54px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid rgba(0,0,0,0.08);
+  transition: all 0.15s ease;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.so-koltuk:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  border-color: #7c3aed;
+}
+
+.so-koltuk.so-sofor {
+  background: #fef3c7 !important;
+  border-color: #f59e0b;
+  cursor: default;
+  font-size: 20px;
+}
+.so-koltuk.so-sofor:hover { transform: none; box-shadow: none; }
+
+.so-koltuk-no {
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(0,0,0,0.5);
+  line-height: 1;
+}
+
+.so-koltuk-ad {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(0,0,0,0.75);
+  text-align: center;
+  line-height: 1.2;
+  padding: 0 2px;
+  word-break: break-word;
+}
+
+.so-koltuk.so-dolu {
+  border-color: #16a34a;
+}
+
+.so-koltuk.so-rezerve {
+  border-color: #2563eb;
+}
+
+/* Taşıma alt sekme bölümleri */
+#tasima-bolum-servisler,
+#tasima-bolum-oturma {
+  animation: fadeIn 0.2s ease;
+}
+
+/* Oturma planı servis listesi */
+.oturma-servis-kart {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.oturma-servis-kart:hover {
+  border-color: var(--brand-purple);
+  box-shadow: var(--shadow-sm);
+}
+
+.oturma-servis-ozet {
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-top: 3px;
+}
+
+/* @media print kuralları rapor penceresinde tanımlı;
+   ana sayfada print için aşağıdakiler geçerli: */
+@media print {
+  .rapor-toolbar,
+  .page-header-actions .btn,
+  nav, .sidebar, .nav-bar {
+    display: none !important;
+  }
+}
