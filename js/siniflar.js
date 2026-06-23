@@ -236,17 +236,27 @@ const VELI_YAKINLIK_SECENEKLERI = ['Anne', 'Baba', 'Diğer'];
 
 function sinifVeliModalAc(id){
   const v = id ? veliler.find(x=>x.id===id) : null;
+  // Ad ve Soyadı ayrıştır
+  let ogrenciAd = '', ogrenciSoyad = '';
+  if(v && v.ogrenciAdi) {
+    const parts = v.ogrenciAdi.trim().split(/\s+/);
+    ogrenciSoyad = parts.pop() || '';
+    ogrenciAd = parts.join(' ');
+  }
   const body = `
     <div class="form-row">
-      <div class="form-group"><label>Öğrenci Adı</label><input id="f_vOgrenci" value="${v?escapeHtml(v.ogrenciAdi||''):''}"></div>
-      <div class="form-group"><label>Öğrenci No</label><input id="f_vOgrenciNo" value="${v?escapeHtml(v.ogrenciNo||''):''}\" placeholder="örn: 1024"></div>
+      <div class="form-group"><label>Öğrenci Adı</label><input id="f_vOgrenciAd" value="${escapeHtml(ogrenciAd)}" placeholder="Ad"></div>
+      <div class="form-group"><label>Öğrenci Soyadı</label><input id="f_vOgrenciSoyad" value="${escapeHtml(ogrenciSoyad)}" placeholder="Soyad"></div>
     </div>
-    <div class="form-group"><label>Cinsiyet</label>
-      <select id="f_vCinsiyet">
-        <option value="">—</option>
-        <option ${v&&v.cinsiyet==='Kız'?'selected':''}>Kız</option>
-        <option ${v&&v.cinsiyet==='Erkek'?'selected':''}>Erkek</option>
-      </select>
+    <div class="form-row">
+      <div class="form-group"><label>Öğrenci No</label><input id="f_vOgrenciNo" value="${v?escapeHtml(v.ogrenciNo||''):''}\" placeholder="örn: 1024"></div>
+      <div class="form-group"><label>Cinsiyet</label>
+        <select id="f_vCinsiyet">
+          <option value="">—</option>
+          <option ${v&&v.cinsiyet==='Kız'?'selected':''}>Kız</option>
+          <option ${v&&v.cinsiyet==='Erkek'?'selected':''}>Erkek</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label>Veli Adı</label><input id="f_vVeli" value="${v?escapeHtml(v.veliAdi||''): ''}"></div>
     <div class="form-row" style="align-items:flex-end;">
@@ -271,7 +281,9 @@ function sinifVeliModalAc(id){
     <div class="form-group"><label>Notlar</label><textarea id="f_vNotlar" rows="2">${v?escapeHtml(v.notlar||''):''}</textarea></div>
   `;
   modalAc(v?'Öğrenci Düzenle':'Yeni Öğrenci Ekle', body, ()=>{
-    const ogrenciAdi = document.getElementById('f_vOgrenci').value.trim();
+    const ogrenciAd = document.getElementById('f_vOgrenciAd').value.trim();
+    const ogrenciSoyad = document.getElementById('f_vOgrenciSoyad').value.trim();
+    const ogrenciAdi = (ogrenciAd + ' ' + ogrenciSoyad).trim();
     if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
     const servisId = document.getElementById('f_vServis').value;
     kaydet(COL.veliler, v?v.id:null, {

@@ -428,6 +428,8 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
     const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
 
     const cOgrenci = col('ÖĞRENCİ ADI','OGRENCI ADI','AD SOYAD','AD');
+    const cOgrenciAd = col('AD');
+    const cOgrenciSoyad = col('SOYAD');
     const cNo = col('ÖĞRENCİ NO','OGRENCI NO','NO','NUMARA');
     const cCinsiyet = col('CİNSİYET','CINSIYET');
     const cVeli = col('VELİ ADI','VELI ADI','VELİ AD SOYAD','VELI AD SOYAD','VELİ','VELI');
@@ -443,7 +445,18 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
     let eklenen=0, guncellenen=0;
     for(let i=headerIdx+1;i<aoa.length;i++){
       const row = aoa[i]; if(!row) continue;
-      const ogrenciAdi = cOgrenci!==-1 ? String(row[cOgrenci]||'').trim() : '';
+      
+      // Ad ve Soyadı ayrı ayrı al veya "Ad Soyadı" sütununu ayır
+      let ogrenciAdi = '';
+      if(cOgrenciAd!==-1 && cOgrenciSoyad!==-1){
+        // Ayrı sütunlardan al
+        const ad = String(row[cOgrenciAd]||'').trim();
+        const soyad = String(row[cOgrenciSoyad]||'').trim();
+        ogrenciAdi = (ad + ' ' + soyad).trim();
+      } else if(cOgrenci!==-1) {
+        // "Ad Soyadı" sütununu ayır
+        ogrenciAdi = String(row[cOgrenci]||'').trim();
+      }
       if(!ogrenciAdi) continue;
 
       // Sınıf belirleme: ya hedefSinifId verilmiş ya da Excel'deki sınıf adından
