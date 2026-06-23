@@ -428,8 +428,6 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
     const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
 
     const cOgrenci = col('ÖĞRENCİ ADI','OGRENCI ADI','AD SOYAD','AD');
-    const cOgrenciAd = col('AD');
-    const cOgrenciSoyad = col('SOYAD');
     const cNo = col('ÖĞRENCİ NO','OGRENCI NO','NO','NUMARA');
     const cCinsiyet = col('CİNSİYET','CINSIYET');
     const cVeli = col('VELİ ADI','VELI ADI','VELİ AD SOYAD','VELI AD SOYAD','VELİ','VELI');
@@ -445,18 +443,7 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
     let eklenen=0, guncellenen=0;
     for(let i=headerIdx+1;i<aoa.length;i++){
       const row = aoa[i]; if(!row) continue;
-      
-      // Ad ve Soyadı ayrı ayrı al veya "Ad Soyadı" sütununu ayır
-      let ogrenciAdi = '';
-      if(cOgrenciAd!==-1 && cOgrenciSoyad!==-1){
-        // Ayrı sütunlardan al
-        const ad = String(row[cOgrenciAd]||'').trim();
-        const soyad = String(row[cOgrenciSoyad]||'').trim();
-        ogrenciAdi = (ad + ' ' + soyad).trim();
-      } else if(cOgrenci!==-1) {
-        // "Ad Soyadı" sütununu ayır
-        ogrenciAdi = String(row[cOgrenci]||'').trim();
-      }
+      const ogrenciAdi = cOgrenci!==-1 ? String(row[cOgrenci]||'').trim() : '';
       if(!ogrenciAdi) continue;
 
       // Sınıf belirleme: ya hedefSinifId verilmiş ya da Excel'deki sınıf adından
@@ -621,4 +608,156 @@ async function dersListesiExceliIceAktar(file){
     }
     toast(`Ders/Branş listesi güncellendi: ${eklenen} eklendi, ${atlanan} zaten listede olduğu için atlandı.`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
+}
+
+/* ====================================================================
+   E-OKUL SINIF LİSTESİ (ÇOKLU SINIF) İÇE AKTARMA
+   e-Okul > "Sınıf Listesi" raporunun Excel çıktısı: tek sayfada, alt alta
+   birden çok sınıf olabilir. Her sınıfın sonunda "Kız/Erkek/Toplam Öğrenci
+   Sayısı" özet satırı bulunur — bu satırlar blok sınırı olarak kullanılır.
+   Sınıf adı (örn. "5-A") veriye dahil değildir (Crystal Reports'un sayfa
+   başlığı, tabloya aktarılmamış) — bu yüzden her blok için kullanıcı,
+   onay ekranında PDF'teki sıraya bakarak hangi bloğun hangi sınıfa ait
+   olduğunu kendisi seçer.
+   ==================================================================== */
+function eOkulCinsiyetNormallestir(deger){
+  const v = String(deger||'').toLocaleLowerCase('tr');
+  if(v.includes('kız') || v.includes('kiz')) return 'Kız';
+  if(v.includes('erkek')) return 'Erkek';
+  return '';
+}
+
+async function eOkulListesiOku(file, onSinifId){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+
+    const headerIdx = aoa.findIndex(r=>r.some(c=>normBaslik(c)==='ADI') && r.some(c=>normBaslik(c)==='SOYADI'));
+    if(headerIdx===-1){ toast('Başlık satırı bulunamadı ("Adı" / "Soyadı" sütunları gerekli — e-Okul "Sınıf Listesi" raporu bekleniyor).'); return; }
+    const header = aoa[headerIdx].map(normBaslik);
+    const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
+    const cAdi = col('ADI');
+    const cSoyadi = col('SOYADI');
+    const cNo = col('ÖĞRENCİ NO','OGRENCI NO','NUMARA');
+    const cCinsiyet = col('CİNSİYETİ','CINSIYETI','CİNSİYET','CINSIYET');
+
+    // Satırları "Kız/Erkek/Toplam Öğrenci Sayısı" özet satırlarına göre bloklara ayır.
+    const bloklar = [];
+    let mevcutBlok = [];
+    for(let i=headerIdx+1; i<aoa.length; i++){
+      const row = aoa[i];
+      if(!row || row.every(c=>c==null || c==='')) continue;
+      const satirMetni = row.map(c=>String(c==null?'':c)).join(' ').toLocaleUpperCase('tr');
+      const ozetSatiriMi = satirMetni.includes('SAYISI');
+      const ad = cAdi!==-1 ? String(row[cAdi]||'').trim() : '';
+      const noHam = cNo!==-1 ? row[cNo] : null;
+      const noGecerli = noHam!=null && String(noHam).trim()!=='' && !isNaN(parseInt(noHam));
+      if(ozetSatiriMi || !ad || !noGecerli){
+        if(mevcutBlok.length){ bloklar.push(mevcutBlok); mevcutBlok = []; }
+        continue;
+      }
+      const soyad = cSoyadi!==-1 ? String(row[cSoyadi]||'').trim() : '';
+      mevcutBlok.push({
+        ogrenciAdi: `${ad} ${soyad}`.trim(),
+        ogrenciNo: String(noHam).trim(),
+        cinsiyet: eOkulCinsiyetNormallestir(cCinsiyet!==-1 ? row[cCinsiyet] : '')
+      });
+    }
+    if(mevcutBlok.length) bloklar.push(mevcutBlok);
+
+    if(!bloklar.length){ toast('Dosyada öğrenci satırı bulunamadı.'); return; }
+    eOkulOnayModalAc(bloklar, onSinifId);
+  }catch(err){
+    console.error(err);
+    toast('Dosya okunamadı: '+err.message);
+  }
+}
+
+/* ---------- Bloklar bulunduktan sonra: hangi blok hangi sınıf? onay ekranı ---------- */
+function eOkulOnayModalAc(bloklar, onSinifId){
+  const sinifOptions = [...siniflar].sort(sinifAdiSirala);
+  const satirHtml = (blok, i) => {
+    const ornek = blok.slice(0,2).map(o=>o.ogrenciAdi).join(', ') + (blok.length>2 ? '…' : '');
+    const onerilenSinifId = (onSinifId && i===0) ? onSinifId : (sinifOptions[i] ? sinifOptions[i].id : '');
+    return `
+    <div class="form-group eok-satir" style="margin-bottom:10px;">
+      <label>Blok ${i+1} — ${blok.length} öğrenci<br><span style="font-weight:400;font-size:12px;color:var(--ink-muted);">${escapeHtml(ornek)}</span></label>
+      <select class="eok_sinif">
+        <option value="">— Atla (bu bloğu içe aktarma) —</option>
+        ${sinifOptions.map(s=>`<option value="${s.id}" ${s.id===onerilenSinifId?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}
+      </select>
+    </div>`;
+  };
+  const body = `
+    <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+      Dosyada <strong>${bloklar.length}</strong> sınıf bloğu bulundu. Her blok hangi sınıfa aitse (PDF'teki sıraya bakarak) seçin. O sınıfta kayıtlı ama bu listede olmayan öğrenciler <strong>silinir</strong>.
+    </p>
+    <div id="eokulEslemeSatirlari">${bloklar.map(satirHtml).join('')}</div>
+  `;
+  modalAc(`e-Okul Listesi — ${bloklar.length} Sınıf Bloğu`, body, async ()=>{
+    const satirEls = Array.from(document.querySelectorAll('#eokulEslemeSatirlari .eok-satir'));
+    const eslemeler = bloklar.map((blok,i)=>({ blok, sinifId: satirEls[i].querySelector('.eok_sinif').value })).filter(e=>e.sinifId);
+    if(!eslemeler.length){ toast('En az bir blok için sınıf seçmelisiniz.'); return; }
+
+    let eklenecek=0, guncellenecek=0, silinecek=0;
+    const planlar = eslemeler.map(e=>{
+      const mevcutOgrenciler = veliler.filter(v=>v.sinifId===e.sinifId);
+      const eslesmeler = e.blok.map(o=>{
+        const eslesen = mevcutOgrenciler.find(v=>
+          (o.ogrenciNo && v.ogrenciNo===o.ogrenciNo) ||
+          (!o.ogrenciNo && (v.ogrenciAdi||'').toLocaleLowerCase('tr')===o.ogrenciAdi.toLocaleLowerCase('tr'))
+        );
+        return { o, eslesen };
+      });
+      eklenecek += eslesmeler.filter(x=>!x.eslesen).length;
+      guncellenecek += eslesmeler.filter(x=>x.eslesen).length;
+      const eslesenIdSeti = new Set(eslesmeler.filter(x=>x.eslesen).map(x=>x.eslesen.id));
+      const silinecekler = mevcutOgrenciler.filter(v=>!eslesenIdSeti.has(v.id));
+      silinecek += silinecekler.length;
+      return { sinifId: e.sinifId, eslesmeler, silinecekler };
+    });
+
+    const onayMsj = `${eklenecek} öğrenci eklenecek, ${guncellenecek} güncellenecek, ${silinecek} öğrenci silinecek (listede olmayanlar). Onaylıyor musunuz?`;
+    if(!confirm(onayMsj)) return;
+    modalKapat();
+    toast('İçe aktarılıyor, lütfen bekleyin...');
+
+    try{
+      let batch = db.batch(); let sayac=0;
+      const commitVeDevamEt = async ()=>{ await batch.commit(); batch = db.batch(); sayac=0; };
+      for(const plan of planlar){
+        for(const {o, eslesen} of plan.eslesmeler){
+          const veri = { sinifId: plan.sinifId, ogrenciAdi: o.ogrenciAdi, ogrenciNo: o.ogrenciNo, cinsiyet: o.cinsiyet };
+          if(eslesen){
+            batch.set(db.collection(COL.veliler).doc(eslesen.id), veri, {merge:true});
+          } else {
+            batch.set(db.collection(COL.veliler).doc(), {
+              ...veri, veliAdi:'', yakinlik1:'', yakinlik2:'', yakinlik3:'',
+              telefon1:'', telefon2:'', telefon3:'', adres:'', servisId:'', servisAdi:'', notlar:'',
+              eklenmeTarihi: new Date().toISOString()
+            });
+          }
+          sayac++;
+          if(sayac>=400) await commitVeDevamEt();
+        }
+        for(const v of plan.silinecekler){
+          batch.delete(db.collection(COL.veliler).doc(v.id));
+          sayac++;
+          if(sayac>=400) await commitVeDevamEt();
+        }
+        const kiz = plan.eslesmeler.filter(x=>x.o.cinsiyet==='Kız').length;
+        const erkek = plan.eslesmeler.filter(x=>x.o.cinsiyet==='Erkek').length;
+        batch.update(db.collection(COL.siniflar).doc(plan.sinifId), { kizSayisi: kiz, erkekSayisi: erkek, ogrenciSayisi: kiz+erkek });
+        sayac++;
+        if(sayac>=400) await commitVeDevamEt();
+      }
+      if(sayac>0) await batch.commit();
+      toast(`İçe aktarıldı: ${eklenecek} eklendi, ${guncellenecek} güncellendi, ${silinecek} silindi.`);
+    }catch(err){
+      console.error(err);
+      toast('İçe aktarma hatası: '+err.message);
+    }
+  }, null);
 }

@@ -746,7 +746,7 @@ function baglantilariKur(){
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } }, hataGoster);
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
-  db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayVeliRender(sn); } }, hataGoster);
+  db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } }, hataGoster);
   nobetBaglantilariKur();
   db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
   db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
