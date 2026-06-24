@@ -887,10 +887,11 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   border: 2px solid #c4b5fd;
 }
 
-/* Şoför sırası */
+/* Şoför sırası (solda) */
 .so-sofor-sira {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
+  gap: 6px;
   padding-bottom: 8px;
   border-bottom: 2px dashed #c4b5fd;
   margin-bottom: 4px;
@@ -939,6 +940,14 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   font-size: 20px;
 }
 .so-koltuk.so-sofor:hover { transform: none; box-shadow: none; }
+
+.so-koltuk.so-refakatci {
+  background: #e0e7ff !important;
+  border-color: #6366f1;
+  cursor: default;
+  font-size: 18px;
+}
+.so-koltuk.so-refakatci:hover { transform: none; box-shadow: none; }
 
 .so-koltuk-no {
   font-size: 10px;
