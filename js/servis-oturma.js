@@ -1,17 +1,19 @@
 /* ====================================================================
-   js/servis-oturma.js  (v1.0)
+   js/servis-oturma.js  (v1.1)
    Servis Oturma Planı Modülü
    ────────────────────────────────────────────────────────────────────
    Veri: COL.servisOturma → 'oy_servisOturma'
      Belge ID = servisId
-     Alan: { servisId, kapasite, siraSayisi, duzen:'tek'|'cift',
-             soforKoltuguVarMi:bool,
+     Alan: { servisId, kapasite, siraSayisi, duzen:'tek'|'cift'|'dort',
+             soforKoltuguVarMi:bool, soforYaniSayisi:1|2,
              koltuklar:[{no, ogrenciId, ogrenciAdi, rezerve}] }
    ────────────────────────────────────────────────────────────────────
-   Koltuk şablonları:
-     Minibüs  (14 koltuk)
-     Midibüs  (26 koltuk)
-     Otobüs   (48 koltuk)
+   Koltuk şablonları (okulun gerçek filosu):
+     Minibüs 16+1  (16 öğrenci + 1 şoför)
+     Minibüs 16+2  (16 öğrenci + şoför + refakatçi koltuğu)
+     Minibüs 19+1  (19 öğrenci + 1 şoför)
+     Minibüs 19+2  (19 öğrenci + şoför + refakatçi koltuğu)
+     Otobüs  36    (36 öğrenci + 1 şoför)
    Renk kodlaması:
      🟢 dolu (#22c55e)   ⬜ boş (#e5e7eb)   🔵 rezerve (#3b82f6)
    ==================================================================== */
@@ -19,9 +21,11 @@
 let servisOturmaPlani = [];     // tüm servislerin oturma planları
 
 const SO_SABLONLAR = {
-  minibus: { ad: 'Minibüs', kapasite: 14, siraSayisi: 7,  duzen: 'cift', soforKoltuguVarMi: true  },
-  midibus: { ad: 'Midibüs', kapasite: 26, siraSayisi: 13, duzen: 'cift', soforKoltuguVarMi: true  },
-  otobus:  { ad: 'Otobüs',  kapasite: 48, siraSayisi: 12, duzen: 'dort', soforKoltuguVarMi: true  },
+  minibus16_1: { ad: 'Minibüs 16+1', kapasite: 16, siraSayisi: 4, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'tekli' },
+  minibus16_2: { ad: 'Minibüs 16+2', kapasite: 16, siraSayisi: 4, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'ikili' },
+  minibus19_1: { ad: 'Minibüs 19+1', kapasite: 19, siraSayisi: 5, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'tekli' },
+  minibus19_2: { ad: 'Minibüs 19+2', kapasite: 19, siraSayisi: 5, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'ikili' },
+  otobus36:    { ad: 'Otobüs 36',    kapasite: 36, siraSayisi: 6, duzen: 'dort', soforKoltuguVarMi: true, soforYani: 'tekli' },
 };
 
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ---------- */
@@ -43,10 +47,11 @@ function servisOturmaModalAc(servisId) {
   if (!s) return;
 
   const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  const kapasite    = mevcut ? mevcut.kapasite    : 14;
-  const siraSayisi  = mevcut ? mevcut.siraSayisi  : 7;
+  const kapasite    = mevcut ? mevcut.kapasite    : 16;
+  const siraSayisi  = mevcut ? mevcut.siraSayisi  : 4;
   const duzen       = mevcut ? mevcut.duzen       : 'cift';
   const soforVar    = mevcut ? (mevcut.soforKoltuguVarMi !== false) : true;
+  const soforYani   = mevcut ? (mevcut.soforYaniSayisi === 2 ? 'ikili' : 'tekli') : 'tekli';
 
   const modalIcerik = `
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -65,14 +70,16 @@ function servisOturmaModalAc(servisId) {
       <div>
         <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Araç Şablonu (hızlı seçim)</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus')">🚐 Minibüs (14)</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('midibus')">🚌 Midibüs (26)</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('otobus')">🚎 Otobüs (48)</button>
+          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus16_1')">🚐 Minibüs 16+1</button>
+          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus16_2')">🚐 Minibüs 16+2</button>
+          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus19_1')">🚐 Minibüs 19+1</button>
+          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus19_2')">🚐 Minibüs 19+2</button>
+          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('otobus36')">🚌 Otobüs 36</button>
         </div>
       </div>
 
       <!-- Özel yapı -->
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
         <div class="form-group" style="flex:1;min-width:120px;">
           <label>Kapasite (10–60)</label>
           <input type="number" id="soKapasite" min="10" max="60" value="${kapasite}" oninput="soYapiGuncelle()">
@@ -89,12 +96,17 @@ function servisOturmaModalAc(servisId) {
             <option value="dort"  ${duzen === 'dort' ? 'selected' : ''}>2+2+2 (geniş)</option>
           </select>
         </div>
-        <div class="form-group" style="flex:1;min-width:120px;justify-content:flex-end;align-items:flex-end;display:flex;">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;">
-            <input type="checkbox" id="soSoforVar" ${soforVar ? 'checked' : ''} onchange="soYapiGuncelle()">
-            Şoför koltuğu göster
-          </label>
+        <div class="form-group" style="flex:1;min-width:140px;">
+          <label>Şoför Yanı</label>
+          <select id="soSoforYani" onchange="soYapiGuncelle()" style="width:100%;">
+            <option value="tekli" ${soforYani === 'tekli' ? 'selected' : ''}>🪑 Tekli (sadece şoför)</option>
+            <option value="ikili" ${soforYani === 'ikili' ? 'selected' : ''}>🪑🪑 İkili (şoför + refakatçi)</option>
+          </select>
         </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;margin-bottom:8px;">
+          <input type="checkbox" id="soSoforVar" ${soforVar ? 'checked' : ''} onchange="soYapiGuncelle()">
+          Şoför koltuğu
+        </label>
       </div>
 
       <!-- Koltuk grid -->
@@ -129,6 +141,7 @@ function soSablonUygula(sablon) {
   document.getElementById('soSiraSayisi').value = s.siraSayisi;
   document.getElementById('soDuzen').value      = s.duzen;
   document.getElementById('soSoforVar').checked = s.soforKoltuguVarMi;
+  document.getElementById('soSoforYani').value  = s.soforYani || 'tekli';
   soYapiGuncelle();
 }
 
@@ -147,6 +160,7 @@ function _soRenderGrid(servisId) {
   const siraSayisi = parseInt(document.getElementById('soSiraSayisi').value) || 7;
   const duzen      = document.getElementById('soDuzen').value || 'cift';
   const soforVar   = document.getElementById('soSoforVar').checked;
+  const soforYani  = document.getElementById('soSoforYani').value || 'tekli';
 
   // Mevcut koltuk verileri
   const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
@@ -162,10 +176,11 @@ function _soRenderGrid(servisId) {
 
   let html = '<div class="so-arac-govde">';
 
-  // Şoför koltuğu
+  // Şoför koltuğu (+ varsa refakatçi koltuğu) — araç gövdesinin solunda
   if (soforVar) {
     html += `<div class="so-sofor-sira">
       <div class="so-koltuk so-sofor" title="Şoför">🧑‍✈️</div>
+      ${soforYani === 'ikili' ? `<div class="so-koltuk so-refakatci" title="Refakatçi / Rehber Öğretmen">🧑‍🏫</div>` : ''}
     </div>`;
   }
 
@@ -276,7 +291,8 @@ function soKoltukTikla(koltukNo, servisId) {
     const ogrenciId = document.getElementById('soOgrenciSec').value;
     const rezerve   = document.getElementById('soRezerveCheck').checked && !ogrenciId;
     soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve);
-    modalKapat();
+    // Modal AÇIK kalır — kullanıcı başka koltuk seçebilsin
+    // Grid otomatik yenilenecek (snapshot listener aracılığıyla)
   });
 }
 
@@ -303,10 +319,12 @@ function soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve) {
   const siraSayisi = parseInt(document.getElementById('soSiraSayisi')?.value) || mevcut?.siraSayisi || 7;
   const duzen      = document.getElementById('soDuzen')?.value || mevcut?.duzen || 'cift';
   const soforVar   = document.getElementById('soSoforVar')?.checked ?? (mevcut?.soforKoltuguVarMi !== false);
+  const soforYaniSayisi = (document.getElementById('soSoforYani')?.value === 'ikili') ? 2 : 1;
 
   db.collection(COL.servisOturma).doc(servisId).set({
     servisId, kapasite, siraSayisi, duzen,
     soforKoltuguVarMi: soforVar,
+    soforYaniSayisi,
     koltuklar,
     guncellendi: new Date().toISOString(),
   }, { merge: false }).catch(err => toast('Hata: ' + err.message));
@@ -332,10 +350,12 @@ function soKaydet(servisId) {
   const siraSayisi = parseInt(document.getElementById('soSiraSayisi')?.value) || 7;
   const duzen      = document.getElementById('soDuzen')?.value || 'cift';
   const soforVar   = document.getElementById('soSoforVar')?.checked ?? true;
+  const soforYaniSayisi = (document.getElementById('soSoforYani')?.value === 'ikili') ? 2 : 1;
 
   db.collection(COL.servisOturma).doc(servisId).set({
     servisId, kapasite, siraSayisi, duzen,
     soforKoltuguVarMi: soforVar,
+    soforYaniSayisi,
     koltuklar: mevcut ? (mevcut.koltuklar || []) : [],
   }, { merge: true }).then(() => toast('Oturma planı kaydedildi.'))
     .catch(err => toast('Hata: ' + err.message));

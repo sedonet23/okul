@@ -24,15 +24,22 @@ function _raporModalAc(baslik, icerikleri, onay) {
    modalı doğrudan stille açıldığı için "Vazgeç" tıklanınca kapanmıyordu. */
 
 /* ---------- Yardımcı: Rapor Penceresi Aç (A4 Optimize) ---------- */
-function _raporPenceresiniAc(htmlIcerik, baslik) {
+function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
+  secenekler = secenekler || {};
+  const logoGoster   = secenekler.logoGoster !== false;     // varsayılan: göster
+  const ortaliBaslik = !!secenekler.ortaliBaslik;            // varsayılan: sola hizalı (logo yanında)
+  const sayfaKenar    = secenekler.sayfaKenar || '10mm 12mm';
+
   const win = window.open('', '_blank', 'width=950,height=1000');
   if (!win) { toast('Açılır pencere engellendi. Tarayıcı ayarlarınızı kontrol edin.'); return null; }
 
   const okulAdi  = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const tarih    = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
 
-  const logoHtml = `<img src="${window.location.origin + window.location.pathname.replace(/[^/]*$/, '')}assets/logo.png"
-                        alt="" style="height:48px;object-fit:contain;" onerror="this.style.display='none'">`;
+  const logoHtml = logoGoster
+    ? `<img src="${window.location.origin + window.location.pathname.replace(/[^/]*$/, '')}assets/logo.png"
+            alt="" style="height:48px;object-fit:contain;" onerror="this.style.display='none'">`
+    : '';
 
   win.document.write(`<!DOCTYPE html>
 <html lang="tr">
@@ -40,9 +47,12 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
   <meta charset="UTF-8">
   <title>${baslik} — ${okulAdi}</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after {
+      box-sizing: border-box; margin: 0; padding: 0;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
+    }
     
-    @page { size: A4 portrait; margin: 10mm 12mm; }
+    @page { size: A4 portrait; margin: ${sayfaKenar}; }
     
     body { 
       font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
@@ -58,6 +68,12 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
     .rapor-header-text h1 { font-size: 16px; color: #4f46e5; font-weight: 700; }
     .rapor-header-text h2 { font-size: 12px; color: #555; font-weight: 400; margin-top: 1px; }
     .rapor-header-text .rapor-tarih { font-size: 10px; color: #888; margin-top: 3px; }
+    /* Logosuz / ortalı başlık (örn. Nöbet Çizelgesi orijinal şablonu) */
+    .rapor-header.rapor-header-ortali {
+      flex-direction: column; text-align: center;
+      padding-bottom: 6px; margin-bottom: 10px;
+    }
+    .rapor-header-ortali .rapor-header-text h1 { font-size: 15px; }
 
     /* ---------- Araç Çubuğu ---------- */
     .rapor-toolbar {
@@ -96,6 +112,16 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
     tbody tr:hover { background: #ede9fe; }
     td { padding: 4px 7px; border-bottom: 1px solid #e5e7eb; font-size: 10.5px; }
 
+    /* ---------- Nöbet Çizelgesi: tek sayfaya sığdırmak için sıkı yerleşim ---------- */
+    .nobet-sik table { margin-bottom: 6px; }
+    .nobet-sik thead th { padding: 2.5px 5px; font-size: 8.5px; }
+    .nobet-sik tbody td { padding: 1.5px 5px; font-size: 8px; line-height: 1.15; }
+    .nobet-sik .bolum-baslik { margin: 6px 0 4px; padding: 3px 6px; font-size: 9.5px; }
+    .nobet-sik .ozet-kutu { margin: 0 0 6px 0; padding: 2px 7px; }
+    .nobet-sik ol { font-size: 8px; line-height: 1.3; padding-left: 16px; }
+    .nobet-sik ol li { margin-bottom: 1px; }
+    .nobet-sik p { font-size: 8.5px; margin-top: 3px; }
+
     /* ---------- Servis Oturma Planı: Otobüs Gövdesi (canlı editörle aynı mantık) ---------- */
     .so-rapor-bilgi {
       font-size: 10.5px; color: #5b21b6; background: #f5f3ff; border: 1px solid #c4b5fd;
@@ -110,7 +136,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
       font-size: 9px; font-weight: 700; color: #92400e; margin-bottom: 8px;
     }
     .so-rapor-sofor-sira {
-      display: flex; justify-content: flex-end;
+      display: flex; justify-content: flex-start; gap: 4px;
       padding-bottom: 6px; border-bottom: 2px dashed #d4b86a; margin-bottom: 6px;
     }
     .so-rapor-sira { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
@@ -128,17 +154,14 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
     .so-rapor-koltuk.so-rapor-sofor-koltuk {
       background: #fef3c7; border-color: #f59e0b; font-size: 14px; flex: 0 0 15%;
     }
+    .so-rapor-koltuk.so-rapor-refakatci-koltuk {
+      background: #e0e7ff; border-color: #6366f1; font-size: 13px; flex: 0 0 15%;
+    }
     .so-rapor-lejant { font-size: 9px; margin: -2px 0 10px; padding: 4px; background: #fff9e6; text-align: center; border-radius: 4px; }
 
     /* ---------- Print ---------- */
     @media print {
       .rapor-toolbar { display: none !important; }
-      thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .bolum-baslik { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .so-rapor-govde { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .so-rapor-koltuk { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .so-rapor-lejant { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .ozet-kutu { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
       .sayfa-sonu { page-break-before: always; }
@@ -150,7 +173,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
     <button class="btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button>
     <button class="btn-kapat"  onclick="window.close()">✕ Kapat</button>
   </div>
-  <div class="rapor-header">
+  <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
       <h1>${baslik}</h1>
@@ -410,7 +433,8 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   const gunSayisi = new Date(yil, ay + 1, 0).getDate();
   const ayAdiKisa = AYLAR[ay];
 
-  let html = `<span class="ozet-kutu">${escapeHtml(ayAdiKisa)} ${yil}</span>`;
+  let html = `<div class="nobet-sik">
+    <span class="ozet-kutu">${escapeHtml(ayAdiKisa)} ${yil}</span>`;
 
   let thHtml = '<th style="width:90px;">Tarih / Gün</th>';
   yerler.forEach(y => { thHtml += `<th>${escapeHtml(y.ad)}</th>`; });
@@ -466,7 +490,7 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   amirleriBuAy.forEach(a => telefonSatirlari.push({ rol: 'Nöbetçi Amiri', ad: a.ad, telefon: a.telefon }));
 
   if (telefonSatirlari.length) {
-    html += `<div style="page-break-inside:avoid;margin-top:20px;padding-top:14px;border-top:2px solid #4f46e5;">
+    html += `<div style="page-break-inside:avoid;margin-top:10px;padding-top:8px;border-top:2px solid #4f46e5;">
       <div class="bolum-baslik">📞 Telefonlar</div>
       <table style="font-size:10px;"><tbody>`;
     telefonSatirlari.forEach(t => {
@@ -479,9 +503,9 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   }
 
   // Nöbet kuralları
-  html += `<div style="page-break-inside:avoid;margin-top:20px;padding-top:14px;border-top:2px solid #4f46e5;">
+  html += `<div style="page-break-inside:avoid;margin-top:10px;padding-top:8px;border-top:2px solid #4f46e5;">
     <div class="bolum-baslik">📋 Nöbet Öğretmenin Görevleri</div>
-    <ol style="font-size:10px;line-height:1.6;padding-left:20px;margin:0;">
+    <ol style="margin:0;">
       <li>Ders başlaması hemen öncesinde tüm öğrencilerin sınıflarında yerleştiğini kontrol edilmesi.</li>
       <li>Ders başladıktan sonra geç gelen öğrenci kalırsa öğretmenle iletişime geçilmesi.</li>
       <li>Teneffüslerde bahçe düzeni, zabıta görevine eşlik edilmesi ve güvenlik sağlanması.</li>
@@ -509,17 +533,22 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
     } catch (e) { return gecerlilikTarihiISO; }
   })();
 
-  html += `<div style="page-break-inside:avoid;margin-top:24px;font-size:10.5px;line-height:1.6;">
+  html += `<div style="page-break-inside:avoid;margin-top:10px;font-size:8.5px;line-height:1.35;">
     <p>Bu çizelge <strong>${escapeHtml(gecerlilikGosterim)}</strong> tarihinden itibaren geçerlidir.</p>
-    <p style="margin-top:6px;">Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
-    <div style="text-align:right;margin-top:30px;">
+    <p style="margin-top:3px;">Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
+    <div style="text-align:right;margin-top:14px;">
       <div>${escapeHtml(gecerlilikGosterim)}</div>
-      <div style="font-weight:700;margin-top:4px;">${mudur2 ? escapeHtml(`${mudur2.ad} ${mudur2.soyad}`) : '—'}</div>
+      <div style="font-weight:700;margin-top:3px;">${mudur2 ? escapeHtml(`${mudur2.ad} ${mudur2.soyad}`) : '—'}</div>
       <div>Okul Müdürü</div>
     </div>
-  </div>`;
+  </div>
+  </div>`; // .nobet-sik kapanışı
 
-  _raporPenceresiniAc(html, `🛡️ ${ayAdiKisa} Ayı Öğretmen Nöbet Çizelgesi`);
+  _raporPenceresiniAc(html, `🛡️ ${ayAdiKisa} Ayı Öğretmen Nöbet Çizelgesi`, {
+    logoGoster: false,
+    ortaliBaslik: true,
+    sayfaKenar: '8mm 10mm'
+  });
 }
 
 /* ================================================================
@@ -838,7 +867,11 @@ function _soRaporGovdeHtml(servis, plan) {
     <div class="so-rapor-ust-etiket"><span>🚪 GİRİŞ KAPISI</span><span>🚨 ACİL ÇIKIŞ</span></div>`;
 
   if (soforVar) {
-    html += `<div class="so-rapor-sofor-sira"><div class="so-rapor-koltuk so-rapor-sofor-koltuk">🧑‍✈️</div></div>`;
+    const refakatciVarMi = plan.soforYaniSayisi === 2;
+    html += `<div class="so-rapor-sofor-sira">
+      <div class="so-rapor-koltuk so-rapor-sofor-koltuk">🧑‍✈️</div>
+      ${refakatciVarMi ? `<div class="so-rapor-koltuk so-rapor-refakatci-koltuk">🧑‍🏫</div>` : ''}
+    </div>`;
   }
 
   let koltukNo = 1;
