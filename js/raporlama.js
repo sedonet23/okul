@@ -15,12 +15,13 @@ function _raporModalAc(baslik, icerikleri, onay) {
   
   document.getElementById('modalKaydetBtn').onclick = onay;
   document.getElementById('modalKaydetBtn').textContent = 'Devam Et';
-  overlay.style.display = 'flex';
+  overlay.classList.add('active');
 }
-
-function modalKapat() {
-  document.getElementById('modalOverlay').style.display = 'none';
-}
+/* NOT: modalKapat() burada tanımlanmıyor — app.js'teki tek/standart
+   modalKapat() (classList.remove('active')) tüm modallar için kullanılıyor.
+   Daha önce burada ikinci bir modalKapat() (style.display='none') tanımlıydı;
+   script yükleme sırası nedeniyle app.js'teki sürüm onu eziyordu, ama bu rapor
+   modalı doğrudan stille açıldığı için "Vazgeç" tıklanınca kapanmıyordu. */
 
 /* ---------- Yardımcı: Rapor Penceresi Aç (A4 Optimize) ---------- */
 function _raporPenceresiniAc(htmlIcerik, baslik) {
@@ -95,34 +96,48 @@ function _raporPenceresiniAc(htmlIcerik, baslik) {
     tbody tr:hover { background: #ede9fe; }
     td { padding: 4px 7px; border-bottom: 1px solid #e5e7eb; font-size: 10.5px; }
 
-    /* ---------- Araç Koltuk Grid ---------- */
-    .vehicle-diagram {
-      margin: 14px 0; padding: 12px;
-      background: #f9f8ff; border: 1px solid #c4b5fd;
-      border-radius: 6px; font-size: 10px;
+    /* ---------- Servis Oturma Planı: Otobüs Gövdesi (canlı editörle aynı mantık) ---------- */
+    .so-rapor-bilgi {
+      font-size: 10.5px; color: #5b21b6; background: #f5f3ff; border: 1px solid #c4b5fd;
+      border-radius: 6px; padding: 6px 10px; margin: 8px 0 10px; display: inline-block;
     }
-    .vehicle-title { font-weight: 700; margin-bottom: 8px; color: #4f46e5; }
-    .seats-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(32px, 1fr));
-      gap: 6px; margin: 0 0 10px 0;
+    .so-rapor-govde {
+      margin: 0 0 4px; padding: 12px 10px 8px; background: #fffbea;
+      border: 2px solid #f3d77a; border-radius: 14px;
     }
-    .seat {
-      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
-      border: 1px solid #ccc; border-radius: 4px; font-weight: 600;
-      font-size: 10px; text-align: center; padding: 2px;
+    .so-rapor-ust-etiket {
+      display: flex; justify-content: space-between;
+      font-size: 9px; font-weight: 700; color: #92400e; margin-bottom: 8px;
     }
-    .seat-occupied { background: #dcfce7; border-color: #22c55e; color: #166534; }
-    .seat-reserved { background: #dbeafe; border-color: #3b82f6; color: #1e40af; }
-    .seat-empty { background: #f3f4f6; border-color: #9ca3af; color: #6b7280; }
-    .seat-number { font-size: 9px; }
+    .so-rapor-sofor-sira {
+      display: flex; justify-content: flex-end;
+      padding-bottom: 6px; border-bottom: 2px dashed #d4b86a; margin-bottom: 6px;
+    }
+    .so-rapor-sira { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
+    .so-rapor-koridor { width: 14px; flex-shrink: 0; }
+    .so-rapor-koltuk {
+      flex: 1; min-width: 0; height: 34px; border-radius: 5px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      border: 1.5px solid rgba(0,0,0,0.18); overflow: hidden;
+    }
+    .so-rapor-koltuk-no { font-size: 8px; font-weight: 700; color: rgba(0,0,0,0.55); line-height: 1; }
+    .so-rapor-koltuk-ad { font-size: 7.5px; font-weight: 600; color: rgba(0,0,0,0.8); text-align: center; line-height: 1.1; padding: 0 1px; word-break: break-word; }
+    .so-rapor-dolu    { background: #dcfce7; border-color: #22c55e; }
+    .so-rapor-rezerve { background: #dbeafe; border-color: #3b82f6; }
+    .so-rapor-bos     { background: #f3f4f6; border-color: #9ca3af; }
+    .so-rapor-koltuk.so-rapor-sofor-koltuk {
+      background: #fef3c7; border-color: #f59e0b; font-size: 14px; flex: 0 0 15%;
+    }
+    .so-rapor-lejant { font-size: 9px; margin: -2px 0 10px; padding: 4px; background: #fff9e6; text-align: center; border-radius: 4px; }
 
     /* ---------- Print ---------- */
     @media print {
       .rapor-toolbar { display: none !important; }
       thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .bolum-baslik { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .vehicle-diagram { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .seat { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .so-rapor-govde { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .so-rapor-koltuk { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .so-rapor-lejant { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       .ozet-kutu { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
@@ -358,79 +373,165 @@ function _raporVeliIletisimGoster(sinifIdFiltre, seciliAlanlar) {
    3. 🛡️  Nöbet Listesi  (Modal + alanlar)
    ================================================================ */
 function raporNobetListesi() {
-  if (!nobetAtamalari || !nobetAtamalari.length) {
-    toast('Nöbet ataması bulunamadı.');
+  if (!nobetYerleri || !nobetYerleri.length) {
+    toast('Önce nöbet yeri tanımlayın.');
     return;
   }
 
+  const ayBasiISO = nobetTarihISO(nobetGoruntulenenYil, nobetGoruntulenenAy, 1);
+  const ayAdi = nobetAyAdiUzun(nobetGoruntulenenYil, nobetGoruntulenenAy);
+
   const alanlarHtml = `
-    <div>
-      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Raporda Gösterilecek Alanlar:</label>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_tarih" checked> Tarih</label>
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_ogretmen" checked> Öğretmen</label>
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_nobet" checked> Nöbet Yeri</label>
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_durum" checked> Durum</label>
-      </div>
+    <div style="text-align:center;color:#6b7280;margin-bottom:14px;">
+      <p style="margin-bottom:10px;line-height:1.5;">
+        <strong>${escapeHtml(ayAdi)}</strong> ayı çizelgesi, Nöbet Programı ekranındaki görünümle aynı şekilde
+        (tüm günler, hafta sonu/tatil satırları, Telefonlar ve Nöbet Kuralları dahil) yazdırılacak.
+      </p>
+    </div>
+    <div class="form-group">
+      <label style="display:block;margin-bottom:6px;font-weight:600;color:#374151;">Geçerlilik Tarihi (imza alanında kullanılacak):</label>
+      <input type="date" id="nobetGecerlilikTarihi" value="${ayBasiISO}"
+             style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;">
     </div>
   `;
 
-  _raporModalAc('🛡️ Nöbet Listesi', alanlarHtml, () => {
-    const seciliAlanlar = {
-      tarih: document.getElementById('alan_tarih').checked,
-      ogretmen: document.getElementById('alan_ogretmen').checked,
-      nobet: document.getElementById('alan_nobet').checked,
-      durum: document.getElementById('alan_durum').checked,
-    };
+  _raporModalAc('🛡️ Öğretmen Nöbet Çizelgesi', alanlarHtml, () => {
+    const gecerlilikTarihi = document.getElementById('nobetGecerlilikTarihi').value || ayBasiISO;
     modalKapat();
-    _raporNobetGoster(seciliAlanlar);
+    _raporNobetGoster(gecerlilikTarihi);
   });
 }
 
-function _raporNobetGoster(seciliAlanlar) {
-  let html = '';
-  
-  let thHtml = '<th>#</th>';
-  if (seciliAlanlar.tarih) thHtml += '<th>Tarih</th>';
-  if (seciliAlanlar.ogretmen) thHtml += '<th>Öğretmen</th>';
-  if (seciliAlanlar.nobet) thHtml += '<th>Nöbet Yeri</th>';
-  if (seciliAlanlar.durum) thHtml += '<th>Durum</th>';
+function _raporNobetGoster(gecerlilikTarihiISO) {
+  const yil = nobetGoruntulenenYil, ay = nobetGoruntulenenAy;
+  const yerler = nobetYerSirali();
+  if (!yerler.length) { toast('Önce nöbet yeri tanımlayın.'); return; }
 
-  html += `<table><thead><tr>${thHtml}</tr></thead><tbody>`;
-  
-  nobetAtamalari.forEach((n, i) => {
-    html += `<tr><td>${i + 1}</td>`;
-    if (seciliAlanlar.tarih) html += `<td>${escapeHtml(n.tarih || '—')}</td>`;
-    if (seciliAlanlar.ogretmen) {
-      const ogr = ogretmenler.find(o => o.id === n.ogretmenId);
-      const ogrAdi = ogr ? `${ogr.ad} ${ogr.soyad}` : (n.ogretmenAdSoyad || '—');
-      html += `<td>${escapeHtml(ogrAdi)}</td>`;
+  const gunSayisi = new Date(yil, ay + 1, 0).getDate();
+  const ayAdiKisa = AYLAR[ay];
+
+  let html = `<span class="ozet-kutu">${escapeHtml(ayAdiKisa)} ${yil}</span>`;
+
+  let thHtml = '<th style="width:90px;">Tarih / Gün</th>';
+  yerler.forEach(y => { thHtml += `<th>${escapeHtml(y.ad)}</th>`; });
+  thHtml += '<th style="width:110px;">Nöbetçi Amir</th>';
+
+  html += `<table style="table-layout:fixed;">
+    <thead><tr>${thHtml}</tr></thead>
+    <tbody>`;
+
+  const amirleriBuAy = []; // Telefonlar bölümü için tekrarsız liste
+
+  for (let d = 1; d <= gunSayisi; d++) {
+    const iso = nobetTarihISO(yil, ay, d);
+    const haftasonu = nobetHaftasonuMu(yil, ay, d);
+    const tatil = nobetTatilMi(iso);
+    const gunAdi = GUNADI[new Date(yil, ay, d).getDay()];
+
+    html += `<tr><td style="font-weight:700;">${d} <span style="color:#6b7280;font-weight:400;">${escapeHtml(gunAdi)}</span></td>`;
+
+    if (haftasonu) {
+      html += `<td colspan="${yerler.length + 1}" style="text-align:center;background:#f3f4f6;color:#9ca3af;font-weight:600;">HAFTASONU</td>`;
+    } else if (tatil) {
+      html += `<td colspan="${yerler.length + 1}" style="text-align:center;background:#fff3cd;color:#92400e;font-weight:600;">RESMİ TATİL${tatil.aciklama ? ' — ' + escapeHtml(tatil.aciklama) : ''}</td>`;
+    } else {
+      yerler.forEach(y => {
+        const atama = nobetAtamalari.find(a => a.tarih === iso && a.yerId === y.id);
+        html += atama
+          ? `<td>${escapeHtml(atama.ogretmenAdSoyad || '—')}</td>`
+          : `<td style="color:#ccc;">—</td>`;
+      });
+
+      const amir = nobetciAmirleri.find(a => a.tarih === iso);
+      if (amir && amir.ad) {
+        html += `<td style="font-weight:600;color:#4f46e5;">${escapeHtml(amir.ad)}</td>`;
+        const ad = amir.ad.trim();
+        if (!amirleriBuAy.some(x => x.ad.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr'))) {
+          amirleriBuAy.push({ ad, telefon: amir.telefon || '' });
+        }
+      } else {
+        html += `<td style="color:#ccc;">—</td>`;
+      }
     }
-    if (seciliAlanlar.nobet) {
-      const nobet = nobetYerleri.find(y => y.id === n.nobetYeriId);
-      const nobetAdi = nobet ? nobet.ad : (n.nobetYeriAd || '—');
-      html += `<td>${escapeHtml(nobetAdi)}</td>`;
-    }
-    if (seciliAlanlar.durum) html += `<td>${escapeHtml(n.durum || 'Atandı')}</td>`;
     html += `</tr>`;
-  });
-
+  }
   html += `</tbody></table>`;
-  html = `<span class="ozet-kutu">Toplam Nöbet: ${nobetAtamalari.length}</span>` + html;
 
-  _raporPenceresiniAc(html, '🛡️ Nöbet Listesi');
+  // Telefonlar: sadece Okul Müdürü + bu ayın Nöbetçi Amiri/leri
+  const telefonSatirlari = [];
+  if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mudurId) {
+    const mudur = ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId);
+    if (mudur) telefonSatirlari.push({ rol: 'Okul Müdürü', ad: `${mudur.ad} ${mudur.soyad}`, telefon: mudur.telefon || '' });
+  }
+  amirleriBuAy.forEach(a => telefonSatirlari.push({ rol: 'Nöbetçi Amiri', ad: a.ad, telefon: a.telefon }));
+
+  if (telefonSatirlari.length) {
+    html += `<div style="page-break-inside:avoid;margin-top:20px;padding-top:14px;border-top:2px solid #4f46e5;">
+      <div class="bolum-baslik">📞 Telefonlar</div>
+      <table style="font-size:10px;"><tbody>`;
+    telefonSatirlari.forEach(t => {
+      html += `<tr>
+        <td style="width:50%;"><strong>${escapeHtml(t.ad)}</strong> <span style="color:#6b7280;">(${escapeHtml(t.rol)})</span></td>
+        <td style="width:50%;">${escapeHtml(t.telefon || '—')}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  // Nöbet kuralları
+  html += `<div style="page-break-inside:avoid;margin-top:20px;padding-top:14px;border-top:2px solid #4f46e5;">
+    <div class="bolum-baslik">📋 Nöbet Öğretmenin Görevleri</div>
+    <ol style="font-size:10px;line-height:1.6;padding-left:20px;margin:0;">
+      <li>Ders başlaması hemen öncesinde tüm öğrencilerin sınıflarında yerleştiğini kontrol edilmesi.</li>
+      <li>Ders başladıktan sonra geç gelen öğrenci kalırsa öğretmenle iletişime geçilmesi.</li>
+      <li>Teneffüslerde bahçe düzeni, zabıta görevine eşlik edilmesi ve güvenlik sağlanması.</li>
+      <li>Trafik için yaya düzeni uygulanması, araçlara dikkat edilmesi ve güvenli yoldan geçişin sağlanması.</li>
+      <li>Okuldan ayrılan öğrencilerin kontrol edilmesi.</li>
+      <li>Sağlık açısından acil durumlarda okul yönetimine haber verilmesi ve gerekli müdahaleler yapılması.</li>
+      <li>İdarece verilen diğer görevlerin yapılması.</li>
+      <li>Nöbetçi öğretmenlerin görevlerinden başarısızlığında müdürle görüşülmesi.</li>
+      <li>Öğrenci tarafından izinsiz bina terk etmesi durumunda derhal öğretmen ve müdüre haber verilmesi.</li>
+      <li>Eğitim faaliyeti dışında konuşmaların yapılmaması.</li>
+      <li>Nöbetçi görevlerinden bunaldıysa, müdürle bunu tartışması ve çözüm arayacaktır.</li>
+      <li>Son geçen dersinin başlaması sonrasında çıkışta bitecek dersin dışında kalmamış denetim sağlanması.</li>
+      <li>Hasta öğrenci için vasi bulunmadığında sevk işlemleri yapılmalı.</li>
+      <li>Ders bitiminden sonra tüm öğrencilerin okul alanından ayrıldığını kontrol edilmesi.</li>
+    </ol>
+  </div>`;
+
+  // Okul Müdürü imza alanı
+  const mudur2 = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mudurId)
+    ? ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId) : null;
+  const gecerlilikGosterim = (() => {
+    try {
+      const [yy, mm, dd] = gecerlilikTarihiISO.split('-').map(Number);
+      return new Date(yy, mm - 1, dd).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) { return gecerlilikTarihiISO; }
+  })();
+
+  html += `<div style="page-break-inside:avoid;margin-top:24px;font-size:10.5px;line-height:1.6;">
+    <p>Bu çizelge <strong>${escapeHtml(gecerlilikGosterim)}</strong> tarihinden itibaren geçerlidir.</p>
+    <p style="margin-top:6px;">Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
+    <div style="text-align:right;margin-top:30px;">
+      <div>${escapeHtml(gecerlilikGosterim)}</div>
+      <div style="font-weight:700;margin-top:4px;">${mudur2 ? escapeHtml(`${mudur2.ad} ${mudur2.soyad}`) : '—'}</div>
+      <div>Okul Müdürü</div>
+    </div>
+  </div>`;
+
+  _raporPenceresiniAc(html, `🛡️ ${ayAdiKisa} Ayı Öğretmen Nöbet Çizelgesi`);
 }
 
 /* ================================================================
    4. 📅 Ders Programı  (Modal + alanlar)
    ================================================================ */
 function raporDersProgrami() {
-  if (!dersProgrami || !dersProgrami.length) {
-    toast('Ders programı bulunamadı.');
+  if (!siniflar || !siniflar.length) {
+    toast('Sınıf bulunamadı.');
     return;
   }
 
-  const siniflarHtml = siniflar
+  const siniflarHtml = [...siniflar]
     .sort((a, b) => (a.ad || '').localeCompare(b.ad || '', 'tr'))
     .map(s => `<option value="${s.id}">${escapeHtml(s.ad)}</option>`)
     .join('');
@@ -459,41 +560,52 @@ function _raporDersProgramiGoster(sinifIdFiltre) {
     ? siniflar.filter(s => s.id === sinifIdFiltre)
     : [...siniflar].sort((a, b) => (a.ad || '').localeCompare(b.ad || '', 'tr'));
 
+  if (!hedefSiniflar.length) { toast('Sınıf bulunamadı.'); return; }
+
+  const dersSaatAyari = (typeof dersSaatleriAyarlari !== 'undefined' && dersSaatleriAyarlari)
+    ? dersSaatleriAyarlari
+    : (typeof dersSaatleriVarsayilan === 'function' ? dersSaatleriVarsayilan() : { donemler: [] });
+  const toplamSaat = (dersSaatAyari.donemler && dersSaatAyari.donemler.length) ? dersSaatAyari.donemler.length : 7;
+
+  const saatEtiketi = (saat) => {
+    const bilgi = (typeof dersSaatiBilgisi === 'function') ? dersSaatiBilgisi(saat) : null;
+    return bilgi
+      ? `${saat}.<span style="display:block;color:#6b7280;font-size:8.5px;font-weight:400;">${escapeHtml(bilgi.baslangic)}–${escapeHtml(bilgi.bitis)}</span>`
+      : `${saat}. Ders`;
+  };
+
   let html = '';
 
   hedefSiniflar.forEach(sinif => {
-    const dersler = dersProgrami
-      .filter(d => d.sinifId === sinif.id || d.sinif === sinif.ad)
-      .sort((a, b) => GUNLER_SIRALAMA.indexOf(a.gun) - GUNLER_SIRALAMA.indexOf(b.gun) || a.saat - b.saat);
+    const dersler = dersProgrami.filter(d => d.sinifId === sinif.id || d.sinif === sinif.ad);
 
-    if (!dersler.length) return;
-
-    const saatler = [...new Set(dersler.map(d => d.saat))].sort((a, b) => a - b);
-
-    html += `<div class="bolum-baslik">📚 ${escapeHtml(sinif.ad)}</div>
-      <table>
+    html += `<div class="bolum-baslik">📚 ${escapeHtml(sinif.ad)} Sınıfı Haftalık Ders Programı</div>
+      <table style="table-layout:fixed;">
+        <colgroup>
+          <col style="width:13%;">
+          ${GUNLER_SIRALAMA.map(() => '<col style="width:17.4%;">').join('')}
+        </colgroup>
         <thead><tr><th>Ders Saati</th>`;
     GUNLER_SIRALAMA.forEach(g => { html += `<th>${g}</th>`; });
     html += `</tr></thead><tbody>`;
 
-    saatler.forEach(saat => {
-      html += `<tr><td><strong>${saat}. Ders</strong></td>`;
+    for (let saat = 1; saat <= toplamSaat; saat++) {
+      html += `<tr><td style="font-weight:700;text-align:center;">${saatEtiketi(saat)}</td>`;
       GUNLER_SIRALAMA.forEach(gun => {
         const ders = dersler.find(d => d.gun === gun && d.saat === saat);
         if (ders) {
           const ogr = ogretmenler.find(x => x.id === ders.ogretmenId);
           const ogrAdi = ogr ? `${ogr.ad} ${ogr.soyad}` : (ders.ogretmenAdSoyad || '');
-          html += `<td>${escapeHtml(ders.ders || '—')}<br><span style="color:#6b7280;font-size:9px;">${escapeHtml(ogrAdi)}</span></td>`;
+          html += `<td>${escapeHtml(ders.ders || '—')}${ogrAdi ? `<br><span style="color:#6b7280;font-size:9px;">${escapeHtml(ogrAdi)}</span>` : ''}</td>`;
         } else {
-          html += `<td style="color:#ccc;">—</td>`;
+          html += `<td style="color:#ccc;text-align:center;">—</td>`;
         }
       });
       html += `</tr>`;
-    });
+    }
     html += `</tbody></table>`;
   });
 
-  if (!html) { toast('Seçili sınıf için ders programı yok.'); return; }
   _raporPenceresiniAc(html, '📅 Ders Programı');
 }
 
@@ -617,33 +729,9 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
                <span class="ozet-kutu">Rezerve: ${rezerve}</span>
                <span class="ozet-kutu">Boş: ${kapasite - dolu - rezerve}</span>`;
 
-      // Araç Koltuk Düzeni (Visual Grid)
+      // Araç Koltuk Düzeni (canlı oturma editörüyle aynı sıra/koridor/şoför görünümü)
       if (seciliAlanlar.koltukDuzeni) {
-        html += `<div class="vehicle-diagram">
-          <div class="vehicle-title">🚗 Araç Koltuk Düzeni</div>
-          <div class="seats-grid">`;
-        
-        plan.koltuklar
-          .sort((a, b) => (a.no || 0) - (b.no || 0))
-          .forEach(k => {
-            const durum = k.rezerve ? 'reserved' : (k.ogrenciId || k.ogrenciAdi ? 'occupied' : 'empty');
-            const renkClass = {
-              occupied: 'seat-occupied',
-              reserved: 'seat-reserved',
-              empty: 'seat-empty'
-            }[durum];
-            
-            const etiket = durum === 'occupied' ? '✓' : (durum === 'reserved' ? 'R' : '—');
-            html += `<div class="seat ${renkClass}"><span class="seat-number">${k.no}</span><br><span style="font-size:8px;">${etiket}</span></div>`;
-          });
-
-        html += `</div>
-          <div style="font-size:9px;margin-top:6px;padding:4px;background:#fff9e6;">
-            <span style="color:#166534;">✓ = Dolu</span> | 
-            <span style="color:#1e40af;">R = Rezerve</span> | 
-            <span style="color:#6b7280;">— = Boş</span>
-          </div>
-        </div>`;
+        html += _soRaporGovdeHtml(servis, plan);
       }
 
       // Koltuk Tablosu
@@ -712,4 +800,67 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
   });
 
   _raporPenceresiniAc(html, '🚌 Servis Oturma Planı');
+}
+
+/* Canlı Oturma Planı editöründeki sıra/koridor/şoför mantığının aynısı,
+   yazdırma raporu için statik HTML üretir (bkz. js/servis-oturma.js _soRenderGrid). */
+function _soRaporGovdeHtml(servis, plan) {
+  const kapasite   = plan.kapasite   || 14;
+  const siraSayisi = plan.siraSayisi || 7;
+  const duzen      = plan.duzen      || 'cift';
+  const soforVar   = plan.soforKoltuguVarMi !== false;
+  const bugun      = new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+  const koltukMap = {};
+  (plan.koltuklar || []).forEach(k => { koltukMap[k.no] = k; });
+
+  const siraKoltukSayisi = duzen === 'tek' ? 3 : duzen === 'dort' ? 6 : 4;
+  const gercekKapasite = Math.min(kapasite, siraSayisi * siraKoltukSayisi);
+
+  const koltukKutu = (no) => {
+    const veri = koltukMap[no];
+    const doluMu = !!(veri && (veri.ogrenciId || veri.ogrenciAdi));
+    const rezerveMi = !!(veri && veri.rezerve);
+    const ad = doluMu ? (veri.ogrenciAdi || '') : '';
+    const kisa = ad.length > 10 ? ad.substring(0, 9) + '…' : ad;
+    const sinifAdi = rezerveMi ? 'so-rapor-rezerve' : doluMu ? 'so-rapor-dolu' : 'so-rapor-bos';
+    return `<div class="so-rapor-koltuk ${sinifAdi}">
+      <span class="so-rapor-koltuk-no">${no}</span>
+      ${kisa ? `<span class="so-rapor-koltuk-ad">${escapeHtml(kisa)}</span>` : ''}
+    </div>`;
+  };
+
+  let html = `<div class="so-rapor-bilgi">
+    🚌 ${escapeHtml(servis.servisAdi || 'Servis')} &nbsp;·&nbsp; Şoför: ${escapeHtml(servis.soforAdi || '—')} &nbsp;·&nbsp; ${escapeHtml(bugun)}
+  </div>`;
+
+  html += `<div class="so-rapor-govde">
+    <div class="so-rapor-ust-etiket"><span>🚪 GİRİŞ KAPISI</span><span>🚨 ACİL ÇIKIŞ</span></div>`;
+
+  if (soforVar) {
+    html += `<div class="so-rapor-sofor-sira"><div class="so-rapor-koltuk so-rapor-sofor-koltuk">🧑‍✈️</div></div>`;
+  }
+
+  let koltukNo = 1;
+  for (let sira = 0; sira < siraSayisi && koltukNo <= gercekKapasite; sira++) {
+    html += '<div class="so-rapor-sira">';
+    const solSayisi = (duzen === 'tek') ? 1 : 2;
+    for (let k = 0; k < solSayisi && koltukNo <= gercekKapasite; k++) { html += koltukKutu(koltukNo); koltukNo++; }
+    html += '<div class="so-rapor-koridor"></div>';
+    for (let k = 0; k < 2 && koltukNo <= gercekKapasite; k++) { html += koltukKutu(koltukNo); koltukNo++; }
+    if (duzen === 'dort') {
+      html += '<div class="so-rapor-koridor"></div>';
+      for (let k = 0; k < 2 && koltukNo <= gercekKapasite; k++) { html += koltukKutu(koltukNo); koltukNo++; }
+    }
+    html += '</div>';
+  }
+
+  html += `</div>
+  <div class="so-rapor-lejant">
+    <span style="color:#166534;">🟩 Dolu</span>&nbsp;|&nbsp;
+    <span style="color:#1e40af;">🟦 Rezerve</span>&nbsp;|&nbsp;
+    <span style="color:#6b7280;">⬜ Boş</span>
+  </div>`;
+
+  return html;
 }
