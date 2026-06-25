@@ -748,10 +748,10 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
       &nbsp;|&nbsp; Durum: ${escapeHtml(servis.durum || 'Aktif')}
     </p>`;
 
-    if (plan && plan.koltuklar && plan.koltuklar.length) {
-      const kapasite = plan.yerlesim?.length || plan.koltuklar.length;
-      const dolu    = plan.koltuklar.filter(k => k.ogrenciId || k.ogrenciAdi).length;
-      const rezerve = plan.koltuklar.filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
+    if (plan && plan.yerlesim && plan.yerlesim.length) {
+      const kapasite = plan.yerlesim?.length || 0;
+      const dolu    = (plan.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
+      const rezerve = (plan.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
 
       html += `<span class="ozet-kutu">Kapasite: ${kapasite}</span>
                <span class="ozet-kutu">Dolu: ${dolu}</span>
@@ -763,8 +763,8 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
         html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
       }
 
-      // Koltuk Tablosu
-      if (seciliAlanlar.koltukTablosu) {
+      // Koltuk Tablosu — GIZLENDI (v5.0)
+      if (false && seciliAlanlar.koltukTablosu && plan.koltuklar && plan.koltuklar.length) {
         html += `<table>
           <thead><tr><th>Koltuk No</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Veli / Telefon</th><th>Durum</th></tr></thead>
           <tbody>`;
