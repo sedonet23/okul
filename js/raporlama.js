@@ -33,7 +33,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   const okulAdi  = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const tarih    = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
   const logoSrc  = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'assets/logo.png';
-  const logoHtml = logoGoster ? `<img src="${logoSrc}" alt="" style="height:36px;object-fit:contain;" onerror="this.style.display='none'">` : '';
+  const logoHtml = logoGoster ? `<img src="${logoSrc}" alt="" style="height:28px;object-fit:contain;" onerror="this.style.display='none'">` : '';
 
   const tamHtml = `<!DOCTYPE html>
 <html lang="tr">
@@ -43,22 +43,26 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    @page { size: A4 portrait; margin: 8mm 10mm; }
+    @page { size: A4 portrait; margin: 6mm 10mm; }
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
-    .rapor-header { display:flex; align-items:center; gap:10px; border-bottom:2px solid #4f46e5; padding-bottom:6px; margin-bottom:10px; }
+    .rapor-header { display:flex; align-items:center; gap:8px; border-bottom:2px solid #4f46e5; padding-bottom:4px; margin-bottom:6px; }
     .rapor-header-text { flex:1; }
-    .rapor-header-text h1 { font-size:14px; color:#4f46e5; font-weight:700; line-height:1.2; }
-    .rapor-header-text h2 { font-size:10px; color:#555; font-weight:400; margin-top:1px; }
-    .rapor-header-text .rapor-tarih { font-size:9px; color:#888; margin-top:2px; }
-    .rapor-header.rapor-header-ortali { flex-direction:column; text-align:center; padding-bottom:5px; margin-bottom:8px; }
-    .rapor-header-ortali .rapor-header-text h1 { font-size:13px; }
+    .rapor-header-text h1 { font-size:13px; color:#4f46e5; font-weight:700; line-height:1.2; }
+    .rapor-header-text h2 { font-size:9px; color:#555; font-weight:400; margin-top:1px; }
+    .rapor-header-text .rapor-tarih { font-size:8px; color:#888; margin-top:1px; }
+    .rapor-header.rapor-header-ortali { flex-direction:column; text-align:center; padding-bottom:4px; margin-bottom:6px; }
+    .rapor-header-ortali .rapor-header-text h1 { font-size:12px; }
 
-    .rapor-toolbar { display:flex; gap:8px; margin-bottom:10px; padding:6px 10px; background:#f3f2ff; border-radius:6px; }
+    .rapor-toolbar { display:flex; gap:8px; margin-bottom:10px; padding:6px 10px; background:#f3f2ff; border-radius:6px; align-items:center; flex-wrap:wrap; }
     .rapor-toolbar button { padding:6px 14px; border:none; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600; }
     .btn-yazdir { background:#4f46e5; color:#fff; }
     .btn-paylas { background:#25d366; color:#fff; }
     .btn-kapat  { background:#e5e7eb; color:#374151; }
+    .zoom-grup  { display:flex; align-items:center; gap:4px; margin-left:auto; background:#fff; border:1px solid #d1d5db; border-radius:5px; padding:2px 6px; }
+    .zoom-grup button { background:none; border:none; font-size:16px; font-weight:700; color:#374151; padding:2px 6px; cursor:pointer; border-radius:4px; line-height:1; }
+    .zoom-grup button:hover { background:#f3f4f6; }
+    .zoom-label { font-size:11px; color:#555; min-width:36px; text-align:center; font-weight:600; }
 
     .ozet-kutu { display:inline-block; background:#f5f3ff; border:1px solid #c4b5fd; border-radius:5px; padding:3px 8px; font-size:10px; color:#5b21b6; margin:0 5px 10px 0; font-weight:500; }
     .bolum-baslik { background:#ede9fe; color:#4f46e5; font-weight:700; font-size:11.5px; padding:4px 8px; margin:12px 0 8px; border-left:3px solid #4f46e5; border-radius:0 3px 3px 0; }
@@ -76,8 +80,11 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     .nobet-sik ol li { margin-bottom:1px; }
     .nobet-sik p { font-size:8.5px; margin-top:3px; }
 
+    #icerik-sarici { transform-origin: top center; transition: transform 0.15s ease; }
+
     @media print {
       .rapor-toolbar { display:none !important; }
+      #icerik-sarici { transform: none !important; }
       table { page-break-inside:auto; }
       tr { page-break-inside:avoid; }
       .sayfa-sonu { page-break-before:always; }
@@ -90,20 +97,34 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     <button class="btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button>
     <button class="btn-paylas" onclick="raporPaylas()">📤 WhatsApp</button>
     <button class="btn-kapat"  onclick="window.close()">✕ Kapat</button>
+    <div class="zoom-grup">
+      <button onclick="zoomAyarla(-10)" title="Küçült">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button onclick="zoomAyarla(+10)" title="Büyüt">+</button>
+      <button onclick="zoomSifirla()" title="Sıfırla" style="font-size:12px;color:#6b7280;">↺</button>
+    </div>
   </div>
   <script>
+    var _zoom = 100;
+    function zoomUygula() {
+      var el = document.getElementById('icerik-sarici');
+      if (el) el.style.transform = 'scale(' + (_zoom/100) + ')';
+      document.getElementById('zoomLabel').textContent = _zoom + '%';
+    }
+    function zoomAyarla(delta) {
+      _zoom = Math.min(200, Math.max(30, _zoom + delta));
+      zoomUygula();
+    }
+    function zoomSifirla() { _zoom = 100; zoomUygula(); }
     function raporPaylas() {
-      // Önce yazdır / PDF kaydet
       window.print();
-      // PDF kaydedildikten sonra WhatsApp'a yönlendir
       setTimeout(function() {
         var mesaj = encodeURIComponent('Merhaba, servis oturma planını paylaşıyorum.');
-        // Mobil WhatsApp deep link
-        var url = 'whatsapp://send?text=' + mesaj;
-        window.location.href = url;
+        window.location.href = 'whatsapp://send?text=' + mesaj;
       }, 2000);
     }
   <\/script>
+  <div id="icerik-sarici">
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
@@ -114,8 +135,9 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     </div>
   </div>
   ${htmlIcerik}
+  </div>
 </body>
-</html>`;
+</html>\`;
 
   // Blob URL ile aç — gerçek origin, share API çalışır
   try {
