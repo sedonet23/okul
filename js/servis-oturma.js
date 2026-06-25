@@ -809,9 +809,9 @@ function soRaporGovdeHtml(servis, plan) {
   const sayfaH = 287;  // mm toplam yükseklik
   const headerMM = 11;   // rapor başlık
   const onCamMM = 7;    // ön cam + plaka
-  const altMarginMM = 3; // alt boşluk
+  const altPadMM = 3;   // alt boşluk
 
-  const kullH = sayfaH - headerMM - onCamMM - altMarginMM;
+  const kullH = sayfaH - headerMM - onCamMM - altPadMM;
   const KH = Math.max(12, (kullH - (toplamSira - 1) * G) / toplamSira);
 
   // Araç toplam genişliği
