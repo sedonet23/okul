@@ -45,6 +45,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after {
@@ -86,6 +87,8 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     }
     .btn-yazdir { background: #4f46e5; color: #fff; }
     .btn-yazdir:hover { background: #4338ca; }
+    .btn-paylas { background: #25d366; color: #fff; }
+    .btn-paylas:hover { background: #1da851; }
     .btn-kapat  { background: #e5e7eb; color: #374151; }
     .btn-kapat:hover { background: #d1d5db; }
 
@@ -196,8 +199,29 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 <body>
   <div class="rapor-toolbar">
     <button class="btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button>
+    <button class="btn-paylas" id="btnPaylas" onclick="raporPaylas()" style="display:none;">📤 Paylaş</button>
     <button class="btn-kapat"  onclick="window.close()">✕ Kapat</button>
   </div>
+  <script>
+    // Paylaş butonu — Web Share API destekleniyorsa göster
+    if (navigator.share) {
+      document.getElementById('btnPaylas').style.display = '';
+    }
+    async function raporPaylas() {
+      try {
+        // Önce yazdır diyaloğunu kullanarak PDF oluşturmayı önermek yerine
+        // blob oluşturamadığımız için title+url paylaşıyoruz
+        // Kullanıcı PDF'i indirip WhatsApp'tan paylaşabilir
+        if (navigator.share) {
+          await navigator.share({
+            title: document.title,
+            text: document.title + ' — Yazdır / PDF olarak kaydet seçeneğini kullanın.',
+            url: window.location.href,
+          });
+        }
+      } catch(e) { /* iptal */ }
+    }
+  <\/script>
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">

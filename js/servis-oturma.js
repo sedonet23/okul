@@ -667,18 +667,54 @@ function soRaporGovdeHtml(servis, plan) {
   const koltukMap = {};
   koltuklar.forEach(k => { koltukMap[k.no] = k; });
 
-  /* Sıralara göre grupla — SADECE aktif:true olanlar dahil edilir */
+  /* Sadece aktif yuvalar */
   const siraMap = {};
   yerlesim.forEach((yuva, idx) => {
-    if (yuva.aktif === false) return; // pasif yuvalar raporda yok
+    if (yuva.aktif === false) return;
     const no = idx + 1;
     if (!siraMap[yuva.sira]) siraMap[yuva.sira] = [];
     siraMap[yuva.sira].push({ ...yuva, no, koltuk: koltukMap[no] || null });
   });
+  const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  const koltukKutu = (yuva) => {
-    if (yuva.soforYani) return ''; // şoför yanı koltuklarını raporda gösterme (şoför ikonu var)
-    const { no, konum, koltuk } = yuva;
+  /* ── Koltuk boyutu dinamik hesapla ──
+     A4 yazdırılabilir yükseklik ~245mm = ~927px @96dpi
+     Header ~70px, baslik ~30px, padding ~20px → araç için ~800px
+     Her sıra: koltuk + 6px gap. Şoför sırası + arka sıra da var. */
+  const toplamSira = siralar.length; // şoför + normal + arka
+  const aracPaddingDikey = 80; // top/bottom padding + cam bölümü
+  const kullanilabilirH  = 800 - aracPaddingDikey;
+  const hesaplananK = Math.floor((kullanilabilirH - (toplamSira - 1) * 5) / toplamSira);
+  const K = Math.min(62, Math.max(36, hesaplananK)); // 36–62px arası
+  const G = Math.round(K * 0.07); // gap = %7 koltuk boyutu
+
+  /* Şablon sütun sayıları */
+  // Ducato: sol 2, sağ 1 | Büyük: sol 2, sağ 2
+  const solSutun = 2;
+  const sagSutun = buyuk ? 2 : 1;
+  const korW     = Math.round(K * 0.3);
+
+  /* Araç genişliği */
+  const aracIcW  = solSutun * K + G * (solSutun - 1) + korW + sagSutun * K + G * (sagSutun - 1);
+  const aracW    = aracIcW + K * 0.75; // padding her iki taraf
+
+  /* CSS stil değerleri */
+  const S = {
+    K, G, korW,
+    fontAd:   Math.max(7, Math.round(K * 0.155)),
+    fontSinif: Math.max(6, Math.round(K * 0.115)),
+    fontSofor: Math.max(8, Math.round(K * 0.17)),
+    soforIkon: Math.max(18, Math.round(K * 0.55)),
+    borderR:  Math.round(K * 0.18),
+  };
+
+  /* Sol grup min-width — hizalama için sabit */
+  const solGrpW = solSutun * K + G * (solSutun - 1);
+  const sagGrpW = sagSutun * K + G * (sagSutun - 1);
+
+  const koltukKutu = (yuva, forceWidth) => {
+    if (yuva.soforYani) return '';
+    const { konum, koltuk } = yuva;
     const dolu    = koltuk && (koltuk.ogrenciId || koltuk.ogrenciAdi);
     const rezerve = koltuk && koltuk.rezerve && !dolu;
     const ad      = dolu ? (koltuk.ogrenciAdi || '') : '';
@@ -690,34 +726,45 @@ function soRaporGovdeHtml(servis, plan) {
         sinifAdi = sn ? sn.ad : '';
       }
     }
-    let kolcak = '';
-    if (konum === 'sol-dis' || konum === 'sol-tek') kolcak = 'so-rapor-kolcak-sol';
-    if (konum === 'sag-dis')                        kolcak = 'so-rapor-kolcak-sag';
-    const cls = `so-rapor-koltuk ${dolu ? 'so-rapor-dolu' : rezerve ? 'so-rapor-rezerve' : 'so-rapor-bos'} ${kolcak}`;
-    return `<div class="${cls}">
-      ${ad       ? `<span class="so-rapor-ad">${escapeHtml(ad)}</span>` : ''}
-      ${sinifAdi ? `<span class="so-rapor-sinif">${escapeHtml(sinifAdi)}</span>` : ''}
+    const bg  = dolu ? '#22c55e' : rezerve ? '#3b82f6' : '#f3f4f6';
+    const brd = dolu ? '#16a34a' : rezerve ? '#2563eb' : '#d1d5db';
+    const clr = (dolu || rezerve) ? '#fff' : '#111';
+    let kolcakStyle = '';
+    if (konum === 'sol-dis' || konum === 'sol-tek') kolcakStyle = `border-left:${Math.ceil(S.K*0.09)}px solid #a07840;border-radius:${S.borderR}px ${Math.ceil(S.borderR*0.3)}px ${Math.ceil(S.borderR*0.3)}px ${S.borderR}px;`;
+    if (konum === 'sag-dis') kolcakStyle = `border-right:${Math.ceil(S.K*0.09)}px solid #a07840;border-radius:${Math.ceil(S.borderR*0.3)}px ${S.borderR}px ${S.borderR}px ${Math.ceil(S.borderR*0.3)}px;`;
+    const w = forceWidth || S.K;
+    return `<div style="width:${w}px;min-height:${S.K}px;border-radius:${S.borderR}px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:2px solid ${brd};color:${clr};flex-shrink:0;padding:3px 2px;${kolcakStyle}">
+      ${ad       ? `<span style="font-size:${S.fontAd}px;line-height:1.25;text-align:center;font-weight:700;word-break:break-word;white-space:normal;overflow-wrap:break-word;display:block;max-width:${w-6}px;">${escapeHtml(ad)}</span>` : ''}
+      ${sinifAdi ? `<span style="font-size:${S.fontSinif}px;line-height:1.1;text-align:center;opacity:0.9;display:block;margin-top:2px;">${escapeHtml(sinifAdi)}</span>` : ''}
     </div>`;
   };
 
-  const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
+  const kapıHtml = (metin) =>
+    `<div style="font-size:${Math.max(9,S.K*0.17)}px;font-weight:800;color:#92400e;display:flex;align-items:center;padding:0 3px;white-space:nowrap;">${metin}</div>`;
 
-  let html = `<div class="so-rapor-baslik">
+  let html = `<div style="font-size:13px;color:#333;padding:0 0 8px 0;margin-bottom:6px;font-weight:700;">
     🚌 ${escapeHtml(servis.servisAdi || '')}${servis.plaka ? ` · 🚘 ${escapeHtml(servis.plaka)}` : ''} · ${bugun}
   </div>
-  <div class="so-rapor-arac-sarmal" id="soAracSarmal">
-  <div class="so-rapor-arac${buyuk ? ' so-rapor-arac-buyuk' : ''}" id="soRaporArac">`;
+  <div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
+  <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:3px solid #c8a800;border-radius:${Math.round(aracW*0.12)}px ${Math.round(aracW*0.12)}px ${Math.round(aracW*0.06)}px ${Math.round(aracW*0.06)}px;padding:0 ${Math.round(aracW*0.06)}px ${Math.round(S.K*0.4)}px;width:${Math.round(aracW)}px;">`;
 
   /* Ön cam + plaka */
-  html += `<div class="so-rapor-on"><div class="so-rapor-cam"></div>${servis.plaka ? `<div class="so-rapor-plaka">${escapeHtml(servis.plaka)}</div>` : ''}</div>`;
+  html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${Math.round(S.K*0.25)}px 0 ${Math.round(S.K*0.18)}px;border-bottom:2.5px solid #c8a800;margin-bottom:${Math.round(S.K*0.18)}px;">
+    <div style="width:55%;height:${Math.round(S.K*0.38)}px;background:linear-gradient(180deg,#b3d9f7,#d6eeff);border:2px solid #93c5e8;border-radius:${Math.round(S.K*0.12)}px ${Math.round(S.K*0.12)}px 0 0;"></div>
+    ${servis.plaka ? `<div style="font-size:${Math.round(S.K*0.2)}px;font-weight:900;letter-spacing:2px;color:#92400e;background:#fff8dc;border:1.5px solid #c8a800;border-radius:4px;padding:2px 8px;margin-top:4px;">${escapeHtml(servis.plaka)}</div>` : ''}
+  </div>`;
+
+  /* Koltuk bölümü */
+  html += `<div style="display:flex;flex-direction:column;gap:${G}px;width:100%;align-items:center;">`;
 
   siralar.forEach(siraIdx => {
     const yuvalar = siraMap[siraIdx];
     const arkaVar = yuvalar.some(y => y.konum === 'arka');
 
     if (arkaVar) {
-      html += `<div class="so-rapor-sira so-rapor-arka">`;
-      yuvalar.forEach(y => { html += koltukKutu(y); });
+      const aktifArka = yuvalar.filter(y => !y.soforYani);
+      html += `<div style="display:flex;justify-content:center;gap:${G}px;border-top:2px dashed #c8a800;padding-top:${Math.round(S.K*0.15)}px;margin-top:${Math.round(S.K*0.08)}px;width:100%;">`;
+      aktifArka.forEach(y => { html += koltukKutu(y); });
       html += `</div>`;
       return;
     }
@@ -726,18 +773,18 @@ function soRaporGovdeHtml(servis, plan) {
     const saglar    = yuvalar.filter(y => y.konum.startsWith('sag') && !y.soforYani);
     const kapiSagVar = yuvalar.some(y => y.kapiSag);
 
+    /* Şoför sırası */
     if (siraIdx === 0) {
-      // Rapor koltuk: 80px, gap: 8px
-      // Ducato sol: 2 koltuk → 168px | Büyük sol: 1 koltuk → 80px
-      const solKoltukSayisi = sablon === 'buyuk' ? 1 : 2;
-      const solGrupGenislik = solKoltukSayisi * 80 + (solKoltukSayisi - 1) * 8;
-
-      html += `<div class="so-rapor-sira so-rapor-sofor-sirasi">`;
-      html += `<div class="so-rapor-sofor" style="width:${solGrupGenislik}px;min-width:${solGrupGenislik}px;"><span class="sofor-ikon">👨‍✈️</span><small>${escapeHtml(servis.soforAdi || 'Şoför')}</small></div>`;
-      html += `<div class="so-rapor-koridor"></div>`;
-      html += `<div class="so-rapor-grup">`;
+      html += `<div style="display:flex;align-items:center;gap:${korW}px;width:100%;">`;
+      // Şoför ikonu — sol grup genişliğinde
+      html += `<div style="width:${solGrpW}px;min-width:${solGrpW}px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+        <span style="font-size:${S.soforIkon}px;line-height:1;">${'👨‍✈️'}</span>
+        <span style="font-size:${S.fontSofor}px;color:#92400e;font-weight:700;margin-top:2px;white-space:nowrap;max-width:${solGrpW+10}px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
+      </div>`;
+      // Sağ: giriş veya koltuklar
+      html += `<div style="display:flex;gap:${G}px;min-width:${sagGrpW}px;">`;
       if (kapiSagVar && saglar.length === 0) {
-        html += `<div class="so-rapor-kapi">│GİRİŞ│</div>`;
+        html += kapıHtml('│GİRİŞ│');
       } else {
         saglar.forEach(y => { html += koltukKutu(y); });
       }
@@ -745,76 +792,31 @@ function soRaporGovdeHtml(servis, plan) {
       return;
     }
 
-    html += `<div class="so-rapor-sira">`;
-    /* Sol grup — büyük servis arka kapı sırasında 2 koltuk var ama 4 koltuk genişliği beklenir */
-    const raporSolStyle = (sablon === 'buyuk' && kapiSagVar && saglar.length === 0)
-      ? ` style="min-width:${2 * 80 + 8}px;"` // 2 koltuk × 80px + 8px gap
-      : '';
-    html += `<div class="so-rapor-grup"${raporSolStyle}>`; soller.forEach(y => { html += koltukKutu(y); }); html += `</div>`;
-    html += `<div class="so-rapor-koridor"></div>`;
+    /* Normal sıra — sol + koridor + sağ, hepsi sabit genişlik */
+    html += `<div style="display:flex;align-items:flex-start;width:100%;">`;
+    // Sol grup — her zaman solGrpW genişliğinde
+    html += `<div style="display:flex;gap:${G}px;width:${solGrpW}px;min-width:${solGrpW}px;flex-shrink:0;">`;
+    soller.forEach(y => { html += koltukKutu(y); });
+    html += `</div>`;
+    // Koridor
+    html += `<div style="width:${korW}px;min-width:${korW}px;flex-shrink:0;"></div>`;
+    // Sağ
     if (kapiSagVar && saglar.length === 0) {
-      html += `<div class="so-rapor-kapi">│KAPI│</div>`;
+      // Büyük servis arka kapı: sağda hiç koltuk yok, sadece kapı
+      html += `<div style="display:flex;gap:${G}px;width:${sagGrpW}px;min-width:${sagGrpW}px;align-items:center;">`;
+      html += kapıHtml('│KAPI│');
+      html += `</div>`;
     } else {
-      html += `<div class="so-rapor-grup">`; saglar.forEach(y => { html += koltukKutu(y); }); html += `</div>`;
-      if (kapiSagVar) html += `<div class="so-rapor-kapi so-rapor-kapi-arka">│KAPI│</div>`;
+      html += `<div style="display:flex;gap:${G}px;width:${sagGrpW}px;min-width:${sagGrpW}px;flex-shrink:0;">`;
+      saglar.forEach(y => { html += koltukKutu(y); });
+      html += `</div>`;
+      if (kapiSagVar) html += kapıHtml('│KAPI│');
     }
     html += `</div>`;
   });
 
-  html += `</div></div>
-  <script>
-  /* Araç A4'e otomatik sığdır — print öncesi ve sonrası */
-  function soAracFitEt() {
-    var arac = document.getElementById('soRaporArac');
-    var sarmal = document.getElementById('soAracSarmal');
-    if (!arac || !sarmal) return;
+  html += `</div>`; // koltuk bölümü
+  html += `</div></div>`; // araç + sarmal
 
-    // Önce scale sıfırla, gerçek boyutu ölç
-    arac.style.transform = '';
-    arac.style.transformOrigin = '';
-    sarmal.style.height = '';
-
-    var aracW = arac.offsetWidth;
-    var aracH = arac.offsetHeight;
-
-    // Rapor başlığı + baslik + ozet kutuları yaklaşık yüksekliği
-    var headerEl = document.querySelector('.rapor-header');
-    var baslikEl = document.querySelector('.so-rapor-baslik');
-    var headerH = (headerEl ? headerEl.offsetHeight : 0) +
-                  (baslikEl ? baslikEl.offsetHeight : 0) + 40; // toolbar + margins
-
-    // A4 @96dpi: 210mm × 297mm = 794px × 1123px; margin 10mm her iki taraf = 756px × 1066px
-    // Ama tarayıcı penceresi farklı olabilir, sayfa genişliğini kullanalım
-    var sayfaW = document.body.clientWidth || 756;
-    var sayfaH = 1066; // A4 yükseklik - margin (297mm - 20mm) @ 96dpi yaklaşık
-
-    var kullanilabilirH = sayfaH - headerH - 40;
-    var kullanilabilirW = sayfaW - 20;
-
-    var scaleX = kullanilabilirW / aracW;
-    var scaleH = kullanilabilirH / aracH;
-    var scale  = Math.min(scaleX, scaleH, 1); // 1'den büyük ölçekleme yok
-
-    if (scale < 0.99) {
-      arac.style.transform = 'scale(' + scale + ')';
-      arac.style.transformOrigin = 'top center';
-      sarmal.style.height = Math.ceil(aracH * scale + 20) + 'px';
-    }
-  }
-
-  if (document.readyState === 'complete') {
-    soAracFitEt();
-  } else {
-    window.addEventListener('load', soAracFitEt);
-  }
-
-  // Print öncesi tam ölçek, sonra geri al
-  window.addEventListener('beforeprint', function() {
-    var arac = document.getElementById('soRaporArac');
-    if (arac) { arac.dataset.prevTransform = arac.style.transform; arac.style.transform = ''; }
-    // Yeniden hesapla
-    setTimeout(soAracFitEt, 0);
-  });
-  <\/script>`;
   return html;
 }
