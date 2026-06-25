@@ -739,52 +739,60 @@ function soRaporGovdeHtml(servis, plan) {
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
   /* ── Koltuk boyutu: mm cinsinden A4'e tam sığdır ──
-     @page margin: 8mm 10mm  →  kullanılabilir: 190mm × 281mm
-     Araç yatay padding: 6mm her iki yan = 12mm
-     İç genişlik: 190mm - 12mm = 178mm
-     Ducato:  sol2 + G + KOR + sag1  katsayı = 3.40
-     Büyük:   sol2 + G + KOR + sag2 + G katsayı = 4.48
-     Koltuk genişliği (KW) sabit; yükseklik (KH) sayfayı tam dolduracak şekilde ayrı hesap */
+     @page { size:A4; margin: 8mm 10mm }
+     Kullanılabilir alan: 190mm × 281mm
+     Güvenlik marjı -8mm eklenerek 190×273mm hedeflenir (tarayıcı farkları için)
+     Araç yan padding: 6mm × 2 = 12mm  →  iç genişlik: 178mm
+     Ducato katsayısı: sol2 + gap + kor + sag1 = 3 + 0.08 + 0.32 = 3.40
+     Büyük katsayısı : sol2 + gap + kor + sag2 + gap = 4 + 0.16 + 0.32 = 4.48  */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  const sayfaW    = 190; // mm kullanılabilir genişlik
-  const sayfaH    = 281; // mm kullanılabilir yükseklik (@page 8mm top+bottom)
-  const aracPadH  = 6;   // mm, araç yatay (yan) padding her iki taraf
-  const icGenislik = sayfaW - aracPadH * 2; // 178mm
+  const sayfaW     = 190;  // mm kullanılabilir genişlik
+  const sayfaH     = 273;  // mm kullanılabilir yükseklik (281 - 8mm güvenlik)
+  const aracPadYan = 6;    // mm araç yan padding (her iki taraf)
+  const icGenislik = sayfaW - aracPadYan * 2; // 178mm
 
   // Koltuk GENİŞLİĞİ (KW) — yatay yerleşimden
-  const toplamKatsayi = solSutun + sagSutun + 0.32 + (solSutun - 1) * 0.08 + (sagSutun > 1 ? (sagSutun - 1) * 0.08 : 0);
-  const KW  = icGenislik / toplamKatsayi;
-  const G   = KW * 0.08;  // sıra arası boşluk
-  const korW = KW * 0.32; // koridor
+  const toplamKatsayi = solSutun + sagSutun + 0.32
+    + (solSutun - 1) * 0.08
+    + (sagSutun > 1 ? (sagSutun - 1) * 0.08 : 0);
+  const KW   = icGenislik / toplamKatsayi;
+  const G    = KW * 0.07;   // sıra arası boşluk (biraz daha sıkı)
+  const korW = KW * 0.30;   // koridor
 
-  // Araç dikey alanı: header(22mm) + toolbar(0 print) + ön cam bölümü(KW*0.7) + alt pad(4mm)
-  const headerMM    = 22;
-  const onCamMM     = KW * 0.72; // ön cam + plaka + alt çizgi
-  const altPadMM    = 4;
-  const kullH       = sayfaH - headerMM - onCamMM - altPadMM; // koltuk bölgesine kalan yükseklik
+  // Sayfada harcanan sabit alanlar (mm):
+  //   rapor header   : 16mm  (logo 28px ≈ 10mm + padding/border ≈ 6mm)
+  //   araç üst yuvarlak köşe + ön cam bölümü: KW * 0.55
+  //   araç alt padding: 3mm (sabit)
+  const headerMM   = 16;   // rapor başlık alanı
+  const onCamMM    = KW * 0.55; // ön cam + plaka + çizgi + margin-bottom
+  const altPadMM   = 3;    // araç alt iç padding (sabit)
 
-  // Koltuk YÜKSEKLİĞİ (KH) — dikey yerleşimden, sayfayı tam dolduracak şekilde
-  const KH = (kullH - (toplamSira - 1) * G) / toplamSira;
+  // Koltuk bölgesine kalan toplam yükseklik
+  const kullH = sayfaH - headerMM - onCamMM - altPadMM;
+
+  // Koltuk YÜKSEKLİĞİ (KH) — dikey: sayfayı tam doldur
+  const KH = Math.max(8, (kullH - (toplamSira - 1) * G) / toplamSira);
 
   // Araç toplam genişliği
-  const aracIcW = solSutun * KW + G * (solSutun - 1) + korW + sagSutun * KW + G * (sagSutun > 1 ? sagSutun - 1 : 0);
-  const aracPad = aracPadH;
+  const aracIcW = solSutun * KW + G * (solSutun - 1) + korW
+    + sagSutun * KW + G * (sagSutun > 1 ? sagSutun - 1 : 0);
+  const aracPad = aracPadYan;
   const aracW   = aracIcW + aracPad * 2; // mm
 
   /* Sol/sağ grup genişliği mm */
   const solGrpW = solSutun * KW + G * (solSutun - 1);
   const sagGrpW = sagSutun * KW + G * (sagSutun > 1 ? sagSutun - 1 : 0);
 
-  /* Yazı boyutları pt cinsinden */
-  const fontAdPt    = Math.max(5,  KH * 0.75);
-  const fontSinifPt = Math.max(4,  KH * 0.55);
-  const fontSoforPt = Math.max(6,  KW * 0.75);
-  const soforIkonMM = Math.max(4,  KW * 0.45);
-  const borderRmm   = KW * 0.12;
-  const kolcakW     = KW * 0.07;
+  /* Yazı boyutları — KH küçükse min değer devreye girer */
+  const fontAdPt    = Math.max(5,  KH * 0.72);
+  const fontSinifPt = Math.max(4,  KH * 0.52);
+  const fontSoforPt = Math.max(6,  KW * 0.72);
+  const soforIkonMM = Math.max(4,  KW * 0.42);
+  const borderRmm   = KW * 0.10;
+  const kolcakW     = KW * 0.06;
 
   const m = (v) => `${v.toFixed(2)}mm`; // mm helper
 
@@ -826,12 +834,12 @@ function soRaporGovdeHtml(servis, plan) {
     `<div style="font-size:${Math.max(4,KW*0.14).toFixed(1)}mm;font-weight:800;color:#92400e;display:flex;align-items:center;padding:0 0.5mm;white-space:nowrap;">${metin}</div>`;
 
   let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
-  <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:0.8mm solid #c8a800;border-radius:${m(aracW*0.1)} ${m(aracW*0.1)} ${m(aracW*0.05)} ${m(aracW*0.05)};padding:0 ${m(aracPad)} ${m(KH*0.3)};width:${m(aracW)};">`;
+  <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:0.8mm solid #c8a800;border-radius:${m(aracW*0.1)} ${m(aracW*0.1)} ${m(aracW*0.05)} ${m(aracW*0.05)};padding:0 ${m(aracPad)} ${m(altPadMM)};width:${m(aracW)};">`;
 
   /* Ön cam + plaka */
-  html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${m(KW*0.18)} 0 ${m(KW*0.12)};border-bottom:0.6mm solid #c8a800;margin-bottom:${m(KH*0.12)};">
-    <div style="width:55%;height:${m(KW*0.28)};background:linear-gradient(180deg,#b3d9f7,#d6eeff);border:0.5mm solid #93c5e8;border-radius:${m(KW*0.08)} ${m(KW*0.08)} 0 0;"></div>
-    ${servis.plaka ? `<div style="font-size:${(KW*0.15).toFixed(1)}mm;font-weight:900;letter-spacing:0.5mm;color:#92400e;background:#fff8dc;border:0.4mm solid #c8a800;border-radius:1mm;padding:0.2mm 1.2mm;margin-top:0.6mm;">${escapeHtml(servis.plaka)}</div>` : ''}
+  html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${m(KW*0.14)} 0 ${m(KW*0.10)};border-bottom:0.6mm solid #c8a800;margin-bottom:${m(KH*0.10)};">
+    <div style="width:55%;height:${m(KW*0.22)};background:linear-gradient(180deg,#b3d9f7,#d6eeff);border:0.5mm solid #93c5e8;border-radius:${m(KW*0.06)} ${m(KW*0.06)} 0 0;"></div>
+    ${servis.plaka ? `<div style="font-size:${(KW*0.13).toFixed(1)}mm;font-weight:900;letter-spacing:0.5mm;color:#92400e;background:#fff8dc;border:0.4mm solid #c8a800;border-radius:1mm;padding:0.2mm 1mm;margin-top:0.5mm;">${escapeHtml(servis.plaka)}</div>` : ''}
   </div>`;
 
   /* Koltuk bölümü */
