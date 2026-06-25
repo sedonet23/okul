@@ -872,195 +872,163 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 
 /* ====================================================================
-   servis-oturma.css  (v3.0)
-   Dikey araç şeması — sarı okul servisi görünümü
+   SERVİS OTURMA PLANI STİLLERİ  (v3.1)
    ==================================================================== */
 
-/* ------------------------------------------------------------------ */
-/*  Modal wrap                                                          */
-/* ------------------------------------------------------------------ */
+/* Modal */
 .so-modal-wrap { display:flex; flex-direction:column; gap:14px; }
+.so-servis-bilgi { background:var(--bg-secondary,#f5f3ff); border-radius:8px; padding:8px 14px; font-size:12px; color:var(--color-purple,#5b21b6); }
 
-.so-servis-bilgi {
-  background:var(--bg-secondary,#f5f3ff);
-  border-radius:8px; padding:8px 14px;
-  font-size:12px; color:var(--color-purple,#5b21b6);
-}
-
-/* ------------------------------------------------------------------ */
-/*  Şablon butonları                                                    */
-/* ------------------------------------------------------------------ */
+/* Şablon butonları */
 .so-sablon-label { font-size:12px; font-weight:600; color:var(--text-secondary,#374151); margin-bottom:6px; }
 .so-sablon-btnler { display:flex; gap:8px; flex-wrap:wrap; }
-
 .so-sablon-btn {
-  padding:8px 14px; border:2px solid var(--border-color,#e5e7eb);
+  padding:8px 12px; border:2px solid var(--border,#e5e7eb);
   border-radius:10px; background:var(--bg-card,#fff);
   cursor:pointer; font-size:12px; line-height:1.6; text-align:center;
-  transition:all 0.15s; color:var(--text-primary,#111827); min-width:90px;
+  transition:all 0.15s; color:var(--ink,#111827); min-width:88px;
 }
 .so-sablon-btn small { display:block; font-size:10px; opacity:0.8; }
-.so-sablon-btn:hover { border-color:var(--color-primary,#7c3aed); background:var(--bg-hover,#f5f3ff); }
-.so-sablon-btn.so-sablon-aktif { border-color:var(--color-primary,#7c3aed); background:var(--color-primary,#7c3aed); color:#fff; }
+.so-sablon-btn:hover { border-color:var(--brand-purple,#7c3aed); }
+.so-sablon-btn.so-sablon-aktif { border-color:var(--brand-purple,#7c3aed); background:var(--brand-purple,#7c3aed); color:#fff; }
 
-/* ------------------------------------------------------------------ */
-/*  İçerik düzeni                                                       */
-/* ------------------------------------------------------------------ */
+/* İçerik düzeni */
 .so-icerik { display:flex; gap:16px; align-items:flex-start; }
-.so-arac-wrap { flex:1; overflow:auto; max-height:540px; display:flex; justify-content:center; padding:8px 0; }
-.so-sag-panel { display:flex; flex-direction:column; gap:8px; min-width:130px; }
+.so-arac-wrap { flex:1; overflow:auto; display:flex; justify-content:center; padding:8px 4px; }
+.so-sag-panel { display:flex; flex-direction:column; gap:8px; min-width:128px; }
 
-/* ------------------------------------------------------------------ */
-/*  Özet + legend                                                       */
-/* ------------------------------------------------------------------ */
-.so-ozet-kart {
-  background:var(--bg-secondary,#f9fafb);
-  border:1px solid var(--border-color,#e5e7eb);
-  border-radius:10px; padding:12px;
-  display:flex; flex-direction:column; gap:7px;
-}
-.so-ozet-baslik { font-size:12px; font-weight:700; color:var(--text-primary,#111827); margin-bottom:2px; }
-.so-ozet-satir { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-secondary,#374151); }
+/* Özet */
+.so-ozet-kart { background:var(--bg-secondary,#f9fafb); border:1px solid var(--border,#e5e7eb); border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:7px; }
+.so-ozet-baslik { font-size:12px; font-weight:700; color:var(--ink,#111827); margin-bottom:2px; }
+.so-ozet-satir { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-muted,#374151); }
 .so-nokta { width:10px; height:10px; border-radius:50%; flex-shrink:0; display:inline-block; }
 .so-nokta-bos { background:#e5e7eb; border:1px solid #d1d5db; }
 
-.so-legend { display:flex; flex-direction:column; gap:5px; padding:8px 0; }
-.so-legend-satir { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-secondary,#6b7280); }
+/* Legend */
+.so-legend { display:flex; flex-direction:column; gap:5px; padding:6px 0; }
+.so-legend-satir { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--ink-muted,#6b7280); }
 
-/* ------------------------------------------------------------------ */
-/*  Araç gövdesi                                                        */
-/* ------------------------------------------------------------------ */
+/* ── ARAÇ GÖVDE ── */
 .so-arac {
   display:inline-flex; flex-direction:column; align-items:center;
   background:#f5e642;
   border:3px solid #c8a800;
-  border-radius:32px 32px 16px 16px;
-  padding:0 12px 14px;
-  min-width:150px;
-  box-shadow:0 4px 20px rgba(0,0,0,0.15);
-  position:relative;
+  border-radius:28px 28px 14px 14px;
+  padding:0 10px 12px;
+  min-width:148px;
+  box-shadow:0 4px 18px rgba(0,0,0,0.14);
 }
-.so-arac-buyuk { min-width:200px; }
+.so-arac-buyuk { min-width:196px; }
 
-/* ------------------------------------------------------------------ */
-/*  Araç ön (şoför + cam)                                               */
-/* ------------------------------------------------------------------ */
+/* Ön */
 .so-arac-on {
   width:100%; display:flex; flex-direction:column; align-items:center;
-  padding:10px 0 8px;
-  border-bottom:2px solid #c8a800; margin-bottom:10px;
+  padding:10px 0 7px; border-bottom:2px solid #c8a800; margin-bottom:8px;
 }
 .so-on-cam {
-  width:55%; height:24px;
+  width:52%; height:22px;
   background:linear-gradient(180deg,#b3d9f7 0%,#d6eeff 100%);
-  border:2px solid #93c5e8; border-radius:8px 8px 0 0; margin-top:4px;
+  border:2px solid #93c5e8; border-radius:7px 7px 0 0; margin-top:4px;
 }
 .so-sofor-koltuk {
   align-self:flex-start; margin-left:4px;
   display:flex; flex-direction:column; align-items:center;
-  font-size:22px; line-height:1;
+  font-size:20px; line-height:1;
 }
 .so-sofor-koltuk span { font-size:9px; color:#92400e; font-weight:700; margin-top:2px; }
 
-/* ------------------------------------------------------------------ */
-/*  Koltuk bölümü & sıralar                                             */
-/* ------------------------------------------------------------------ */
-.so-koltuk-bolum { display:flex; flex-direction:column; gap:5px; width:100%; }
+/* Koltuk bölümü */
+.so-koltuk-bolum { display:flex; flex-direction:column; gap:4px; width:100%; }
 
-.so-sira {
-  display:flex; align-items:center; justify-content:center;
-}
-.so-sofor-sirasi { margin-bottom:4px; }
-
+/* Sıra */
+.so-sira { display:flex; align-items:center; justify-content:center; }
+.so-sofor-sirasi { margin-bottom:3px; }
 .so-sol-grup, .so-sag-grup { display:flex; gap:3px; }
-.so-koridor { width:16px; flex-shrink:0; }
+.so-koridor { width:14px; flex-shrink:0; }
+.so-arka-sira { justify-content:center; gap:3px; border-top:2px dashed #c8a800; padding-top:6px; margin-top:3px; }
 
-.so-arka-sira {
-  justify-content:center; gap:3px;
-  border-top:2px dashed #c8a800; padding-top:7px; margin-top:4px;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Koltuk                                                              */
-/* ------------------------------------------------------------------ */
+/* Koltuk */
 .so-koltuk {
-  width:42px; height:42px; border-radius:8px;
+  width:40px; height:40px; border-radius:7px;
   background:#e5e7eb; border:1.5px solid #d1d5db;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   cursor:pointer; transition:transform 0.12s,box-shadow 0.12s;
   position:relative; user-select:none; flex-shrink:0;
 }
 .so-koltuk:hover { transform:scale(1.1); box-shadow:0 3px 10px rgba(0,0,0,0.2); z-index:1; }
-
 .so-koltuk.so-dolu    { background:#22c55e; border-color:#16a34a; color:#fff; }
 .so-koltuk.so-rezerve { background:#3b82f6; border-color:#2563eb; color:#fff; }
-
-/* Kolçak efekti */
-.so-kolcak-sol { border-left:4px solid #a07840; border-radius:8px 5px 5px 8px; }
-.so-kolcak-sag { border-right:4px solid #a07840; border-radius:5px 8px 8px 5px; }
-
+.so-kolcak-sol { border-left:4px solid #a07840; border-radius:7px 4px 4px 7px; }
+.so-kolcak-sag { border-right:4px solid #a07840; border-radius:4px 7px 7px 4px; }
 .so-k-no { font-size:11px; font-weight:700; line-height:1; color:inherit; }
-.so-k-ad { font-size:8px; line-height:1.1; text-align:center; max-width:38px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
+.so-k-ad { font-size:8px; line-height:1.1; text-align:center; max-width:36px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
+.so-k-mini { width:18px; height:18px; border-radius:4px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
 
-/* Mini legend koltukları */
-.so-k-mini {
-  width:18px; height:18px; border-radius:4px;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:700;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Koltuk ekle placeholder                                             */
-/* ------------------------------------------------------------------ */
+/* Placeholder */
 .so-ekle-yuva {
-  background:#fff !important;
-  border:2px dashed #9ca3af !important;
-  color:#9ca3af !important;
-  font-size:20px !important;
-  font-weight:300 !important;
+  background:#fff !important; border:2px dashed #9ca3af !important;
+  color:#9ca3af !important; font-size:18px !important; font-weight:300 !important;
 }
-.so-ekle-yuva:hover {
-  border-color:var(--color-primary,#7c3aed) !important;
-  color:var(--color-primary,#7c3aed) !important;
-  background:var(--bg-hover,#f5f3ff) !important;
-}
+.so-ekle-yuva:hover { border-color:var(--brand-purple,#7c3aed) !important; color:var(--brand-purple,#7c3aed) !important; }
 
-/* ------------------------------------------------------------------ */
-/*  Araç arka                                                           */
-/* ------------------------------------------------------------------ */
-.so-arac-arka {
-  width:75%; height:10px;
-  background:#c8a800; border-radius:0 0 10px 10px; margin-top:10px;
-}
+/* Arka */
+.so-arac-arka { width:72%; height:9px; background:#c8a800; border-radius:0 0 9px 9px; margin-top:8px; }
 
-/* ------------------------------------------------------------------ */
-/*  Koltuk modal                                                        */
-/* ------------------------------------------------------------------ */
+/* Koltuk modal */
 .so-koltuk-modal { display:flex; flex-direction:column; gap:12px; }
-.so-koltuk-baslik { margin:0; font-size:14px; color:var(--text-primary,#111827); }
+.so-koltuk-baslik { margin:0; font-size:14px; }
 .so-uyari { font-size:12px; color:#f59e0b; margin:0; }
 
-/* ------------------------------------------------------------------ */
-/*  Servis liste kartları                                               */
-/* ------------------------------------------------------------------ */
+/* Servis listesi */
 .oturma-servis-kart {
   display:flex; align-items:center; justify-content:space-between; gap:12px;
-  padding:12px 16px; border:1px solid var(--border-color,#e5e7eb);
-  border-radius:10px; cursor:pointer; transition:background 0.15s; margin-bottom:8px;
+  padding:12px 16px; border:1px solid var(--border,#e5e7eb);
+  border-radius:10px; cursor:pointer; transition:all 0.15s; margin-bottom:8px;
   background:var(--bg-card,#fff);
 }
-.oturma-servis-kart:hover { background:var(--bg-hover,#f5f3ff); }
-.oturma-servis-ozet { font-size:12px; color:var(--text-muted,#6b7280); margin-top:3px; }
+.oturma-servis-kart:hover { border-color:var(--brand-purple,#7c3aed); box-shadow:var(--shadow-sm); }
+.oturma-servis-ozet { font-size:11px; color:var(--ink-muted,#6b7280); margin-top:3px; }
 
-/* ------------------------------------------------------------------ */
-/*  Dark mode                                                           */
-/* ------------------------------------------------------------------ */
+/* ── RAPOR STİLLERİ ── */
+.so-rapor-baslik { font-size:11px; color:#555; padding:0 0 6px 0; margin-bottom:6px; }
+.so-rapor-arac {
+  display:inline-flex; flex-direction:column; align-items:center;
+  background:#f5e642; border:2.5px solid #c8a800;
+  border-radius:22px 22px 12px 12px;
+  padding:0 8px 10px; min-width:130px;
+}
+.so-rapor-arac-buyuk { min-width:172px; }
+.so-rapor-on { width:100%; display:flex; flex-direction:column; align-items:center; padding:8px 0 6px; border-bottom:2px solid #c8a800; margin-bottom:6px; }
+.so-rapor-sofor { align-self:flex-start; margin-left:3px; font-size:14px; text-align:center; line-height:1.2; }
+.so-rapor-sofor small { font-size:7px; color:#92400e; font-weight:700; }
+.so-rapor-cam { width:50%; height:16px; background:linear-gradient(180deg,#b3d9f7,#d6eeff); border:1.5px solid #93c5e8; border-radius:5px 5px 0 0; margin-top:3px; }
+.so-rapor-sira { display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
+.so-rapor-grup { display:flex; gap:2px; }
+.so-rapor-koridor { width:12px; flex-shrink:0; }
+.so-rapor-arka { justify-content:center; gap:2px; border-top:2px dashed #c8a800; padding-top:5px; margin-top:2px; }
+.so-rapor-koltuk {
+  width:34px; height:34px; border-radius:6px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border:1.5px solid #d1d5db; flex-shrink:0;
+}
+.so-rapor-bos     { background:#f3f4f6; }
+.so-rapor-dolu    { background:#22c55e; border-color:#16a34a; color:#fff; }
+.so-rapor-rezerve { background:#3b82f6; border-color:#2563eb; color:#fff; }
+.so-rapor-kolcak-sol { border-left:3px solid #a07840; border-radius:6px 3px 3px 6px; }
+.so-rapor-kolcak-sag { border-right:3px solid #a07840; border-radius:3px 6px 6px 3px; }
+.so-rapor-no { font-size:10px; font-weight:700; line-height:1; color:inherit; }
+.so-rapor-ad { font-size:7px; line-height:1.1; text-align:center; max-width:30px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; }
+
+/* Taşıma sekme animasyonu */
+#tasima-bolum-servisler, #tasima-bolum-oturma { animation:fadeIn 0.2s ease; }
+
+/* Dark mode */
 [data-theme="dark"] .so-arac { background:#3a3000; border-color:#a07800; }
 [data-theme="dark"] .so-arac-arka { background:#a07800; }
-[data-theme="dark"] .so-on-cam { background:linear-gradient(180deg,#1e3a5f 0%,#2d5a8e 100%); border-color:#2563eb; }
+[data-theme="dark"] .so-on-cam { background:linear-gradient(180deg,#1e3a5f,#2d5a8e); border-color:#2563eb; }
 [data-theme="dark"] .so-koltuk { background:#374151; border-color:#4b5563; color:#f9fafb; }
-[data-theme="dark"] .so-kolcak-sol, [data-theme="dark"] .so-kolcak-sag { border-color:#78552a; }
 [data-theme="dark"] .so-ekle-yuva { background:#1f2937 !important; border-color:#4b5563 !important; color:#6b7280 !important; }
+[data-theme="dark"] .so-rapor-arac { background:#3a3000; border-color:#a07800; }
 
 
 /* @media print kuralları rapor penceresinde tanımlı;
