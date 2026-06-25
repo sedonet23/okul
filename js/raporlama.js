@@ -749,18 +749,18 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
     </p>`;
 
     if (plan && plan.koltuklar && plan.koltuklar.length) {
-      const kapasite = plan.kapasite || plan.koltuklar.length;
-      const dolu = plan.koltuklar.filter(k => k.ogrenciId || k.ogrenciAdi).length;
-      const rezerve = plan.koltuklar.filter(k => k.rezerve).length;
-      
+      const kapasite = plan.yerlesim?.length || plan.koltuklar.length;
+      const dolu    = plan.koltuklar.filter(k => k.ogrenciId || k.ogrenciAdi).length;
+      const rezerve = plan.koltuklar.filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
+
       html += `<span class="ozet-kutu">Kapasite: ${kapasite}</span>
                <span class="ozet-kutu">Dolu: ${dolu}</span>
                <span class="ozet-kutu">Rezerve: ${rezerve}</span>
-               <span class="ozet-kutu">Boş: ${kapasite - dolu - rezerve}</span>`;
+               <span class="ozet-kutu">Boş: ${Math.max(0, kapasite - dolu - rezerve)}</span>`;
 
-      // Araç Koltuk Düzeni (canlı oturma editörüyle aynı sıra/koridor/şoför görünümü)
+      // Araç Koltuk Düzeni
       if (seciliAlanlar.koltukDuzeni) {
-        html += _soRaporGovdeHtml(servis, plan);
+        html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
       }
 
       // Koltuk Tablosu
@@ -831,9 +831,8 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
   _raporPenceresiniAc(html, '🚌 Servis Oturma Planı');
 }
 
-/* Canlı Oturma Planı editöründeki sıra/koridor/şoför mantığının aynısı,
-   yazdırma raporu için statik HTML üretir (bkz. js/servis-oturma.js _soRenderGrid). */
-function _soRaporGovdeHtml(servis, plan) {
+/* _soRaporGovdeHtml → servis-oturma.js içindeki soRaporGovdeHtml'e taşındı (v3.1) */
+function _soRaporGovdeHtml_KALDIRILDI(servis, plan) {
   const kapasite   = plan.kapasite   || 14;
   const siraSayisi = plan.siraSayisi || 7;
   const duzen      = plan.duzen      || 'cift';
