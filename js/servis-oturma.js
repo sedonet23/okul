@@ -120,7 +120,7 @@ function servisOturmaModalAc(servisId) {
           </div>
           <div class="so-alt-butonlar">
             <button class="btn btn-ghost btn-sm" onclick="soTumunuTemizle()">🗑️ Atamaları Temizle</button>
-            <button class="btn btn-ghost btn-sm" onclick="_soRaporDogrudan('${servisId}')">🖨️ Rapor Al</button>
+            <button class="btn btn-ghost btn-sm" onclick="setTimeout(() => { toast('Rapor Al tıklandı'); _soRaporDogrudan('${servisId}'); }, 100)">🖨️ Rapor Al</button>
           </div>
         </div>
       </div>
@@ -137,12 +137,14 @@ function servisOturmaModalAc(servisId) {
    RAPOR — doğrudan servisId ile, modal kapatmadan önce aç
    ================================================================ */
 function _soRaporDogrudan(servisId) {
+  toast('Rapor oluşturuluyor...');
+  
   const servis = (typeof servisler !== 'undefined') ? servisler.find(x => x.id === servisId) : null;
   const plan   = servisOturmaPlani.find(p => p.servisId === servisId);
 
-  if (!servis) { toast('Servis bilgisi bulunamadı.'); return; }
+  if (!servis) { toast('❌ Servis bilgisi bulunamadı.'); return; }
   if (!plan || !plan.yerlesim || !plan.yerlesim.length) {
-    toast('Oturma planı henüz oluşturulmamış.'); return;
+    toast('❌ Oturma planı henüz oluşturulmamış.'); return;
   }
 
   let govde = '';
@@ -150,18 +152,20 @@ function _soRaporDogrudan(servisId) {
     govde = soRaporGovdeHtml(servis, plan);
   } catch(e) {
     console.error('soRaporGovdeHtml hatası:', e);
-    toast('Rapor oluşturulurken hata: ' + e.message);
+    toast('❌ Rapor oluşturulurken hata: ' + e.message);
     return;
   }
 
-  if (!govde) { toast('Rapor içeriği oluşturulamadı.'); return; }
+  if (!govde) { toast('❌ Rapor içeriği oluşturulamadı.'); return; }
 
   const baslik = `🚌 ${servis.servisAdi || 'Servis'}${servis.plaka ? ' · 🚘 ' + servis.plaka : ''}`;
 
   if (typeof _raporPenceresiniAc !== 'function') {
-    toast('Rapor modülü yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+    toast('❌ Rapor modülü bulunamadı. Sayfayı yenileyip tekrar deneyin.');
     return;
   }
+  
+  toast('✓ Rapor açılıyor...');
   _raporPenceresiniAc(govde, baslik, { logoGoster: true, servisRaporu: true, ortaliBaslik: true });
 }
 
