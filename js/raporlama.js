@@ -43,16 +43,16 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    @page { size: A4 portrait; margin: 3mm 6mm; }
+    @page { size: A4 portrait; margin: 5mm 7mm; }
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
-    .rapor-header { display:flex; align-items:center; gap:5px; border-bottom:1.5px solid #4f46e5; padding-bottom:2px; margin-bottom:3px; }
+    .rapor-header { display:flex; align-items:center; gap:6px; border-bottom:1.5px solid #4f46e5; padding-bottom:3px; margin-bottom:4px; }
     .rapor-header-text { flex:1; }
-    .rapor-header-text h1 { font-size:15px; color:#4f46e5; font-weight:700; line-height:1.1; }
+    .rapor-header-text h1 { font-size:14px; color:#4f46e5; font-weight:700; line-height:1.2; }
     .rapor-header-text h2 { font-size:8px; color:#555; font-weight:400; margin-top:1px; }
     .rapor-header-text .rapor-tarih { font-size:7px; color:#888; margin-top:0px; }
-    .rapor-header.rapor-header-ortali { flex-direction:column; text-align:center; padding-bottom:2px; margin-bottom:3px; }
-    .rapor-header-ortali .rapor-header-text h1 { font-size:16px; margin:0 auto; }
+    .rapor-header.rapor-header-ortali { flex-direction:column; text-align:center; padding-bottom:3px; margin-bottom:4px; }
+    .rapor-header-ortali .rapor-header-text h1 { font-size:15px; margin:0 auto; }
 
     .rapor-toolbar { display:flex; gap:8px; margin-bottom:10px; padding:6px 10px; background:#f3f2ff; border-radius:6px; align-items:center; flex-wrap:wrap; }
     .rapor-toolbar button { padding:6px 14px; border:none; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600; }
