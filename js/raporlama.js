@@ -26,9 +26,9 @@ function _raporModalAc(baslik, icerikleri, onay) {
 /* ---------- Yardımcı: Rapor Penceresi Aç (A4 Optimize) ---------- */
 function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   secenekler = secenekler || {};
-  const logoGoster   = secenekler.logoGoster !== false;     // varsayılan: göster
-  const ortaliBaslik = !!secenekler.ortaliBaslik;            // varsayılan: sola hizalı (logo yanında)
-  const sayfaKenar    = secenekler.sayfaKenar || '10mm 12mm';
+  const logoGoster   = secenekler.logoGoster !== false;
+  const ortaliBaslik = !!secenekler.ortaliBaslik;
+  const servisRaporu = !!secenekler.servisRaporu; // sadece logo + başlık, tarihsiz
 
   const win = window.open('', '_blank', 'width=950,height=1000');
   if (!win) { toast('Açılır pencere engellendi. Tarayıcı ayarlarınızı kontrol edin.'); return null; }
@@ -62,24 +62,25 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 
     /* ---------- Rapor Başlığı ---------- */
     .rapor-header {
-      display: flex; align-items: center; gap: 12px;
-      border-bottom: 2.5px solid #4f46e5; padding-bottom: 10px; margin-bottom: 16px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 2px solid #4f46e5; padding-bottom: 6px; margin-bottom: 10px;
     }
     .rapor-header-text { flex: 1; }
-    .rapor-header-text h1 { font-size: 16px; color: #4f46e5; font-weight: 700; }
-    .rapor-header-text h2 { font-size: 12px; color: #555; font-weight: 400; margin-top: 1px; }
-    .rapor-header-text .rapor-tarih { font-size: 10px; color: #888; margin-top: 3px; }
-    /* Logosuz / ortalı başlık (örn. Nöbet Çizelgesi orijinal şablonu) */
+    .rapor-header-text h1 { font-size: 14px; color: #4f46e5; font-weight: 700; line-height: 1.2; }
+    .rapor-header-text h2 { font-size: 10px; color: #555; font-weight: 400; margin-top: 1px; }
+    .rapor-header-text .rapor-tarih { font-size: 9px; color: #888; margin-top: 2px; }
+    .rapor-header img { height: 36px; }
+    /* Logosuz / ortalı başlık */
     .rapor-header.rapor-header-ortali {
       flex-direction: column; text-align: center;
-      padding-bottom: 6px; margin-bottom: 10px;
+      padding-bottom: 5px; margin-bottom: 8px;
     }
-    .rapor-header-ortali .rapor-header-text h1 { font-size: 15px; }
+    .rapor-header-ortali .rapor-header-text h1 { font-size: 13px; }
 
     /* ---------- Araç Çubuğu ---------- */
     .rapor-toolbar {
-      display: flex; gap: 8px; margin-bottom: 18px;
-      padding: 8px 12px; background: #f3f2ff; border-radius: 6px;
+      display: flex; gap: 8px; margin-bottom: 10px;
+      padding: 6px 10px; background: #f3f2ff; border-radius: 6px;
     }
     .rapor-toolbar button {
       padding: 6px 14px; border: none; border-radius: 5px;
@@ -199,35 +200,27 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 <body>
   <div class="rapor-toolbar">
     <button class="btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button>
-    <button class="btn-paylas" id="btnPaylas" onclick="raporPaylas()" style="display:none;">📤 Paylaş</button>
+    <button class="btn-paylas" onclick="raporPaylas()">📤 Paylaş</button>
     <button class="btn-kapat"  onclick="window.close()">✕ Kapat</button>
   </div>
   <script>
-    // Paylaş butonu — Web Share API destekleniyorsa göster
-    if (navigator.share) {
-      document.getElementById('btnPaylas').style.display = '';
-    }
     async function raporPaylas() {
-      try {
-        // Önce yazdır diyaloğunu kullanarak PDF oluşturmayı önermek yerine
-        // blob oluşturamadığımız için title+url paylaşıyoruz
-        // Kullanıcı PDF'i indirip WhatsApp'tan paylaşabilir
-        if (navigator.share) {
-          await navigator.share({
-            title: document.title,
-            text: document.title + ' — Yazdır / PDF olarak kaydet seçeneğini kullanın.',
-            url: window.location.href,
-          });
-        }
-      } catch(e) { /* iptal */ }
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: document.title, text: document.title });
+          return;
+        } catch(e) { /* iptal veya desteklenmiyor */ }
+      }
+      // Fallback: yazdır diyaloğu aç, kullanıcı PDF kaydedip paylaşabilir
+      alert('Paylaşmak için:\\n1. "Yazdır / PDF İndir" butonuna basın\\n2. "PDF olarak kaydet" seçin\\n3. İndirilen PDF\'i WhatsApp\'tan paylaşın');
     }
   <\/script>
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
       <h1>${baslik}</h1>
-      <h2>${okulAdi}</h2>
-      <div class="rapor-tarih">Oluşturulma: ${tarih}</div>
+      ${!servisRaporu ? `<h2>${okulAdi}</h2>` : `<h2 style="font-size:11px;color:#555;font-weight:400;">${okulAdi}</h2>`}
+      ${!servisRaporu ? `<div class="rapor-tarih">Oluşturulma: ${tarih}</div>` : ''}
     </div>
   </div>
   ${htmlIcerik}

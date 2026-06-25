@@ -144,9 +144,9 @@ function _soRaporDogrudan(servisId) {
   const govde = (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
   if (!govde) { toast('Oturma planı henüz oluşturulmamış.'); return; }
 
-  // Modal kapatmadan önce rapor penceresini aç
+  const baslik = `🚌 ${servis.servisAdi || 'Servis'}${servis.plaka ? ' · 🚘 ' + servis.plaka : ''}`;
   if (typeof _raporPenceresiniAc === 'function') {
-    _raporPenceresiniAc(govde, '🚌 Servis Oturma Planı');
+    _raporPenceresiniAc(govde, baslik, { logoGoster: true, servisRaporu: true });
   }
 }
 
@@ -742,10 +742,7 @@ function soRaporGovdeHtml(servis, plan) {
   const kapıHtml = (metin) =>
     `<div style="font-size:${Math.max(9,S.K*0.17)}px;font-weight:800;color:#92400e;display:flex;align-items:center;padding:0 3px;white-space:nowrap;">${metin}</div>`;
 
-  let html = `<div style="font-size:13px;color:#333;padding:0 0 8px 0;margin-bottom:6px;font-weight:700;">
-    🚌 ${escapeHtml(servis.servisAdi || '')}${servis.plaka ? ` · 🚘 ${escapeHtml(servis.plaka)}` : ''} · ${bugun}
-  </div>
-  <div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
+  let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
   <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:3px solid #c8a800;border-radius:${Math.round(aracW*0.12)}px ${Math.round(aracW*0.12)}px ${Math.round(aracW*0.06)}px ${Math.round(aracW*0.06)}px;padding:0 ${Math.round(aracW*0.06)}px ${Math.round(S.K*0.4)}px;width:${Math.round(aracW)}px;">`;
 
   /* Ön cam + plaka */
