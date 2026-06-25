@@ -784,35 +784,41 @@ function soRaporGovdeHtml(servis, plan) {
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  // Target koltuk genişliği: 35-38mm (makul boyut)
-  const targetKW = 36;
+  // Target koltuk genişliği: 32mm (kompakt)
+  const targetKW = 32;
   
   // Bundan grid genişliğini hesapla
-  const G_Ratio = 0.05;  // gap, KW'nin %5'i
-  const KorW_Ratio = 0.25; // koridor, KW'nin %25'i
+  const G_Ratio = 0.06;  // gap, KW'nin %6'i
+  const KorW_Ratio = 0.28; // koridor, KW'nin %28'i
   
   // Gerçek grid genişliği
   const gridW = targetKW * (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio);
   
   // Araç toplam genişliği (padding ile)
-  const aracPadYan = 3;
+  const aracPadYan = 3.5;
   const aracToplamW = gridW + aracPadYan * 2;
   
   // Sayfaya sığacak mı kontrol et, gerekirse KW küçült
-  const sayfaW = 196 - aracPadYan * 2;  // 190mm net
+  const sayfaW = 196 - aracPadYan * 2;  // 188.5mm net
   const maxGridW = sayfaW;
   
   const KW = gridW <= maxGridW ? targetKW : (sayfaW / (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio));
   const G = KW * G_Ratio;
   const korW = KW * KorW_Ratio;
 
-  const sayfaH = 287;  // mm toplam yükseklik
-  const headerMM = 11;   // rapor başlık
-  const onCamMM = 7;    // ön cam + plaka
-  const altPadMM = 3;   // alt boşluk
+  const sayfaH = 287;  // mm toplam yükseklik (A4 287 - marjin 5 - marjin 5)
+  const headerMM = 12;   // rapor başlık (büyükçe başlık için)
+  const onCamMM = 6;    // ön cam + plaka (minimal)
+  const altPadMM = 2;   // alt boşluk (minimal)
 
-  const kullH = sayfaH - headerMM - onCamMM - altPadMM;
-  const KH = Math.max(12, (kullH - (toplamSira - 1) * G) / toplamSira);
+  const kullH = sayfaH - headerMM - onCamMM - altPadMM;  // Koltuk bölgesine kalan yükseklik
+  
+  // Koltuk YÜKSEKLİĞİ: sıra sayısına göre dinamik
+  // Minimum 12mm (okunabilir), maksimum 28mm
+  const minKH = 12;
+  const maxKH = 28;
+  const autoKH = (kullH - (toplamSira - 1) * G) / toplamSira;
+  const KH = Math.max(minKH, Math.min(maxKH, autoKH));
 
   // Araç toplam genişliği
   const aracIcW = solSutun * KW + G * (solSutun - 1) + korW
@@ -824,13 +830,13 @@ function soRaporGovdeHtml(servis, plan) {
   const solGrpW = solSutun * KW + G * (solSutun - 1);
   const sagGrpW = sagSutun * KW + G * (sagSutun > 1 ? sagSutun - 1 : 0);
 
-  /* Yazı boyutları — okunabilir ve makul */
-  const fontAdPt    = Math.min(10, Math.max(8, KW * 0.22));     // 8-10pt
-  const fontSinifPt = Math.min(7.5,  Math.max(6, KW * 0.16));   // 6-7.5pt
-  const fontSoforPt = Math.min(9, Math.max(7.5, KW * 0.22));    // 7.5-9pt
-  const soforIkonMM = Math.min(4.5, Math.max(3.5, KW * 0.12));  // 3.5-4.5mm
-  const borderRmm   = KW * 0.06;
-  const kolcakW     = KW * 0.04;
+  /* Yazı boyutları — KW ve KH'ye göre dinamik, okunabilir */
+  const fontAdPt    = Math.min(9, Math.max(6, KW * 0.20));       // 6-9pt
+  const fontSinifPt = Math.min(6.5, Math.max(4.5, KW * 0.14));   // 4.5-6.5pt
+  const fontSoforPt = Math.min(8, Math.max(6, KW * 0.20));       // 6-8pt
+  const soforIkonMM = Math.min(4, Math.max(2.5, KW * 0.10));     // 2.5-4mm
+  const borderRmm   = KW * 0.05;
+  const kolcakW     = KW * 0.035;
 
   const m = (v) => `${v.toFixed(2)}mm`; // mm helper
 
@@ -862,9 +868,9 @@ function soRaporGovdeHtml(servis, plan) {
     if (konum === 'sag-dis')
       kolcakStyle = `border-right:${m(kolcakW)} solid #a07840;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`;
 
-    return `<div style="width:${m(KW)};height:${m(KH)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.5mm solid ${brd};color:${clr};flex-shrink:0;padding:0.7mm 0.4mm;overflow:hidden;${kolcakStyle}">
-      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;word-break:break-word;white-space:normal;overflow-wrap:break-word;display:block;">${escapeHtml(ad)}</span>` : ''}
-      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:0.9;display:block;margin-top:0.15mm;">${escapeHtml(sinifAdi)}</span>` : ''}
+    return `<div style="width:${m(KW)};height:${m(KH)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0.4mm 0.25mm;overflow:hidden;${kolcakStyle}">
+      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.1;text-align:center;font-weight:700;word-break:break-word;white-space:normal;overflow-wrap:break-word;display:block;">${escapeHtml(ad)}</span>` : ''}
+      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1;text-align:center;opacity:0.9;display:block;margin-top:0.08mm;">${escapeHtml(sinifAdi)}</span>` : ''}
     </div>`;
   };
 
@@ -875,9 +881,9 @@ function soRaporGovdeHtml(servis, plan) {
   <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:0.8mm solid #c8a800;border-radius:${m(aracW*0.1)} ${m(aracW*0.1)} ${m(aracW*0.05)} ${m(aracW*0.05)};padding:0 ${m(aracPad)} ${m(altPadMM)};width:${m(aracW)};">`;
 
   /* Ön cam + plaka */
-  html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${m(KW*0.10)} 0 ${m(KW*0.08)};border-bottom:0.5mm solid #c8a800;margin-bottom:${m(KH*0.12)};">
-    <div style="width:52%;height:${m(KW*0.18)};background:linear-gradient(180deg,#b3d9f7,#d6eeff);border:0.4mm solid #93c5e8;border-radius:${m(KW*0.05)} ${m(KW*0.05)} 0 0;"></div>
-    ${servis.plaka ? `<div style="font-size:${(KW*0.11).toFixed(1)}mm;font-weight:900;letter-spacing:0.25mm;color:#92400e;background:#fff8dc;border:0.3mm solid #c8a800;border-radius:0.7mm;padding:0.15mm 0.7mm;margin-top:0.4mm;">${escapeHtml(servis.plaka)}</div>` : ''}
+  html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${m(KW*0.08)} 0 ${m(KW*0.06)};border-bottom:0.4mm solid #c8a800;margin-bottom:${m(KH*0.10)};">
+    <div style="width:50%;height:${m(KW*0.14)};background:linear-gradient(180deg,#b3d9f7,#d6eeff);border:0.35mm solid #93c5e8;border-radius:${m(KW*0.04)} ${m(KW*0.04)} 0 0;"></div>
+    ${servis.plaka ? `<div style="font-size:${(KW*0.10).toFixed(1)}mm;font-weight:900;letter-spacing:0.2mm;color:#92400e;background:#fff8dc;border:0.25mm solid #c8a800;border-radius:0.6mm;padding:0.1mm 0.6mm;margin-top:0.3mm;">${escapeHtml(servis.plaka)}</div>` : ''}
   </div>`;
 
   /* Koltuk bölümü */
@@ -955,9 +961,9 @@ function soRaporGovdeHtml(servis, plan) {
         : isSagDis
         ? `border-right:${m(kolcakW)} solid #a07840;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`
         : '';
-      return `<div style="grid-column:${col};width:${m(KW)};height:${m(KH)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.5mm solid ${brd};color:${clr};padding:0.7mm 0.4mm;overflow:hidden;${cs}">
-        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;word-break:break-word;white-space:normal;display:block;">${escapeHtml(ad)}</span>` : ''}
-        ${sn ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:.9;display:block;margin-top:0.15mm;">${escapeHtml(sn)}</span>` : ''}
+      return `<div style="grid-column:${col};width:${m(KW)};height:${m(KH)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0.4mm 0.25mm;overflow:hidden;${cs}">
+        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.1;text-align:center;font-weight:700;word-break:break-word;white-space:normal;display:block;">${escapeHtml(ad)}</span>` : ''}
+        ${sn ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1;text-align:center;opacity:.9;display:block;margin-top:0.08mm;">${escapeHtml(sn)}</span>` : ''}
       </div>`;
     };
 
