@@ -225,8 +225,13 @@ function _soRenderArac(servisId) {
 
     /* ── ŞOFÖR SIRASI (sıra 0) ── */
     if (siraIdx === 0) {
+      // Sol grup genişliği: koltuk sayısı × 40px + (n-1) × 3px boşluk
+      // Ducato: 2 koltuk → 83px | Büyük: 1 koltuk → 40px
+      const solKoltukSayisi = sablon === 'buyuk' ? 1 : 2;
+      const solGrupGenislik = solKoltukSayisi * 40 + (solKoltukSayisi - 1) * 3;
+
       html += `<div class="so-sira so-sofor-sirasi">`;
-      html += `<div class="so-sofor-koltuk">👨‍✈️<span>${escapeHtml(servislerData?.soforAdi || 'Şoför')}</span></div>`;
+      html += `<div class="so-sofor-koltuk" style="width:${solGrupGenislik}px;min-width:${solGrupGenislik}px;">👨‍✈️<span>${escapeHtml(servislerData?.soforAdi || 'Şoför')}</span></div>`;
       html += `<div class="so-koridor"></div>`;
       html += `<div class="so-sag-grup">`;
       if (sablon === 'buyuk' && kapiSagVar && saglar.length === 0) {
@@ -716,8 +721,13 @@ function soRaporGovdeHtml(servis, plan) {
     const kapiSagVar = yuvalar.some(y => y.kapiSag);
 
     if (siraIdx === 0) {
+      // Rapor koltuk: 80px, gap: 8px
+      // Ducato sol: 2 koltuk → 168px | Büyük sol: 1 koltuk → 80px
+      const solKoltukSayisi = sablon === 'buyuk' ? 1 : 2;
+      const solGrupGenislik = solKoltukSayisi * 80 + (solKoltukSayisi - 1) * 8;
+
       html += `<div class="so-rapor-sira so-rapor-sofor-sirasi">`;
-      html += `<div class="so-rapor-sofor">👨‍✈️<br><small>${escapeHtml(servis.soforAdi || 'Şoför')}</small></div>`;
+      html += `<div class="so-rapor-sofor" style="width:${solGrupGenislik}px;min-width:${solGrupGenislik}px;"><span class="sofor-ikon">👨‍✈️</span><small>${escapeHtml(servis.soforAdi || 'Şoför')}</small></div>`;
       html += `<div class="so-rapor-koridor"></div>`;
       html += `<div class="so-rapor-grup">`;
       if (kapiSagVar && saglar.length === 0) {
