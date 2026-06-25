@@ -1082,35 +1082,6 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   display:flex; justify-content:center; margin-top:12px; padding:8px 0;
 }
 
-/* ── PLACEHOLDER KOLTUK (+) ── */
-.so-placeholder {
-  background:#f3f4f6 !important; color:#9ca3af; border:2px dashed #d1d5db !important;
-  font-size:20px; font-weight:bold; cursor:pointer;
-}
-.so-placeholder:hover { background:#e5e7eb !important; border-color:#9ca3af !important; }
-
-/* ── KOLTUK ADI KAYDIRMA ── */
-.so-k-ad, .so-rapor-ad {
-  display:block; word-wrap:break-word; overflow-wrap:break-word;
-  white-space:normal; line-height:1.2; padding:2px;
-}
-
-/* ── PLAKA ── */
-.so-plaka {
-  position:absolute; top:45%; left:50%; transform:translate(-50%,-50%);
-  background:#000; color:#ffeb3b; border:2px solid #ffeb3b;
-  padding:4px 8px; font-size:12px; font-weight:bold;
-  font-family:'Courier New', monospace; letter-spacing:1px;
-  border-radius:4px; z-index:10;
-}
-
-/* ── ÖN CAM ── */
-.so-arac-on { position:relative; }
-
-/* ── RAPOR: TABLO GIZLE, ARAÇ BÜYÜK ── */
-.so-rapor-arac { max-width:100%; margin:10px 0; }
-.so-rapor-baslik { font-weight:bold; margin-bottom:8px; }
-
 /* Taşıma sekme animasyonu */
 #tasima-bolum-servisler, #tasima-bolum-oturma { animation:fadeIn 0.2s ease; }
 
