@@ -28,172 +28,59 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   secenekler = secenekler || {};
   const logoGoster   = secenekler.logoGoster !== false;
   const ortaliBaslik = !!secenekler.ortaliBaslik;
-  const servisRaporu = !!secenekler.servisRaporu; // sadece logo + başlık, tarihsiz
+  const servisRaporu = !!secenekler.servisRaporu;
 
-  const win = window.open('', '_blank', 'width=950,height=1000');
-  if (!win) { toast('Açılır pencere engellendi. Tarayıcı ayarlarınızı kontrol edin.'); return null; }
-
-  const okulAdi  = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
+  const okulAdi  = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const tarih    = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
+  const logoSrc  = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'assets/logo.png';
+  const logoHtml = logoGoster ? `<img src="${logoSrc}" alt="" style="height:36px;object-fit:contain;" onerror="this.style.display='none'">` : '';
 
-  const logoHtml = logoGoster
-    ? `<img src="${window.location.origin + window.location.pathname.replace(/[^/]*$/, '')}assets/logo.png"
-            alt="" style="height:48px;object-fit:contain;" onerror="this.style.display='none'">`
-    : '';
-
-  win.document.write(`<!DOCTYPE html>
+  const tamHtml = `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${baslik} — ${okulAdi}</title>
   <style>
-    *, *::before, *::after {
-      box-sizing: border-box; margin: 0; padding: 0;
-      -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
-    }
-    
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
     @page { size: A4 portrait; margin: 8mm 10mm; }
-    
-    body { 
-      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
-      font-size: 11px; color: #1a1a1a; background: #fff; line-height: 1.4;
-    }
+    body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:11px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
-    /* ---------- Rapor Başlığı ---------- */
-    .rapor-header {
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 2px solid #4f46e5; padding-bottom: 6px; margin-bottom: 10px;
-    }
-    .rapor-header-text { flex: 1; }
-    .rapor-header-text h1 { font-size: 14px; color: #4f46e5; font-weight: 700; line-height: 1.2; }
-    .rapor-header-text h2 { font-size: 10px; color: #555; font-weight: 400; margin-top: 1px; }
-    .rapor-header-text .rapor-tarih { font-size: 9px; color: #888; margin-top: 2px; }
-    .rapor-header img { height: 36px; }
-    /* Logosuz / ortalı başlık */
-    .rapor-header.rapor-header-ortali {
-      flex-direction: column; text-align: center;
-      padding-bottom: 5px; margin-bottom: 8px;
-    }
-    .rapor-header-ortali .rapor-header-text h1 { font-size: 13px; }
+    .rapor-header { display:flex; align-items:center; gap:10px; border-bottom:2px solid #4f46e5; padding-bottom:6px; margin-bottom:10px; }
+    .rapor-header-text { flex:1; }
+    .rapor-header-text h1 { font-size:14px; color:#4f46e5; font-weight:700; line-height:1.2; }
+    .rapor-header-text h2 { font-size:10px; color:#555; font-weight:400; margin-top:1px; }
+    .rapor-header-text .rapor-tarih { font-size:9px; color:#888; margin-top:2px; }
+    .rapor-header.rapor-header-ortali { flex-direction:column; text-align:center; padding-bottom:5px; margin-bottom:8px; }
+    .rapor-header-ortali .rapor-header-text h1 { font-size:13px; }
 
-    /* ---------- Araç Çubuğu ---------- */
-    .rapor-toolbar {
-      display: flex; gap: 8px; margin-bottom: 10px;
-      padding: 6px 10px; background: #f3f2ff; border-radius: 6px;
-    }
-    .rapor-toolbar button {
-      padding: 6px 14px; border: none; border-radius: 5px;
-      cursor: pointer; font-size: 12px; font-weight: 600;
-    }
-    .btn-yazdir { background: #4f46e5; color: #fff; }
-    .btn-yazdir:hover { background: #4338ca; }
-    .btn-paylas { background: #25d366; color: #fff; }
-    .btn-paylas:hover { background: #1da851; }
-    .btn-kapat  { background: #e5e7eb; color: #374151; }
-    .btn-kapat:hover { background: #d1d5db; }
+    .rapor-toolbar { display:flex; gap:8px; margin-bottom:10px; padding:6px 10px; background:#f3f2ff; border-radius:6px; }
+    .rapor-toolbar button { padding:6px 14px; border:none; border-radius:5px; cursor:pointer; font-size:12px; font-weight:600; }
+    .btn-yazdir { background:#4f46e5; color:#fff; }
+    .btn-paylas { background:#25d366; color:#fff; }
+    .btn-kapat  { background:#e5e7eb; color:#374151; }
 
-    /* ---------- Özet Kutusu ---------- */
-    .ozet-kutu {
-      display: inline-block; background: #f5f3ff; border: 1px solid #c4b5fd;
-      border-radius: 5px; padding: 3px 8px; font-size: 10px;
-      color: #5b21b6; margin: 0 5px 10px 0; font-weight: 500;
-    }
+    .ozet-kutu { display:inline-block; background:#f5f3ff; border:1px solid #c4b5fd; border-radius:5px; padding:3px 8px; font-size:10px; color:#5b21b6; margin:0 5px 10px 0; font-weight:500; }
+    .bolum-baslik { background:#ede9fe; color:#4f46e5; font-weight:700; font-size:11.5px; padding:4px 8px; margin:12px 0 8px; border-left:3px solid #4f46e5; border-radius:0 3px 3px 0; }
+    table { width:100%; border-collapse:collapse; margin-bottom:12px; }
+    thead tr { background:#4f46e5; color:#fff; }
+    thead th { padding:5px 7px; text-align:left; font-size:10px; font-weight:700; }
+    tbody tr:nth-child(even) { background:#f9f8ff; }
+    td { padding:4px 7px; border-bottom:1px solid #e5e7eb; font-size:10.5px; }
+    .nobet-sik table { margin-bottom:6px; }
+    .nobet-sik thead th { padding:2.5px 5px; font-size:8.5px; }
+    .nobet-sik tbody td { padding:1.5px 5px; font-size:8px; line-height:1.15; }
+    .nobet-sik .bolum-baslik { margin:6px 0 4px; padding:3px 6px; font-size:9.5px; }
+    .nobet-sik .ozet-kutu { margin:0 0 6px 0; padding:2px 7px; }
+    .nobet-sik ol { font-size:8px; line-height:1.3; padding-left:16px; }
+    .nobet-sik ol li { margin-bottom:1px; }
+    .nobet-sik p { font-size:8.5px; margin-top:3px; }
 
-    /* ---------- Bölüm Başlığı ---------- */
-    .bolum-baslik {
-      background: #ede9fe; color: #4f46e5;
-      font-weight: 700; font-size: 11.5px;
-      padding: 4px 8px; margin: 12px 0 8px;
-      border-left: 3px solid #4f46e5; border-radius: 0 3px 3px 0;
-    }
-
-    /* ---------- Tablo ---------- */
-    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-    thead tr { background: #4f46e5; color: #fff; }
-    thead th { padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 700; }
-    tbody tr:nth-child(even) { background: #f9f8ff; }
-    tbody tr:hover { background: #ede9fe; }
-    td { padding: 4px 7px; border-bottom: 1px solid #e5e7eb; font-size: 10.5px; }
-
-    /* ---------- Nöbet Çizelgesi: tek sayfaya sığdırmak için sıkı yerleşim ---------- */
-    .nobet-sik table { margin-bottom: 6px; }
-    .nobet-sik thead th { padding: 2.5px 5px; font-size: 8.5px; }
-    .nobet-sik tbody td { padding: 1.5px 5px; font-size: 8px; line-height: 1.15; }
-    .nobet-sik .bolum-baslik { margin: 6px 0 4px; padding: 3px 6px; font-size: 9.5px; }
-    .nobet-sik .ozet-kutu { margin: 0 0 6px 0; padding: 2px 7px; }
-    .nobet-sik ol { font-size: 8px; line-height: 1.3; padding-left: 16px; }
-    .nobet-sik ol li { margin-bottom: 1px; }
-    .nobet-sik p { font-size: 8.5px; margin-top: 3px; }
-
-    /* ---------- Servis Oturma Planı: Otobüs Gövdesi (canlı editörle aynı mantık) ---------- */
-    .so-rapor-bilgi {
-      font-size: 10.5px; color: #5b21b6; background: #f5f3ff; border: 1px solid #c4b5fd;
-      border-radius: 6px; padding: 6px 10px; margin: 8px 0 10px; display: inline-block;
-    }
-    .so-rapor-baslik { font-size:14px; color:#333; padding:0 0 10px 0; margin-bottom:10px; font-weight:700; }
-
-    /* Araç sarmal: scale için transform-origin noktası */
-    .so-rapor-arac-sarmal {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      overflow: visible;
-    }
-    /* Koltuk boyutu: 80px × 80px, gap: 8px
-       Ducato :  sol 2 (168px) + koridor 24px + sağ 1 (80px) + padding 60px = ~332px araç
-       Büyük  :  sol 2 (168px) + koridor 24px + sağ 2 (168px) + padding 60px = ~420px araç */
-    .so-rapor-arac {
-      display: flex; flex-direction: column; align-items: center;
-      background: #f5e642; border: 4px solid #c8a800;
-      border-radius: 40px 40px 20px 20px;
-      padding: 0 30px 30px;
-      width: 360px;
-    }
-    .so-rapor-arac-buyuk { width: 460px; }
-    .so-rapor-on { width:100%; display:flex; flex-direction:column; align-items:center; padding:20px 0 14px; border-bottom:3px solid #c8a800; margin-bottom:14px; }
-    .so-rapor-cam { width:55%; height:32px; background:linear-gradient(180deg,#b3d9f7,#d6eeff); border:2.5px solid #93c5e8; border-radius:10px 10px 0 0; }
-    .so-rapor-plaka { font-size:13px; font-weight:900; letter-spacing:3px; color:#92400e; background:#fff8dc; border:2px solid #c8a800; border-radius:5px; padding:3px 12px; margin-top:6px; }
-    .so-rapor-sofor { text-align:center; line-height:1.3; flex-shrink:0; }
-    .so-rapor-sofor .sofor-ikon { font-size:32px; display:block; }
-    .so-rapor-sofor small { font-size:11px; color:#92400e; font-weight:700; display:block; margin-top:3px; }
-    .so-rapor-sofor-sirasi { justify-content:flex-start; gap:10px; align-items:center; }
-    .so-rapor-sira { display:flex; align-items:flex-start; justify-content:flex-start; margin-bottom:9px; }
-    .so-rapor-grup { display:flex; gap:8px; }
-    .so-rapor-koridor { width:24px; flex-shrink:0; }
-    .so-rapor-arka { justify-content:center; gap:8px; border-top:3px dashed #c8a800; padding-top:12px; margin-top:6px; }
-    .so-rapor-kapi { font-size:13px; font-weight:800; color:#92400e; display:flex; align-items:center; padding:0 4px; }
-    .so-rapor-kapi-arka { margin-left:5px; }
-    .so-rapor-koltuk {
-      width: 80px; min-height: 80px; border-radius: 12px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      border: 2.5px solid #d1d5db; flex-shrink: 0; padding: 6px 4px;
-    }
-    .so-rapor-bos     { background: #f3f4f6; }
-    .so-rapor-dolu    { background: #22c55e; border-color: #16a34a; color: #fff; }
-    .so-rapor-rezerve { background: #3b82f6; border-color: #2563eb; color: #fff; }
-    .so-rapor-kolcak-sol { border-left: 6px solid #a07840; border-radius: 12px 4px 4px 12px; }
-    .so-rapor-kolcak-sag { border-right: 6px solid #a07840; border-radius: 4px 12px 12px 4px; }
-    .so-rapor-ad {
-      font-size: 11px; line-height: 1.3; text-align: center; font-weight: 700;
-      word-break: break-word; white-space: normal; overflow-wrap: break-word;
-      color: inherit; max-width: 72px; display: block;
-    }
-    .so-rapor-sinif {
-      font-size: 9px; line-height: 1.2; text-align: center; opacity: 0.9;
-      display: block; margin-top: 3px; color: inherit;
-    }
-
-    /* ---------- Print ---------- */
     @media print {
-      .rapor-toolbar { display: none !important; }
-      table { page-break-inside: auto; }
-      tr { page-break-inside: avoid; }
-      .sayfa-sonu { page-break-before: always; }
-      /* Araç scale'i print'te de korunur */
-      #soRaporArac { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      #soAracSarmal { page-break-inside: avoid; }
+      .rapor-toolbar { display:none !important; }
+      table { page-break-inside:auto; }
+      tr { page-break-inside:avoid; }
+      .sayfa-sonu { page-break-before:always; }
     }
   </style>
 </head>
@@ -205,28 +92,53 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   </div>
   <script>
     function raporPaylas() {
-      // 1. Yazdır diyaloğunu aç — kullanıcı PDF olarak kaydeder
+      var baslik = document.title;
+      // Web Share API — mobil Chrome'da çalışır
+      if (navigator.canShare && navigator.canShare({ title: baslik })) {
+        navigator.share({ title: baslik, text: '📋 ' + baslik }).catch(function(){});
+        return;
+      }
+      // Fallback: önce yazdır diyaloğu aç
       window.print();
-      // 2. Kısa gecikme sonra WhatsApp aç (PDF indirme tamamlanınca paylaşabilir)
       setTimeout(function() {
-        var mesaj = encodeURIComponent('📋 ' + document.title);
-        window.open('https://wa.me/?text=' + mesaj, '_blank');
-      }, 1500);
+        var mesaj = encodeURIComponent('📋 ' + baslik + ' — Servis oturma planı');
+        window.open('whatsapp://send?text=' + mesaj, '_blank');
+        setTimeout(function() {
+          window.open('https://web.whatsapp.com/send?text=' + mesaj, '_blank');
+        }, 500);
+      }, 800);
     }
   <\/script>
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
       <h1>${baslik}</h1>
-      ${!servisRaporu ? `<h2>${okulAdi}</h2>` : `<h2 style="font-size:11px;color:#555;font-weight:400;">${okulAdi}</h2>`}
-      ${!servisRaporu ? `<div class="rapor-tarih">Oluşturulma: ${tarih}</div>` : ''}
+      ${servisRaporu
+        ? `<h2 style="font-size:10px;color:#555;font-weight:400;">${okulAdi}</h2>`
+        : `<h2>${okulAdi}</h2><div class="rapor-tarih">Oluşturulma: ${tarih}</div>`}
     </div>
   </div>
   ${htmlIcerik}
 </body>
-</html>`);
-  win.document.close();
-  return win;
+</html>`;
+
+  // Blob URL ile aç — gerçek origin, share API çalışır
+  try {
+    const blob = new Blob([tamHtml], { type: 'text/html;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const win  = window.open(url, '_blank');
+    if (!win) throw new Error('popup_blocked');
+    // 60 saniye sonra URL'i serbest bırak
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return win;
+  } catch(e) {
+    // Fallback: eski yöntem
+    const win = window.open('', '_blank', 'width=950,height=1000');
+    if (!win) { toast('Açılır pencere engellendi. Tarayıcı ayarlarınızı kontrol edin.'); return null; }
+    win.document.write(tamHtml);
+    win.document.close();
+    return win;
+  }
 }
 
 /* ================================================================

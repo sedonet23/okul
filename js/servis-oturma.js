@@ -677,26 +677,37 @@ function soRaporGovdeHtml(servis, plan) {
   });
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  /* ── Koltuk boyutu dinamik hesapla ──
-     A4 yazdırılabilir yükseklik ~245mm = ~927px @96dpi
-     Header ~70px, baslik ~30px, padding ~20px → araç için ~800px
-     Her sıra: koltuk + 6px gap. Şoför sırası + arka sıra da var. */
-  const toplamSira = siralar.length; // şoför + normal + arka
-  const aracPaddingDikey = 80; // top/bottom padding + cam bölümü
-  const kullanilabilirH  = 800 - aracPaddingDikey;
-  const hesaplananK = Math.floor((kullanilabilirH - (toplamSira - 1) * 5) / toplamSira);
-  const K = Math.min(62, Math.max(36, hesaplananK)); // 36–62px arası
-  const G = Math.round(K * 0.07); // gap = %7 koltuk boyutu
+  /* ── Koltuk boyutu: genişliği önce hedefle ──
+     A4 @96dpi kullanılabilir genişlik ~530px (210mm - 20mm kenar = 190mm)
+     Ducato:  sol2 + gap + kor + sag1 + padding = (2K+G) + korW + K + padLR
+     Büyük:   sol2 + gap + kor + sag2 + gap + padding
+     Hedef araç içi genişlik = sayfaW * 0.72 */
+  const solSutun  = 2;
+  const sagSutun  = buyuk ? 2 : 1;
+  const toplamSira = siralar.length;
 
-  /* Şablon sütun sayıları */
-  // Ducato: sol 2, sağ 1 | Büyük: sol 2, sağ 2
-  const solSutun = 2;
-  const sagSutun = buyuk ? 2 : 1;
-  const korW     = Math.round(K * 0.3);
+  // Hedef iç genişlik (padding hariç)
+  const hedefIcW = buyuk ? 460 : 340; // px — A4'e sığacak sabit hedef
 
-  /* Araç genişliği */
-  const aracIcW  = solSutun * K + G * (solSutun - 1) + korW + sagSutun * K + G * (sagSutun - 1);
-  const aracW    = aracIcW + K * 0.75; // padding her iki taraf
+  // K hesabı: iç genişlik = solSutun*K + (solSutun-1)*gap + koridor + sagSutun*K + (sagSutun-1)*gap
+  // gap = K*0.08, koridor = K*0.32
+  // hedefIcW = K*(solSutun + sagSutun + 0.32 + (solSutun-1)*0.08 + (sagSutun-1)*0.08)
+  const toplamKatsayi = solSutun + sagSutun + 0.32 + (solSutun - 1) * 0.08 + (sagSutun - 1) * 0.08;
+  const Kgenislikten  = Math.floor(hedefIcW / toplamKatsayi);
+
+  // Yükseklik kontrolü: A4 yazdırılabilir ~750px (header ~55px çıkarılınca)
+  const aracPaddingDikey = Math.round(Kgenislikten * 0.6) + 30; // cam bölümü + alt pad
+  const kullanilabilirH  = 750 - aracPaddingDikey;
+  const KyukseklikMax    = Math.floor((kullanilabilirH - (toplamSira - 1) * Math.round(Kgenislikten * 0.08)) / toplamSira);
+
+  const K = Math.min(Kgenislikten, KyukseklikMax, 80); // hangisi küçükse
+  const G = Math.round(K * 0.08);
+  const korW = Math.round(K * 0.32);
+
+  /* Gerçek iç genişlik ve araç toplam genişliği */
+  const aracIcW = solSutun * K + G * (solSutun - 1) + korW + sagSutun * K + G * (sagSutun - 1);
+  const aracPad = Math.round(K * 0.35);
+  const aracW   = aracIcW + aracPad * 2;
 
   /* CSS stil değerleri */
   const S = {
@@ -743,7 +754,7 @@ function soRaporGovdeHtml(servis, plan) {
     `<div style="font-size:${Math.max(9,S.K*0.17)}px;font-weight:800;color:#92400e;display:flex;align-items:center;padding:0 3px;white-space:nowrap;">${metin}</div>`;
 
   let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
-  <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:3px solid #c8a800;border-radius:${Math.round(aracW*0.12)}px ${Math.round(aracW*0.12)}px ${Math.round(aracW*0.06)}px ${Math.round(aracW*0.06)}px;padding:0 ${Math.round(aracW*0.06)}px ${Math.round(S.K*0.4)}px;width:${Math.round(aracW)}px;">`;
+  <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:3px solid #c8a800;border-radius:${Math.round(aracW*0.1)}px ${Math.round(aracW*0.1)}px ${Math.round(aracW*0.05)}px ${Math.round(aracW*0.05)}px;padding:0 ${aracPad}px ${Math.round(K*0.4)}px;width:${aracW}px;">`;
 
   /* Ön cam + plaka */
   html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${Math.round(S.K*0.25)}px 0 ${Math.round(S.K*0.18)}px;border-bottom:2.5px solid #c8a800;margin-bottom:${Math.round(S.K*0.18)}px;">
