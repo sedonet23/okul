@@ -92,21 +92,15 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   </div>
   <script>
     function raporPaylas() {
-      var baslik = document.title;
-      // Web Share API — mobil Chrome'da çalışır
-      if (navigator.canShare && navigator.canShare({ title: baslik })) {
-        navigator.share({ title: baslik, text: '📋 ' + baslik }).catch(function(){});
-        return;
-      }
-      // Fallback: önce yazdır diyaloğu aç
+      // Önce yazdır / PDF kaydet
       window.print();
+      // PDF kaydedildikten sonra WhatsApp'a yönlendir
       setTimeout(function() {
-        var mesaj = encodeURIComponent('📋 ' + baslik + ' — Servis oturma planı');
-        window.open('whatsapp://send?text=' + mesaj, '_blank');
-        setTimeout(function() {
-          window.open('https://web.whatsapp.com/send?text=' + mesaj, '_blank');
-        }, 500);
-      }, 800);
+        var mesaj = encodeURIComponent('Merhaba, servis oturma planını paylaşıyorum.');
+        // Mobil WhatsApp deep link
+        var url = 'whatsapp://send?text=' + mesaj;
+        window.location.href = url;
+      }, 2000);
     }
   <\/script>
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">

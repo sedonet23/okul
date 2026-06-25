@@ -667,10 +667,9 @@ function soRaporGovdeHtml(servis, plan) {
   const koltukMap = {};
   koltuklar.forEach(k => { koltukMap[k.no] = k; });
 
-  /* Sadece aktif yuvalar */
+  /* Tüm yuvalar siraMap'e eklenir — pasifler görünmez placeholder olarak yer tutar */
   const siraMap = {};
   yerlesim.forEach((yuva, idx) => {
-    if (yuva.aktif === false) return;
     const no = idx + 1;
     if (!siraMap[yuva.sira]) siraMap[yuva.sira] = [];
     siraMap[yuva.sira].push({ ...yuva, no, koltuk: koltukMap[no] || null });
@@ -725,6 +724,13 @@ function soRaporGovdeHtml(servis, plan) {
 
   const koltukKutu = (yuva, forceWidth) => {
     if (yuva.soforYani) return '';
+
+    /* Pasif yuva — görünmez yer tutucu, düzeni korur */
+    if (yuva.aktif === false) {
+      const w = forceWidth || S.K;
+      return `<div style="width:${w}px;min-height:${S.K}px;flex-shrink:0;visibility:hidden;"></div>`;
+    }
+
     const { konum, koltuk } = yuva;
     const dolu    = koltuk && (koltuk.ogrenciId || koltuk.ogrenciAdi);
     const rezerve = koltuk && koltuk.rezerve && !dolu;
