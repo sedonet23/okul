@@ -200,19 +200,18 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 <body>
   <div class="rapor-toolbar">
     <button class="btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button>
-    <button class="btn-paylas" onclick="raporPaylas()">📤 Paylaş</button>
+    <button class="btn-paylas" onclick="raporPaylas()">📤 WhatsApp</button>
     <button class="btn-kapat"  onclick="window.close()">✕ Kapat</button>
   </div>
   <script>
-    async function raporPaylas() {
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: document.title, text: document.title });
-          return;
-        } catch(e) { /* iptal veya desteklenmiyor */ }
-      }
-      // Fallback: yazdır diyaloğu aç, kullanıcı PDF kaydedip paylaşabilir
-      alert('Paylaşmak için:\\n1. "Yazdır / PDF İndir" butonuna basın\\n2. "PDF olarak kaydet" seçin\\n3. İndirilen PDF\'i WhatsApp\'tan paylaşın');
+    function raporPaylas() {
+      // 1. Yazdır diyaloğunu aç — kullanıcı PDF olarak kaydeder
+      window.print();
+      // 2. Kısa gecikme sonra WhatsApp aç (PDF indirme tamamlanınca paylaşabilir)
+      setTimeout(function() {
+        var mesaj = encodeURIComponent('📋 ' + document.title);
+        window.open('https://wa.me/?text=' + mesaj, '_blank');
+      }, 1500);
     }
   <\/script>
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
