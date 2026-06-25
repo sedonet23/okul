@@ -81,6 +81,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
       table { page-break-inside:auto; }
       tr { page-break-inside:avoid; }
       .sayfa-sonu { page-break-before:always; }
+      body { overflow:hidden; }
     }
   </style>
 </head>
