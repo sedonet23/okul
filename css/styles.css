@@ -945,13 +945,13 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 /* Koltuk bölümü */
 .so-koltuk-bolum { display:flex; flex-direction:column; gap:4px; width:100%; align-items:center; }
 
-/* Sıra — sabit genişlik, her sıra aynı hizalanma kuralını kullanır */
-.so-sira { display:flex; align-items:center; justify-content:flex-start; width:100%; }
-.so-sofor-sirasi { justify-content:flex-start; gap:0; margin-bottom:3px; padding:0 2px; }
+/* Sıra — sabit yükseklik, hizalama koltuk boyutuna göre */
+.so-sira { display:flex; align-items:center; justify-content:flex-start; width:100%; min-height:40px; }
+.so-sofor-sirasi { justify-content:flex-start; gap:0; margin-bottom:3px; padding:0 2px; min-height:44px; }
 
-/* Sol ve sağ koltuk grupları — her biri içinde gap var */
-.so-sol-grup { display:flex; gap:3px; flex-shrink:0; }
-.so-sag-grup { display:flex; gap:3px; flex-shrink:0; }
+/* Sol ve sağ koltuk grupları */
+.so-sol-grup { display:flex; gap:3px; flex-shrink:0; align-items:center; }
+.so-sag-grup { display:flex; gap:3px; flex-shrink:0; align-items:center; }
 .so-koridor { width:14px; flex-shrink:0; }
 .so-arka-sira { justify-content:center; gap:3px; border-top:2px dashed #c8a800; padding-top:6px; margin-top:3px; }
 
@@ -975,10 +975,15 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 /* Placeholder — aktif:false koltuk yuvası */
 .so-placeholder {
   background: #fff !important; border: 2px dashed #9ca3af !important;
-  color: #9ca3af !important; font-size: 20px !important; font-weight: 300 !important;
-  cursor: pointer !important;
+  color: #9ca3af !important; font-size: 18px !important; font-weight: 300 !important;
+  cursor: pointer !important; line-height:1 !important;
 }
-.so-placeholder:hover { border-color: var(--brand-purple,#7c3aed) !important; color: var(--brand-purple,#7c3aed) !important; background: #f5f3ff !important; }
+.so-placeholder:hover {
+  border-color: var(--brand-purple,#7c3aed) !important;
+  color: var(--brand-purple,#7c3aed) !important;
+  background: #f5f3ff !important;
+  transform: none !important; /* scale(1.1) override engelle */
+}
 
 /* Eski ekle-yuva */
 .so-ekle-yuva {
