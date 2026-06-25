@@ -714,27 +714,16 @@ function raporServisOturmaPlan() {
         ${servislerHtml}
       </select>
     </div>
-    <div>
-      <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #374151;">Raporda Gösterilecek Alanlar:</label>
-      <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_koltukDuzeni" checked> ✓ Araç Koltuk Düzeni (Görsel Grid)</label>
-        <label style="cursor: pointer;"><input type="checkbox" id="alan_koltukTablosu" checked> ✓ Koltuk Tablosu</label>
-      </div>
-    </div>
   `;
 
   _raporModalAc('🚌 Servis Oturma Planı', alanlarHtml, () => {
     const servisId = document.getElementById('servisSec').value;
-    const seciliAlanlar = {
-      koltukDuzeni: document.getElementById('alan_koltukDuzeni').checked,
-      koltukTablosu: document.getElementById('alan_koltukTablosu').checked,
-    };
     modalKapat();
-    _raporServisOturmaGoster(servisId || null, seciliAlanlar);
+    _raporServisOturmaGoster(servisId || null);
   });
 }
 
-function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
+function _raporServisOturmaGoster(servisIdFiltre) {
   const hedefServisler = servisIdFiltre
     ? servisler.filter(s => s.id === servisIdFiltre)
     : [...servisler].sort((a, b) => (a.servisAdi || '').localeCompare(b.servisAdi || '', 'tr'));
@@ -767,56 +756,19 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
                <span class="ozet-kutu">Rezerve: ${rezerve}</span>
                <span class="ozet-kutu">Boş: ${Math.max(0, kapasite - dolu - rezerve)}</span>`;
 
-      // Araç Koltuk Düzeni
-      if (seciliAlanlar.koltukDuzeni) {
-        html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
-      }
+      // Araç Koltuk Düzeni — her zaman göster
+      html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
 
-      // Koltuk Tablosu
-      if (seciliAlanlar.koltukTablosu && plan.koltuklar && plan.koltuklar.length) {
-        html += `<table>
-          <thead><tr><th>Koltuk No</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Veli / Telefon</th><th>Durum</th></tr></thead>
-          <tbody>`;
-
-        plan.koltuklar
-          .sort((a, b) => (a.no || 0) - (b.no || 0))
-          .forEach(k => {
-            let ogrenciAdi = k.ogrenciAdi || '';
-            let sinifAdi = '';
-            let veliTel = '';
-
-            if (k.ogrenciId) {
-              const v = veliler.find(x => x.id === k.ogrenciId);
-              if (v) {
-                ogrenciAdi = v.ogrenciAdi || ogrenciAdi;
-                const sn = siniflar.find(s => s.id === v.sinifId);
-                sinifAdi = sn ? sn.ad : '';
-                veliTel = [v.veliAdi, v.telefon1 || v.telefon].filter(Boolean).join(' / ');
-              }
-            }
-
-            const durum = k.rezerve ? 'Rezerve' : (ogrenciAdi ? 'Dolu' : 'Boş');
-            const renkMap = { 'Dolu': '#22c55e', 'Rezerve': '#3b82f6', 'Boş': '#9ca3af' };
-            html += `<tr>
-              <td style="text-align:center;font-weight:700;">${k.no || '—'}</td>
-              <td>${escapeHtml(ogrenciAdi || '—')}</td>
-              <td>${escapeHtml(sinifAdi || '—')}</td>
-              <td>${escapeHtml(veliTel || '—')}</td>
-              <td><span style="color:${renkMap[durum]};font-weight:600;">${durum}</span></td>
-            </tr>`;
-          });
-        html += `</tbody></table>`;
-      }
     } else {
-      // Oturma planı oluşturulmamış — varsayılan Minibüs (1+2) boş şablon bas
+      // Oturma planı oluşturulmamış — varsayılan Ducato (2+1) boş şablon bas
       html += `<p style="font-size:10px;color:#888;padding:0 0 6px 8px;">
-        Oturma planı henüz oluşturulmamış. Varsayılan Minibüs (1+2) şablonu boş olarak gösteriliyor.
+        Oturma planı henüz oluşturulmamış. Varsayılan Ducato (2+1) şablonu boş olarak gösteriliyor.
       </p>`;
 
       const varsayilanPlan = {
         servisId: servis.id,
-        sablon: 'minibus',
-        yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.minibus.yerlesimUret() : [],
+        sablon: 'ducato',
+        yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.ducato.yerlesimUret() : [],
         koltuklar: [],
       };
       const kapasiteVars = varsayilanPlan.yerlesim.length;
@@ -826,7 +778,7 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
                <span class="ozet-kutu">Rezerve: 0</span>
                <span class="ozet-kutu">Boş: ${kapasiteVars}</span>`;
 
-      if (seciliAlanlar.koltukDuzeni && kapasiteVars) {
+      if (kapasiteVars) {
         html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, varsayilanPlan) : '';
       }
     }

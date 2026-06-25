@@ -76,6 +76,7 @@ function servisDetayAc(id){
       <div class="detay-card">
         <h4>🚌 Servis Bilgileri</h4>
         <div class="detay-row">👨‍✈️ Şoför: ${escapeHtml(s.soforAdi||'—')}${s.soforTelefon ? ' · 📞 ' + escapeHtml(s.soforTelefon) : ''}</div>
+        ${s.plaka ? `<div class="detay-row">🚘 Plaka: <strong>${escapeHtml(s.plaka)}</strong></div>` : ''}
         <div class="detay-row">🗺️ Güzergah: ${escapeHtml(s.guzergah||'—')}</div>
         <div class="detay-row">Durum: <span class="badge badge-${servisDurumRengi(s.durum)}">${escapeHtml(s.durum||'Aktif')}</span></div>
         ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
@@ -226,7 +227,7 @@ function servisModalAc(id){
       <div class="form-group"><label>Şoför Telefonu</label><input id="f_svTel" value="${s?escapeHtml(s.soforTelefon||''):''}" placeholder="örn: 0532 000 00 00"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Öğrenci Sayısı</label><input id="f_svOgrenci" type="number" min="0" value="${s&&s.ogrenciSayisi!=null?s.ogrenciSayisi:0}"></div>
+      <div class="form-group"><label>Plaka</label><input id="f_svPlaka" value="${s?escapeHtml(s.plaka||''):''}" placeholder="örn: 34 ABC 123" style="text-transform:uppercase;"></div>
       <div class="form-group"><label>Durum</label>
         <select id="f_svDurum">
           <option value="Aktif" ${!s||s.durum==='Aktif'?'selected':''}>Aktif</option>
@@ -234,6 +235,7 @@ function servisModalAc(id){
         </select>
       </div>
     </div>
+    <div class="form-group"><label>Öğrenci Sayısı</label><input id="f_svOgrenci" type="number" min="0" value="${s&&s.ogrenciSayisi!=null?s.ogrenciSayisi:0}"></div>
     <div class="form-group"><label>Notlar</label><textarea id="f_svNotlar" rows="2">${s?escapeHtml(s.notlar||''):''}</textarea></div>
   `;
   modalAc(s?'Servis Düzenle':'Yeni Servis', body, ()=>{
@@ -244,6 +246,7 @@ function servisModalAc(id){
       guzergah: document.getElementById('f_svGuzergah').value.trim(),
       soforAdi: document.getElementById('f_svSofor').value.trim(),
       soforTelefon: document.getElementById('f_svTel').value.trim(),
+      plaka: document.getElementById('f_svPlaka').value.trim().toUpperCase(),
       ogrenciSayisi: parseInt(document.getElementById('f_svOgrenci').value)||0,
       durum: document.getElementById('f_svDurum').value,
       notlar: document.getElementById('f_svNotlar').value.trim(),
