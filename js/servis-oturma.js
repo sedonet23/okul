@@ -27,8 +27,8 @@ const SO_SABLONLAR = {
     yerlesimUret(siraMax = 7) {
       const y = [];
       y.push({ sira: 0, konum: 'sol-tek', soforYani: true, aktif: true });
-      y.push({ sira: 0, konum: 'sag-ic',  soforYani: true, aktif: true });
-      y.push({ sira: 0, konum: 'sag-dis', soforYani: true, aktif: true });
+      y.push({ sira: 0, konum: 'sag-ic',  aktif: true });
+      y.push({ sira: 0, konum: 'sag-dis', aktif: true });
       y.push({ sira: 1, konum: 'sol-dis', kapiSag: true, aktif: true });
       y.push({ sira: 1, konum: 'sol-ic',  kapiSag: true, aktif: true });
       for (let s = 2; s <= siraMax; s++) {
@@ -317,7 +317,7 @@ function _soRenderArac(servisId) {
       if (sablon === 'buyuk' && kapiSagVar && !saglarVar) {
         html += `<div class="so-kapi-gosterge">│<span>GİRİŞ</span>│</div>`;
       } else {
-        yuvalar.filter(y => sagKonumlar.includes(y.konum)).forEach(y => {
+        yuvalar.filter(y => (y.konum === 'sag-ic' || y.konum === 'sag-dis') && !y.soforYani).forEach(y => {
           html += _soKoltukHtml(y, servisId, sablon);
         });
       }
@@ -799,10 +799,11 @@ function soRaporGovdeHtml(servis, plan) {
   const sagGrpW = sagSutun * KW + G * (sagSutun > 1 ? sagSutun - 1 : 0);
 
   /* Yazı boyutları — KH küçükse min değer devreye girer */
-  const fontAdPt    = Math.max(5,  KH * 0.72);
-  const fontSinifPt = Math.max(4,  KH * 0.52);
-  const fontSoforPt = Math.max(6,  KW * 0.72);
-  const soforIkonMM = Math.max(4,  KW * 0.42);
+  const kucukBoyut  = Math.min(KW, KH); // taşmayı önlemek için her iki boyutun küçüğünü esas al
+  const fontAdPt    = Math.min(11, Math.max(5, kucukBoyut * 0.55));
+  const fontSinifPt = Math.min(8,  Math.max(4, kucukBoyut * 0.40));
+  const fontSoforPt = Math.min(11, Math.max(6, kucukBoyut * 0.55));
+  const soforIkonMM = Math.min(7,  Math.max(4, kucukBoyut * 0.32));
   const borderRmm   = KW * 0.10;
   const kolcakW     = KW * 0.06;
 
@@ -875,16 +876,17 @@ function soRaporGovdeHtml(servis, plan) {
     const kapiSagVar = yuvalar.some(y => y.kapiSag);
 
     if (siraIdx === 0) {
+      const row0Saglar = yuvalar.filter(y => (y.konum === 'sag-ic' || y.konum === 'sag-dis') && !y.soforYani);
       html += `<div style="display:flex;align-items:center;width:100%;gap:${m(korW)};height:${m(KH)};">`;
-      html += `<div style="width:${m(solGrpW)};min-width:${m(solGrpW)};height:${m(KH)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0;">
+      html += `<div style="width:${m(solGrpW)};min-width:${m(solGrpW)};height:${m(KH)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0;overflow:hidden;">
         <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
-        <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#92400e;font-weight:700;margin-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
+        <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#92400e;font-weight:700;margin-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
       </div>`;
       html += `<div style="display:flex;gap:${m(G)};min-width:${m(sagGrpW)};flex-shrink:0;">`;
-      if (kapiSagVar && saglar.filter(y => y.aktif !== false).length === 0) {
+      if (kapiSagVar && row0Saglar.filter(y => y.aktif !== false).length === 0) {
         html += kapıHtml('│GİRİŞ│');
       } else {
-        saglar.forEach(y => { html += koltukKutu(y); });
+        row0Saglar.forEach(y => { html += koltukKutu(y); });
       }
       html += `</div></div>`;
       return;
