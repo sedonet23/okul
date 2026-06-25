@@ -52,7 +52,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
       -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact;
     }
     
-    @page { size: A4 portrait; margin: ${sayfaKenar}; }
+    @page { size: A4 portrait; margin: 8mm 10mm; }
     
     body { 
       font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; 
@@ -129,13 +129,13 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     }
     .so-rapor-baslik { font-size:14px; color:#333; padding:0 0 10px 0; margin-bottom:10px; font-weight:700; }
 
-    /* Araç sarmal: tam sayfa genişliği, içeriden ortalı */
+    /* Araç sarmal: scale için transform-origin noktası */
     .so-rapor-arac-sarmal {
       width: 100%;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 20px 0;
+      overflow: visible;
     }
     /* Koltuk boyutu: 80px × 80px, gap: 8px
        Ducato :  sol 2 (168px) + koridor 24px + sağ 1 (80px) + padding 60px = ~332px araç
@@ -187,6 +187,9 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
       table { page-break-inside: auto; }
       tr { page-break-inside: avoid; }
       .sayfa-sonu { page-break-before: always; }
+      /* Araç scale'i print'te de korunur */
+      #soRaporArac { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      #soAracSarmal { page-break-inside: avoid; }
     }
   </style>
 </head>

@@ -245,7 +245,13 @@ function _soRenderArac(servisId) {
 
     /* ── NORMAL SIRALAR ── */
     html += `<div class="so-sira">`;
-    html += `<div class="so-sol-grup">`;
+
+    /* Sol grup — büyük serviste her sıra 2 koltuk sol içerir;
+       arka kapı sırasında da sol gruba sabit genişlik ver (kayma önleme) */
+    const solGrupStyle = (sablon === 'buyuk' && kapiSagVar && saglar.length === 0)
+      ? ` style="min-width:${2 * 40 + 3}px;"` // 2 koltuk × 40px + 3px gap
+      : '';
+    html += `<div class="so-sol-grup"${solGrupStyle}>`;
     soller.forEach(y => { html += _soKoltukHtml(y, servisId, sablon); });
     html += `</div>`;
 
@@ -699,8 +705,8 @@ function soRaporGovdeHtml(servis, plan) {
   let html = `<div class="so-rapor-baslik">
     🚌 ${escapeHtml(servis.servisAdi || '')}${servis.plaka ? ` · 🚘 ${escapeHtml(servis.plaka)}` : ''} · ${bugun}
   </div>
-  <div class="so-rapor-arac-sarmal">
-  <div class="so-rapor-arac${buyuk ? ' so-rapor-arac-buyuk' : ''}">`;
+  <div class="so-rapor-arac-sarmal" id="soAracSarmal">
+  <div class="so-rapor-arac${buyuk ? ' so-rapor-arac-buyuk' : ''}" id="soRaporArac">`;
 
   /* Ön cam + plaka */
   html += `<div class="so-rapor-on"><div class="so-rapor-cam"></div>${servis.plaka ? `<div class="so-rapor-plaka">${escapeHtml(servis.plaka)}</div>` : ''}</div>`;
@@ -740,7 +746,11 @@ function soRaporGovdeHtml(servis, plan) {
     }
 
     html += `<div class="so-rapor-sira">`;
-    html += `<div class="so-rapor-grup">`; soller.forEach(y => { html += koltukKutu(y); }); html += `</div>`;
+    /* Sol grup — büyük servis arka kapı sırasında 2 koltuk var ama 4 koltuk genişliği beklenir */
+    const raporSolStyle = (sablon === 'buyuk' && kapiSagVar && saglar.length === 0)
+      ? ` style="min-width:${2 * 80 + 8}px;"` // 2 koltuk × 80px + 8px gap
+      : '';
+    html += `<div class="so-rapor-grup"${raporSolStyle}>`; soller.forEach(y => { html += koltukKutu(y); }); html += `</div>`;
     html += `<div class="so-rapor-koridor"></div>`;
     if (kapiSagVar && saglar.length === 0) {
       html += `<div class="so-rapor-kapi">│KAPI│</div>`;
@@ -751,6 +761,60 @@ function soRaporGovdeHtml(servis, plan) {
     html += `</div>`;
   });
 
-  html += `</div></div>`;
+  html += `</div></div>
+  <script>
+  /* Araç A4'e otomatik sığdır — print öncesi ve sonrası */
+  function soAracFitEt() {
+    var arac = document.getElementById('soRaporArac');
+    var sarmal = document.getElementById('soAracSarmal');
+    if (!arac || !sarmal) return;
+
+    // Önce scale sıfırla, gerçek boyutu ölç
+    arac.style.transform = '';
+    arac.style.transformOrigin = '';
+    sarmal.style.height = '';
+
+    var aracW = arac.offsetWidth;
+    var aracH = arac.offsetHeight;
+
+    // Rapor başlığı + baslik + ozet kutuları yaklaşık yüksekliği
+    var headerEl = document.querySelector('.rapor-header');
+    var baslikEl = document.querySelector('.so-rapor-baslik');
+    var headerH = (headerEl ? headerEl.offsetHeight : 0) +
+                  (baslikEl ? baslikEl.offsetHeight : 0) + 40; // toolbar + margins
+
+    // A4 @96dpi: 210mm × 297mm = 794px × 1123px; margin 10mm her iki taraf = 756px × 1066px
+    // Ama tarayıcı penceresi farklı olabilir, sayfa genişliğini kullanalım
+    var sayfaW = document.body.clientWidth || 756;
+    var sayfaH = 1066; // A4 yükseklik - margin (297mm - 20mm) @ 96dpi yaklaşık
+
+    var kullanilabilirH = sayfaH - headerH - 40;
+    var kullanilabilirW = sayfaW - 20;
+
+    var scaleX = kullanilabilirW / aracW;
+    var scaleH = kullanilabilirH / aracH;
+    var scale  = Math.min(scaleX, scaleH, 1); // 1'den büyük ölçekleme yok
+
+    if (scale < 0.99) {
+      arac.style.transform = 'scale(' + scale + ')';
+      arac.style.transformOrigin = 'top center';
+      sarmal.style.height = Math.ceil(aracH * scale + 20) + 'px';
+    }
+  }
+
+  if (document.readyState === 'complete') {
+    soAracFitEt();
+  } else {
+    window.addEventListener('load', soAracFitEt);
+  }
+
+  // Print öncesi tam ölçek, sonra geri al
+  window.addEventListener('beforeprint', function() {
+    var arac = document.getElementById('soRaporArac');
+    if (arac) { arac.dataset.prevTransform = arac.style.transform; arac.style.transform = ''; }
+    // Yeniden hesapla
+    setTimeout(soAracFitEt, 0);
+  });
+  <\/script>`;
   return html;
 }
