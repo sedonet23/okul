@@ -137,17 +137,32 @@ function servisOturmaModalAc(servisId) {
    RAPOR — doğrudan servisId ile, modal kapatmadan önce aç
    ================================================================ */
 function _soRaporDogrudan(servisId) {
-  const servis = servisler.find(x => x.id === servisId);
+  const servis = (typeof servisler !== 'undefined') ? servisler.find(x => x.id === servisId) : null;
   const plan   = servisOturmaPlani.find(p => p.servisId === servisId);
-  if (!servis) return;
 
-  const govde = (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
-  if (!govde) { toast('Oturma planı henüz oluşturulmamış.'); return; }
+  if (!servis) { toast('Servis bilgisi bulunamadı.'); return; }
+  if (!plan || !plan.yerlesim || !plan.yerlesim.length) {
+    toast('Oturma planı henüz oluşturulmamış.'); return;
+  }
+
+  let govde = '';
+  try {
+    govde = soRaporGovdeHtml(servis, plan);
+  } catch(e) {
+    console.error('soRaporGovdeHtml hatası:', e);
+    toast('Rapor oluşturulurken hata: ' + e.message);
+    return;
+  }
+
+  if (!govde) { toast('Rapor içeriği oluşturulamadı.'); return; }
 
   const baslik = `🚌 ${servis.servisAdi || 'Servis'}${servis.plaka ? ' · 🚘 ' + servis.plaka : ''}`;
-  if (typeof _raporPenceresiniAc === 'function') {
-    _raporPenceresiniAc(govde, baslik, { logoGoster: true, servisRaporu: true });
+
+  if (typeof _raporPenceresiniAc !== 'function') {
+    toast('Rapor modülü yüklenemedi. Sayfayı yenileyip tekrar deneyin.');
+    return;
   }
+  _raporPenceresiniAc(govde, baslik, { logoGoster: true, servisRaporu: true });
 }
 
 /* ================================================================
@@ -263,16 +278,10 @@ function _soRenderArac(servisId) {
 
   /* Arka sıra — tüm koltuklar ortalanmış sabit grid */
   const arkaSiraHtml = (yuvalar) => {
-    const aktifler = yuvalar.filter(y => y.aktif !== false);
-    const hepsi    = yuvalar; // toplam koltuk sayısı sabit (4)
     let h = `<div class="so-sira so-arka-sira">`;
-    // Arka sıra: sabit 4 yuva, pasifler görünmez
-    hepsi.forEach(y => {
-      if (y.aktif === false) {
-        h += `<div style="width:${K}px;height:${K}px;visibility:hidden;flex-shrink:0;"></div>`;
-      } else {
-        h += _soKoltukHtml(y, servisId, sablon);
-      }
+    // Arka sıra: sabit 4 yuva — pasifler "+" placeholder, aktifler normal koltuk
+    yuvalar.forEach(y => {
+      h += _soKoltukHtml(y, servisId, sablon);
     });
     h += `</div>`;
     return h;

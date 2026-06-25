@@ -149,12 +149,32 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     return win;
   } catch(e) {
-    // Fallback: eski yöntem
-    const win = window.open('', '_blank', 'width=950,height=1000');
-    if (!win) { toast('Açılır pencere engellendi. Tarayıcı ayarlarınızı kontrol edin.'); return null; }
-    win.document.write(tamHtml);
-    win.document.close();
-    return win;
+    // Fallback 1: eski window.open
+    try {
+      const win = window.open('', '_blank', 'width=950,height=1000');
+      if (win) {
+        win.document.write(tamHtml);
+        win.document.close();
+        return win;
+      }
+    } catch(e2) {}
+
+    // Fallback 2: indirme linki (mobil Chrome popup engeli için)
+    try {
+      const blob2 = new Blob([tamHtml], { type: 'text/html;charset=utf-8' });
+      const url2  = URL.createObjectURL(blob2);
+      const a = document.createElement('a');
+      a.href = url2;
+      a.download = (baslik.replace(/[^\w\s\-·]/g,'').trim() || 'rapor') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url2), 10000);
+      toast('Rapor dosyası indirildi. Dosyayı açarak yazdırabilirsiniz.');
+    } catch(e3) {
+      toast('Açılır pencere engellendi. Tarayıcı popup iznini açın.');
+    }
+    return null;
   }
 }
 
