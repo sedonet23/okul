@@ -127,37 +127,46 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
       font-size: 10.5px; color: #5b21b6; background: #f5f3ff; border: 1px solid #c4b5fd;
       border-radius: 6px; padding: 6px 10px; margin: 8px 0 10px; display: inline-block;
     }
-    .so-rapor-govde {
-      margin: 0 0 4px; padding: 12px 10px 8px; background: #fffbea;
-      border: 2px solid #f3d77a; border-radius: 14px;
+    .so-rapor-baslik { font-size:13px; color:#555; padding:0 0 8px 0; margin-bottom:8px; }
+
+    /* Araç sarmal: tam sayfa genişliği, içeriden ortalı */
+    .so-rapor-arac-sarmal {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 16px 0;
     }
-    .so-rapor-ust-etiket {
-      display: flex; justify-content: space-between;
-      font-size: 9px; font-weight: 700; color: #92400e; margin-bottom: 8px;
+    .so-rapor-arac {
+      display:inline-flex; flex-direction:column; align-items:center;
+      background:#f5e642; border:3px solid #c8a800;
+      border-radius:28px 28px 16px 16px;
+      padding:0 20px 20px;
+      width: 260px;
     }
-    .so-rapor-sofor-sira {
-      display: flex; justify-content: flex-start; gap: 4px;
-      padding-bottom: 6px; border-bottom: 2px dashed #d4b86a; margin-bottom: 6px;
-    }
-    .so-rapor-sira { display: flex; align-items: center; gap: 3px; margin-bottom: 3px; }
-    .so-rapor-koridor { width: 14px; flex-shrink: 0; }
+    .so-rapor-arac-buyuk { width: 340px; }
+    .so-rapor-on { width:100%; display:flex; flex-direction:column; align-items:center; padding:14px 0 10px; border-bottom:2.5px solid #c8a800; margin-bottom:10px; }
+    .so-rapor-cam { width:58%; height:22px; background:linear-gradient(180deg,#b3d9f7,#d6eeff); border:2px solid #93c5e8; border-radius:6px 6px 0 0; }
+    .so-rapor-sofor { font-size:20px; text-align:center; line-height:1.3; }
+    .so-rapor-sofor small { font-size:9px; color:#92400e; font-weight:700; }
+    .so-rapor-sofor-sirasi { justify-content:flex-start; gap:8px; }
+    .so-rapor-sira { display:flex; align-items:center; justify-content:center; margin-bottom:6px; }
+    .so-rapor-grup { display:flex; gap:5px; }
+    .so-rapor-koridor { width:18px; flex-shrink:0; }
+    .so-rapor-arka { justify-content:center; gap:5px; border-top:2.5px dashed #c8a800; padding-top:8px; margin-top:4px; }
+    .so-rapor-kapi { font-size:10px; font-weight:800; color:#92400e; display:flex; align-items:center; padding:0 3px; }
+    .so-rapor-kapi-arka { margin-left:4px; }
     .so-rapor-koltuk {
-      flex: 1; min-width: 0; height: 34px; border-radius: 5px;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      border: 1.5px solid rgba(0,0,0,0.18); overflow: hidden;
+      width:52px; height:52px; border-radius:8px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      border:2px solid #d1d5db; flex-shrink:0;
     }
-    .so-rapor-koltuk-no { font-size: 8px; font-weight: 700; color: rgba(0,0,0,0.55); line-height: 1; }
-    .so-rapor-koltuk-ad { font-size: 7.5px; font-weight: 600; color: rgba(0,0,0,0.8); text-align: center; line-height: 1.1; padding: 0 1px; word-break: break-word; }
-    .so-rapor-dolu    { background: #dcfce7; border-color: #22c55e; }
-    .so-rapor-rezerve { background: #dbeafe; border-color: #3b82f6; }
-    .so-rapor-bos     { background: #f3f4f6; border-color: #9ca3af; }
-    .so-rapor-koltuk.so-rapor-sofor-koltuk {
-      background: #fef3c7; border-color: #f59e0b; font-size: 14px; flex: 0 0 15%;
-    }
-    .so-rapor-koltuk.so-rapor-refakatci-koltuk {
-      background: #e0e7ff; border-color: #6366f1; font-size: 13px; flex: 0 0 15%;
-    }
-    .so-rapor-lejant { font-size: 9px; margin: -2px 0 10px; padding: 4px; background: #fff9e6; text-align: center; border-radius: 4px; }
+    .so-rapor-bos     { background:#f3f4f6; }
+    .so-rapor-dolu    { background:#22c55e; border-color:#16a34a; color:#fff; }
+    .so-rapor-rezerve { background:#3b82f6; border-color:#2563eb; color:#fff; }
+    .so-rapor-kolcak-sol { border-left:4px solid #a07840; border-radius:8px 4px 4px 8px; }
+    .so-rapor-kolcak-sag { border-right:4px solid #a07840; border-radius:4px 8px 8px 4px; }
+    .so-rapor-ad { font-size:9px; line-height:1.2; text-align:center; max-width:46px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:inherit; font-weight:600; }
 
     /* ---------- Print ---------- */
     @media print {
@@ -763,8 +772,8 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
         html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
       }
 
-      // Koltuk Tablosu — GIZLENDI (v5.0)
-      if (false && seciliAlanlar.koltukTablosu && plan.koltuklar && plan.koltuklar.length) {
+      // Koltuk Tablosu
+      if (seciliAlanlar.koltukTablosu && plan.koltuklar && plan.koltuklar.length) {
         html += `<table>
           <thead><tr><th>Koltuk No</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Veli / Telefon</th><th>Durum</th></tr></thead>
           <tbody>`;
@@ -799,31 +808,26 @@ function _raporServisOturmaGoster(servisIdFiltre, seciliAlanlar) {
         html += `</tbody></table>`;
       }
     } else {
-      // Oturma planı yoksa listele
-      const ogrenciler = veliler
-        .filter(v => v.servisId === servis.id)
-        .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+      // Oturma planı oluşturulmamış — varsayılan Minibüs (1+2) boş şablon bas
+      html += `<p style="font-size:10px;color:#888;padding:0 0 6px 8px;">
+        Oturma planı henüz oluşturulmamış. Varsayılan Minibüs (1+2) şablonu boş olarak gösteriliyor.
+      </p>`;
 
-      if (ogrenciler.length) {
-        html += `<p style="font-size:10px;color:#888;padding:0 0 4px 8px;">
-          Oturma planı henüz oluşturulmamış. Servise kayıtlı ${ogrenciler.length} öğrenci listeleniyor.
-        </p>`;
-        html += `<table>
-          <thead><tr><th>#</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Veli</th><th>Telefon</th></tr></thead>
-          <tbody>`;
-        ogrenciler.forEach((v, i) => {
-          const sn = siniflar.find(s => s.id === v.sinifId);
-          html += `<tr>
-            <td>${i + 1}</td>
-            <td>${escapeHtml(v.ogrenciAdi || '—')}</td>
-            <td>${escapeHtml(sn ? sn.ad : '—')}</td>
-            <td>${escapeHtml(v.veliAdi || '—')}</td>
-            <td>${escapeHtml(v.telefon1 || v.telefon || '—')}</td>
-          </tr>`;
-        });
-        html += `</tbody></table>`;
-      } else {
-        html += `<p style="color:#888;font-size:10px;padding:3px 8px;">Bu serviste kayıtlı öğrenci yok.</p>`;
+      const varsayilanPlan = {
+        servisId: servis.id,
+        sablon: 'minibus',
+        yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.minibus.yerlesimUret() : [],
+        koltuklar: [],
+      };
+      const kapasiteVars = varsayilanPlan.yerlesim.length;
+
+      html += `<span class="ozet-kutu">Kapasite: ${kapasiteVars}</span>
+               <span class="ozet-kutu">Dolu: 0</span>
+               <span class="ozet-kutu">Rezerve: 0</span>
+               <span class="ozet-kutu">Boş: ${kapasiteVars}</span>`;
+
+      if (seciliAlanlar.koltukDuzeni && kapasiteVars) {
+        html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, varsayilanPlan) : '';
       }
     }
   });
