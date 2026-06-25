@@ -239,9 +239,12 @@ function _soRenderArac(servisId) {
 
     if (gridCol === null) return '';
 
-    // Pasif: görünmez yer tutucu
+    // Pasif: "+" ile geri ekleme placeholder'ı
     if (aktif === false) {
-      return `<div style="grid-column:${gridCol};width:${K}px;height:${K}px;visibility:hidden;"></div>`;
+      let pcls = 'so-koltuk so-placeholder';
+      if (konum === 'sol-dis' || konum === 'sol-tek') pcls += ' so-kolcak-sol';
+      if (konum === 'sag-dis') pcls += ' so-kolcak-sag';
+      return `<div class="${pcls}" style="grid-column:${gridCol};" onclick="soYuvaAktifEt(${no},'${servisId}','${sablon}')" title="Koltuk ekle">+</div>`;
     }
 
     // Kapı göstergesi — koltuk yok, kapı var

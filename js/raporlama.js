@@ -137,7 +137,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   ${htmlIcerik}
   </div>
 </body>
-</html>\`;
+</html>`;
 
   // Blob URL ile aç — gerçek origin, share API çalışır
   try {
