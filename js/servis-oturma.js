@@ -1,422 +1,527 @@
 /* ====================================================================
-   js/servis-oturma.js  (v1.1)
-   Servis Oturma Planı Modülü
+   js/servis-oturma.js  (v3.0)
+   Servis Oturma Planı — Dikey Araç Şeması
    ────────────────────────────────────────────────────────────────────
-   Veri: COL.servisOturma → 'oy_servisOturma'
-     Belge ID = servisId
-     Alan: { servisId, kapasite, siraSayisi, duzen:'tek'|'cift'|'dort',
-             soforKoltuguVarMi:bool, soforYaniSayisi:1|2,
-             koltuklar:[{no, ogrenciId, ogrenciAdi, rezerve}] }
+   Firestore: COL.servisOturma → 'oy_servisOturma'
+   Belge ID  = servisId
+   Belge     = {
+     servisId,
+     sablon: 'minibus' | 'ducato' | 'buyuk',
+     yerlesim: [{ sira, konum, soforYani? }],
+     koltuklar: [{ no, ogrenciId, ogrenciAdi, rezerve }]
+   }
    ────────────────────────────────────────────────────────────────────
-   Koltuk şablonları (okulun gerçek filosu):
-     Minibüs 16+1  (16 öğrenci + 1 şoför)
-     Minibüs 16+2  (16 öğrenci + şoför + refakatçi koltuğu)
-     Minibüs 19+1  (19 öğrenci + 1 şoför)
-     Minibüs 19+2  (19 öğrenci + şoför + refakatçi koltuğu)
-     Otobüs  36    (36 öğrenci + 1 şoför)
-   Renk kodlaması:
-     🟢 dolu (#22c55e)   ⬜ boş (#e5e7eb)   🔵 rezerve (#3b82f6)
+   Yerleşim mantığı:
+   • yerlesim dizisi araçtaki tüm yuvaları tutar (indeks = koltuk no - 1)
+   • Kullanıcı + placeholder'a tıklarsa koltuk ekler
+   • Koltuğa tıklarsa öğrenci atar veya koltuğu siler
+   ────────────────────────────────────────────────────────────────────
+   Şablonlar:
+   minibus → 1+2, şoför yanı başlangıçta 1 sol + 1 sağ koltuk
+   ducato  → 1+2, şoför yanı başlangıçta 1 sol + 2 sağ koltuk
+   buyuk   → 2+2, 7 sıra + arka 5
    ==================================================================== */
 
-let servisOturmaPlani = [];     // tüm servislerin oturma planları
+let servisOturmaPlani = [];
 
+/* ================================================================
+   ŞABLON TANIMLARI
+   ================================================================ */
 const SO_SABLONLAR = {
-  minibus16_1: { ad: 'Minibüs 16+1', kapasite: 16, siraSayisi: 4, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'tekli' },
-  minibus16_2: { ad: 'Minibüs 16+2', kapasite: 16, siraSayisi: 4, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'ikili' },
-  minibus19_1: { ad: 'Minibüs 19+1', kapasite: 19, siraSayisi: 5, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'tekli' },
-  minibus19_2: { ad: 'Minibüs 19+2', kapasite: 19, siraSayisi: 5, duzen: 'cift', soforKoltuguVarMi: true, soforYani: 'ikili' },
-  otobus36:    { ad: 'Otobüs 36',    kapasite: 36, siraSayisi: 6, duzen: 'dort', soforKoltuguVarMi: true, soforYani: 'tekli' },
+
+  minibus: {
+    ad: 'Minibüs',
+    ikon: '🚐',
+    aciklama: '1+2 düzen',
+    yerlesimUret() {
+      const y = [];
+      // Sira 0: şoför yanı — başlangıç: sol 1, sağ 1
+      y.push({ sira: 0, konum: 'sol-tek', soforYani: true });
+      y.push({ sira: 0, konum: 'sag-dis', soforYani: true });
+      // Sıra 1–5: 1+2
+      for (let s = 1; s <= 5; s++) {
+        y.push({ sira: s, konum: 'sol-tek' });
+        y.push({ sira: s, konum: 'sag-ic' });
+        y.push({ sira: s, konum: 'sag-dis' });
+      }
+      return y;
+    },
+  },
+
+  ducato: {
+    ad: 'Ducato',
+    ikon: '🚎',
+    aciklama: '1+2 düzen',
+    yerlesimUret() {
+      const y = [];
+      // Sira 0: şoför yanı — başlangıç: sol 1, sağ 2
+      y.push({ sira: 0, konum: 'sol-tek', soforYani: true });
+      y.push({ sira: 0, konum: 'sag-ic',  soforYani: true });
+      y.push({ sira: 0, konum: 'sag-dis', soforYani: true });
+      // Sıra 1–6: 1+2
+      for (let s = 1; s <= 6; s++) {
+        y.push({ sira: s, konum: 'sol-tek' });
+        y.push({ sira: s, konum: 'sag-ic' });
+        y.push({ sira: s, konum: 'sag-dis' });
+      }
+      return y;
+    },
+  },
+
+  buyuk: {
+    ad: 'Büyük Servis',
+    ikon: '🚍',
+    aciklama: '2+2 düzen + arka sıra',
+    yerlesimUret() {
+      const y = [];
+      // Sira 0: şoför yanı — sol 1, sağ 2
+      y.push({ sira: 0, konum: 'sol-dis', soforYani: true });
+      y.push({ sira: 0, konum: 'sag-ic',  soforYani: true });
+      y.push({ sira: 0, konum: 'sag-dis', soforYani: true });
+      // Sıra 1–6: 2+2
+      for (let s = 1; s <= 6; s++) {
+        y.push({ sira: s, konum: 'sol-dis' });
+        y.push({ sira: s, konum: 'sol-ic'  });
+        y.push({ sira: s, konum: 'sag-ic'  });
+        y.push({ sira: s, konum: 'sag-dis' });
+      }
+      // Sıra 7: arka 5
+      for (let k = 0; k < 5; k++) {
+        y.push({ sira: 7, konum: 'arka' });
+      }
+      return y;
+    },
+  },
 };
 
-/* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ---------- */
+/* ================================================================
+   FIRESTORE BAĞLANTISI
+   ================================================================ */
 function servisOturmaBaglantisiKur() {
   if (!db) return;
   db.collection(COL.servisOturma).onSnapshot(snap => {
     servisOturmaPlani = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // Aktif oturma editörü açıksa yenile
-    const aktifServisId = document.getElementById('soServisId') ? document.getElementById('soServisId').value : null;
-    if (aktifServisId) _soRenderGrid(aktifServisId);
+    const aktifId = document.getElementById('soServisId')?.value;
+    if (aktifId) _soRenderArac(aktifId);
+    if (document.getElementById('oturmaServislerListesi')) renderOturmaServisler();
   }, err => console.warn('servisOturma snapshot:', err));
 }
 
 /* ================================================================
-   ANA MODAL: Oturma Planı Editörü
+   ANA MODAL
    ================================================================ */
 function servisOturmaModalAc(servisId) {
   const s = servisler.find(x => x.id === servisId);
   if (!s) return;
 
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  const kapasite    = mevcut ? mevcut.kapasite    : 16;
-  const siraSayisi  = mevcut ? mevcut.siraSayisi  : 4;
-  const duzen       = mevcut ? mevcut.duzen       : 'cift';
-  const soforVar    = mevcut ? (mevcut.soforKoltuguVarMi !== false) : true;
-  const soforYani   = mevcut ? (mevcut.soforYaniSayisi === 2 ? 'ikili' : 'tekli') : 'tekli';
+  const mevcut        = servisOturmaPlani.find(p => p.servisId === servisId);
+  const secilenSablon = mevcut?.sablon || 'minibus';
 
-  const modalIcerik = `
-    <div style="display:flex;flex-direction:column;gap:12px;">
+  const sablonButonlari = Object.entries(SO_SABLONLAR).map(([key, val]) => `
+    <button class="so-sablon-btn${secilenSablon === key ? ' so-sablon-aktif' : ''}"
+      onclick="soSablonSec('${key}','${servisId}')" data-sablon="${key}">
+      ${val.ikon} ${val.ad}
+      <small>${val.aciklama}</small>
+    </button>`).join('');
 
-      <!-- Servis bilgisi -->
-      <div style="background:#f5f3ff;border-radius:8px;padding:10px 14px;font-size:12px;color:#5b21b6;">
+  const icerik = `
+    <div class="so-modal-wrap">
+      <div class="so-servis-bilgi">
         🚌 <strong>${escapeHtml(s.servisAdi)}</strong>
         ${s.guzergah ? ` · ${escapeHtml(s.guzergah)}` : ''}
-        &nbsp;|&nbsp; Şoför: ${escapeHtml(s.soforAdi || '—')}
+        ${s.soforAdi ? ` &nbsp;|&nbsp; Şoför: ${escapeHtml(s.soforAdi)}` : ''}
       </div>
 
-      <!-- Gizli servis id -->
       <input type="hidden" id="soServisId" value="${servisId}">
+      <input type="hidden" id="soSecilenSablon" value="${secilenSablon}">
 
-      <!-- Şablon hızlı seçim -->
-      <div>
-        <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Araç Şablonu (hızlı seçim)</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus16_1')">🚐 Minibüs 16+1</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus16_2')">🚐 Minibüs 16+2</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus19_1')">🚐 Minibüs 19+1</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('minibus19_2')">🚐 Minibüs 19+2</button>
-          <button class="btn btn-ghost btn-sm" onclick="soSablonUygula('otobus36')">🚌 Otobüs 36</button>
-        </div>
+      <div class="so-sablon-grup">
+        <div class="so-sablon-label">Araç Tipi</div>
+        <div class="so-sablon-btnler">${sablonButonlari}</div>
       </div>
 
-      <!-- Özel yapı -->
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-        <div class="form-group" style="flex:1;min-width:120px;">
-          <label>Kapasite (10–60)</label>
-          <input type="number" id="soKapasite" min="10" max="60" value="${kapasite}" oninput="soYapiGuncelle()">
+      <div class="so-icerik">
+        <div class="so-arac-wrap">
+          <div id="soAracSemasi"></div>
         </div>
-        <div class="form-group" style="flex:1;min-width:120px;">
-          <label>Sıra Sayısı</label>
-          <input type="number" id="soSiraSayisi" min="2" max="30" value="${siraSayisi}" oninput="soYapiGuncelle()">
+        <div class="so-sag-panel">
+          <div class="so-ozet-kart">
+            <div class="so-ozet-baslik">Özet</div>
+            <div class="so-ozet-satir"><span class="so-nokta" style="background:#22c55e"></span>Dolu <strong id="soDoluSayisi">0</strong></div>
+            <div class="so-ozet-satir"><span class="so-nokta so-nokta-bos"></span>Boş <strong id="soBosSayisi">0</strong></div>
+            <div class="so-ozet-satir"><span class="so-nokta" style="background:#3b82f6"></span>Rezerve <strong id="soRezerveSayisi">0</strong></div>
+            <div class="so-ozet-satir" style="border-top:1px solid #e5e7eb;padding-top:6px;margin-top:4px;">Toplam <strong id="soToplamSayisi">0</strong></div>
+          </div>
+          <div class="so-legend">
+            <div class="so-legend-satir"><span class="so-koltuk so-k-mini so-dolu"></span>Dolu</div>
+            <div class="so-legend-satir"><span class="so-koltuk so-k-mini"></span>Boş</div>
+            <div class="so-legend-satir"><span class="so-koltuk so-k-mini so-rezerve"></span>Rezerve</div>
+            <div class="so-legend-satir"><span class="so-koltuk so-k-mini so-ekle-yuva">+</span>Koltuk ekle</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:8px;" onclick="soTumunuTemizle()">🗑️ Atamaları Temizle</button>
+          <button class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;" onclick="raporServisOturmaPlan('${servisId}')">🖨️ Rapor Al</button>
         </div>
-        <div class="form-group" style="flex:1;min-width:120px;">
-          <label>Düzen</label>
-          <select id="soDuzen" onchange="soYapiGuncelle()">
-            <option value="cift" ${duzen === 'cift' ? 'selected' : ''}>2+2 (çift)</option>
-            <option value="tek"  ${duzen === 'tek'  ? 'selected' : ''}>1+2 (tek sol)</option>
-            <option value="dort"  ${duzen === 'dort' ? 'selected' : ''}>2+2+2 (geniş)</option>
-          </select>
-        </div>
-        <div class="form-group" style="flex:1;min-width:140px;">
-          <label>Şoför Yanı</label>
-          <select id="soSoforYani" onchange="soYapiGuncelle()" style="width:100%;">
-            <option value="tekli" ${soforYani === 'tekli' ? 'selected' : ''}>🪑 Tekli (sadece şoför)</option>
-            <option value="ikili" ${soforYani === 'ikili' ? 'selected' : ''}>🪑🪑 İkili (şoför + refakatçi)</option>
-          </select>
-        </div>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;margin-bottom:8px;">
-          <input type="checkbox" id="soSoforVar" ${soforVar ? 'checked' : ''} onchange="soYapiGuncelle()">
-          Şoför koltuğu
-        </label>
       </div>
+    </div>`;
 
-      <!-- Koltuk grid -->
-      <div id="soGridContainer" style="overflow:auto;max-height:420px;border:1px solid #e5e7eb;border-radius:10px;padding:14px;background:#fafafa;">
-        <div id="soGrid"></div>
-      </div>
+  modalAc(`💺 Oturma Planı — ${escapeHtml(s.servisAdi)}`, icerik, () => soKaydet(servisId));
+  setTimeout(() => _soRenderArac(servisId), 60);
+}
 
-      <!-- Özet -->
-      <div id="soOzet" style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap;align-items:center;">
-        <span>🟢 Dolu: <strong id="soDoluSayisi">0</strong></span>
-        <span>⬜ Boş: <strong id="soBosSayisi">0</strong></span>
-        <span>🔵 Rezerve: <strong id="soRezerve">0</strong></span>
-        <button class="btn btn-ghost btn-sm" onclick="soTumunuTemizle()" style="margin-left:auto;">🗑️ Tümünü Temizle</button>
-        <button class="btn btn-ghost btn-sm" onclick="raporServisOturmaPlan('${servisId}')">🖨️ Rapor Al</button>
-      </div>
-    </div>
-  `;
+/* ================================================================
+   ŞABLON SEÇ
+   ================================================================ */
+function soSablonSec(sablon, servisId) {
+  const mevcut     = servisOturmaPlani.find(p => p.servisId === servisId);
+  const atamavar   = (mevcut?.koltuklar || []).some(k => k.ogrenciId || k.ogrenciAdi || k.rezerve);
+  if (atamavar && !confirm('Araç tipi değiştirilirse mevcut atamalar sıfırlanacak. Devam?')) return;
 
-  modalAc(`🚌 Oturma Planı — ${escapeHtml(s.servisAdi)}`, modalIcerik, () => {
-    soKaydet(servisId);
+  document.getElementById('soSecilenSablon').value = sablon;
+  document.querySelectorAll('.so-sablon-btn').forEach(b =>
+    b.classList.toggle('so-sablon-aktif', b.dataset.sablon === sablon));
+
+  const yerlesim = SO_SABLONLAR[sablon].yerlesimUret();
+  db.collection(COL.servisOturma).doc(servisId).set({
+    servisId, sablon, yerlesim, koltuklar: [],
+    guncellendi: new Date().toISOString(),
+  }).catch(err => toast('Hata: ' + err.message));
+}
+
+/* ================================================================
+   ARAÇ RENDERER
+   ================================================================ */
+function _soRenderArac(servisId) {
+  const hedef = document.getElementById('soAracSemasi');
+  if (!hedef) return;
+
+  const sablon    = document.getElementById('soSecilenSablon')?.value || 'minibus';
+  const sablonObj = SO_SABLONLAR[sablon];
+  if (!sablonObj) return;
+
+  const mevcut    = servisOturmaPlani.find(p => p.servisId === servisId);
+  const koltuklar = mevcut?.koltuklar || [];
+  const yerlesim  = (mevcut?.yerlesim?.length) ? mevcut.yerlesim : sablonObj.yerlesimUret();
+  const buyuk     = sablon === 'buyuk';
+
+  /* ---- Sıralara göre grupla ---- */
+  const siraMap = {};
+  yerlesim.forEach((yuva, idx) => {
+    const k = koltuklar.find(k => k.no === idx + 1) || null;
+    if (!siraMap[yuva.sira]) siraMap[yuva.sira] = [];
+    siraMap[yuva.sira].push({ ...yuva, no: idx + 1, koltuk: k });
   });
 
-  // Grid'i çiz
-  setTimeout(() => _soRenderGrid(servisId), 50);
-}
+  /* ---- Şoför yanı placeholder durumu ---- */
+  // Şoför yanında sol tarafta en fazla kaç koltuk olabilir?
+  // Minibüs/Ducato: sol 1+1=2 max, Büyük: sol 2 max
+  const soforSirasi = siraMap[0] || [];
+  const soforSollar = soforSirasi.filter(y => y.konum.startsWith('sol'));
+  const soforSaglar = soforSirasi.filter(y => y.konum.startsWith('sag'));
+  const maxSolSofor = buyuk ? 2 : 2;
+  const maxSagSofor = buyuk ? 2 : 2;
+  const ekSolVar    = soforSollar.length < maxSolSofor;
+  const ekSagVar    = soforSaglar.length < maxSagSofor;
 
-/* ---------- Şablon uygula ---------- */
-function soSablonUygula(sablon) {
-  const s = SO_SABLONLAR[sablon];
-  if (!s) return;
-  document.getElementById('soKapasite').value   = s.kapasite;
-  document.getElementById('soSiraSayisi').value = s.siraSayisi;
-  document.getElementById('soDuzen').value      = s.duzen;
-  document.getElementById('soSoforVar').checked = s.soforKoltuguVarMi;
-  document.getElementById('soSoforYani').value  = s.soforYani || 'tekli';
-  soYapiGuncelle();
-}
+  let html = `<div class="so-arac${buyuk ? ' so-arac-buyuk' : ''}">`;
 
-/* ---------- Yapı güncelle (input değişince) ---------- */
-function soYapiGuncelle() {
-  const servisId = document.getElementById('soServisId').value;
-  _soRenderGrid(servisId);
-}
+  /* Ön */
+  html += `<div class="so-arac-on">
+    <div class="so-sofor-koltuk">🧑‍✈️<span>Şoför</span></div>
+    <div class="so-on-cam"></div>
+  </div>`;
 
-/* ---------- Ana grid renderer ---------- */
-function _soRenderGrid(servisId) {
-  const grid = document.getElementById('soGrid');
-  if (!grid) return;
+  html += `<div class="so-koltuk-bolum">`;
 
-  const kapasite   = parseInt(document.getElementById('soKapasite').value)   || 14;
-  const siraSayisi = parseInt(document.getElementById('soSiraSayisi').value) || 7;
-  const duzen      = document.getElementById('soDuzen').value || 'cift';
-  const soforVar   = document.getElementById('soSoforVar').checked;
-  const soforYani  = document.getElementById('soSoforYani').value || 'tekli';
+  const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  // Mevcut koltuk verileri
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  const mevcutKoltuklar = mevcut ? (mevcut.koltuklar || []) : [];
+  siralar.forEach(siraIdx => {
+    const yuvalar  = siraMap[siraIdx];
+    const arkaVar  = yuvalar.some(y => y.konum === 'arka');
 
-  // Sıra başına koltuk sayıları
-  const siraKoltukSayisi = duzen === 'tek' ? 3 : duzen === 'dort' ? 6 : 4;
-  const gercekKapasite   = Math.min(kapasite, siraSayisi * siraKoltukSayisi);
-
-  // Koltuk No → mevcut veri eşlemesi
-  const koltukMap = {};
-  mevcutKoltuklar.forEach(k => { koltukMap[k.no] = k; });
-
-  let html = '<div class="so-arac-govde">';
-
-  // Şoför koltuğu (+ varsa refakatçi koltuğu) — araç gövdesinin solunda
-  if (soforVar) {
-    html += `<div class="so-sofor-sira">
-      <div class="so-koltuk so-sofor" title="Şoför">🧑‍✈️</div>
-      ${soforYani === 'ikili' ? `<div class="so-koltuk so-refakatci" title="Refakatçi / Rehber Öğretmen">🧑‍🏫</div>` : ''}
-    </div>`;
-  }
-
-  // Koltuk sıraları
-  let koltukNo = 1;
-  for (let sira = 0; sira < siraSayisi && koltukNo <= gercekKapasite; sira++) {
-    html += '<div class="so-sira">';
-
-    // Sol koltuklar
-    const solSayisi = (duzen === 'tek') ? 1 : 2;
-    const sagSayisi = 2;
-
-    for (let k = 0; k < solSayisi && koltukNo <= gercekKapasite; k++) {
-      html += _soKoltukHtml(koltukNo, koltukMap[koltukNo], servisId);
-      koltukNo++;
+    if (arkaVar) {
+      html += `<div class="so-sira so-arka-sira">`;
+      yuvalar.forEach(y => { html += _soYuvaHtml(y, servisId, sablon); });
+      html += `</div>`;
+      return;
     }
 
-    html += '<div class="so-koridor"></div>';
+    const soller = yuvalar.filter(y => y.konum.startsWith('sol') || y.konum === 'sol-tek');
+    const saglar = yuvalar.filter(y => y.konum.startsWith('sag'));
 
-    for (let k = 0; k < sagSayisi && koltukNo <= gercekKapasite; k++) {
-      html += _soKoltukHtml(koltukNo, koltukMap[koltukNo], servisId);
-      koltukNo++;
+    html += `<div class="so-sira${siraIdx === 0 ? ' so-sofor-sirasi' : ''}">`;
+
+    /* Sol grup */
+    html += `<div class="so-sol-grup">`;
+    soller.forEach(y => { html += _soYuvaHtml(y, servisId, sablon); });
+    if (siraIdx === 0 && soller.length < maxSolSofor) {
+      html += _soPlaceholderHtml(siraIdx, buyuk ? 'sol-ic' : 'sol-ek', servisId, sablon);
     }
+    html += `</div>`;
 
-    // Geniş düzende 3. çift
-    if (duzen === 'dort') {
-      html += '<div class="so-koridor"></div>';
-      for (let k = 0; k < 2 && koltukNo <= gercekKapasite; k++) {
-        html += _soKoltukHtml(koltukNo, koltukMap[koltukNo], servisId);
-        koltukNo++;
-      }
+    html += `<div class="so-koridor"></div>`;
+
+    /* Sağ grup */
+    html += `<div class="so-sag-grup">`;
+    saglar.forEach(y => { html += _soYuvaHtml(y, servisId, sablon); });
+    if (siraIdx === 0 && saglar.length < maxSagSofor) {
+      html += _soPlaceholderHtml(siraIdx, 'sag-ek', servisId, sablon);
     }
+    html += `</div>`;
 
-    html += '</div>'; // .so-sira
-  }
+    html += `</div>`; /* so-sira */
+  });
 
-  html += '</div>'; // .so-arac-govde
-  grid.innerHTML = html;
+  html += `</div>`; /* so-koltuk-bolum */
+  html += `<div class="so-arac-arka"></div>`;
+  html += `</div>`; /* so-arac */
 
-  _soOzetGuncelle(mevcutKoltuklar, gercekKapasite);
+  hedef.innerHTML = html;
+  _soOzetGuncelle(koltuklar, yerlesim.length);
 }
 
-/* ---------- Tek koltuk HTML'i ---------- */
-function _soKoltukHtml(no, veri, servisId) {
-  const dolu    = veri && (veri.ogrenciId || veri.ogrenciAdi);
-  const rezerve = veri && veri.rezerve;
-  const sinif   = dolu ? (() => {
-    const v = veliler.find(x => x.id === veri.ogrenciId);
-    const sn = v ? siniflar.find(s => s.id === v.sinifId) : null;
-    return sn ? sn.ad : '';
-  })() : '';
+/* ================================================================
+   YUVA & PLACEHOLDER HTML
+   ================================================================ */
+function _soYuvaHtml(yuva, servisId, sablon) {
+  const { no, konum, koltuk } = yuva;
+  const dolu    = koltuk && (koltuk.ogrenciId || koltuk.ogrenciAdi);
+  const rezerve = koltuk && koltuk.rezerve && !dolu;
+  const ad      = dolu ? (koltuk.ogrenciAdi || '') : '';
+  const kisa    = ad.length > 8 ? ad.substring(0, 7) + '…' : ad;
 
-  let renk  = rezerve ? '#3b82f6' : dolu ? '#22c55e' : '#e5e7eb';
-  let ikon  = rezerve ? '🔵' : dolu ? '🟢' : '⬜';
-  const ad  = dolu ? (veri.ogrenciAdi || '') : (rezerve ? 'Rezerve' : '');
-  const kisa = ad.length > 12 ? ad.substring(0, 11) + '…' : ad;
-  const title = ad ? `No:${no} — ${ad}${sinif ? ' ('+sinif+')' : ''}` : `No:${no} — Boş`;
+  let cls = 'so-koltuk';
+  if (dolu)    cls += ' so-dolu';
+  if (rezerve) cls += ' so-rezerve';
+  if (konum === 'sol-dis' || konum === 'sol-tek') cls += ' so-kolcak-sol';
+  if (konum === 'sag-dis') cls += ' so-kolcak-sag';
 
-  return `<div class="so-koltuk${dolu?' so-dolu':''}${rezerve?' so-rezerve':''}"
-    style="background:${renk};"
-    onclick="soKoltukTikla(${no}, '${servisId}')"
-    title="${escapeHtml(title)}">
-    <span class="so-koltuk-no">${no}</span>
-    ${ad ? `<span class="so-koltuk-ad">${escapeHtml(kisa)}</span>` : ''}
+  const title = dolu
+    ? `${no}. Koltuk — ${ad}`
+    : rezerve ? `${no}. Koltuk — Rezerve` : `${no}. Koltuk — Boş (tıkla: öğrenci ata)`;
+
+  return `<div class="${cls}" onclick="soKoltukTikla(${no},'${servisId}','${sablon}')" title="${escapeHtml(title)}">
+    <span class="so-k-no">${no}</span>
+    ${kisa ? `<span class="so-k-ad">${escapeHtml(kisa)}</span>` : ''}
   </div>`;
 }
 
-/* ---------- Koltuk tıklama: dropdown ---------- */
-function soKoltukTikla(koltukNo, servisId) {
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  const koltuklar = mevcut ? (mevcut.koltuklar || []) : [];
-  const koltuk = koltuklar.find(k => k.no === koltukNo) || {};
+function _soPlaceholderHtml(sira, konum, servisId, sablon) {
+  return `<div class="so-koltuk so-ekle-yuva"
+    onclick="soKoltukEkle(${sira},'${konum}','${servisId}','${sablon}')"
+    title="Koltuk ekle">+</div>`;
+}
 
-  // Servisteki öğrenciler
-  const servisOgrencileri = veliler
+/* ================================================================
+   KOLTUK EKLE
+   ================================================================ */
+function soKoltukEkle(sira, konum, servisId, sablon) {
+  const mevcut   = servisOturmaPlani.find(p => p.servisId === servisId);
+  const sb       = sablon || mevcut?.sablon || 'minibus';
+  const yerlesim = mevcut?.yerlesim ? [...mevcut.yerlesim] : SO_SABLONLAR[sb].yerlesimUret();
+
+  // Zaten aynı konum var mı?
+  if (yerlesim.some(y => y.sira === sira && y.konum === konum)) {
+    toast('Bu pozisyonda zaten koltuk var.'); return;
+  }
+
+  // Aynı siranın son yuvasından sonra ekle
+  let sonIdx = -1;
+  yerlesim.forEach((y, i) => { if (y.sira === sira) sonIdx = i; });
+  const yeniYuva = { sira, konum, soforYani: sira === 0 };
+  if (sonIdx >= 0) yerlesim.splice(sonIdx + 1, 0, yeniYuva);
+  else yerlesim.push(yeniYuva);
+
+  db.collection(COL.servisOturma).doc(servisId).set({
+    servisId, sablon: sb, yerlesim,
+    koltuklar: mevcut?.koltuklar || [],
+    guncellendi: new Date().toISOString(),
+  }, { merge: false })
+    .then(() => toast('Koltuk eklendi.'))
+    .catch(err => toast('Hata: ' + err.message));
+}
+
+/* ================================================================
+   KOLTUK TIKLA → Modal
+   ================================================================ */
+function soKoltukTikla(koltukNo, servisId, sablon) {
+  const mevcut    = servisOturmaPlani.find(p => p.servisId === servisId);
+  const koltuklar = mevcut?.koltuklar || [];
+  const koltuk    = koltuklar.find(k => k.no === koltukNo) || {};
+  const sb        = sablon || mevcut?.sablon || 'minibus';
+
+  const ogrs = veliler
     .filter(v => v.servisId === servisId)
     .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
 
-  const secenekler = servisOgrencileri.map(v => {
-    const zatenAtanmis = koltuklar.some(k => k.ogrenciId === v.id && k.no !== koltukNo);
-    const sn = siniflar.find(s => s.id === v.sinifId);
-    return `<option value="${v.id}" ${koltuk.ogrenciId === v.id ? 'selected' : ''} ${zatenAtanmis ? 'disabled' : ''}>
-      ${escapeHtml(v.ogrenciAdi)}${sn ? ' — ' + sn.ad : ''}${zatenAtanmis ? ' (atanmış)' : ''}
+  const secenekler = ogrs.map(v => {
+    const atanmis = koltuklar.some(k => k.ogrenciId === v.id && k.no !== koltukNo);
+    const sn      = siniflar.find(s => s.id === v.sinifId);
+    return `<option value="${v.id}"
+      ${koltuk.ogrenciId === v.id ? 'selected' : ''}
+      ${atanmis ? 'disabled' : ''}>
+      ${escapeHtml(v.ogrenciAdi || '')}${sn ? ' — ' + sn.ad : ''}${atanmis ? ' (atanmış)' : ''}
     </option>`;
   }).join('');
 
   const body = `
-    <p style="margin:0 0 10px;font-size:13px;color:#374151;">
-      <strong>${koltukNo}. Koltuk</strong> için öğrenci seçin veya durum belirleyin.
-    </p>
-    <div class="form-group">
-      <label>Öğrenci</label>
-      <select id="soOgrenciSec">
-        <option value="">— Boş bırak —</option>
-        ${secenekler}
-      </select>
-    </div>
-    <div class="form-group">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-        <input type="checkbox" id="soRezerveCheck" ${koltuk.rezerve ? 'checked' : ''}>
-        Rezerve olarak işaretle (öğrenci seçilmemişse)
-      </label>
-    </div>
-    ${!servisOgrencileri.length ? `<p style="font-size:12px;color:#f59e0b;">⚠️ Bu serviste kayıtlı öğrenci yok. Önce servise öğrenci ekleyin.</p>` : ''}
-  `;
+    <div class="so-koltuk-modal">
+      <p class="so-koltuk-baslik"><strong>${koltukNo}. Koltuk</strong></p>
+      <div class="form-group">
+        <label>Öğrenci</label>
+        <select id="soOgrenciSec">
+          <option value="">— Boş bırak —</option>
+          ${secenekler}
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="checkbox" id="soRezerveCheck" ${koltuk.rezerve && !koltuk.ogrenciId ? 'checked' : ''}>
+          Rezerve olarak işaretle
+        </label>
+      </div>
+      <hr style="border:none;border-top:1px solid #e5e7eb;margin:10px 0 8px;">
+      <button class="btn btn-danger btn-sm" onclick="soKoltukSil(${koltukNo},'${servisId}','${sb}')">
+        🗑️ Bu Koltuğu Kaldır
+      </button>
+      ${!ogrs.length ? `<p class="so-uyari" style="margin-top:8px;">⚠️ Bu serviste kayıtlı öğrenci bulunamadı.</p>` : ''}
+    </div>`;
 
-  modalAc(`Koltuk Düzeni — ${koltukNo}. Koltuk`, body, () => {
+  modalAc(`💺 ${koltukNo}. Koltuk`, body, () => {
     const ogrenciId = document.getElementById('soOgrenciSec').value;
     const rezerve   = document.getElementById('soRezerveCheck').checked && !ogrenciId;
-    soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve);
-    // Modal AÇIK kalır — kullanıcı başka koltuk seçebilsin
-    // Grid otomatik yenilenecek (snapshot listener aracılığıyla)
+    soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve, sb);
   });
 }
 
-/* ---------- Koltuk güncelle (Firestore) ---------- */
-function soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve) {
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  let koltuklar = mevcut ? [...(mevcut.koltuklar || [])] : [];
+/* ================================================================
+   KOLTUK GÜNCELLE
+   ================================================================ */
+function soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve, sablon) {
+  const mevcut    = servisOturmaPlani.find(p => p.servisId === servisId);
+  const koltuklar = mevcut ? [...(mevcut.koltuklar || [])] : [];
+  const sb        = sablon || mevcut?.sablon || 'minibus';
 
-  // Mevcut koltuk kaydını güncelle ya da ekle
+  const v    = ogrenciId ? veliler.find(x => x.id === ogrenciId) : null;
+  const yeni = { no: koltukNo, ogrenciId: ogrenciId || null, ogrenciAdi: v?.ogrenciAdi || '', rezerve };
+
   const idx = koltuklar.findIndex(k => k.no === koltukNo);
-  const v   = ogrenciId ? veliler.find(x => x.id === ogrenciId) : null;
-
-  const yeniKoltuk = {
-    no: koltukNo,
-    ogrenciId:  ogrenciId || null,
-    ogrenciAdi: v ? (v.ogrenciAdi || '') : '',
-    rezerve:    rezerve,
-  };
-
-  if (idx >= 0) koltuklar[idx] = yeniKoltuk;
-  else koltuklar.push(yeniKoltuk);
-
-  const kapasite   = parseInt(document.getElementById('soKapasite')?.value)   || mevcut?.kapasite   || 14;
-  const siraSayisi = parseInt(document.getElementById('soSiraSayisi')?.value) || mevcut?.siraSayisi || 7;
-  const duzen      = document.getElementById('soDuzen')?.value || mevcut?.duzen || 'cift';
-  const soforVar   = document.getElementById('soSoforVar')?.checked ?? (mevcut?.soforKoltuguVarMi !== false);
-  const soforYaniSayisi = (document.getElementById('soSoforYani')?.value === 'ikili') ? 2 : 1;
+  if (idx >= 0) koltuklar[idx] = yeni;
+  else koltuklar.push(yeni);
 
   db.collection(COL.servisOturma).doc(servisId).set({
-    servisId, kapasite, siraSayisi, duzen,
-    soforKoltuguVarMi: soforVar,
-    soforYaniSayisi,
+    servisId, sablon: sb,
+    yerlesim:  mevcut?.yerlesim || SO_SABLONLAR[sb].yerlesimUret(),
     koltuklar,
     guncellendi: new Date().toISOString(),
   }, { merge: false }).catch(err => toast('Hata: ' + err.message));
 }
 
-/* ---------- Tümünü temizle ---------- */
+/* ================================================================
+   KOLTUK SİL
+   ================================================================ */
+function soKoltukSil(koltukNo, servisId, sablon) {
+  if (!confirm(`${koltukNo}. koltuk kaldırılacak. Emin misiniz?`)) return;
+
+  const mevcut    = servisOturmaPlani.find(p => p.servisId === servisId);
+  const sb        = sablon || mevcut?.sablon || 'minibus';
+  let yerlesim    = mevcut?.yerlesim ? [...mevcut.yerlesim] : SO_SABLONLAR[sb].yerlesimUret();
+  let koltuklar   = (mevcut?.koltuklar || []).filter(k => k.no !== koltukNo);
+
+  // Yerleşimden kaldır (no - 1 = index)
+  yerlesim.splice(koltukNo - 1, 1);
+
+  // Kalan atamaların no'larını kaydır
+  koltuklar = koltuklar.map(k => ({ ...k, no: k.no > koltukNo ? k.no - 1 : k.no }));
+
+  // Modalı kapat
+  document.querySelectorAll('.modal-overlay, #modal').forEach(el => el.style.display = 'none');
+
+  db.collection(COL.servisOturma).doc(servisId).set({
+    servisId, sablon: sb, yerlesim, koltuklar,
+    guncellendi: new Date().toISOString(),
+  }, { merge: false })
+    .then(() => toast('Koltuk kaldırıldı.'))
+    .catch(err => toast('Hata: ' + err.message));
+}
+
+/* ================================================================
+   KAYDET / TEMİZLE / ÖZET
+   ================================================================ */
+function soKaydet(servisId) {
+  const sablon  = document.getElementById('soSecilenSablon')?.value || 'minibus';
+  const mevcut  = servisOturmaPlani.find(p => p.servisId === servisId);
+  db.collection(COL.servisOturma).doc(servisId).set({
+    servisId, sablon,
+    yerlesim:  mevcut?.yerlesim  || SO_SABLONLAR[sablon].yerlesimUret(),
+    koltuklar: mevcut?.koltuklar || [],
+    guncellendi: new Date().toISOString(),
+  }, { merge: true })
+    .then(() => toast('Oturma planı kaydedildi.'))
+    .catch(err => toast('Hata: ' + err.message));
+}
+
 function soTumunuTemizle() {
   const servisId = document.getElementById('soServisId')?.value;
   if (!servisId) return;
-  if (!confirm('Bu servisin tüm koltuk atamaları silinecek. Emin misiniz?')) return;
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  if (!mevcut) return;
-  db.collection(COL.servisOturma).doc(servisId).update({ koltuklar: [] })
-    .then(() => toast('Koltuk atamaları temizlendi.'))
+  if (!confirm('Tüm öğrenci atamaları silinecek. Koltuk düzeni korunacak. Emin misiniz?')) return;
+  db.collection(COL.servisOturma).doc(servisId)
+    .update({ koltuklar: [], guncellendi: new Date().toISOString() })
+    .then(() => toast('Atamalar temizlendi.'))
     .catch(err => toast('Hata: ' + err.message));
 }
 
-/* ---------- Modal kaydet (tüm yapıyı kaydet) ---------- */
-function soKaydet(servisId) {
-  // Koltuk atamaları zaten anlık kaydediliyor, burada sadece yapı ayarlarını güncelle
-  const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  const kapasite   = parseInt(document.getElementById('soKapasite')?.value)   || 14;
-  const siraSayisi = parseInt(document.getElementById('soSiraSayisi')?.value) || 7;
-  const duzen      = document.getElementById('soDuzen')?.value || 'cift';
-  const soforVar   = document.getElementById('soSoforVar')?.checked ?? true;
-  const soforYaniSayisi = (document.getElementById('soSoforYani')?.value === 'ikili') ? 2 : 1;
-
-  db.collection(COL.servisOturma).doc(servisId).set({
-    servisId, kapasite, siraSayisi, duzen,
-    soforKoltuguVarMi: soforVar,
-    soforYaniSayisi,
-    koltuklar: mevcut ? (mevcut.koltuklar || []) : [],
-  }, { merge: true }).then(() => toast('Oturma planı kaydedildi.'))
-    .catch(err => toast('Hata: ' + err.message));
-}
-
-/* ---------- Özet güncelle ---------- */
-function _soOzetGuncelle(koltuklar, kapasite) {
+function _soOzetGuncelle(koltuklar, toplam) {
   const dolu    = koltuklar.filter(k => k.ogrenciId || k.ogrenciAdi).length;
   const rezerve = koltuklar.filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
-  const bos     = kapasite - dolu - rezerve;
-
-  const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-  el('soDoluSayisi', dolu);
-  el('soBosSayisi', Math.max(0, bos));
-  el('soRezerve', rezerve);
+  const bos     = Math.max(0, toplam - dolu - rezerve);
+  const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  el('soDoluSayisi',    dolu);
+  el('soBosSayisi',     bos);
+  el('soRezerveSayisi', rezerve);
+  el('soToplamSayisi',  toplam);
 }
 
 /* ================================================================
-   Taşıma alt sekme kontrolü
+   SEKME & SERVİS LİSTESİ
    ================================================================ */
 function tasimaAltSekmeSec(sekme) {
-  document.querySelectorAll('[data-tasima-sekme]').forEach(b => {
-    b.classList.toggle('active', b.dataset.tasimaSekmė === sekme || b.getAttribute('data-tasima-sekme') === sekme);
-  });
-  const servislerDiv = document.getElementById('tasima-bolum-servisler');
-  const oturmaDiv    = document.getElementById('tasima-bolum-oturma');
-  if (servislerDiv) servislerDiv.style.display = sekme === 'servisler' ? '' : 'none';
-  if (oturmaDiv)    oturmaDiv.style.display    = sekme === 'oturma'    ? '' : 'none';
+  document.querySelectorAll('[data-tasima-sekme]').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('data-tasima-sekme') === sekme));
+  const div1 = document.getElementById('tasima-bolum-servisler');
+  const div2 = document.getElementById('tasima-bolum-oturma');
+  if (div1) div1.style.display = sekme === 'servisler' ? '' : 'none';
+  if (div2) div2.style.display = sekme === 'oturma'    ? '' : 'none';
   if (sekme === 'oturma') renderOturmaServisler();
 }
 
-/* ================================================================
-   Oturma planı servis listesi render
-   ================================================================ */
 function renderOturmaServisler() {
   const hedef = document.getElementById('oturmaServislerListesi');
   if (!hedef) return;
 
   const liste = [...servisler].sort((a, b) => (a.servisAdi || '').localeCompare(b.servisAdi || '', 'tr'));
-
   if (!liste.length) {
     hedef.innerHTML = '<div class="empty-state">Henüz servis eklenmedi.</div>';
     return;
   }
 
   hedef.innerHTML = liste.map(s => {
-    const plan = servisOturmaPlani.find(p => p.servisId === s.id);
-    const kapasite = plan ? (plan.kapasite || 0) : 0;
-    const dolu     = plan ? (plan.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length : 0;
-    const bos      = kapasite - dolu;
-    const rezerve  = plan ? (plan.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length : 0;
-    const planVar  = !!plan;
+    const plan      = servisOturmaPlani.find(p => p.servisId === s.id);
+    const sablonObj = plan?.sablon ? SO_SABLONLAR[plan.sablon] : null;
+    const toplam    = plan?.yerlesim?.length || 0;
+    const dolu      = (plan?.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
+    const rezerve   = (plan?.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
+    const bos       = Math.max(0, toplam - dolu - rezerve);
+    const planVar   = !!plan;
 
     return `<div class="oturma-servis-kart" onclick="servisOturmaModalAc('${s.id}')">
-      <div>
+      <div style="flex:1;">
         <strong>${escapeHtml(s.servisAdi || 'Servis')}</strong>
         <span class="badge badge-${s.durum === 'Pasif' ? 'gray' : 'sage'}" style="margin-left:6px;">${escapeHtml(s.durum || 'Aktif')}</span>
+        ${sablonObj ? `<span style="margin-left:6px;font-size:12px;color:#6b7280;">${sablonObj.ikon} ${sablonObj.ad}</span>` : ''}
         <div class="oturma-servis-ozet">
           ${s.guzergah ? escapeHtml(s.guzergah) + ' · ' : ''}
           ${planVar
-            ? `Kapasite: ${kapasite} · 🟢 Dolu: ${dolu} · ⬜ Boş: ${bos - rezerve} · 🔵 Rezerve: ${rezerve}`
+            ? `${toplam} koltuk · 🟢 ${dolu} dolu · ⬜ ${bos} boş · 🔵 ${rezerve} rezerve`
             : 'Oturma planı henüz oluşturulmadı'}
         </div>
       </div>
