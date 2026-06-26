@@ -292,11 +292,13 @@ function muduYardimcisiListedenCikar(id){
   db.collection(COL.ogretmenler).doc(id).update({unvan:'Öğretmen'}).then(()=>toast('Listeden çıkarıldı.')).catch(err=>toast('Hata: '+err.message));
 }
 function renderOkulBilgileriSayfasi(){
-  const adEl = document.getElementById('f_okulAdi');
-  const mudurEl = document.getElementById('f_okulMudur');
-  if(adEl) adEl.value = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
-  if(mudurEl) mudurEl.innerHTML = ogretmenSecenekleri(okulBilgileriAyari ? okulBilgileriAyari.mudurId : '');
-  renderMuduYardimcilariListesi();
+  try {
+    const adEl = document.getElementById('f_okulAdi');
+    const mudurEl = document.getElementById('f_okulMudur');
+    if(adEl) adEl.value = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
+    if(mudurEl) mudurEl.innerHTML = ogretmenSecenekleri(okulBilgileriAyari ? okulBilgileriAyari.mudurId : '');
+    if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
+  } catch(e) { console.warn('renderOkulBilgileriSayfasi hata:', e); }
 }
 function okulBilgileriKaydet(){
   const okulAdi = document.getElementById('f_okulAdi').value.trim();
