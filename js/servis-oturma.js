@@ -785,10 +785,8 @@ function soRaporGovdeHtml(servis, plan) {
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
   /* ── Boyut hesabı: Yatay A4 (landscape) ──
-     A4 yatay: 297mm × 210mm, margin 8mm → 281mm × 194mm kullanılabilir
-     Header: 14mm → araç yüksekliği için: 194 - 14 - 4(güvenlik) = 176mm
-     Araç genişliği: 281mm (margin dahil değil, araç ortada)
-     Sütun: Ducato 3K+kor+2G, Büyük 4K+kor+3G
+     #so-icerik-dis: 281mm × 194mm, padding 8mm → iç alan 265mm × 178mm
+     Header: 14mm → araç yüksekliği: 178 - 14 - 6(güvenlik) = 158mm
   */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
@@ -797,20 +795,18 @@ function soRaporGovdeHtml(servis, plan) {
   const headerMM   = 14;
   const aracPad    = 6;
 
-  // Genişlik: yatay A4 iç alan
-  const sayfaKullanW = 281; // mm
-  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 269mm
+  // Genişlik: 281mm - 2×8mm padding = 265mm iç alan
+  const sayfaKullanW = 265; // mm
+  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 253mm
 
   const colToplam = solSutun + sagSutun;
   const katsayi_w = colToplam + 0.1 * (colToplam - 1) + 0.28;
   const K_w       = aracIcW_max / katsayi_w;
 
-  // Yükseklik: yatay A4
-  // Araç toplam yükseklik ≤ 194 - 14(header) - 6(güvenlik) = 174mm
-  // İçerik: cam+plaka(12mm) + şoför sırası(K*1.6) + (n-2)*K + arka(K*1.3) + gap'ler + altPad(4mm)
-  const kullH_max  = 194 - headerMM - 8; // 172mm
+  // Yükseklik: 194mm - 2×8mm padding = 178mm → 178 - 14(header) - 6(güvenlik) = 158mm
+  const kullH_max  = 178 - headerMM - 6; // 158mm
   const sabitMM    = 12 + 4; // cam+plaka + altPad
-  const koltukH    = kullH_max - sabitMM; // 156mm
+  const koltukH    = kullH_max - sabitMM; // 142mm
   const n          = toplamSira;
   // K*(1.6 + (n-2) + 1.3 + (n-1)*0.1) = koltukH
   const katsayi_h  = 1.6 + (n - 2) + 1.3 + (n - 1) * 0.1;
