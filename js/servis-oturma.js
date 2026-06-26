@@ -821,10 +821,10 @@ function soRaporGovdeHtml(servis, plan) {
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
-  // Font boyutları — K'ya göre dinamik (portrait'te koltuk daha dar)
-  const fontAdPt    = Math.max(6, K * 0.55);  // pt — öğrenci adı
-  const fontSinifPt = Math.max(5, K * 0.42);  // pt — sınıf adı
-  const fontSoforPt = Math.max(6, K * 0.45);  // pt — şoför adı
+  // Font boyutları — koltuk boyutuna göre sınırlı
+  const fontAdPt    = Math.max(5, Math.min(8, K * 0.38));  // pt — öğrenci adı
+  const fontSinifPt = Math.max(4, Math.min(6, K * 0.28));  // pt — sınıf adı
+  const fontSoforPt = Math.max(5, Math.min(7, K * 0.32));  // pt — şoför adı
   const soforIkonMM = Math.max(6, K * 0.45);
   const borderRmm   = K * 0.12;
   const kolcakW     = K * 0.07;
@@ -860,8 +860,8 @@ function soRaporGovdeHtml(servis, plan) {
     if (konum === 'sag-dis')
       kolcakStyle = `border-right:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`;
 
-    return `<div style="width:${m(K)};height:${m(K)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0 1mm;${kolcakStyle}">
-      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.2;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
+    return `<div style="width:${m(K)};height:${m(K)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0 0.8mm;${kolcakStyle}">
+      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
       ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sinifAdi)}</span>` : ''}
     </div>`;
   };
@@ -905,8 +905,8 @@ function soRaporGovdeHtml(servis, plan) {
           const bg  = dolu ? '#22c55e' : rezerve ? '#3b82f6' : '#e5e7eb';
           const brd = dolu ? '#16a34a' : rezerve ? '#2563eb' : '#9ca3af';
           const clr = (dolu || rezerve) ? '#fff' : '#111';
-          html += `<div style="width:${m(arkaK)};height:${m(K)};flex-shrink:0;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 1mm;">
-            ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.2;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;text-align:center;">${escapeHtml(ad)}</span>` : ''}
+          html += `<div style="width:${m(arkaK)};height:${m(K)};flex-shrink:0;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 0.8mm;">
+            ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;font-weight:700;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;text-align:center;">${escapeHtml(ad)}</span>` : ''}
           </div>`;
         }
       });
@@ -986,8 +986,8 @@ function soRaporGovdeHtml(servis, plan) {
         : isSagDis
         ? `border-right:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`
         : '';
-      return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};overflow:hidden;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 1mm;${cs}">
-        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.2;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
+      return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};overflow:hidden;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 0.8mm;${cs}">
+        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
         ${sn ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sn)}</span>` : ''}
       </div>`;
     };
