@@ -1299,66 +1299,88 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 
 
 /* ====================================================================
-   HAVA DURUMU STİLLERİ — neumorphic uyumlu
+   HAVA DURUMU STİLLERİ — güçlü override
    ==================================================================== */
-#havaDurumuKart,
-#havaDurumuKartWrap{
-  background: var(--nm-bg);
-  color: var(--ink);
-}
 
-/* Ana sıcaklık kutusu — koyu arka plan yerine inset */
+/* Wrapper */
+#havaDurumuKartWrap{ background: var(--nm-bg) !important; }
+#havaDurumuKart   { background: transparent !important; }
+
+/* Ana sıcaklık kutusu (hava-durumu.js tarafından render edilen ilk büyük kutu) */
 .hava-ana-kart,
 .hava-main-card,
 [class*="hava-ana"],
 [class*="weather-main"]{
-  background: linear-gradient(145deg, #1A5C6E, #0F3A4A) !important;
+  background: linear-gradient(145deg, #134E5E, #0A2F3A) !important;
   color: #fff !important;
-  border-radius: var(--radius-md);
-  box-shadow: var(--nm-in);
+  border-radius: var(--radius-md) !important;
+  box-shadow: 4px 4px 12px rgba(10,50,70,0.50), -2px -2px 8px rgba(255,255,255,0.05) !important;
 }
 
-/* Sıcaklık büyük rakam */
+/* Büyük sıcaklık */
 .hava-sicaklik,
-.hava-derece,
 [class*="hava-temp"],
 [class*="weather-temp"]{
   color: #fff !important;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.35) !important;
 }
 
-/* Hava durumu açıklama metni */
+/* Durum yazısı: Açık, Bulutlu vb. */
 .hava-aciklama,
 .hava-durum-text,
 [class*="hava-desc"],
 [class*="weather-desc"]{
-  color: rgba(255,255,255,0.85) !important;
+  color: rgba(255,255,255,0.88) !important;
 }
 
-/* Tahmin günleri küçük kartları */
+/* Nem / rüzgar / hissedilen satırları */
+[class*="hava-detay-satir"],
+[class*="hava-info"],
+[class*="weather-info"],
+[class*="hava-istatistik"]{
+  color: rgba(255,255,255,0.80) !important;
+}
+
+/* Tahmin günleri */
 .hava-tahmin-gun,
 .hava-forecast-item,
 [class*="hava-gun"],
-[class*="forecast-day"]{
+[class*="forecast-day"],
+[class*="tahmin-item"]{
   background: var(--nm-bg) !important;
-  box-shadow: var(--nm-sm);
-  border-radius: var(--radius-sm);
+  box-shadow: var(--nm-sm) !important;
+  border-radius: var(--radius-sm) !important;
   color: var(--ink) !important;
 }
-
-/* Tahmin içindeki sıcaklıklar */
-.hava-tahmin-gun span,
-.hava-forecast-item span{
+.hava-tahmin-gun *,
+.hava-forecast-item *,
+[class*="forecast-day"] *{
   color: var(--ink-soft) !important;
 }
 
-/* Detaylar butonu */
+/* Detaylar > linki */
 .hava-detay-btn,
-[class*="hava-detay"],
-[id*="havaDetay"]{
-  color: var(--brand) !important;
-  font-weight:700;
+[class*="hava-detay-btn"],
+[onclick*="havaDetay"]{
+  color: #3DD6D6 !important;
+  font-weight: 700 !important;
 }
+
+/* Konum satırı */
+[class*="hava-konum"],
+[class*="weather-location"]{
+  color: var(--ink-muted) !important;
+}
+
+/* Yenile butonu */
+[class*="hava-yenile"],
+[onclick*="havaYenile"],
+[onclick*="havaDurumuYenile"]{
+  background: var(--nm-bg) !important;
+  box-shadow: var(--nm-sm) !important;
+  color: var(--ink-soft) !important;
+}
+
 
 /* ====================================================================
    HAVA DURUMU DETAY SAYFASI
@@ -1432,3 +1454,37 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 .mudur-yardimcisi-ad{ font-weight:700; font-size:13.5px; }
 .mudur-yardimcisi-telefon{ font-size:12px; color:var(--ink-muted); margin-top:2px; }
 .mudur-yardimcisi-actions{ display:flex; gap:6px; flex-shrink:0; }
+
+/* Hava ana kart — inline style override (hava-durumu.js'in render ettiği) */
+#havaDurumuKart > div {
+  color: var(--ink) !important;
+}
+
+/* İlk büyük kutu (sıcaklık + ikon) — koyu yap */
+#havaDurumuKart > div:first-of-type {
+  background: linear-gradient(145deg, #0F3E50 0%, #082430 100%) !important;
+  color: #fff !important;
+  border-radius: 16px !important;
+}
+
+/* İlk kutunun içindeki tüm metin beyaz */
+#havaDurumuKart > div:first-of-type * {
+  color: #fff !important;
+}
+#havaDurumuKart > div:first-of-type [style*="color: rgb"],
+#havaDurumuKart > div:first-of-type [style*="color:rgb"],
+#havaDurumuKart > div:first-of-type [style*="color: #"],
+#havaDurumuKart > div:first-of-type [style*="color:#"] {
+  color: rgba(255,255,255,0.85) !important;
+}
+
+/* Tahmin günleri satırı (genellikle flex container) */
+#havaDurumuKart > div:last-of-type > div {
+  background: var(--nm-bg) !important;
+  box-shadow: var(--nm-sm) !important;
+  border-radius: 10px !important;
+  color: var(--ink) !important;
+}
+#havaDurumuKart > div:last-of-type > div * {
+  color: var(--ink-soft) !important;
+}
