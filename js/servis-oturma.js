@@ -184,10 +184,28 @@ function _soRenderArac(servisId) {
 
   const mevcut    = servisOturmaPlani.find(p => p.servisId === servisId);
   const koltuklar = mevcut?.koltuklar || [];
-  const yerlesim  = (mevcut?.yerlesim?.length)
+  let yerlesim    = (mevcut?.yerlesim?.length)
     ? mevcut.yerlesim.map(y => ({ aktif: true, ...y }))
     : sablonObj.yerlesimUret();
   const buyuk     = sablon === 'buyuk';
+
+  // Ducato eski veri migration: sıra 0'da sol-tek varsa kaldır, sag-ic yoksa ekle
+  if (!buyuk) {
+    const sira0 = yerlesim.filter(y => y.sira === 0);
+    const hasSolTek = sira0.some(y => y.konum === 'sol-tek');
+    const hasSagIc  = sira0.some(y => y.konum === 'sag-ic');
+    if (hasSolTek || !hasSagIc) {
+      yerlesim = yerlesim.filter(y => !(y.sira === 0 && y.konum === 'sol-tek'));
+      if (!hasSagIc) {
+        // sag-dis'ten önce sag-ic ekle
+        const sagDisIdx = yerlesim.findIndex(y => y.sira === 0 && y.konum === 'sag-dis');
+        if (sagDisIdx >= 0) {
+          yerlesim.splice(sagDisIdx, 0, { sira: 0, konum: 'sag-ic', aktif: true });
+        }
+      }
+    }
+  }
+
   const servislerData = (typeof servisler !== 'undefined') ? servisler.find(x => x.id === servisId) : null;
 
   /* ── CSS Grid şablonu ──
@@ -264,18 +282,11 @@ function _soRenderArac(servisId) {
     return `<div style="grid-column:${solSayisi+1};width:${KOR}px;"></div>`;
   };
 
-  /* Arka sıra — tüm koltuklar ortalanmış sabit grid */
+  /* Arka sıra — tüm koltuklar ortalanmış */
   const arkaSiraHtml = (yuvalar) => {
-    const aktifler = yuvalar.filter(y => y.aktif !== false);
-    const hepsi    = yuvalar; // toplam koltuk sayısı sabit (4)
     let h = `<div class="so-sira so-arka-sira">`;
-    // Arka sıra: sabit 4 yuva, pasifler görünmez
-    hepsi.forEach(y => {
-      if (y.aktif === false) {
-        h += `<div style="width:${K}px;height:${K}px;visibility:hidden;flex-shrink:0;"></div>`;
-      } else {
-        h += _soKoltukHtml(y, servisId, sablon);
-      }
+    yuvalar.forEach(y => {
+      h += _soKoltukHtml(y, servisId, sablon);
     });
     h += `</div>`;
     return h;
@@ -302,17 +313,23 @@ function _soRenderArac(servisId) {
     if (siraIdx === 0) {
       const solGrpW = solSayisi * K + (solSayisi - 1) * GAP;
       html += `<div class="so-sira so-sofor-sirasi">`;
-      // Sol: şoför ikonu — solGrpW genişliğinde
       html += `<div class="so-sofor-koltuk" style="width:${solGrpW}px;min-width:${solGrpW}px;">👨‍✈️<span>${escapeHtml(servislerData?.soforAdi || 'Şoför')}</span></div>`;
       html += `<div style="width:${KOR}px;flex-shrink:0;"></div>`;
-      // Sağ: ducato = 2 koltuk (sag-ic + sag-dis), büyük = giriş kapısı
       html += `<div style="display:flex;gap:${GAP}px;">`;
       if (sablon === 'buyuk' && kapiSagVar && !saglarVar) {
         html += `<div class="so-kapi-gosterge">│<span>GİRİŞ</span>│</div>`;
       } else {
-        yuvalar.filter(y => sagKonumlar0.includes(y.konum)).forEach(y => {
-          html += _soKoltukHtml(y, servisId, sablon);
-        });
+        // Ducato: sıra 0'da sag-ic + sag-dis — eski Firestore verisinde sag-ic olmayabilir
+        // sagKonumlar0 = ['sag-ic','sag-dis'] — her ikisini de filtrele
+        const s0Saglar = yuvalar.filter(y => sagKonumlar0.includes(y.konum));
+        // Eğer hiç yoksa veya sadece 1 tane varsa eski veri — yerinden göster
+        s0Saglar.forEach(y => { html += _soKoltukHtml(y, servisId, sablon); });
+        // Ducato'da beklenen 2 koltuk — eksik olanları görünmez placeholder ile tamamla
+        if (!buyuk && s0Saglar.length < 2) {
+          for (let i = s0Saglar.length; i < 2; i++) {
+            html += `<div class="so-koltuk" style="opacity:0.3;cursor:default;" title="Şablonu yenileyin">?</div>`;
+          }
+        }
       }
       html += `</div></div>`;
       return;
@@ -736,10 +753,24 @@ function renderOturmaServisler() {
 function soRaporGovdeHtml(servis, plan) {
   if (!plan || !plan.yerlesim || !plan.yerlesim.length) return '';
 
-  const yerlesim  = plan.yerlesim.map(y => ({ aktif: true, ...y }));
+  let yerlesim    = plan.yerlesim.map(y => ({ aktif: true, ...y }));
   const koltuklar = plan.koltuklar || [];
   const sablon    = plan.sablon || 'ducato';
   const buyuk     = sablon === 'buyuk';
+
+  // Ducato eski veri migration
+  if (!buyuk) {
+    const sira0    = yerlesim.filter(y => y.sira === 0);
+    const hasSolTek = sira0.some(y => y.konum === 'sol-tek');
+    const hasSagIc  = sira0.some(y => y.konum === 'sag-ic');
+    if (hasSolTek || !hasSagIc) {
+      yerlesim = yerlesim.filter(y => !(y.sira === 0 && y.konum === 'sol-tek'));
+      if (!hasSagIc) {
+        const sagDisIdx = yerlesim.findIndex(y => y.sira === 0 && y.konum === 'sag-dis');
+        if (sagDisIdx >= 0) yerlesim.splice(sagDisIdx, 0, { sira: 0, konum: 'sag-ic', aktif: true });
+      }
+    }
+  }
 
   const koltukMap = {};
   koltuklar.forEach(k => { koltukMap[k.no] = k; });
@@ -753,47 +784,36 @@ function soRaporGovdeHtml(servis, plan) {
   });
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  /* ── A4 YATAY boyut hesabı ──
-     A4 yatay kullanılabilir: 297mm genişlik, 210mm yükseklik
-     @page margin: 8mm her taraf → 281mm x 194mm kullanılabilir
-     Header ~14mm, araç padding her yan 6mm
-     Araç iç genişlik = kullanılabilir - 12mm = 269mm
-     Sütun düzeni:
-       Ducato: [sol-dis][sol-ic] [kor] [sag-dis]         → 3K + kor + 2G
-       Büyük:  [sol-dis][sol-ic] [kor] [sag-ic][sag-dis] → 4K + kor + 3G
-     G = K*0.1, kor = K*0.28
+  /* ── Boyut hesabı: Dikey A4 bazlı (her iki yönde sığsın) ──
+     Dikey A4: 210mm × 297mm, margin 8mm → 194mm × 281mm kullanılabilir
+     Header ~14mm → araç için 267mm yükseklik, 194mm genişlik
   */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  // Yatay: koltuk genişliğini genişlikten hesapla
-  const sayfaKullanW = 281; // mm (A4 yatay - margin)
+  const sayfaKullanW = 190; // mm — dikey A4 güvenli
   const headerMM     = 14;
-  const aracPad      = 6;   // mm her yan
-  const aracIcW_max  = sayfaKullanW - aracPad * 2; // ~269mm
+  const aracPad      = 5;
+  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 180mm
 
-  // K hesabı — yatay: K*(solSutun+sagSutun) + K*0.1*(solSutun+sagSutun-1) + K*0.28 = aracIcW_max
-  const katsayi = (solSutun + sagSutun) + 0.1 * (solSutun + sagSutun - 1) + 0.28;
-  const K_w = aracIcW_max / katsayi;
+  const colToplam = solSutun + sagSutun;
+  const katsayi   = colToplam + 0.1 * (colToplam - 1) + 0.28;
+  const K_w       = aracIcW_max / katsayi;
 
-  // Yükseklik: şoför sırası K*1.5, diğerleri K, aralarında G
-  // toplamSira içinde sıra 0 var → (toplamSira-1)*K + K*1.5 + (toplamSira-1)*G
-  const kullH     = 210 - 16 - headerMM; // ~180mm (A4 yatay yükseklik - margin - header)
-  const camPad    = 12; // mm — ön cam + plaka alanı
-  const altPad    = 4;  // mm
-  const koltukH   = kullH - camPad - altPad;
-  // K_h: koltukH = (toplamSira-1)*K + K*1.5 + (toplamSira-1)*0.1*K = K*(toplamSira + 0.5 + (toplamSira-1)*0.1)
-  const K_h_katsayi = (toplamSira - 1) + 1.5 + (toplamSira - 1) * 0.1;
-  const K_h = koltukH / K_h_katsayi;
+  const kullH   = 297 - 16 - headerMM; // 267mm
+  const camPad  = 12;
+  const altPad  = 4;
+  const koltukH = kullH - camPad - altPad;
+  const K_h_kat = (toplamSira - 1) * 1.1 + 1.5;
+  const K_h     = koltukH / K_h_kat;
 
-  // Minimum 14pt ≈ 4.94mm, en küçük K bu olmalı
-  const minKmm = 6.5; // 14pt ≈ 4.94mm yazı + padding
-  const K = Math.max(minKmm, Math.min(K_w, K_h));
-  const G = K * 0.1;
+  const minKmm = 5;
+  const K    = Math.max(minKmm, Math.min(K_w, K_h));
+  const G    = K * 0.1;
   const korW = K * 0.28;
   const aracIcW = solSutun * K + G * (solSutun - 1) + korW + sagSutun * K + G * (sagSutun > 1 ? sagSutun - 1 : 0);
-  const aracW = aracIcW + aracPad * 2;
+  const aracW   = aracIcW + aracPad * 2;
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
