@@ -880,39 +880,25 @@ function soRaporGovdeHtml(servis, plan) {
     const kapiSagVar = yuvalar.some(y => y.kapiSag);
 
     if (siraIdx === 0) {
-      // Sıra 0: [Şoför] [Koltuk1] [Koltuk2] şeklinde — şoför + yanındaki tüm koltuklar
-      // soforYani koltukları sol+sag hepsini birleştir (2 koltuk hedef)
-      const onKoltuklar = yuvalar.filter(y => !y.soforYani === false || y.soforYani)
-        .filter(y => y.konum !== 'arka'); // sıra 0'daki tüm non-arka yuvalar
-      // Ayrı al: sadece koltuk olanlar (soforYani dahil), konum filtresi yok
-      const onYuvalar = yuvalar.filter(y => y.konum !== 'arka');
-      const onKoltukSayisi = onYuvalar.length; // şoför dahil değil, sadece koltuklar
-
-      // Şoför(K) + onYuvalar(her biri K) — gap G ile
-      // Grid: şoför(K) repeat(onKoltukSayisi, K) — toplam K*(1+n) + G*n
+      // Sıra 0: [Şoför(K)] [Koltuk1(K)] [Koltuk2(K)]
+      // Şoför tek koltuk genişliğinde, hemen yanında 2 koltuk — koridor YOK bu sırada
+      // Tüm diğer sıraların toplam genişliğiyle eşit: solGrpW + korW + sagGrpW
       const sofer0FontPt = 8.5;
-      // Şoför solGrpW kadar, koltuklar solGrpW kadar (diğer sıralarla hizalı)
-      html += `<div style="display:flex;align-items:center;gap:${m(G)};width:100%;">`;
-      // Şoför — solGrpW genişliğinde (sol 2 koltuk alanı kadar)
-      html += `<div style="width:${m(solGrpW)};min-width:${m(solGrpW)};height:${m(K)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0;">
+      const on0Koltuklar = yuvalar.filter(y => y.konum !== 'arka'); // sıra 0 tüm yuvalar
+
+      // Toplam genişlik = solGrpW + korW + sagGrpW (diğer sıralarla aynı)
+      // Şoför = K, Koltuk1 = K, Koltuk2 = K, aralarında G gap
+      html += `<div style="display:flex;align-items:center;gap:${m(G)};width:${m(solGrpW + korW + sagGrpW + G*2)};">`;
+      // Şoför kutusu — K genişliğinde
+      html += `<div style="width:${m(K)};min-width:${m(K)};height:${m(K)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0;">
         <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
         <span style="font-size:${sofer0FontPt.toFixed(1)}pt;color:#92400e;font-weight:800;margin-top:0.3mm;text-align:center;word-break:break-word;white-space:normal;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
       </div>`;
-      // Koridor boşluğu
-      html += `<div style="width:${m(korW)};min-width:${m(korW)};flex-shrink:0;display:flex;align-items:center;justify-content:center;">`;
-      if (kapiSagVar) html += kapıHtml('│KAPI│');
-      html += `</div>`;
-      // Şoför yanı koltuklar — sagGrpW kadar (sağ kolonnla hizalı)
-      html += `<div style="display:flex;gap:${m(G)};min-width:${m(sagGrpW)};flex-shrink:0;">`;
-      // sıra 0'daki şoför yanı koltuklar: sol-tek hariç tüm soforYani yuvalar
-      // (Ducato: sag-ic + sag-dis = 2 koltuk; Büyük: sag-ic + sag-dis = 2 koltuk)
-      const on0Saglar = yuvalar.filter(y => y.konum !== 'sol-tek' && y.konum !== 'arka');
-      if (on0Saglar.length > 0) {
-        on0Saglar.forEach(y => { html += koltukKutu(y); });
-      } else {
-        yuvalar.filter(y => y.konum !== 'arka').slice(0, 2).forEach(y => { html += koltukKutu(y); });
-      }
-      html += `</div>`;
+      // Yanındaki koltuklar (sol-tek hariç — o şoförün hizasındaki tek sol koltuk)
+      // Ducato: sag-ic, sag-dis | Büyük: sol-dis (soforYani)
+      on0Koltuklar.filter(y => y.konum !== 'sol-tek').forEach(y => {
+        html += koltukKutu(y);
+      });
       html += `</div>`;
       return;
     }
