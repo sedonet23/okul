@@ -421,125 +421,183 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   if (!yerler.length) { toast('Önce nöbet yeri tanımlayın.'); return; }
 
   const gunSayisi = new Date(yil, ay + 1, 0).getDate();
-  const ayAdiKisa = AYLAR[ay];
+  const ayAdi = AYLAR[ay].toUpperCase();
+  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari?.okulAdi)
+    ? okulBilgileriAyari.okulAdi.toUpperCase()
+    : 'OKUL ADI';
 
-  let html = `<div class="nobet-sik">
-    <span class="ozet-kutu">${escapeHtml(ayAdiKisa)} ${yil}</span>`;
+  // Okul müdürü
+  const mudur = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari?.mudurId)
+    ? ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId) : null;
+  const mudurAd = mudur ? `${mudur.ad} ${mudur.soyad}` : '—';
 
-  let thHtml = '<th style="width:90px;">Tarih / Gün</th>';
-  yerler.forEach(y => { thHtml += `<th>${escapeHtml(y.ad)}</th>`; });
-  thHtml += '<th style="width:110px;">Nöbetçi Amir</th>';
+  // Geçerlilik tarihi: ayın ilk iş günü
+  let ilkIsGunu = gecerlilikTarihiISO;
+  for (let d = 1; d <= gunSayisi; d++) {
+    const iso = nobetTarihISO(yil, ay, d);
+    if (!nobetHaftasonuMu(yil, ay, d) && !nobetTatilMi(iso)) { ilkIsGunu = iso; break; }
+  }
+  const gecerlilikGosterim = (() => {
+    try {
+      const [yy, mm, dd] = ilkIsGunu.split('-').map(Number);
+      return new Date(yy, mm-1, dd).toLocaleDateString('tr-TR', {day:'numeric', month:'long', year:'numeric'});
+    } catch(e) { return ilkIsGunu; }
+  })();
 
-  html += `<table style="table-layout:fixed;">
-    <thead><tr>${thHtml}</tr></thead>
-    <tbody>`;
+  // Uzun tarih formatı: "1 Haziran 2026 Pazartesi"
+  const uzunTarih = (d) => {
+    const dt = new Date(yil, ay, d);
+    const gun = GUNADI[dt.getDay()];
+    const ayAdiTR = AYLAR[ay];
+    return `${d} ${ayAdiTR} ${yil} ${gun}`;
+  };
 
-  const amirleriBuAy = []; // Telefonlar bölümü için tekrarsız liste
+  // Telefonlar için nöbetçi amirleri topla
+  const amirleriBuAy = [];
+  for (let d = 1; d <= gunSayisi; d++) {
+    const iso = nobetTarihISO(yil, ay, d);
+    const amir = nobetciAmirleri.find(a => a.tarih === iso);
+    if (amir?.ad) {
+      const ad = amir.ad.trim();
+      if (!amirleriBuAy.some(x => x.ad.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr')))
+        amirleriBuAy.push({ ad, telefon: amir.telefon || '' });
+    }
+  }
 
+  // Kolon genişlikleri
+  const colTarih = 38; // mm
+  const colYer   = Math.floor((180 - colTarih - 30) / yerler.length); // mm
+  const colAmir  = 30; // mm
+
+  const tdS = `border:0.3pt solid #999;padding:1.5pt 3pt;vertical-align:middle;font-size:7.5pt;`;
+  const thS = `${tdS}background:#1e3a5f;color:#fff;font-weight:700;text-align:center;font-size:7pt;`;
+
+  // Tablo başlığı
+  let thHtml = `<th style="${thS}width:${colTarih}mm;text-align:left;">TARİH /GÜN</th>`;
+  yerler.forEach(y => { thHtml += `<th style="${thS}width:${colYer}mm;">${escapeHtml(y.ad.toUpperCase())}</th>`; });
+  thHtml += `<th style="${thS}width:${colAmir}mm;">NÖBETÇİ AMİR</th>`;
+
+  // Satırlar
+  let satirlar = '';
   for (let d = 1; d <= gunSayisi; d++) {
     const iso = nobetTarihISO(yil, ay, d);
     const haftasonu = nobetHaftasonuMu(yil, ay, d);
-    const tatil = nobetTatilMi(iso);
-    const gunAdi = GUNADI[new Date(yil, ay, d).getDay()];
-
-    html += `<tr><td style="font-weight:700;">${d} <span style="color:#6b7280;font-weight:400;">${escapeHtml(gunAdi)}</span></td>`;
+    const tatil     = nobetTatilMi(iso);
+    const tarihMetin = uzunTarih(d);
 
     if (haftasonu) {
-      html += `<td colspan="${yerler.length + 1}" style="text-align:center;background:#f3f4f6;color:#9ca3af;font-weight:600;">HAFTASONU</td>`;
+      satirlar += `<tr>
+        <td style="${tdS}background:#e8e8e8;color:#777;font-weight:600;">${tarihMetin}</td>
+        <td colspan="${yerler.length + 1}" style="${tdS}background:#e8e8e8;color:#777;text-align:center;"></td>
+      </tr>`;
     } else if (tatil) {
-      html += `<td colspan="${yerler.length + 1}" style="text-align:center;background:#fff3cd;color:#92400e;font-weight:600;">RESMİ TATİL${tatil.aciklama ? ' — ' + escapeHtml(tatil.aciklama) : ''}</td>`;
+      const tatilAciklama = tatil.aciklama ? tatil.aciklama.toUpperCase() : 'RESMİ TATİL';
+      satirlar += `<tr>
+        <td style="${tdS}background:#fff3cd;font-weight:600;">${tarihMetin}</td>
+        <td colspan="${yerler.length + 1}" style="${tdS}background:#fff3cd;color:#7a5500;font-weight:600;text-align:center;">${escapeHtml(tatilAciklama)}</td>
+      </tr>`;
     } else {
+      satirlar += `<tr><td style="${tdS}font-weight:600;">${tarihMetin}</td>`;
       yerler.forEach(y => {
         const atama = nobetAtamalari.find(a => a.tarih === iso && a.yerId === y.id);
-        html += atama
-          ? `<td>${escapeHtml(atama.ogretmenAdSoyad || '—')}</td>`
-          : `<td style="color:#ccc;">—</td>`;
+        satirlar += atama
+          ? `<td style="${tdS}text-align:center;font-weight:600;">${escapeHtml(atama.ogretmenAdSoyad || '—')}</td>`
+          : `<td style="${tdS}text-align:center;color:#bbb;">—</td>`;
       });
-
       const amir = nobetciAmirleri.find(a => a.tarih === iso);
-      if (amir && amir.ad) {
-        html += `<td style="font-weight:600;color:#4f46e5;">${escapeHtml(amir.ad)}</td>`;
-        const ad = amir.ad.trim();
-        if (!amirleriBuAy.some(x => x.ad.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr'))) {
-          amirleriBuAy.push({ ad, telefon: amir.telefon || '' });
-        }
-      } else {
-        html += `<td style="color:#ccc;">—</td>`;
-      }
+      satirlar += amir?.ad
+        ? `<td style="${tdS}text-align:center;font-weight:600;">${escapeHtml(amir.ad)}</td>`
+        : `<td style="${tdS}text-align:center;color:#bbb;">—</td>`;
+      satirlar += `</tr>`;
     }
-    html += `</tr>`;
   }
-  html += `</tbody></table>`;
 
-  // Telefonlar: sadece Okul Müdürü + bu ayın Nöbetçi Amiri/leri
+  // Telefonlar bölümü
   const telefonSatirlari = [];
-  if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mudurId) {
-    const mudur = ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId);
-    if (mudur) telefonSatirlari.push({ rol: 'Okul Müdürü', ad: `${mudur.ad} ${mudur.soyad}`, telefon: mudur.telefon || '' });
-  }
-  amirleriBuAy.forEach(a => telefonSatirlari.push({ rol: 'Nöbetçi Amiri', ad: a.ad, telefon: a.telefon }));
+  if (mudur) telefonSatirlari.push({ ad: mudurAd, tel: mudur.telefon || '' });
+  amirleriBuAy.forEach(a => telefonSatirlari.push({ ad: a.ad, tel: a.telefon }));
 
-  if (telefonSatirlari.length) {
-    html += `<div style="page-break-inside:avoid;margin-top:10px;padding-top:8px;border-top:2px solid #4f46e5;">
-      <div class="bolum-baslik">📞 Telefonlar</div>
-      <table style="font-size:10px;"><tbody>`;
-    telefonSatirlari.forEach(t => {
-      html += `<tr>
-        <td style="width:50%;"><strong>${escapeHtml(t.ad)}</strong> <span style="color:#6b7280;">(${escapeHtml(t.rol)})</span></td>
-        <td style="width:50%;">${escapeHtml(t.telefon || '—')}</td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
-  }
+  const telefonHTML = telefonSatirlari.length ? `
+    <table style="width:100%;border-collapse:collapse;margin-top:6pt;">
+      <tr><td colspan="4" style="font-weight:700;font-size:8pt;padding:2pt 0;border-bottom:0.5pt solid #333;">TELEFONLAR</td></tr>
+      ${telefonSatirlari.map(t => `<tr>
+        <td style="font-size:7.5pt;font-weight:700;padding:1.5pt 4pt 1.5pt 0;width:50%;">${escapeHtml(t.ad)}</td>
+        <td style="font-size:7.5pt;padding:1.5pt 0;width:50%;">${escapeHtml(t.tel || '—')}</td>
+      </tr>`).join('')}
+    </table>` : '';
 
-  // Nöbet kuralları
-  html += `<div style="page-break-inside:avoid;margin-top:10px;padding-top:8px;border-top:2px solid #4f46e5;">
-    <div class="bolum-baslik">📋 Nöbet Öğretmenin Görevleri</div>
-    <ol style="margin:0;">
-      <li>Ders başlaması hemen öncesinde tüm öğrencilerin sınıflarında yerleştiğini kontrol edilmesi.</li>
-      <li>Ders başladıktan sonra geç gelen öğrenci kalırsa öğretmenle iletişime geçilmesi.</li>
-      <li>Teneffüslerde bahçe düzeni, zabıta görevine eşlik edilmesi ve güvenlik sağlanması.</li>
-      <li>Trafik için yaya düzeni uygulanması, araçlara dikkat edilmesi ve güvenli yoldan geçişin sağlanması.</li>
-      <li>Okuldan ayrılan öğrencilerin kontrol edilmesi.</li>
-      <li>Sağlık açısından acil durumlarda okul yönetimine haber verilmesi ve gerekli müdahaleler yapılması.</li>
-      <li>İdarece verilen diğer görevlerin yapılması.</li>
-      <li>Nöbetçi öğretmenlerin görevlerinden başarısızlığında müdürle görüşülmesi.</li>
-      <li>Öğrenci tarafından izinsiz bina terk etmesi durumunda derhal öğretmen ve müdüre haber verilmesi.</li>
-      <li>Eğitim faaliyeti dışında konuşmaların yapılmaması.</li>
-      <li>Nöbetçi görevlerinden bunaldıysa, müdürle bunu tartışması ve çözüm arayacaktır.</li>
-      <li>Son geçen dersinin başlaması sonrasında çıkışta bitecek dersin dışında kalmamış denetim sağlanması.</li>
-      <li>Hasta öğrenci için vasi bulunmadığında sevk işlemleri yapılmalı.</li>
-      <li>Ders bitiminden sonra tüm öğrencilerin okul alanından ayrıldığını kontrol edilmesi.</li>
+  // Görevler listesi
+  const gorevler = [
+    'Ders başlamadan 30 dk önce okula gelinmesi ve ders bitminden on beş dakika sonra okulun terk edilmesi,',
+    'Nöbete başladığında ilk olarak okul bölümlerinin gezilmesi ve nöbet defterinin sabah bölümünün doldurulması,',
+    'Yukarıdaki iki maddeye göre nöbetçi defterinin sabah bölümünün doldurulması,',
+    'Hava yaşlığı değişirse koridoru boşaltma ve sınıf nöbetçilerinin kontrolü kontrol edilmesi,',
+    'Müdahalesi açısından olaylarla nöbeti müdür yardımcısına durum iletilmesi,',
+    'Taşıma çizelgesini her gün taşıma şoförlerine imzalatmak,',
+    'Taşıma çizelgesini her gün taşıma şoförlerine imzalatmak,',
+    'Öğrenciler yemekhaneden çıkarken veya paydos zamanında yola aniden çıkmalarının önlenmesi,',
+    'Bahçenin temizliği için öğrencilere temizlik yaptırılması',
+    'Törenlerin yapılması için düzeni sağlamak',
+    'Okula gelen yabancıları gördüğünde yardımcı olmak ve olumsuz durumları nöbet defterine yazmak',
+    'Derse geç giren öğretmenleri uyarmak',
+    'Boş geçen derslere girmek şayet dersi doluysa nöbetçi müdür yardımcısına bildirmek',
+    'Ders bitimlerinde okulda kalan öğrencileri dışarı çıkartmak, boşaltmak (önce sınıf öğretmeni )ve nöbet defterini doldurmak',
+  ];
+
+  const html = `
+<style>
+  @page { size:A4 portrait; margin:8mm 8mm 8mm 8mm; }
+  body { font-family:'Arial',sans-serif; font-size:7.5pt; color:#111; }
+  * { box-sizing:border-box; }
+  table { border-collapse:collapse; width:100%; }
+  @media print { body { zoom:1; } }
+</style>
+<div style="width:100%;max-width:194mm;">
+
+  <!-- Başlık -->
+  <div style="text-align:center;margin-bottom:6pt;">
+    <div style="font-size:10pt;font-weight:700;letter-spacing:0.5pt;">
+      ${escapeHtml(okulAdi)} ${yil} YILI ${ayAdi} AYI ÖĞRETMEN NÖBET ÇİZELGESİ
+    </div>
+  </div>
+
+  <!-- Ana tablo -->
+  <table style="border-collapse:collapse;width:100%;">
+    <thead><tr>${thHtml}</tr></thead>
+    <tbody>${satirlar}</tbody>
+  </table>
+
+  <!-- Telefonlar -->
+  ${telefonHTML}
+
+  <!-- Görevler -->
+  <div style="margin-top:6pt;border-top:0.5pt solid #333;padding-top:4pt;">
+    <div style="font-weight:700;font-size:8pt;margin-bottom:3pt;">NÖBETÇİ ÖĞRETMENİN GÖREVLERİ</div>
+    <ol style="margin:0;padding-left:14pt;font-size:7pt;line-height:1.45;">
+      ${gorevler.map(g => `<li>${g}</li>`).join('')}
     </ol>
-  </div>`;
+  </div>
 
-  // Okul Müdürü imza alanı
-  const mudur2 = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mudurId)
-    ? ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId) : null;
-  const gecerlilikGosterim = (() => {
-    try {
-      const [yy, mm, dd] = gecerlilikTarihiISO.split('-').map(Number);
-      return new Date(yy, mm - 1, dd).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    } catch (e) { return gecerlilikTarihiISO; }
-  })();
-
-  html += `<div style="page-break-inside:avoid;margin-top:10px;font-size:8.5px;line-height:1.35;">
-    <p>Bu çizelge <strong>${escapeHtml(gecerlilikGosterim)}</strong> tarihinden itibaren geçerlidir.</p>
-    <p style="margin-top:3px;">Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
-    <div style="text-align:right;margin-top:14px;">
+  <!-- İmza -->
+  <div style="margin-top:6pt;font-size:7pt;line-height:1.5;">
+    <p>Bu çizelge ${escapeHtml(gecerlilikGosterim)} tarihinden itibaren geçerlidir.</p>
+    <p>Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
+    <div style="text-align:right;margin-top:8pt;line-height:1.7;">
       <div>${escapeHtml(gecerlilikGosterim)}</div>
-      <div style="font-weight:700;margin-top:3px;">${mudur2 ? escapeHtml(`${mudur2.ad} ${mudur2.soyad}`) : '—'}</div>
+      <div style="font-weight:700;font-size:8pt;">${escapeHtml(mudurAd)}</div>
       <div>Okul Müdürü</div>
     </div>
   </div>
-  </div>`; // .nobet-sik kapanışı
 
-  _raporPenceresiniAc(html, `🛡️ ${ayAdiKisa} Ayı Öğretmen Nöbet Çizelgesi`, {
-    logoGoster: false,
+</div>`;
+
+  _raporPenceresiniAc(html, `${ayAdi} ${yil} ÖĞRETMEN NÖBET ÇİZELGESİ`, {
+    logoGoster: true,
     ortaliBaslik: true,
-    sayfaKenar: '8mm 10mm'
+    sayfaKenar: '8mm'
   });
 }
+
 
 /* ================================================================
    4. 📅 Ders Programı  (Modal + alanlar)
