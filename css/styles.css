@@ -518,9 +518,9 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
 }
 .zil-etiket{ font-size:13px; color: rgba(255,255,255,0.7); font-weight:600; }
 .zil-sayac{ font-family: var(--font-mono); font-size:38px; font-weight:800; color: #fff; line-height:1; }
-.zil-sayac span{ font-size:16px; font-weight:600; color: var(--ink-on-dark-muted); }
-.zil-alt{ font-size:12.5px; color: var(--ink-on-dark-muted); }
-.zil-durum{ font-size:14px; color: var(--ink-on-dark); font-weight:600; }
+.zil-sayac span{ font-size:16px; font-weight:600; color: rgba(255,255,255,0.75); }
+.zil-alt{ font-size:12.5px; color: rgba(255,255,255,0.70); }
+.zil-durum{ font-size:14px; color: rgba(255,255,255,0.90); font-weight:600; }
 .stat-label{ font-size:11.5px; color: var(--ink-muted); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-top:4px; }
 .dash-cols{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px; }
 .dash-row{ padding:9px 0; border-bottom:1px solid var(--border-soft); font-size:13px; }
@@ -1487,4 +1487,28 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 #havaDurumuKart > div:last-of-type > div * {
   color: var(--ink-soft) !important;
+}
+
+/* Hava ana kart background override — gri/açık renkleri koyu yap */
+#havaDurumuKart > div:first-of-type,
+#havaDurumuKart > div:first-of-type > div:first-child {
+  background: linear-gradient(135deg, #0D3D50 0%, #071E28 100%) !important;
+  border-radius: 14px !important;
+}
+/* Yazı renkleri */
+#havaDurumuKart > div:first-of-type,
+#havaDurumuKart > div:first-of-type * {
+  color: rgba(255,255,255,0.92) !important;
+  text-shadow: none !important;
+}
+/* Detaylar linki */
+#havaDurumuKart a,
+#havaDurumuKart [onclick],
+#havaDurumuKart button:not([style*="background"]) {
+  color: #5EEAEA !important;
+}
+/* Soluk bilgi satırları: nem, rüzgar */
+#havaDurumuKart > div:first-of-type span,
+#havaDurumuKart > div:first-of-type small {
+  color: rgba(255,255,255,0.80) !important;
 }
