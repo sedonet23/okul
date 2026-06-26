@@ -47,17 +47,8 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
     ${servisRaporu ? `
-    /* Servis raporu: A4 landscape — rotate YOK, @page landscape */
-    @page { size: A4 landscape; margin: 8mm; }
-    body { overflow-x: auto; }
-    #icerik-sarici {
-      min-width: 297mm;
-      padding: 0 2mm;
-    }
-    @media print {
-      body { overflow: hidden; }
-      #icerik-sarici { min-width: 0; padding: 0; }
-    }
+    @page { size: A4 portrait; margin: 8mm; }
+    body { background: #fff; }
     ` : `
     @page { size: A4 portrait; margin: 5mm 7mm; }
     `}

@@ -784,29 +784,30 @@ function soRaporGovdeHtml(servis, plan) {
   });
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  /* ── Boyut hesabı: Yatay A4 (landscape) ──
-     #so-icerik-dis: 281mm × 194mm, padding 8mm → iç alan 265mm × 178mm
-     Header: 14mm → araç yüksekliği: 178 - 14 - 6(güvenlik) = 158mm
+  /* ── Boyut hesabı: Dikey A4 (portrait) ──
+     A4 portrait: 210mm × 297mm, margin 8mm → iç alan 194mm × 281mm
+     Araç dikey çizilir: genişlik 194mm, yükseklik 281mm
+     Header: 16mm → araç yüksekliği: 281 - 16 - 6(güvenlik) = 259mm
   */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  const headerMM   = 14;
-  const aracPad    = 6;
+  const headerMM   = 16;
+  const aracPad    = 4;
 
-  // Genişlik: 281mm - 2×8mm padding = 265mm iç alan
-  const sayfaKullanW = 265; // mm
-  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 253mm
+  // Genişlik: portrait A4 iç alan 194mm
+  const sayfaKullanW = 194; // mm
+  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 186mm
 
   const colToplam = solSutun + sagSutun;
   const katsayi_w = colToplam + 0.1 * (colToplam - 1) + 0.28;
   const K_w       = aracIcW_max / katsayi_w;
 
-  // Yükseklik: 194mm - 2×8mm padding = 178mm → 178 - 14(header) - 6(güvenlik) = 158mm
-  const kullH_max  = 178 - headerMM - 6; // 158mm
+  // Yükseklik: portrait A4 iç alan 281mm → 281 - 16(header) - 6(güvenlik) = 259mm
+  const kullH_max  = 281 - headerMM - 6; // 259mm
   const sabitMM    = 12 + 4; // cam+plaka + altPad
-  const koltukH    = kullH_max - sabitMM; // 142mm
+  const koltukH    = kullH_max - sabitMM; // 243mm
   const n          = toplamSira;
   // K*(1.6 + (n-2) + 1.3 + (n-1)*0.1) = koltukH
   const katsayi_h  = 1.6 + (n - 2) + 1.3 + (n - 1) * 0.1;
@@ -820,10 +821,10 @@ function soRaporGovdeHtml(servis, plan) {
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
-  // Font boyutları — yatay A4, geniş koltuklar
-  const fontAdPt    = 11;   // pt — öğrenci adı
-  const fontSinifPt = 8.5;  // pt — sınıf adı
-  const fontSoforPt = 9;    // pt — şoför adı
+  // Font boyutları — K'ya göre dinamik (portrait'te koltuk daha dar)
+  const fontAdPt    = Math.max(6, K * 0.55);  // pt — öğrenci adı
+  const fontSinifPt = Math.max(5, K * 0.42);  // pt — sınıf adı
+  const fontSoforPt = Math.max(6, K * 0.45);  // pt — şoför adı
   const soforIkonMM = Math.max(6, K * 0.45);
   const borderRmm   = K * 0.12;
   const kolcakW     = K * 0.07;
