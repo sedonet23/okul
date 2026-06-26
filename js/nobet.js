@@ -460,14 +460,17 @@ async function nobetVerisiniUygula(satirlar, baslikIdx, tarihCol, amirCol, eslem
 }
 
 /* ====================================================================
-   OTOMATİK HAFTALIK ROTASYON DAĞITIMI  (v6)
+   OTOMATİK HAFTALIK ROTASYON DAĞITIMI  (v7 — şablon bazlı, güncel)
    ====================================================================
-   KURAL:
-   - Her öğretmen haftada 1 gün nöbet tutar (gün sabittir)
-   - Referans haftadan başlar, sonraki nöbet haftasında yer değişir
-   - TAKİP: her öğretmen için "kaçıncı GERÇEK nöbet haftası" sayılır
-     Tatil haftası = o öğretmen için sayılmaz → parite değişmez
-   - Sonuç: tatilden sonraki hafta kaldığı yerden devam eder
+   MANTIK:
+   - Kullanıcı referans haftayı 1 kez girer ve kaydedilir
+   - Referans hafta = "bu hafta kim nerede" bilgisi
+   - Sistem üretirken: her öğretmenin referanstaki yerinden başlar
+   - Her nöbet tutulduğunda yer tersine çevrilir
+   - Tatil: o günü atla, yer tersine çevir (tatilden sonra yer değişmiş olur)
+   - Ay üretiminde: Firestore'dan önceki son atamaya bakılır
+     → Önceki son atama referanstaki yerle aynıysa: bu ay ters başlar
+     → Farklıysa: bu ay referanstaki yerden başlar
    ==================================================================== */
 
 let _nobetRotasyonSablon = null;
@@ -515,6 +518,9 @@ function nobetOtomatikDagitimModalAc() {
 
   const GUNLAR  = ['','Pazartesi','Salı','Çarşamba','Perşembe','Cuma'];
   const refHafta = sablon?.referansHafta || {};
+
+  // Referans tablo: kullanıcı "referans hafta kim nerede" girer
+  // Bu değer kaydedilir, sonraki aylarda değiştirilmez (sablon olarak kalır)
   const refTabloHTML = [1,2,3,4,5].map(g => {
     const bahceId = refHafta[g]?.bahce || '';
     const binaId  = refHafta[g]?.bina  || '';
@@ -529,13 +535,6 @@ function nobetOtomatikDagitimModalAc() {
 
   const body = `
     <div style="max-height:72vh;overflow-y:auto;padding-right:4px;">
-      ${sablon?.referansHafta
-        ? `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:10px;margin-bottom:14px;font-size:13px;">
-            ✅ Kayıtlı şablon mevcut. Her öğretmenin son gerçek nöbetinden devam eder.
-           </div>`
-        : `<div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:10px;margin-bottom:14px;font-size:13px;">
-            ℹ️ İlk kullanım — referans hafta tablosunu doldurun.
-           </div>`}
 
       <div style="margin-bottom:14px;">
         <label style="font-weight:700;display:block;margin-bottom:5px;">📅 Hangi ay için üretilsin?</label>
@@ -543,19 +542,20 @@ function nobetOtomatikDagitimModalAc() {
       </div>
 
       <div style="margin-bottom:14px;">
-        <div style="font-weight:700;margin-bottom:8px;">🗺️ Nöbet Yerleri</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div><label style="font-size:12px;display:block;margin-bottom:3px;">🌳 Bahçe</label>
+          <div><label style="font-size:12px;display:block;margin-bottom:3px;">🌳 Bahçe yeri</label>
             <select id="oto_yer_bahce" style="width:100%;">${yerOpt(bahceYerId)}</select></div>
-          <div><label style="font-size:12px;display:block;margin-bottom:3px;">🏫 Bina</label>
+          <div><label style="font-size:12px;display:block;margin-bottom:3px;">🏫 Bina yeri</label>
             <select id="oto_yer_bina" style="width:100%;">${yerOpt(binaYerId)}</select></div>
         </div>
       </div>
 
       <div style="margin-bottom:14px;">
         <div style="font-weight:700;margin-bottom:4px;">📅 Referans Hafta Şablonu</div>
-        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;">
-          Her öğretmen haftada 1 gün nöbet tutar. Tatil olan haftada nöbet olmaz, bir sonraki haftada kaldığı yerden devam eder.
+        <div style="background:#e3f2fd;border-radius:6px;padding:8px;font-size:12px;margin-bottom:8px;">
+          Seçtiğiniz bir haftada <strong>kim nerede nöbet tutuyorsa</strong> buraya girin.
+          Sistem bu bilgiyi baz alarak önceki atamalara göre devam eder.
+          Şablon kaydedilir, bir daha değiştirmenize gerek yoktur.
         </div>
         <table style="width:100%;border-collapse:collapse;">
           <thead><tr>
@@ -633,12 +633,12 @@ async function nobetOtomatikDagitimUygula() {
 
   toast('Nöbet programı oluşturuluyor…');
 
-  /* ── HER ÖĞRETMENİN BAŞLANGIÇ YERİNİ BELİRLE ──
-     Firestore'dan doğrudan sorgula (silme işleminden sonra güncel veri için).
-     Her öğretmenin hedef aydan önceki en son atamasına bak:
-     - Son nöbet Bahçe → bu ayın ilk nöbeti Bina
-     - Son nöbet Bina  → bu ayın ilk nöbeti Bahçe
-     - Hiç nöbet yok  → referans haftasındaki yer
+  /* ── HER ÖĞRETMENİN BAŞLANGIÇ YERİNİ BELIRLE ──
+     Firestore'dan hedef aydan önceki en son atamayı çek.
+     Referans haftada o öğretmen Bahçe'deyse ve son atama da Bahçe'yse
+     → bu ay Bina'dan başla (yer değişmeli).
+     Referans Bahçe ama son atama Bina'ysa → bu ay Bahçe'den başla (referansla aynı).
+     Hiç atama yoksa → referanstaki yerden başla.
   */
   const ogrSonAtama = {};
   try {
@@ -646,37 +646,38 @@ async function nobetOtomatikDagitimUygula() {
       .where('tarih', '<', ayBasISO)
       .get();
     for (const doc of sorgu.docs) {
-      const a = { id: doc.id, ...doc.data() };
+      const a = doc.data();
       if (!a.ogretmenId) continue;
       if (a.yerId !== bahceYerId && a.yerId !== binaYerId) continue;
       if (!ogrSonAtama[a.ogretmenId] || a.tarih > ogrSonAtama[a.ogretmenId].tarih) {
         ogrSonAtama[a.ogretmenId] = { tarih: a.tarih, yerId: a.yerId };
       }
     }
-  } catch(e) { console.warn('Önceki atamalar sorgulanamadı:', e); }
+  } catch(e) { console.warn('Önceki atamalar:', e); }
 
-  const ogrIlkYer = {};
+  // Her öğretmen için başlangıç yerini belirle
+  const ogrAktifYer = {}; // ogretmenId → yerId (bu ay ilk nöbette nerede olacak)
   for (let g = 1; g <= 5; g++) {
     const ref = referansHafta[g];
-    for (const ogrId of [ref.bahce, ref.bina]) {
-      if (ogrId in ogrIlkYer) continue;
+    for (const [ogrId, refYerId] of [[ref.bahce, bahceYerId], [ref.bina, binaYerId]]) {
+      if (ogrId in ogrAktifYer) continue;
       const son = ogrSonAtama[ogrId];
       if (!son) {
-        ogrIlkYer[ogrId] = (ref.bahce === ogrId) ? bahceYerId : binaYerId;
+        // Hiç atama yok → referanstaki yerden başla
+        ogrAktifYer[ogrId] = refYerId;
       } else {
-        ogrIlkYer[ogrId] = (son.yerId === bahceYerId) ? binaYerId : bahceYerId;
+        // Son atama referanstaki yerle aynıysa → ters başla
+        // Son atama farklıysa → referanstaki yerden başla
+        ogrAktifYer[ogrId] = (son.yerId === refYerId) ? (refYerId === bahceYerId ? binaYerId : bahceYerId) : refYerId;
       }
     }
   }
 
-  /* ── AYLIK ÜRETİM ──
-     Her öğretmen için ayrı "şu anki yer" takibi (ogrAktifYer).
-     Bir öğretmen nöbet TUTTUĞUNDA → sonraki nöbeti için yeri ters çevir.
-     Tatil olan günde nöbet tutmadı → yeri AYNI kalır (değişmez).
+  /* ── AY BOYUNCA ÜRETİM ──
+     Her iş günü için öğretmenin aktif yerini kullan.
+     Nöbet tutulunca → yer tersine çevir.
+     Tatil → atama yok, yer tersine çevir (tatilden sonra yer değişmiş olur).
   */
-  const ogrAktifYer = { ...ogrIlkYer }; // mutable kopya
-
-  // Ayın ilk haftasının Pazartesi'si
   const ayIlkGun = new Date(hedefYil, hedefAy, 1);
   const g0 = ayIlkGun.getDay() || 7;
   const gercekIlkPzt = new Date(hedefYil, hedefAy, 1 - g0 + 1);
@@ -684,53 +685,43 @@ async function nobetOtomatikDagitimUygula() {
   let amirSayac = _nobetRotasyonSablon?.amirSayac || 0;
   let yazBatch  = db.batch(), yazSayac = 0;
   let toplamAtama = 0, toplamAmir = 0, atlananTatil = 0;
-  let yeniSonHafta = null;
 
   const haftaPzt = new Date(gercekIlkPzt);
   while (true) {
-    const haftaPztISO = nobetTarihISO(haftaPzt.getFullYear(), haftaPzt.getMonth(), haftaPzt.getDate());
-    let haftadaGun = false;
-
     for (let g = 1; g <= 5; g++) {
       const d = new Date(haftaPzt);
       d.setDate(haftaPzt.getDate() + g - 1);
       const iso = nobetTarihISO(d.getFullYear(), d.getMonth(), d.getDate());
 
-      // Sadece hedef ay
       if (d.getMonth() !== hedefAy || d.getFullYear() !== hedefYil) continue;
-
-      // Tatil → atla, yer DEĞİŞMEZ
-      if (nobetTatilMi(iso)) { atlananTatil++; continue; }
 
       const ref      = referansHafta[g];
       const bahceOgr = ogretmenler.find(o => o.id === ref.bahce);
       const binaOgr  = ogretmenler.find(o => o.id === ref.bina);
 
-      // Bahçe öğretmenini ata
+      if (nobetTatilMi(iso)) {
+        // Tatil: atama yok, ama her iki öğretmenin yeri de tersine çevrilir
+        atlananTatil++;
+        if (bahceOgr) ogrAktifYer[bahceOgr.id] = (ogrAktifYer[bahceOgr.id] === bahceYerId) ? binaYerId : bahceYerId;
+        if (binaOgr)  ogrAktifYer[binaOgr.id]  = (ogrAktifYer[binaOgr.id]  === bahceYerId) ? binaYerId : bahceYerId;
+        continue;
+      }
+
+      // Bahçe öğretmeni
       if (bahceOgr) {
         const yerId = ogrAktifYer[bahceOgr.id] || bahceYerId;
         const docRef = db.collection(COL.nobetAtamalari).doc();
-        yazBatch.set(docRef, {
-          tarih: iso, yerId,
-          ogretmenAdSoyad: bahceOgr.ad+' '+bahceOgr.soyad,
-          ogretmenId: bahceOgr.id
-        });
+        yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: bahceOgr.ad+' '+bahceOgr.soyad, ogretmenId: bahceOgr.id });
         yazSayac++; toplamAtama++;
-        // Nöbet tutuldu → yer tersine çevir
         ogrAktifYer[bahceOgr.id] = (yerId === bahceYerId) ? binaYerId : bahceYerId;
       }
 
-      // Bina öğretmenini ata
+      // Bina öğretmeni
       if (binaOgr) {
         const yerId = ogrAktifYer[binaOgr.id] || binaYerId;
         const docRef = db.collection(COL.nobetAtamalari).doc();
-        yazBatch.set(docRef, {
-          tarih: iso, yerId,
-          ogretmenAdSoyad: binaOgr.ad+' '+binaOgr.soyad,
-          ogretmenId: binaOgr.id
-        });
+        yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: binaOgr.ad+' '+binaOgr.soyad, ogretmenId: binaOgr.id });
         yazSayac++; toplamAtama++;
-        // Nöbet tutuldu → yer tersine çevir
         ogrAktifYer[binaOgr.id] = (yerId === bahceYerId) ? binaYerId : bahceYerId;
       }
 
@@ -740,33 +731,13 @@ async function nobetOtomatikDagitimUygula() {
         const amirOgr = ogretmenler.find(o => o.id === amirId);
         if (amirOgr) {
           const docRef = db.collection(COL.nobetciAmirleri).doc();
-          yazBatch.set(docRef, {
-            tarih: iso, ad: amirOgr.ad+' '+amirOgr.soyad,
-            telefon: amirOgr.telefon||'', ogretmenId: amirOgr.id
-          });
+          yazBatch.set(docRef, { tarih: iso, ad: amirOgr.ad+' '+amirOgr.soyad, telefon: amirOgr.telefon||'', ogretmenId: amirOgr.id });
           yazSayac++; toplamAmir++;
         }
         amirSayac++;
       }
 
-      haftadaGun = true;
       if (yazSayac >= 400) { await yazBatch.commit(); yazBatch = db.batch(); yazSayac = 0; }
-    }
-
-    if (haftadaGun) {
-      yeniSonHafta = { iso: haftaPztISO };
-      for (let g = 1; g <= 5; g++) {
-        const ref = referansHafta[g];
-        // sonHafta'ya bu haftada kimin nerede olduğunu kaydet
-        // ogrAktifYer artık ÇEVRİLMİŞ durumda (bir sonraki hafta için)
-        // geri çevirerek bu haftanın gerçek yerini buluyoruz
-        const bahceSonYer = ogrAktifYer[ref.bahce] === bahceYerId ? binaYerId : bahceYerId;
-        const binaSonYer  = ogrAktifYer[ref.bina]  === bahceYerId ? binaYerId : bahceYerId;
-        yeniSonHafta[g] = {
-          bahce: ref.bahce, bahceYer: bahceSonYer,
-          bina:  ref.bina,  binaYer:  binaSonYer
-        };
-      }
     }
 
     haftaPzt.setDate(haftaPzt.getDate() + 7);
@@ -782,7 +753,6 @@ async function nobetOtomatikDagitimUygula() {
     referansHafta,
     amirListesi,
     amirSayac,
-    sonHafta: yeniSonHafta || null,
     guncelleme: new Date().toISOString().slice(0, 10)
   });
 
