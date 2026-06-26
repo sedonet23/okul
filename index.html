@@ -101,6 +101,7 @@
     <div class="topbar">
       <button class="hamburger-btn" id="topbarHamburger" title="Menüyü aç" aria-label="Menüyü aç"><span></span><span></span><span></span></button>
       <div class="topbar-title" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">Koruk İlk-Ortaokulu</div>
+      <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:8px;white-space:nowrap;"></div>
       <button class="theme-toggle" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
 
@@ -112,10 +113,21 @@
       <!-- 1. Hero: zile kaç dk kaldığı + şu an kaçıncı ders -->
       <div class="card zil-widget dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
 
-      <!-- 2. Hemen altında: günün nöbetçileri -->
+      <!-- 2. Hava Durumu Kartı -->
+      <div class="card" id="havaDurumuKartWrap">
+        <h3>🌤️ Hava Durumu</h3>
+        <div id="havaDurumuKart">
+          <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
+            <span style="font-size:22px;">📍</span>
+            <span>Hava durumu için konum izni bekleniyor…</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Günün Nöbetçileri -->
       <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3>🛡️ Günün Nöbetçileri</h3><div id="dashBugunNobet"></div></div>
 
-      <!-- 3. Hızlı İşlemler -->
+      <!-- 4. Hızlı İşlemler -->
       <div class="card">
         <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
@@ -732,5 +744,6 @@
 <script src="js/app.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/hava-durumu.js"></script>
 </body>
 </html>
