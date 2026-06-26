@@ -813,7 +813,7 @@ function soRaporGovdeHtml(servis, plan) {
   const m = (v) => `${v.toFixed(2)}mm`; // mm helper
 
   const koltukKutu = (yuva) => {
-    if (yuva.soforYani) return '';
+    // soforYani kontrolü kaldırıldı — sıra 0 koltukları da gösterilmeli
 
     if (yuva.aktif === false) {
       return `<div style="width:${m(K)};min-height:${m(K)};flex-shrink:0;visibility:hidden;display:inline-flex;"></div>`;
