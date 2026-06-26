@@ -754,70 +754,32 @@ function soRaporGovdeHtml(servis, plan) {
   });
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  /* ── Koltuk boyutu: A4'e sığacak şekilde optimize ──
-     @page { size:A4; margin: 5mm 7mm }  (toplam sayfa 210×297, marjın 7mm → 196×287)
-     Kullanılabilir alan: 196mm × 287mm
-     Rapor başlık: ~11mm
-     Ön cam + plaka bölümü: ~7mm
-     Alt margin: 3mm
-     Koltuk bölgesine kalan: 287 - 11 - 7 - 3 = 266mm
-     
-     Araç yan padding: 4mm × 2 = 8mm  →  iç genişlik: 188mm
-     Ducato: sol2 + gap(1) + kor + sag1
-     Grid sütunları: KW + KW + G + KorW + KW = 3*KW + G + KorW
-     Eğer G = KW*0.08, KorW = KW*0.32 ise:
-     188 = KW * (3 + 0.08 + 0.32) = KW * 3.40
-     KW = 55.3mm (çok büyük!)
-     
-     Çözüm: Daha kompakt yapı
-     - Padding arttır: G = KW*0.05, KorW = KW*0.25
-     188 = KW * (3 + 0.05 + 0.25) = KW * 3.30
-     KW = 57mm (hala çok)
-     
-     Gerçekçi: Araç genişliğini 170mm hedefle
-     170 = KW * 3.30  → KW = 51.5mm (makul)
-     
-     Ama bu durumda sayfayı doldurmak zor. 
-     Pragmatik çözüm: KW = 35mm hedefle, gap ve padding'i sıkılaştır
-  */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  // Target koltuk genişliği: 32mm (kompakt)
-  const targetKW = 32;
-  
-  // Bundan grid genişliğini hesapla
-  const G_Ratio = 0.06;  // gap, KW'nin %6'i
-  const KorW_Ratio = 0.28; // koridor, KW'nin %28'i
-  
-  // Gerçek grid genişliği
-  const gridW = targetKW * (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio);
-  
-  // Araç toplam genişliği (padding ile)
+  const targetKW   = 32;
+  const G_Ratio    = 0.06;
+  const KorW_Ratio = 0.28;
   const aracPadYan = 3.5;
-  const aracToplamW = gridW + aracPadYan * 2;
-  
-  // Sayfaya sığacak mı kontrol et, gerekirse KW küçült
-  const sayfaW = 196 - aracPadYan * 2;  // 188.5mm net
-  const maxGridW = sayfaW;
-  
-  const KW = gridW <= maxGridW ? targetKW : (sayfaW / (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio));
-  const G = KW * G_Ratio;
+
+  const gridW  = targetKW * (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio);
+  const sayfaW = 196 - aracPadYan * 2;
+
+  const KW   = gridW <= sayfaW ? targetKW : sayfaW / (solSutun + sagSutun + G_Ratio * (solSutun - 1) + KorW_Ratio);
+  const G    = KW * G_Ratio;
   const korW = KW * KorW_Ratio;
 
-  const sayfaH = 287;  // mm toplam yükseklik (A4 287 - marjin 5 - marjin 5)
-  const headerMM = 12;   // rapor başlık (büyükçe başlık için)
-  const onCamMM = 6;    // ön cam + plaka (minimal)
-  const altPadMM = 2;   // alt boşluk (minimal)
-
-  const kullH = sayfaH - headerMM - onCamMM - altPadMM;  // Koltuk bölgesine kalan yükseklik
-  
-  // Koltuk YÜKSEKLİĞİ: sıra sayısına göre dinamik
-  // Minimum 12mm (okunabilir), maksimum 28mm
-  const minKH = 12;
-  const maxKH = 28;
-  const autoKH = (kullH - (toplamSira - 1) * G) / toplamSira;
+  const sayfaH       = 287;
+  const headerMM     = 22;              // logo + h1 + h2 + border + spacing (konservatif)
+  const onCamFixedMM = KW * 0.28 + 0.4; // ön cam bölümünün KH'den bağımsız kısmı
+  const aracBorderMM = 0.8 * 2;         // araç üst+alt border: 0.8mm × 2
+  const altPadMM     = 2;
+  const minKH        = 12;
+  const maxKH        = 22;              // sınır düşük → arka sıra taşmaz
+  // Denklem: headerMM + aracBorder + onCamFixed + KH*(toplamSira+0.28) + (toplamSira-1)*G + altPad = sayfaH
+  // 0.28 = ön cam margin-bottom (KH*0.10) + arka sıra padding+margin (KH*0.18)
+  const autoKH = (sayfaH - headerMM - aracBorderMM - onCamFixedMM - altPadMM - (toplamSira - 1) * G) / (toplamSira + 0.28);
   const KH = Math.max(minKH, Math.min(maxKH, autoKH));
 
   // Araç toplam genişliği
@@ -877,7 +839,7 @@ function soRaporGovdeHtml(servis, plan) {
   const kapıHtml = (metin) =>
     `<div style="font-size:${Math.max(4,KW*0.14).toFixed(1)}mm;font-weight:800;color:#92400e;display:flex;align-items:center;padding:0 0.5mm;white-space:nowrap;">${metin}</div>`;
 
-  let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
+  let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;page-break-inside:avoid;">
   <div style="display:flex;flex-direction:column;align-items:center;background:#f5e642;border:0.8mm solid #c8a800;border-radius:${m(aracW*0.1)} ${m(aracW*0.1)} ${m(aracW*0.05)} ${m(aracW*0.05)};padding:0 ${m(aracPad)} ${m(altPadMM)};width:${m(aracW)};">`;
 
   /* Ön cam + plaka */
