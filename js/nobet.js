@@ -268,6 +268,7 @@ function nobetBaglantilariKur(){
   db.collection(COL.nobetAtamalari).onSnapshot(s=>{ nobetAtamalari = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
   db.collection(COL.nobetciAmirleri).onSnapshot(s=>{ nobetciAmirleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
   db.collection(COL.resmiTatiller).onSnapshot(s=>{ resmiTatiller = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetTatilListesi(); renderNobetBugunVeHafta(); }, hataGoster);
+  nobetRotasyonDinle();
 }
 
 /* ====================================================================
@@ -459,103 +460,167 @@ async function nobetVerisiniUygula(satirlar, baslikIdx, tarihCol, amirCol, eslem
 }
 
 /* ====================================================================
-   OTOMATİK HAFTALIK ROTASYON DAĞITIMI  (v2)
+   OTOMATİK HAFTALIK ROTASYON DAĞITIMI  (v3)
    ====================================================================
-   Çalışma mantığı:
-   ─ İki nöbet yeri seçilir: YER-1 (örn. Bahçe) ve YER-2 (örn. Okul Binası)
-   ─ Öğretmenler Grup A ve Grup B olarak ikiye ayrılır
-   ─ Hafta 1 → Grup A Yer-1'de, Grup B Yer-2'de
-     Hafta 2 → Grup A Yer-2'de, Grup B Yer-1'de  (yer değişimi)
-     ...ve böyle devam eder
-   ─ Her iş günü için sıradaki öğretmen atanır (round-robin)
-   ─ Tatil günleri atlanır; o günün ataması yapılmaz
-     ama haftanın grubu değişmez (tatil rotasyonu bozmaz)
-   ─ Nöbetçi Amir: ayrı bir öğretmen listesi, her iş günü sırayla
-   ─ Zaten ataması olan günler korunur (üzerine yazılmaz)
+   VERİ MODELİ — Firestore: COL.nobetRotasyon / belge id: 'sablon'
+   {
+     yerler: { bahce: yerId, bina: yerId },   // seçilen 2 yer
+     amirListesi: [ogretmenId, ...],           // amir sırası
+     referansHafta: {                          // kullanıcının girdiği veya
+       "1": { bahce: ogretmenId, bina: ogretmenId },  // sonuncusundan çıkarılan
+       "2": { ... },                           // 1=Pzt,2=Sal,3=Çar,4=Per,5=Cum
+       "3": { ... },
+       "4": { ... },
+       "5": { ... }
+     },
+     sonHafta: {                               // en son üretilen haftanın durumu
+       iso: 'YYYY-MM-DD',                      // o haftanın Pazartesi ISO
+       "1": { bahce: ogretmenId, bina: ogretmenId },
+       ...
+     },
+     guncelleme: 'YYYY-MM-DD'
+   }
+
+   ALGORİTMA:
+   ─ "sonHafta" varsa: bir sonraki hafta Pzt'sinden itibaren devam et,
+     bahçe↔bina ters çevrilmiş olarak her gün için şablondaki kişiyi bul
+   ─ "sonHafta" yoksa: kullanıcı referansHafta'yı girer, oradan başla
+   ─ Her hafta: önceki haftanın pzt günü kim bahçedeyse bu hafta bina, tersi
+   ─ Tatil günü: o günü atla, atama yapma; o günün öğretmeni aynı yerde
+     bir sonraki hafta o gün nöbet tutar (gün sabittir, kişi sabit, yer döner)
+   ─ Amir: amirListesi sırayla, her iş günü bir kişi (tatil atlanır)
    ==================================================================== */
 
+let _nobetRotasyonSablon = null; // Firestore'dan yüklenen şablon
+
+/* Şablonu Firestore'dan yükle (app başlangıcında nobetBaglantilariKur içinden çağrılır) */
+function nobetRotasyonDinle() {
+  if (!db || !COL.nobetRotasyon) return;
+  db.collection(COL.nobetRotasyon).doc('sablon').onSnapshot(snap => {
+    _nobetRotasyonSablon = snap.exists ? snap.data() : null;
+  }, err => console.warn('nobetRotasyon:', err));
+}
+
+/* ── MODAL: Otomatik Dağıtım ── */
 function nobetOtomatikDagitimModalAc() {
   const yerler = nobetYerSirali();
-  if (yerler.length < 2) {
-    toast('Otomatik dağıtım için en az 2 nöbet yeri gerekli.'); return;
-  }
-  if (ogretmenler.length === 0) {
-    toast('Öğretmen listesi boş.'); return;
-  }
+  if (yerler.length < 2) { toast('En az 2 nöbet yeri gerekli.'); return; }
+  if (ogretmenler.length === 0) { toast('Öğretmen listesi boş.'); return; }
 
-  // Başlangıç: bu haftanın Pazartesi'si
-  const bugun = new Date();
-  const haftaGun = bugun.getDay() || 7;
-  const pzt = new Date(bugun);
-  pzt.setDate(bugun.getDate() - haftaGun + 1);
-  const baslangicISO = nobetTarihISO(pzt.getFullYear(), pzt.getMonth(), pzt.getDate());
+  const sablon = _nobetRotasyonSablon;
+  const varMi  = sablon && sablon.sonHafta && sablon.sonHafta.iso;
 
-  // Nöbet yeri seçim satırları (ilk ikisi varsayılan seçili)
-  const yerSecimHTML = yerler.map((y, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border,#eee);">
-      <span style="flex:1;font-weight:600;">${escapeHtml(y.ad)}</span>
-      <select id="oto_yer_${y.id}" style="width:140px;">
-        <option value="yer1" ${i===0?'selected':''}>📍 Yer 1 (ilk hafta A)</option>
-        <option value="yer2" ${i===1?'selected':''}>📍 Yer 2 (ilk hafta B)</option>
-        <option value="yoksay" ${i>1?'selected':''}>— Yoksay (manuel)</option>
-      </select>
-    </div>`).join('');
+  // --- Nöbet yeri seçimi ---
+  const yerOpt = (secili) => yerler.map(y =>
+    `<option value="${y.id}" ${secili===y.id?'selected':''}>${escapeHtml(y.ad)}</option>`).join('');
 
-  // Öğretmen satırları
+  const bahceYerId = sablon?.yerler?.bahce || yerler[0]?.id || '';
+  const binaYerId  = sablon?.yerler?.bina  || yerler[1]?.id || '';
+
+  // --- Öğretmen listesi (sıralı) ---
   const siraliOgr = [...ogretmenler].sort((a,b) =>
     (a.ad+' '+a.soyad).localeCompare(b.ad+' '+b.soyad,'tr'));
 
-  const ogrSecimHTML = siraliOgr.map(o => `
-    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border,#eee);">
-      <span style="flex:1;font-size:13px;">${escapeHtml(o.ad+' '+o.soyad)}</span>
-      <select id="oto_ogr_${o.id}" style="width:150px;">
-        <option value="A">Grup A</option>
-        <option value="B">Grup B</option>
-        <option value="amir">👮 Nöbetçi Amir</option>
-        <option value="yoksay">— Katılmasın</option>
-      </select>
-    </div>`).join('');
+  // --- Amir listesi mevcut mu ---
+  const amirListesi = sablon?.amirListesi || [];
+  const amirSirali  = siraliOgr.filter(o => amirListesi.includes(o.id));
+  const amirBosHTML = siraliOgr.map(o =>
+    `<option value="${o.id}" ${amirListesi.includes(o.id)?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('');
+
+  // --- Referans hafta tablosu ---
+  const GUNLAR = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
+  const refHafta = sablon?.referansHafta || {};
+
+  const refTabloHTML = [1,2,3,4,5].map(g => {
+    const bahceId = refHafta[g]?.bahce || '';
+    const binaId  = refHafta[g]?.bina  || '';
+    const ogrOpt  = (secili) => `<option value="">—</option>` +
+      siraliOgr.map(o => `<option value="${o.id}" ${secili===o.id?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('');
+    return `
+      <tr>
+        <td style="padding:4px 6px;font-weight:600;white-space:nowrap;">${GUNLAR[g]}</td>
+        <td style="padding:4px 6px;"><select id="ref_bahce_${g}" style="width:100%;">${ogrOpt(bahceId)}</select></td>
+        <td style="padding:4px 6px;"><select id="ref_bina_${g}" style="width:100%;">${ogrOpt(binaId)}</select></td>
+      </tr>`;
+  }).join('');
+
+  // Başlangıç tarihi: sonHafta varsa ondan sonraki hafta, yoksa bu hafta
+  let baslangicISO;
+  if (varMi) {
+    const sonPzt = new Date(sablon.sonHafta.iso + 'T00:00:00');
+    sonPzt.setDate(sonPzt.getDate() + 7);
+    baslangicISO = nobetTarihISO(sonPzt.getFullYear(), sonPzt.getMonth(), sonPzt.getDate());
+  } else {
+    const bugun = new Date();
+    const hw = bugun.getDay() || 7;
+    const pzt = new Date(bugun); pzt.setDate(bugun.getDate() - hw + 1);
+    baslangicISO = nobetTarihISO(pzt.getFullYear(), pzt.getMonth(), pzt.getDate());
+  }
 
   const body = `
-    <div style="max-height:70vh;overflow-y:auto;padding-right:6px;">
+    <div style="max-height:72vh;overflow-y:auto;padding-right:4px;">
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      ${varMi ? `<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:10px;margin-bottom:14px;font-size:13px;">
+        ✅ Kayıtlı şablon bulundu. Son üretilen hafta: <strong>${sablon.sonHafta.iso}</strong><br>
+        Yeni üretim o haftanın hemen ardından başlayacak.
+      </div>` : `<div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:10px;margin-bottom:14px;font-size:13px;">
+        ℹ️ İlk kullanım: Aşağıdaki referans hafta tablosunu doldurun. Bu şablon kaydedilecek ve sonraki üretimlerde otomatik devam edecektir.
+      </div>`}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
         <div>
           <label style="font-weight:700;display:block;margin-bottom:5px;">Başlangıç (Pazartesi)</label>
           <input type="date" id="oto_baslangic" value="${baslangicISO}" style="width:100%;">
         </div>
         <div>
-          <label style="font-weight:700;display:block;margin-bottom:5px;">Kaç hafta?</label>
+          <label style="font-weight:700;display:block;margin-bottom:5px;">Kaç hafta üretilsin?</label>
           <select id="oto_hafta" style="width:100%;">
-            <option value="4">4 hafta (~1 ay)</option>
-            <option value="8" selected>8 hafta (~2 ay)</option>
-            <option value="12">12 hafta (~3 ay)</option>
-            <option value="16">16 hafta (~4 ay)</option>
+            <option value="4">4 hafta</option>
+            <option value="8" selected>8 hafta</option>
+            <option value="12">12 hafta</option>
+            <option value="16">16 hafta</option>
           </select>
         </div>
       </div>
 
-      <div style="background:var(--bg-secondary,#f5f7ff);border-radius:8px;padding:10px;margin-bottom:16px;font-size:12px;color:var(--ink-muted);">
-        <strong>Rotasyon:</strong> Grup A ilk hafta Yer-1'de, Grup B Yer-2'de nöbet tutar.
-        Sonraki hafta yerler değişir. Tatil günleri atlanır, rotasyon bozulmaz.
-        Nöbetçi Amir listesi her iş günü sırayla döner.
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;margin-bottom:8px;">🗺️ Nöbet Yerleri</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label style="font-size:12px;display:block;margin-bottom:3px;">Bahçe</label>
+            <select id="oto_yer_bahce" style="width:100%;">${yerOpt(bahceYerId)}</select></div>
+          <div><label style="font-size:12px;display:block;margin-bottom:3px;">Okul Binası</label>
+            <select id="oto_yer_bina" style="width:100%;">${yerOpt(binaYerId)}</select></div>
+        </div>
       </div>
 
-      <div style="margin-bottom:16px;">
-        <div style="font-weight:700;margin-bottom:8px;">🗺️ Nöbet Yerleri</div>
-        ${yerSecimHTML}
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700;margin-bottom:6px;">📅 Referans Hafta Şablonu
+          <span style="font-weight:400;font-size:12px;color:var(--ink-muted);"> — haftalık yer değişimi bu tabloya göre yapılır</span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;">
+          Bu haftaki yerler: <strong>Bahçe</strong> ve <strong>Okul Binası</strong>. Sonraki hafta otomatik ters çevrilir.
+        </div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr>
+            <th style="padding:4px 6px;text-align:left;font-size:12px;background:var(--bg-secondary,#f5f5f5);">Gün</th>
+            <th style="padding:4px 6px;text-align:left;font-size:12px;background:var(--bg-secondary,#f5f5f5);">🌳 Bahçe</th>
+            <th style="padding:4px 6px;text-align:left;font-size:12px;background:var(--bg-secondary,#f5f5f5);">🏫 Bina</th>
+          </tr></thead>
+          <tbody>${refTabloHTML}</tbody>
+        </table>
       </div>
 
       <div style="margin-bottom:8px;">
-        <div style="font-weight:700;margin-bottom:4px;">👤 Öğretmenler</div>
-        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:8px;">
-          Grup A ve Grup B Yer-1/Yer-2 arasında haftalık döner.
-          Nöbetçi Amir ayrı listeden her gün sırayla atanır.
+        <div style="font-weight:700;margin-bottom:6px;">👮 Nöbetçi Amir Listesi
+          <span style="font-weight:400;font-size:12px;color:var(--ink-muted);"> — her iş günü sırayla, tatiller atlanır</span>
         </div>
-        ${ogrSecimHTML}
+        <select id="oto_amir_sec" multiple style="width:100%;height:120px;">
+          ${amirBosHTML}
+        </select>
+        <div style="font-size:11px;color:var(--ink-muted);margin-top:3px;">Birden fazla seçmek için uzun basın veya Ctrl+tıkla</div>
       </div>
 
-      <div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:6px;padding:8px;font-size:12px;margin-top:12px;">
+      <div style="background:#fff8e1;border:1px solid #ffd54f;border-radius:6px;padding:8px;font-size:12px;margin-top:10px;">
         ⚠️ Zaten ataması olan günler korunur. Sadece boş günlere yazılır.
       </div>
     </div>`;
@@ -563,124 +628,162 @@ function nobetOtomatikDagitimModalAc() {
   modalAc('🔄 Otomatik Nöbet Dağıtımı', body, nobetOtomatikDagitimUygula, null);
 }
 
+/* ── UYGULA ── */
 async function nobetOtomatikDagitimUygula() {
-  // --- Girdi oku ---
-  const baslangicVal = document.getElementById('oto_baslangic').value;
-  const haftaSayisi  = parseInt(document.getElementById('oto_hafta').value);
+  const baslangicVal = document.getElementById('oto_baslangic')?.value;
+  const haftaSayisi  = parseInt(document.getElementById('oto_hafta')?.value || '8');
+  const bahceYerId   = document.getElementById('oto_yer_bahce')?.value;
+  const binaYerId    = document.getElementById('oto_yer_bina')?.value;
+
   if (!baslangicVal) { toast('Başlangıç tarihi seçin.'); return; }
-
-  // Başlangıcı kesin Pazartesi yap
-  const baslangic = new Date(baslangicVal + 'T00:00:00');
-  const hw = baslangic.getDay() || 7;
-  baslangic.setDate(baslangic.getDate() - hw + 1);
-
-  // Nöbet yerleri
-  const yerler = nobetYerSirali();
-  const yer1 = yerler.filter(y => document.getElementById('oto_yer_' + y.id)?.value === 'yer1');
-  const yer2 = yerler.filter(y => document.getElementById('oto_yer_' + y.id)?.value === 'yer2');
-
-  if (yer1.length === 0 || yer2.length === 0) {
-    toast('Hem Yer-1 hem Yer-2 seçili olmalı.'); return;
+  if (!bahceYerId || !binaYerId || bahceYerId === binaYerId) {
+    toast('Bahçe ve Bina için farklı nöbet yerleri seçin.'); return;
   }
 
-  // Öğretmen grupları
-  const siraliOgr = [...ogretmenler].sort((a,b) =>
-    (a.ad+' '+a.soyad).localeCompare(b.ad+' '+b.soyad,'tr'));
-  const grupA  = siraliOgr.filter(o => document.getElementById('oto_ogr_' + o.id)?.value === 'A');
-  const grupB  = siraliOgr.filter(o => document.getElementById('oto_ogr_' + o.id)?.value === 'B');
-  const amirGr = siraliOgr.filter(o => document.getElementById('oto_ogr_' + o.id)?.value === 'amir');
-
-  if (grupA.length === 0 || grupB.length === 0) {
-    toast('Grup A ve Grup B\'de en az birer öğretmen olmalı.'); return;
+  // Referans hafta oku
+  const referansHafta = {};
+  let referansDolu = true;
+  for (let g = 1; g <= 5; g++) {
+    const bahce = document.getElementById(`ref_bahce_${g}`)?.value || '';
+    const bina  = document.getElementById(`ref_bina_${g}`)?.value  || '';
+    if (!bahce || !bina) { referansDolu = false; }
+    referansHafta[g] = { bahce, bina };
   }
+  if (!referansDolu) { toast('Referans hafta tablosundaki tüm günleri doldurun.'); return; }
+
+  // Amir listesi
+  const amirSel = document.getElementById('oto_amir_sec');
+  const amirListesi = amirSel
+    ? Array.from(amirSel.selectedOptions).map(o => o.value)
+    : (_nobetRotasyonSablon?.amirListesi || []);
 
   modalKapat();
   toast('Nöbet programı oluşturuluyor…');
 
-  // Round-robin sayaçları — tüm haftalara yayılan tek sayaç
-  let sayacA = 0;   // Grup A sırası
-  let sayacB = 0;   // Grup B sırası
-  let sayacAmir = 0; // Amir sırası
+  // Başlangıç Pazartesi'ye hizala
+  const baslangic = new Date(baslangicVal + 'T00:00:00');
+  const hw = baslangic.getDay() || 7;
+  baslangic.setDate(baslangic.getDate() - hw + 1);
+
+  // Amir sırasını belirle: mevcut şablondan devam et
+  const mevcutAmirSayac = _nobetRotasyonSablon?.amirSayac || 0;
+  let amirSayac = mevcutAmirSayac;
+
+  // Son haftanın durumunu belirle
+  // sonHafta.iso varsa: o haftadaki bahçe/bina kişileri bize "önceki durum"
+  // Başlangıç haftası için: sonHafta yoksa referansHafta kullan
+  // Her yeni hafta: önceki haftanın bahçe↔bina'sını ters çevir
+  const oncekiHafta = (_nobetRotasyonSablon?.sonHafta && _nobetRotasyonSablon.sonHafta.iso)
+    ? _nobetRotasyonSablon.sonHafta
+    : referansHafta; // İlk kullanım: referans = önceki hafta gibi davran
 
   let batch = db.batch();
   let batchSayac = 0;
-  let toplamAtama = 0;
-  let toplamAmir  = 0;
-  let atlananTatil = 0;
+  let toplamAtama = 0, toplamAmir = 0, atlananTatil = 0;
+
+  // sonHafta takibi (en son üretilen haftayı kaydedeceğiz)
+  let yeniSonHafta = null;
 
   for (let h = 0; h < haftaSayisi; h++) {
-    // Çift hafta (0,2,4…): Grup A → Yer1, Grup B → Yer2
-    // Tek hafta  (1,3,5…): Grup A → Yer2, Grup B → Yer1
-    const aYer1 = (h % 2 === 0);
-    const yer1Grubu = aYer1 ? grupA : grupB;
-    const yer2Grubu = aYer1 ? grupB : grupA;
+    // Bu haftanın Pazartesi ISO'su
+    const haftaPzt = new Date(baslangic);
+    haftaPzt.setDate(baslangic.getDate() + h * 7);
+    const haftaPztISO = nobetTarihISO(haftaPzt.getFullYear(), haftaPzt.getMonth(), haftaPzt.getDate());
 
-    for (let g = 0; g < 5; g++) { // Pzt=0 … Cum=4
-      const d = new Date(baslangic);
-      d.setDate(baslangic.getDate() + h * 7 + g);
-      const iso = nobetTarihISO(d.getFullYear(), d.getMonth(), d.getDate());
-
-      // Tatil veya haftasonu → atla, sayaçlar ilerlemez
-      if (nobetTatilMi(iso) || nobetHaftasonuMu(d.getFullYear(), d.getMonth(), d.getDate())) {
-        if (nobetTatilMi(iso)) atlananTatil++;
-        continue;
-      }
-
-      const yazBatch = (yerId, ogr) => {
-        if (nobetAtamalari.find(a => a.tarih === iso && a.yerId === yerId)) return false;
-        const ref = db.collection(COL.nobetAtamalari).doc();
-        batch.set(ref, { tarih: iso, yerId, ogretmenAdSoyad: ogr.ad+' '+ogr.soyad, ogretmenId: ogr.id });
-        batchSayac++; toplamAtama++;
-        return true;
-      };
-
-      // Yer1 atamaları
-      for (const yer of yer1) {
-        if (yer1Grubu.length === 0) continue;
-        const ogr = aYer1
-          ? grupA[sayacA % grupA.length]
-          : grupB[sayacB % grupB.length];
-        if (yazBatch(yer.id, ogr)) {
-          if (aYer1) sayacA++; else sayacB++;
-        }
-      }
-
-      // Yer2 atamaları
-      for (const yer of yer2) {
-        if (yer2Grubu.length === 0) continue;
-        const ogr = aYer1
-          ? grupB[sayacB % grupB.length]
-          : grupA[sayacA % grupA.length];
-        if (yazBatch(yer.id, ogr)) {
-          if (aYer1) sayacB++; else sayacA++;
-        }
-      }
-
-      // Nöbetçi Amir
-      if (amirGr.length > 0) {
-        const mevcutAmir = nobetciAmirleri.find(a => a.tarih === iso);
-        if (!mevcutAmir) {
-          const amir = amirGr[sayacAmir % amirGr.length];
-          sayacAmir++;
-          const ref = db.collection(COL.nobetciAmirleri).doc();
-          batch.set(ref, {
-            tarih: iso,
-            ad: amir.ad + ' ' + amir.soyad,
-            telefon: amir.telefon || '',
-            ogretmenId: amir.id
-          });
-          batchSayac++; toplamAmir++;
-        }
-      }
-
-      if (batchSayac >= 400) {
-        await batch.commit();
-        batch = db.batch(); batchSayac = 0;
-      }
+    // Bu haftanın şablonu: önceki hafta ters çevrilmiş
+    // h=0 için: oncekiHafta ters çevrilir (referans haftasının tersi = ilk üretilen hafta)
+    // h=1 için: h=0'ın tersi, yani referans haftasıyla aynı
+    // ... böylece hafta bittikçe otomatik yer değişimi olur
+    const buHaftaSablon = {};
+    for (let g = 1; g <= 5; g++) {
+      const onceki = (h === 0 ? oncekiHafta : null); // h>0 için anlık hesap
+      // oncekiHafta yerine yinelemeli takip: bir önceki h'nin şablonunu kullanmak gerekiyor
+      // Bunu dışarıda tutuyoruz — aşağıda çözüyoruz
+      buHaftaSablon[g] = null; // aşağıda doldurulacak
     }
   }
 
+  // Daha temiz yaklaşım: aktif şablonu döngüde tut
+  let aktifSablon = {}; // her hafta başında güncellenir
+  for (let g = 1; g <= 5; g++) {
+    // İlk hafta: oncekiHafta'nın TERSİ (çünkü referansHafta = önceki hafta)
+    aktifSablon[g] = {
+      bahce: oncekiHafta[g]?.bina  || '',
+      bina:  oncekiHafta[g]?.bahce || ''
+    };
+  }
+
+  for (let h = 0; h < haftaSayisi; h++) {
+    const haftaPzt = new Date(baslangic);
+    haftaPzt.setDate(baslangic.getDate() + h * 7);
+    const haftaPztISO = nobetTarihISO(haftaPzt.getFullYear(), haftaPzt.getMonth(), haftaPzt.getDate());
+
+    for (let g = 1; g <= 5; g++) {
+      const d = new Date(haftaPzt);
+      d.setDate(haftaPzt.getDate() + g - 1);
+      const iso = nobetTarihISO(d.getFullYear(), d.getMonth(), d.getDate());
+
+      // Tatil veya haftasonu → atla
+      if (nobetHaftasonuMu(d.getFullYear(), d.getMonth(), d.getDate())) continue;
+      if (nobetTatilMi(iso)) { atlananTatil++; continue; }
+
+      const bahceOgrId = aktifSablon[g]?.bahce;
+      const binaOgrId  = aktifSablon[g]?.bina;
+      const bahceOgr   = bahceOgrId ? ogretmenler.find(o => o.id === bahceOgrId) : null;
+      const binaOgr    = binaOgrId  ? ogretmenler.find(o => o.id === binaOgrId)  : null;
+
+      // Bahçe ataması
+      if (bahceOgr && !nobetAtamalari.find(a => a.tarih === iso && a.yerId === bahceYerId)) {
+        const ref = db.collection(COL.nobetAtamalari).doc();
+        batch.set(ref, { tarih: iso, yerId: bahceYerId, ogretmenAdSoyad: bahceOgr.ad+' '+bahceOgr.soyad, ogretmenId: bahceOgr.id });
+        batchSayac++; toplamAtama++;
+      }
+
+      // Bina ataması
+      if (binaOgr && !nobetAtamalari.find(a => a.tarih === iso && a.yerId === binaYerId)) {
+        const ref = db.collection(COL.nobetAtamalari).doc();
+        batch.set(ref, { tarih: iso, yerId: binaYerId, ogretmenAdSoyad: binaOgr.ad+' '+binaOgr.soyad, ogretmenId: binaOgr.id });
+        batchSayac++; toplamAtama++;
+      }
+
+      // Nöbetçi Amir
+      if (amirListesi.length > 0 && !nobetciAmirleri.find(a => a.tarih === iso)) {
+        const amirId = amirListesi[amirSayac % amirListesi.length];
+        const amirOgr = ogretmenler.find(o => o.id === amirId);
+        if (amirOgr) {
+          const ref = db.collection(COL.nobetciAmirleri).doc();
+          batch.set(ref, { tarih: iso, ad: amirOgr.ad+' '+amirOgr.soyad, telefon: amirOgr.telefon||'', ogretmenId: amirOgr.id });
+          batchSayac++; toplamAmir++;
+        }
+        amirSayac++;
+      }
+
+      if (batchSayac >= 400) { await batch.commit(); batch = db.batch(); batchSayac = 0; }
+    }
+
+    // Bu hafta tamamlandı — sonHafta olarak kaydet
+    yeniSonHafta = { iso: haftaPztISO };
+    for (let g = 1; g <= 5; g++) yeniSonHafta[g] = { ...aktifSablon[g] };
+
+    // Bir sonraki hafta için şablonu ters çevir
+    const sonrakiSablon = {};
+    for (let g = 1; g <= 5; g++) {
+      sonrakiSablon[g] = { bahce: aktifSablon[g].bina, bina: aktifSablon[g].bahce };
+    }
+    aktifSablon = sonrakiSablon;
+  }
+
   if (batchSayac > 0) await batch.commit();
+
+  // Şablonu Firestore'a kaydet
+  await db.collection(COL.nobetRotasyon).doc('sablon').set({
+    yerler: { bahce: bahceYerId, bina: binaYerId },
+    referansHafta,
+    amirListesi,
+    amirSayac,
+    sonHafta: yeniSonHafta,
+    guncelleme: new Date().toISOString().slice(0, 10)
+  });
 
   const parcalar = [`${toplamAtama} nöbet ataması`];
   if (toplamAmir > 0)   parcalar.push(`${toplamAmir} nöbetçi amir`);

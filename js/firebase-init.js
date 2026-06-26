@@ -58,7 +58,8 @@ const COL = {
   dersListesi:'oy_dersListesi',          // {ad} — Ders Programı + Sınav İşlemleri'nde ortak seçim listesi
   bransListesi:'oy_bransListesi',          // {ad} — Öğretmen Branşı seçim listesi (ayrı)
   // --- YENİ: Servis Oturma Planı (v5.0) ---
-  servisOturma:'oy_servisOturma',           // belge ID = servisId; {servisId, sablon, yerlesim:[{sira,konum,soforYani?}], koltuklar:[{no,ogrenciId,ogrenciAdi,rezerve}]}
+  servisOturma:'oy_servisOturma',
+  nobetRotasyon:'oy_nobetRotasyon',      // tek doküman (id:'sablon'): rotasyon şablonu ve son hafta durumu           // belge ID = servisId; {servisId, sablon, yerlesim:[{sira,konum,soforYani?}], koltuklar:[{no,ogrenciId,ogrenciAdi,rezerve}]}
                                          // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:
                                          // "Müdür Yardımcısı" zaten oy_ogretmenler içinde bir ünvan seçeneğidir (bkz. app.js OGRETMEN_UNVANLARI).
                                          // Aynı kişi için iki ayrı kayıt (öğretmen + MY) tutmak veri tekrarına ve
