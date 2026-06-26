@@ -771,14 +771,15 @@ function soRaporGovdeHtml(servis, plan) {
   const korW = KW * KorW_Ratio;
 
   const sayfaH       = 287;
-  const headerMM     = 17;              // logo + h1 + h2 + border + margin ≈ 17mm
+  const headerMM     = 22;              // logo + h1 + h2 + border + spacing (konservatif)
   const onCamFixedMM = KW * 0.28 + 0.4; // ön cam bölümünün KH'den bağımsız kısmı
+  const aracBorderMM = 0.8 * 2;         // araç üst+alt border: 0.8mm × 2
   const altPadMM     = 2;
   const minKH        = 12;
-  const maxKH        = 26;
-  // Denklem: headerMM + onCamFixedMM + KH*(toplamSira+0.28) + (toplamSira-1)*G + altPadMM = sayfaH
+  const maxKH        = 22;              // sınır düşük → arka sıra taşmaz
+  // Denklem: headerMM + aracBorder + onCamFixed + KH*(toplamSira+0.28) + (toplamSira-1)*G + altPad = sayfaH
   // 0.28 = ön cam margin-bottom (KH*0.10) + arka sıra padding+margin (KH*0.18)
-  const autoKH = (sayfaH - headerMM - onCamFixedMM - altPadMM - (toplamSira - 1) * G) / (toplamSira + 0.28);
+  const autoKH = (sayfaH - headerMM - aracBorderMM - onCamFixedMM - altPadMM - (toplamSira - 1) * G) / (toplamSira + 0.28);
   const KH = Math.max(minKH, Math.min(maxKH, autoKH));
 
   // Araç toplam genişliği
