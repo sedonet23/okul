@@ -681,6 +681,15 @@ function tasimaAltSekmeSec(sekme) {
   if (d2) d2.style.display = sekme === 'oturma'    ? '' : 'none';
   if (sekme === 'oturma') renderOturmaServisler();
 }
+// Inline onclick için global erişim güvencesi
+window.tasimaAltSekmeSec = tasimaAltSekmeSec;
+
+/* Sekme butonlarına addEventListener ile de bağla (onclick yedeği) */
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-tasima-sekme]').forEach(btn => {
+    btn.addEventListener('click', () => tasimaAltSekmeSec(btn.getAttribute('data-tasima-sekme')));
+  });
+});
 
 function renderOturmaServisler() {
   const hedef = document.getElementById('oturmaServislerListesi');
