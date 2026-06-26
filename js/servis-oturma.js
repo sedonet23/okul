@@ -195,11 +195,13 @@ function _soRenderArac(servisId) {
      Büyük:  [sol-dis][sol-ic] [kor] [sag-ic][sag-dis] → 4 koltuk sütunu + koridor
      Her koltuk: 40px, koridor: 14px, gap: 3px */
   const K = 40, KOR = 14, GAP = 3;
-  const solKonumlar = buyuk ? ['sol-dis','sol-ic'] : ['sol-dis','sol-ic','sol-tek'];
+  const solKonumlar = buyuk ? ['sol-dis','sol-ic'] : ['sol-dis','sol-ic'];
+  // Ducato: normal sıralarda sag-dis tek, şoför sırasında sag-ic+sag-dis
   const sagKonumlar = buyuk ? ['sag-ic','sag-dis'] : ['sag-dis'];
+  const sagKonumlar0 = buyuk ? ['sag-ic','sag-dis'] : ['sag-ic','sag-dis']; // sıra 0 için
 
   // Grid sütun tanımı: solKoltuklar + koridor + sagKoltuklar
-  const solSayisi = buyuk ? 2 : 2;
+  const solSayisi = 2;
   const sagSayisi = buyuk ? 2 : 1;
   const gridCols  = `repeat(${solSayisi},${K}px) ${KOR}px repeat(${sagSayisi},${K}px)`;
 
@@ -308,7 +310,7 @@ function _soRenderArac(servisId) {
       if (sablon === 'buyuk' && kapiSagVar && !saglarVar) {
         html += `<div class="so-kapi-gosterge">│<span>GİRİŞ</span>│</div>`;
       } else {
-        yuvalar.filter(y => sagKonumlar.includes(y.konum)).forEach(y => {
+        yuvalar.filter(y => sagKonumlar0.includes(y.konum)).forEach(y => {
           html += _soKoltukHtml(y, servisId, sablon);
         });
       }
@@ -775,12 +777,15 @@ function soRaporGovdeHtml(servis, plan) {
   const katsayi = (solSutun + sagSutun) + 0.1 * (solSutun + sagSutun - 1) + 0.28;
   const K_w = aracIcW_max / katsayi;
 
-  // Yükseklik: K*(toplamSira) + K*0.1*(toplamSira-1) + cam + alt pad ≤ 194mm - headerMM
-  const kullH     = 210 - 16 - headerMM; // ~180mm
+  // Yükseklik: şoför sırası K*1.5, diğerleri K, aralarında G
+  // toplamSira içinde sıra 0 var → (toplamSira-1)*K + K*1.5 + (toplamSira-1)*G
+  const kullH     = 210 - 16 - headerMM; // ~180mm (A4 yatay yükseklik - margin - header)
   const camPad    = 12; // mm — ön cam + plaka alanı
   const altPad    = 4;  // mm
   const koltukH   = kullH - camPad - altPad;
-  const K_h = koltukH / (toplamSira + 0.1 * (toplamSira - 1));
+  // K_h: koltukH = (toplamSira-1)*K + K*1.5 + (toplamSira-1)*0.1*K = K*(toplamSira + 0.5 + (toplamSira-1)*0.1)
+  const K_h_katsayi = (toplamSira - 1) + 1.5 + (toplamSira - 1) * 0.1;
+  const K_h = koltukH / K_h_katsayi;
 
   // Minimum 14pt ≈ 4.94mm, en küçük K bu olmalı
   const minKmm = 6.5; // 14pt ≈ 4.94mm yazı + padding
@@ -792,11 +797,11 @@ function soRaporGovdeHtml(servis, plan) {
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
-  // Sabit font boyutları — min 14pt öğrenci adı
-  const fontAdPt    = Math.max(14, K * 2.0);  // pt — en az 14pt
-  const fontSinifPt = Math.max(10, K * 1.5);  // pt — sınıf adı
-  const fontSoforPt = Math.max(12, K * 1.8);  // pt — şoför adı
-  const soforIkonMM = Math.max(8, K * 0.55);
+  // Sabit font boyutları — K'dan bağımsız, okunabilir
+  const fontAdPt    = 10;   // pt — öğrenci adı (min 10pt = ~3.5mm)
+  const fontSinifPt = 8;    // pt — sınıf adı
+  const fontSoforPt = 9;    // pt — şoför adı
+  const soforIkonMM = Math.max(6, K * 0.45);
   const borderRmm   = K * 0.12;
   const kolcakW     = K * 0.07;
 
@@ -875,28 +880,28 @@ function soRaporGovdeHtml(servis, plan) {
 
       if (buyuk) {
         // Büyük: şoför sol tarafta, sağ tarafta GİRİŞ kapısı
-        html += `<div style="width:${m(solGrpW)};height:${m(K)};display:flex;align-items:center;justify-content:center;gap:${m(G)};">
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:${m(K)};height:${m(K)};">
+        html += `<div style="width:${m(solGrpW)};height:${m(K*1.5)};display:flex;align-items:center;justify-content:center;gap:${m(G)};">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:${m(K)};height:${m(K*1.5)};overflow:hidden;">
             <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
-            <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#1f2937;font-weight:800;margin-top:0.3mm;text-align:center;word-break:break-word;white-space:normal;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
+            <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#1f2937;font-weight:700;margin-top:0.3mm;text-align:center;word-break:break-word;white-space:normal;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
           </div>
         </div>`;
-        html += `<div style="width:${m(korW)};height:${m(K)};"></div>`;
-        html += `<div style="width:${m(sagGrpW)};height:${m(K)};display:flex;align-items:center;justify-content:center;">
-          <div style="font-size:${Math.max(7,K*0.18).toFixed(1)}mm;font-weight:800;color:#374151;">│GİRİŞ│</div>
+        html += `<div style="width:${m(korW)};height:${m(K*1.5)};"></div>`;
+        html += `<div style="width:${m(sagGrpW)};height:${m(K*1.5)};display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:${Math.max(5,K*0.14).toFixed(1)}mm;font-weight:800;color:#374151;">│GİRİŞ│</div>
         </div>`;
       } else {
         // Ducato: şoför solda genişliği = solGrpW, sağda 2 koltuk
-        html += `<div style="width:${m(solGrpW)};height:${m(K)};display:flex;align-items:center;justify-content:center;">
+        html += `<div style="width:${m(solGrpW)};height:${m(K*1.5)};display:flex;align-items:center;justify-content:center;overflow:hidden;">
           <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;">
             <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
-            <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#1f2937;font-weight:800;margin-top:0.3mm;text-align:center;word-break:break-word;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
+            <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#1f2937;font-weight:700;margin-top:0.3mm;text-align:center;word-break:break-word;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
           </div>
         </div>`;
-        html += `<div style="width:${m(korW)};height:${m(K)};"></div>`;
-        // Sağ taraf: ducato'da sıra 0'da sag-ic ve sag-dis koltukları (soforYani işaretli)
+        html += `<div style="width:${m(korW)};height:${m(K*1.5)};"></div>`;
+        // Sağ taraf: sıra 0'da sag-ic ve sag-dis koltukları
         const yon0Saglar = yuvalar.filter(y => ['sag-ic','sag-dis'].includes(y.konum));
-        html += `<div style="display:flex;gap:${m(G)};">`;
+        html += `<div style="display:flex;gap:${m(G)};align-items:center;">`;
         yon0Saglar.forEach(y => { html += koltukKutu(y); });
         html += `</div>`;
       }
