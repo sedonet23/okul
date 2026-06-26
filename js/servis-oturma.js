@@ -758,9 +758,9 @@ function soRaporGovdeHtml(servis, plan) {
   const sagSutun  = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  const sayfaGenislik = 190; // mm, A4 - kenar
-  const aracPadMM     = 8;   // mm, araç iç padding her iki yan
-  const icGenislik    = sayfaGenislik - aracPadMM * 2; // 174mm
+  const sayfaGenislik = 200; // mm, A4 - kenar (genişletildi)
+  const aracPadMM     = 5;   // mm, araç iç padding her iki yan
+  const icGenislik    = sayfaGenislik - aracPadMM * 2; // 190mm
 
   const toplamKatsayi = solSutun + sagSutun + 0.32 + (solSutun - 1) * 0.08 + (sagSutun > 1 ? (sagSutun - 1) * 0.08 : 0);
   const Kmm = icGenislik / toplamKatsayi; // koltuk boyutu mm cinsinden
@@ -879,18 +879,32 @@ function soRaporGovdeHtml(servis, plan) {
     const kapiSagVar = yuvalar.some(y => y.kapiSag);
 
     if (siraIdx === 0) {
-      html += `<div style="display:flex;align-items:center;width:100%;gap:${m(korW)};">`;
-      html += `<div style="width:${m(solGrpW)};min-width:${m(solGrpW)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;flex-shrink:0;">
+      // Sıra 0: [Şoför | Sol koltuk 1 | Sol koltuk 2] [koridor] [Sağ koltuklar]
+      // Grid: şoför(K) + gap + solKoltuk1(K) + gap + solKoltuk2(K) + koridor + saglar
+      const sofer0FontPt = 8.5; // şoför adı biraz daha büyük
+      html += `<div style="display:grid;grid-template-columns:${m(K)} ${m(G)} repeat(${solSutun},${m(K)}) ${m(korW)} repeat(${sagSutun},${m(K)});gap:0;width:100%;">`;
+      // Şoför hücresi — sol-dis koltuğu kadar genişlikte, 1 koltuk yüksekliğinde
+      html += `<div style="grid-column:1;width:${m(K)};height:${m(K)};display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
-        <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#92400e;font-weight:700;margin-top:0.5mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
+        <span style="font-size:${sofer0FontPt.toFixed(1)}pt;color:#92400e;font-weight:800;margin-top:0.3mm;text-align:center;word-break:break-word;white-space:normal;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
       </div>`;
-      html += `<div style="display:flex;gap:${m(G)};min-width:${m(sagGrpW)};flex-shrink:0;">`;
-      if (kapiSagVar && saglar.filter(y => y.aktif !== false).length === 0) {
-        html += kapıHtml('│GİRİŞ│');
-      } else {
-        saglar.forEach(y => { html += koltukKutu(y); });
-      }
-      html += `</div></div>`;
+      // gap sütunu boş
+      html += `<div style="grid-column:2;"></div>`;
+      // Sol koltuklar (2 adet)
+      soller.forEach((y, i) => {
+        const col = 3 + i;
+        html += `<div style="grid-column:${col};">` + koltukKutu(y) + '</div>';
+      });
+      // Koridor
+      html += `<div style="grid-column:${3 + solSutun};display:flex;align-items:center;justify-content:center;">`;
+      if (kapiSagVar && saglar.filter(y => y.aktif !== false).length === 0) html += kapıHtml('│KAPI│');
+      html += `</div>`;
+      // Sağ koltuklar
+      saglar.forEach((y, i) => {
+        const col = 3 + solSutun + 1 + i;
+        html += `<div style="grid-column:${col};">` + koltukKutu(y) + '</div>';
+      });
+      html += `</div>`;
       return;
     }
 
