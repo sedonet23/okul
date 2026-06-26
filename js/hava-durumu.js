@@ -69,20 +69,22 @@
 
     var anlikBilgi = havaKoduOku(veri.current.weather_code);
 
+    // Ana sıcaklık kutusu — koyu gradient arka plan
     var html = '<div style="background:linear-gradient(145deg,#0F3E50,#071E28);border-radius:14px;padding:16px 14px;margin-bottom:12px;">';
-    html += '<div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;">';
-    html += '<div style="font-size:38px;line-height:1;">' + anlikBilgi.e + '</div>';
+    html += '<div style="display:flex;align-items:center;gap:14px;">';
+    html += '<div style="font-size:44px;line-height:1;">' + anlikBilgi.e + '</div>';
     html += '<div>';
-    html += '<div style="font-size:28px;font-weight:800;color:#fff;">' + Math.round(veri.current.temperature_2m) + '°C</div>';
-    html += '<div style="color:rgba(255,255,255,0.80);font-size:13px;">' + anlikBilgi.t + '</div>';
+    html += '<div style="font-size:28px;font-weight:800;color:#ffffff;">' + Math.round(veri.current.temperature_2m) + '°C</div>';
+    html += '<div style="color:rgba(255,255,255,0.80);font-size:13px;margin-top:2px;">' + anlikBilgi.t + '</div>';
     html += '</div>';
     html += '</div>';
     html += '</div>';
 
+    // Tahmin günleri
     html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">';
     for(var i=0; i<veri.daily.time.length; i++){
       var gunBilgi = havaKoduOku(veri.daily.weather_code[i]);
-      html += '<div style="text-align:center;padding:8px 4px;border-radius:10px;background:rgba(128,128,128,0.12);">';
+      html += '<div style="text-align:center;padding:8px 2px;border-radius:10px;background:rgba(128,128,128,0.12);">';
       html += '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px;">' + gunEtiketi(veri.daily.time[i], i) + '</div>';
       html += '<div style="font-size:20px;">' + gunBilgi.e + '</div>';
       html += '<div style="font-size:12px;margin-top:4px;"><strong style="color:var(--ink);">' + Math.round(veri.daily.temperature_2m_max[i]) + '°</strong><span style="color:var(--ink-muted);"> / ' + Math.round(veri.daily.temperature_2m_min[i]) + '°</span></div>';
