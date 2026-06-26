@@ -686,6 +686,27 @@ async function nobetOtomatikDagitimUygula() {
   let yazBatch  = db.batch(), yazSayac = 0;
   let toplamAtama = 0, toplamAmir = 0, atlananTatil = 0;
 
+  /* Her öğretmen için:
+     - ogrNobetSayisi[id]: bu ay kaç kez nöbet tuttu (tatil haftaları sayılmaz)
+     - Başlangıç yeri: ogrIlkYer[id]
+     - n. nöbette yer: n%2==0 → ilkYer, n%2==1 → ters
+     Bu şekilde tatil haftaları sayılmadığı için 11→Bina, 18=tatil(sayılmaz), 25→Bina ✓
+  */
+  const ogrIlkYer2 = {}; // ogretmenId → yerId (bu aydaki ilk nöbet yeri)
+  for (let g = 1; g <= 5; g++) {
+    const ref = referansHafta[g];
+    for (const [ogrId, refYerId] of [[ref.bahce, bahceYerId],[ref.bina, binaYerId]]) {
+      if (ogrId in ogrIlkYer2) continue;
+      const son = ogrSonAtama[ogrId];
+      if (!son) {
+        ogrIlkYer2[ogrId] = refYerId;
+      } else {
+        ogrIlkYer2[ogrId] = (son.yerId === refYerId) ? (refYerId === bahceYerId ? binaYerId : bahceYerId) : refYerId;
+      }
+    }
+  }
+  const ogrNobetSayisi = {}; // ogretmenId → kaç nöbet tuttu
+
   const haftaPzt = new Date(gercekIlkPzt);
   while (true) {
     for (let g = 1; g <= 5; g++) {
@@ -694,38 +715,34 @@ async function nobetOtomatikDagitimUygula() {
       const iso = nobetTarihISO(d.getFullYear(), d.getMonth(), d.getDate());
 
       if (d.getMonth() !== hedefAy || d.getFullYear() !== hedefYil) continue;
+      if (nobetTatilMi(iso)) { atlananTatil++; continue; }
 
       const ref      = referansHafta[g];
       const bahceOgr = ogretmenler.find(o => o.id === ref.bahce);
       const binaOgr  = ogretmenler.find(o => o.id === ref.bina);
 
-      if (nobetTatilMi(iso)) {
-        // Tatil: atama yok, ama her iki öğretmenin yeri de tersine çevrilir
-        atlananTatil++;
-        if (bahceOgr) ogrAktifYer[bahceOgr.id] = (ogrAktifYer[bahceOgr.id] === bahceYerId) ? binaYerId : bahceYerId;
-        if (binaOgr)  ogrAktifYer[binaOgr.id]  = (ogrAktifYer[binaOgr.id]  === bahceYerId) ? binaYerId : bahceYerId;
-        continue;
-      }
-
-      // Bahçe öğretmeni
       if (bahceOgr) {
-        const yerId = ogrAktifYer[bahceOgr.id] || bahceYerId;
+        const n     = ogrNobetSayisi[bahceOgr.id] || 0;
+        const ilk   = ogrIlkYer2[bahceOgr.id] || bahceYerId;
+        const ters  = ilk === bahceYerId ? binaYerId : bahceYerId;
+        const yerId = n % 2 === 0 ? ilk : ters;
         const docRef = db.collection(COL.nobetAtamalari).doc();
         yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: bahceOgr.ad+' '+bahceOgr.soyad, ogretmenId: bahceOgr.id });
         yazSayac++; toplamAtama++;
-        ogrAktifYer[bahceOgr.id] = (yerId === bahceYerId) ? binaYerId : bahceYerId;
+        ogrNobetSayisi[bahceOgr.id] = n + 1;
       }
 
-      // Bina öğretmeni
       if (binaOgr) {
-        const yerId = ogrAktifYer[binaOgr.id] || binaYerId;
+        const n     = ogrNobetSayisi[binaOgr.id] || 0;
+        const ilk   = ogrIlkYer2[binaOgr.id] || binaYerId;
+        const ters  = ilk === bahceYerId ? binaYerId : bahceYerId;
+        const yerId = n % 2 === 0 ? ilk : ters;
         const docRef = db.collection(COL.nobetAtamalari).doc();
         yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: binaOgr.ad+' '+binaOgr.soyad, ogretmenId: binaOgr.id });
         yazSayac++; toplamAtama++;
-        ogrAktifYer[binaOgr.id] = (yerId === bahceYerId) ? binaYerId : bahceYerId;
+        ogrNobetSayisi[binaOgr.id] = n + 1;
       }
 
-      // Amir
       if (amirListesi.length > 0) {
         const amirId  = amirListesi[amirSayac % amirListesi.length];
         const amirOgr = ogretmenler.find(o => o.id === amirId);
