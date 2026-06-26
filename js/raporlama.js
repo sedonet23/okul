@@ -43,7 +43,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    @page { size: A4 portrait; margin: 5mm 7mm; }
+    @page { size: A4 ${servisRaporu ? 'landscape' : 'portrait'}; margin: ${servisRaporu ? '8mm' : '5mm 7mm'}; }
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
     .rapor-header { display:flex; align-items:center; gap:6px; border-bottom:1.5px solid #0A6E6E; padding-bottom:3px; margin-bottom:4px; }
