@@ -47,27 +47,16 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
     ${servisRaporu ? `
-    /* Servis raporu: A4 landscape simülasyonu — içeriği döndür */
-    #sayfa-wrap {
-      width: 297mm;
-      min-height: 210mm;
-      padding: 8mm;
-      transform-origin: top left;
-      transform: rotate(90deg) translateY(-210mm);
-      position: absolute;
-      top: 0; left: 0;
+    /* Servis raporu: A4 landscape — rotate YOK, @page landscape */
+    @page { size: A4 landscape; margin: 8mm; }
+    body { overflow-x: auto; }
+    #icerik-sarici {
+      min-width: 297mm;
+      padding: 0 2mm;
     }
     @media print {
-      html, body { width: 210mm; height: 297mm; overflow: hidden; }
-      #sayfa-wrap {
-        width: 297mm;
-        min-height: 210mm;
-        padding: 8mm;
-        transform: rotate(90deg) translateY(-210mm);
-        transform-origin: top left;
-        position: absolute;
-        top: 0; left: 0;
-      }
+      body { overflow: hidden; }
+      #icerik-sarici { min-width: 0; padding: 0; }
     }
     ` : `
     @page { size: A4 portrait; margin: 5mm 7mm; }
@@ -152,7 +141,6 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     }
   <\/script>
   <div id="icerik-sarici">
-  ${servisRaporu ? '<div id="sayfa-wrap">' : ''}
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
@@ -163,7 +151,6 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     </div>
   </div>
   ${htmlIcerik}
-  ${servisRaporu ? '</div>' : ''}
   </div>
 </body>
 </html>`;
