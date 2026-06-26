@@ -518,13 +518,10 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   amirleriBuAy.forEach(a => telefonSatirlari.push({ ad: a.ad, tel: a.telefon }));
 
   const telefonHTML = telefonSatirlari.length ? `
-    <table style="width:100%;border-collapse:collapse;margin-top:6pt;">
-      <tr><td colspan="4" style="font-weight:700;font-size:8pt;padding:2pt 0;border-bottom:0.5pt solid #333;">TELEFONLAR</td></tr>
-      ${telefonSatirlari.map(t => `<tr>
-        <td style="font-size:7.5pt;font-weight:700;padding:1.5pt 4pt 1.5pt 0;width:50%;">${escapeHtml(t.ad)}</td>
-        <td style="font-size:7.5pt;padding:1.5pt 0;width:50%;">${escapeHtml(t.tel || '—')}</td>
-      </tr>`).join('')}
-    </table>` : '';
+    <div style="margin-top:4pt;padding-top:3pt;border-top:0.4pt solid #555;">
+      <span style="font-weight:700;font-size:6.5pt;margin-right:10pt;">TELEFONLAR</span>
+      ${telefonSatirlari.map(t => `<span style="font-size:6.5pt;margin-right:12pt;"><strong>${escapeHtml(t.ad)}</strong>&nbsp;&nbsp;${escapeHtml(t.tel || '—')}</span>`).join('')}
+    </div>` : '';
 
   // Görevler listesi
   const gorevler = [
@@ -544,20 +541,27 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
     'Ders bitimlerinde okulda kalan öğrencileri dışarı çıkartmak, boşaltmak (önce sınıf öğretmeni )ve nöbet defterini doldurmak',
   ];
 
+  // Logo src
+  const logoSrc2 = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'assets/logo.png';
+
   const html = `
 <style>
   @page { size:A4 portrait; margin:8mm 8mm 8mm 8mm; }
-  body { font-family:'Arial',sans-serif; font-size:7.5pt; color:#111; }
-  * { box-sizing:border-box; }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body { font-family:'Arial',sans-serif; font-size:7.5pt; color:#111; background:#fff; }
   table { border-collapse:collapse; width:100%; }
-  @media print { body { zoom:1; } }
+  .imza-alan { page-break-inside:avoid; }
+  @media print { .rapor-toolbar { display:none !important; } }
 </style>
 <div style="width:100%;max-width:194mm;">
 
-  <!-- Başlık -->
-  <div style="text-align:center;margin-bottom:6pt;">
-    <div style="font-size:10pt;font-weight:700;letter-spacing:0.5pt;">
-      ${escapeHtml(okulAdi)} ${yil} YILI ${ayAdi} AYI ÖĞRETMEN NÖBET ÇİZELGESİ
+  <!-- Logo + Başlık (tek satır) -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:8pt;margin-bottom:5pt;border-bottom:1.5pt solid #1e3a5f;padding-bottom:4pt;">
+    <img src="${logoSrc2}" alt="" style="height:30pt;object-fit:contain;" onerror="this.style.display='none'">
+    <div style="text-align:center;">
+      <div style="font-size:10pt;font-weight:700;letter-spacing:0.3pt;color:#1e3a5f;">
+        ${escapeHtml(okulAdi)} ${yil} YILI ${ayAdi} AYI ÖĞRETMEN NÖBET ÇİZELGESİ
+      </div>
     </div>
   </div>
 
@@ -567,33 +571,33 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
     <tbody>${satirlar}</tbody>
   </table>
 
-  <!-- Telefonlar -->
+  <!-- Telefonlar — küçük, sol taraf -->
   ${telefonHTML}
 
   <!-- Görevler -->
-  <div style="margin-top:6pt;border-top:0.5pt solid #333;padding-top:4pt;">
-    <div style="font-weight:700;font-size:8pt;margin-bottom:3pt;">NÖBETÇİ ÖĞRETMENİN GÖREVLERİ</div>
-    <ol style="margin:0;padding-left:14pt;font-size:7pt;line-height:1.45;">
+  <div style="margin-top:5pt;border-top:0.4pt solid #555;padding-top:3pt;">
+    <div style="font-weight:700;font-size:7.5pt;margin-bottom:2pt;">NÖBETÇİ ÖĞRETMENİN GÖREVLERİ</div>
+    <ol style="margin:0;padding-left:13pt;font-size:6.5pt;line-height:1.4;">
       ${gorevler.map(g => `<li>${g}</li>`).join('')}
     </ol>
   </div>
 
-  <!-- İmza -->
-  <div style="margin-top:6pt;font-size:7pt;line-height:1.5;">
+  <!-- İmza — page-break-inside:avoid ile aynı sayfada kalır -->
+  <div class="imza-alan" style="margin-top:5pt;font-size:6.5pt;line-height:1.5;">
     <p>Bu çizelge ${escapeHtml(gecerlilikGosterim)} tarihinden itibaren geçerlidir.</p>
-    <p>Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
-    <div style="text-align:right;margin-top:8pt;line-height:1.7;">
+    <p style="margin-top:2pt;">Öğretmen arkadaşların okuldaki eğitim öğretim hizmetlerinin verimli geçmesi için yukarıda sayılan talimatlara göre nöbet hizmetlerini yerine getirmelerini rica ederim.</p>
+    <div style="text-align:right;margin-top:6pt;line-height:1.7;">
       <div>${escapeHtml(gecerlilikGosterim)}</div>
-      <div style="font-weight:700;font-size:8pt;">${escapeHtml(mudurAd)}</div>
+      <div style="font-weight:700;font-size:7.5pt;margin-top:1pt;">${escapeHtml(mudurAd)}</div>
       <div>Okul Müdürü</div>
     </div>
   </div>
 
 </div>`;
 
-  _raporPenceresiniAc(html, `${ayAdi} ${yil} ÖĞRETMEN NÖBET ÇİZELGESİ`, {
-    logoGoster: true,
-    ortaliBaslik: true,
+  _raporPenceresiniAc(html, '', {
+    logoGoster: false,
+    ortaliBaslik: false,
     sayfaKenar: '8mm'
   });
 }
