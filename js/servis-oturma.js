@@ -784,32 +784,39 @@ function soRaporGovdeHtml(servis, plan) {
   });
   const siralar = Object.keys(siraMap).map(Number).sort((a, b) => a - b);
 
-  /* ── Boyut hesabı: Dikey A4 bazlı (her iki yönde sığsın) ──
-     Dikey A4: 210mm × 297mm, margin 8mm → 194mm × 281mm kullanılabilir
-     Header ~14mm → araç için 267mm yükseklik, 194mm genişlik
+  /* ── Boyut hesabı: Yatay A4 (landscape) ──
+     A4 yatay: 297mm × 210mm, margin 8mm → 281mm × 194mm kullanılabilir
+     Header: 14mm → araç yüksekliği için: 194 - 14 - 4(güvenlik) = 176mm
+     Araç genişliği: 281mm (margin dahil değil, araç ortada)
+     Sütun: Ducato 3K+kor+2G, Büyük 4K+kor+3G
   */
   const solSutun   = 2;
   const sagSutun   = buyuk ? 2 : 1;
   const toplamSira = siralar.length;
 
-  const sayfaKullanW = 190; // mm — dikey A4 güvenli
-  const headerMM     = 14;
-  const aracPad      = 5;
-  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 180mm
+  const headerMM   = 14;
+  const aracPad    = 6;
+
+  // Genişlik: yatay A4 iç alan
+  const sayfaKullanW = 281; // mm
+  const aracIcW_max  = sayfaKullanW - aracPad * 2; // 269mm
 
   const colToplam = solSutun + sagSutun;
-  const katsayi   = colToplam + 0.1 * (colToplam - 1) + 0.28;
-  const K_w       = aracIcW_max / katsayi;
+  const katsayi_w = colToplam + 0.1 * (colToplam - 1) + 0.28;
+  const K_w       = aracIcW_max / katsayi_w;
 
-  const kullH   = 297 - 16 - headerMM; // 267mm
-  const camPad  = 12;
-  const altPad  = 4;
-  const koltukH = kullH - camPad - altPad;
-  const K_h_kat = (toplamSira - 1) * 1.1 + 1.5;
-  const K_h     = koltukH / K_h_kat;
+  // Yükseklik: yatay A4
+  // Araç toplam yükseklik ≤ 194 - 14(header) - 6(güvenlik) = 174mm
+  // İçerik: cam+plaka(12mm) + şoför sırası(K*1.6) + (n-2)*K + arka(K*1.3) + gap'ler + altPad(4mm)
+  const kullH_max  = 194 - headerMM - 8; // 172mm
+  const sabitMM    = 12 + 4; // cam+plaka + altPad
+  const koltukH    = kullH_max - sabitMM; // 156mm
+  const n          = toplamSira;
+  // K*(1.6 + (n-2) + 1.3 + (n-1)*0.1) = koltukH
+  const katsayi_h  = 1.6 + (n - 2) + 1.3 + (n - 1) * 0.1;
+  const K_h        = koltukH / katsayi_h;
 
-  const minKmm = 5;
-  const K    = Math.max(minKmm, Math.min(K_w, K_h));
+  const K    = Math.max(4, Math.min(K_w, K_h));
   const G    = K * 0.1;
   const korW = K * 0.28;
   const aracIcW = solSutun * K + G * (solSutun - 1) + korW + sagSutun * K + G * (sagSutun > 1 ? sagSutun - 1 : 0);
@@ -817,9 +824,9 @@ function soRaporGovdeHtml(servis, plan) {
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
-  // Sabit font boyutları — K'dan bağımsız, okunabilir
-  const fontAdPt    = 10;   // pt — öğrenci adı (min 10pt = ~3.5mm)
-  const fontSinifPt = 8;    // pt — sınıf adı
+  // Font boyutları — yatay A4, geniş koltuklar
+  const fontAdPt    = 11;   // pt — öğrenci adı
+  const fontSinifPt = 8.5;  // pt — sınıf adı
   const fontSoforPt = 9;    // pt — şoför adı
   const soforIkonMM = Math.max(6, K * 0.45);
   const borderRmm   = K * 0.12;
@@ -856,18 +863,21 @@ function soRaporGovdeHtml(servis, plan) {
     if (konum === 'sag-dis')
       kolcakStyle = `border-right:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`;
 
-    return `<div style="width:${m(K)};height:${m(K)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0.5mm;${kolcakStyle}">
-      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;word-break:break-word;white-space:normal;display:block;">${escapeHtml(ad)}</span>` : ''}
-      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:0.9;display:block;margin-top:0.2mm;">${escapeHtml(sinifAdi)}</span>` : ''}
+    return `<div style="width:${m(K)};height:${m(K)};border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0 1mm;${kolcakStyle}">
+      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.2;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
+      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sinifAdi)}</span>` : ''}
     </div>`;
   };
 
   const kapiHtml = (metin) =>
     `<div style="font-size:${Math.max(4,K*0.14).toFixed(1)}mm;font-weight:800;color:#374151;display:flex;align-items:center;padding:0 0.5mm;white-space:nowrap;">${metin}</div>`;
 
+  const altPadMM = 5;
+  const maxAracH = kullH_max; // araç için toplam kullanılabilir alan
+
   /* Araç gövdesi — gri */
   let html = `<div style="width:100%;display:flex;justify-content:center;align-items:flex-start;">
-  <div style="display:flex;flex-direction:column;align-items:center;background:#d1d5db;border:0.7mm solid #6b7280;border-radius:${m(aracW*0.07)} ${m(aracW*0.07)} ${m(aracW*0.04)} ${m(aracW*0.04)};padding:0 ${m(aracPad)} ${m(altPad)}mm;width:${m(aracW)};overflow:hidden;">`;
+  <div style="display:flex;flex-direction:column;align-items:center;background:#d1d5db;border:0.7mm solid #6b7280;border-radius:${m(aracW*0.07)} ${m(aracW*0.07)} ${m(aracW*0.04)} ${m(aracW*0.04)};padding:0 ${m(aracPad)} ${m(altPadMM)};width:${m(aracW)};max-height:${m(maxAracH)};overflow:hidden;">`;
 
   /* Ön cam + plaka */
   html += `<div style="width:100%;display:flex;flex-direction:column;align-items:center;padding:${m(K*0.18)} 0 ${m(K*0.12)};border-bottom:0.5mm solid #6b7280;margin-bottom:${m(K*0.12)};">
@@ -962,9 +972,9 @@ function soRaporGovdeHtml(servis, plan) {
         : isSagDis
         ? `border-right:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`
         : '';
-      return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};overflow:hidden;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0.5mm;${cs}">
-        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;word-break:break-word;white-space:normal;display:block;">${escapeHtml(ad)}</span>` : ''}
-        ${sn ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:.9;display:block;">${escapeHtml(sn)}</span>` : ''}
+      return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};overflow:hidden;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 1mm;${cs}">
+        ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.2;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
+        ${sn ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sn)}</span>` : ''}
       </div>`;
     };
 
