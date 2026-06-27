@@ -64,8 +64,7 @@
       <button class="nav-tab" data-tab="siniflar"><span class="nt-ico">Sn</span><span class="nt-label">Sınıflar</span></button>
       <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico">Dr</span><span class="nt-label">Ders Programı</span></button>
       <button class="nav-tab" data-tab="nobet"><span class="nt-ico">Nb</span><span class="nt-label">Nöbet Programı</span></button>
-      <button class="nav-tab" data-tab="hatirlaticilar"><span class="nt-ico">!</span><span class="nt-label">Hatırlatıcılar</span></button>
-      <button class="nav-tab" data-tab="gorevler"><span class="nt-ico">✓</span><span class="nt-label">Görevler</span></button>
+      <button class="nav-tab" data-tab="takvim"><span class="nt-ico">📅</span><span class="nt-label">Takvim</span></button>
       <button class="nav-tab" data-tab="evrak"><span class="nt-ico">Ev</span><span class="nt-label">Evrak Takibi</span></button>
       <button class="nav-tab" data-tab="notlar"><span class="nt-ico">●</span><span class="nt-label">Notlar</span></button>
       <button class="nav-tab" data-tab="tasima"><span class="nt-ico">🚌</span><span class="nt-label">Taşıma</span></button>
@@ -262,39 +261,26 @@
       </div>
     </section>
 
-    <section id="tab-hatirlaticilar" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">Hatırlatıcılar</div><div class="page-sub">Vadesi gelenler için push bildirimi gönderilir (GitHub Actions ile)</div></div>
-        <button class="btn btn-amber" onclick="hatirlaticiModalAc()">+ Yeni Hatırlatıcı</button>
-      </div>
-      <div class="card">
-        <div style="margin-bottom:14px;display:flex;gap:8px;">
-          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="hatirlaticiFiltreSec('tumu')">Tümü</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="bekleyen" onclick="hatirlaticiFiltreSec('bekleyen')">Bekleyen</button>
-          <button class="btn btn-ghost btn-sm filtre-btn" data-f="tamamlanan" onclick="hatirlaticiFiltreSec('tamamlanan')">Tamamlanan</button>
-        </div>
-        <div id="hatirlaticiListesi"></div>
-      </div>
-    </section>
 
-    <section id="tab-gorevler" class="tab-panel">
+    <section id="tab-takvim" class="tab-panel">
       <div class="page-header">
-        <div><div class="page-title">Görevler</div><div class="page-sub">Kartları sürükleyip bırakarak durumunu değiştirin</div></div>
-        <button class="btn btn-amber" onclick="gorevModalAc()">+ Yeni Görev</button>
+        <div>
+          <div class="page-title">📅 Takvim</div>
+          <div class="page-sub" id="takvimAyBasligi"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(-1)">◀ Önceki</button>
+          <button class="btn btn-ghost btn-sm" onclick="takvimBugunGit()">Bugün</button>
+          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(1)">Sonraki ▶</button>
+          <button class="btn btn-amber" onclick="takvimYeniEkleAc()">+ Ekle</button>
+        </div>
       </div>
-      <div class="kanban">
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapilacak')">
-          <div class="kanban-col-header"><span>Yapılacak</span><span id="sayacYapilacak">0</span></div>
-          <div id="kolonYapilacak"></div>
-        </div>
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapiliyor')">
-          <div class="kanban-col-header"><span>Yapılıyor</span><span id="sayacYapiliyor">0</span></div>
-          <div id="kolonYapiliyor"></div>
-        </div>
-        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'tamamlandi')">
-          <div class="kanban-col-header"><span>Tamamlandı</span><span id="sayacTamamlandi">0</span></div>
-          <div id="kolonTamamlandi"></div>
-        </div>
+      <div class="card takvim-kart">
+        <div class="takvim-grid" id="takvimGrid"></div>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <h3>📋 Ajanda — Yaklaşan 30 Gün</h3>
+        <div id="takvimAjanda"></div>
       </div>
     </section>
 
@@ -757,6 +743,7 @@
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
 <script src="js/notlar.js"></script>
+<script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
