@@ -390,33 +390,67 @@ function sinifListeOlusturModalAc(sinifId) {
       <span>${escapeHtml(col.label)}</span>
     </label>`).join('');
 
+  const _okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const _ogretmenAdi = sinifOgretmeniAdi(s) === '—' ? '' : sinifOgretmeniAdi(s);
+  const _yil = (() => { const y = new Date().getFullYear(); return `${y}-${y+1}`; })();
+  const inputStil = 'width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;';
+  const bolum = (lbl) => `<div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">${lbl}</div>`;
+
   const body = `
-    <div style="margin-bottom:14px;">
-      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Sayfa Yönü</label>
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <input type="radio" name="listeYon" value="portrait" checked> Dikey (A4)
-        </label>
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <input type="radio" name="listeYon" value="landscape"> Yatay (A4)
-        </label>
+    ${bolum('Sayfa Yönü')}
+    <div style="display:flex;gap:16px;">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="radio" name="listeYon" value="portrait" checked> Dikey (A4)
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="radio" name="listeYon" value="landscape"> Yatay (A4)
+      </label>
+    </div>
+
+    ${bolum('Başlık Bilgileri')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_okulAdi" placeholder="Okul Adı" value="${escapeHtml(_okulAdi)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_okulAdiGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_baslik" placeholder="Liste Başlığı" value="${escapeHtml(s.ad)} Sınıfı Öğrenci Listesi" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_baslikGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_altBaslik" placeholder="Alt Başlık (isteğe bağlı)" value="" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_altBaslikGoster"> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_egitimYili" placeholder="Eğitim-Öğretim Yılı" value="${escapeHtml(_yil)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_egitimYiliGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_tarih" placeholder="Tarih" value="${new Date().toLocaleDateString('tr-TR')}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_tarihGoster" checked> Göster</label>
       </div>
     </div>
-    <div style="margin-bottom:14px;">
-      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Sütunları Seç</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;margin-top:8px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
-        ${checkboxler}
+
+    ${bolum('İmza / Onay Satırı')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_ogretmen" placeholder="Sınıf Öğretmeni Adı" value="${escapeHtml(_ogretmenAdi)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_ogretmenGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="lb_mudur" placeholder="Müdür / Onay Kişisi Adı" value="" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="lb_mudurGoster" checked> Göster</label>
       </div>
     </div>
-    <div style="margin-bottom:6px;">
-      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Özel Sütun Ekle (Boş)</label>
-      <div id="ozelSutunListesi" style="margin-top:6px;display:flex;flex-direction:column;gap:6px;"></div>
-      <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="listeOzelSutunEkle()">+ Özel Sütun Ekle</button>
+
+    ${bolum('Sütunları Seç')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+      ${checkboxler}
     </div>
-    <div style="margin-bottom:6px;">
-      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Liste Başlığı</label>
-      <input id="listeBaslikInput" value="${escapeHtml(s.ad)} Sınıfı Öğrenci Listesi" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-    </div>
+
+    ${bolum('Özel Sütun Ekle (Boş)')}
+    <div id="ozelSutunListesi" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="listeOzelSutunEkle()">+ Özel Sütun Ekle</button>
   `;
 
   modalAc(`📋 Liste Oluştur — ${escapeHtml(s.ad)}`, body, () => {
@@ -446,7 +480,9 @@ function sinifListesiYazdir(sinifId) {
   if (!s) return;
 
   // seçili hazır sütunlar
-  const seciliKeyler = [...document.querySelectorAll('#modalBody input[type=checkbox]:checked')].map(el => el.value);
+  const seciliKeyler = [...document.querySelectorAll('#modalBody input[type=checkbox]')]
+    .filter(el => el.checked && !el.id.startsWith('lb_'))
+    .map(el => el.value);
   const seciliSutunlar = LISTE_HAZIR_SUTUNLAR.filter(c => seciliKeyler.includes(c.key));
 
   // özel sütunlar
@@ -457,10 +493,26 @@ function sinifListesiYazdir(sinifId) {
   const tumSutunlar = [...seciliSutunlar, ...ozelSutunlar];
   if (!tumSutunlar.length) { toast('En az bir sütun seçin.'); return; }
 
-  const yon = document.querySelector('input[name="listeYon"]:checked')?.value || 'portrait';
-  const baslik = document.getElementById('listeBaslikInput')?.value.trim()
-    || `${s.ad} Sınıfı Öğrenci Listesi`;
-  const okulAdi = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : 'Okul Yönetim Paneli';
+  const g = id => document.getElementById(id);
+  const gv = id => g(id)?.value?.trim() || '';
+  const gc = id => g(id)?.checked ?? false;
+
+  const yon       = document.querySelector('input[name="listeYon"]:checked')?.value || 'portrait';
+  const okulAdi   = gv('lb_okulAdi');
+  const baslik    = gv('lb_baslik') || `${s.ad} Sınıfı Öğrenci Listesi`;
+  const altBaslik = gv('lb_altBaslik');
+  const egitimYili= gv('lb_egitimYili');
+  const tarih     = gv('lb_tarih') || new Date().toLocaleDateString('tr-TR');
+  const ogretmen  = gv('lb_ogretmen');
+  const mudur     = gv('lb_mudur');
+
+  const gosterOkul    = gc('lb_okulAdiGoster');
+  const gosterBaslik  = gc('lb_baslikGoster');
+  const gosterAlt     = gc('lb_altBaslikGoster');
+  const gosterYil     = gc('lb_egitimYiliGoster');
+  const gosterTarih   = gc('lb_tarihGoster');
+  const gosterOgretmen= gc('lb_ogretmenGoster');
+  const gosterMudur   = gc('lb_mudurGoster');
 
   const ogrenciler = veliler
     .filter(v => v.sinifId === s.id)
@@ -471,44 +523,53 @@ function sinifListesiYazdir(sinifId) {
     `<tr>${tumSutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
   ).join('');
 
-  const tarih = new Date().toLocaleDateString('tr-TR');
+  const metaParcalar = [];
+  if (gosterYil && egitimYili) metaParcalar.push(escapeHtml(egitimYili) + ' Eğitim-Öğretim Yılı');
+  metaParcalar.push(`Toplam ${ogrenciler.length} öğrenci`);
+  if (gosterTarih && tarih) metaParcalar.push(escapeHtml(tarih));
+
+  const imzaSol = gosterOgretmen && ogretmen
+    ? `Sınıf Öğretmeni: <strong>${escapeHtml(ogretmen)}</strong><br><br>İmza: .......................`
+    : (gosterOgretmen ? 'Sınıf Öğretmeni: ...............................<br><br>İmza: .......................' : '');
+  const imzaSag = gosterMudur && mudur
+    ? `Müdür: <strong>${escapeHtml(mudur)}</strong><br><br>İmza: .......................`
+    : (gosterMudur ? 'Müdür: ...............................<br><br>İmza: .......................' : '');
 
   const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>${baslik}</title>
+<title>${escapeHtml(baslik)}</title>
 <style>
   @page { size: A4 ${yon}; margin: 1.2cm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; }
   .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-  .header .okul { font-size: 14px; font-weight: 700; letter-spacing: .5px; }
-  .header .baslik { font-size: 13px; margin-top: 4px; }
-  .header .meta { font-size: 10px; color: #555; margin-top: 3px; }
+  .header .okul { font-size: 15px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+  .header .baslik { font-size: 13px; font-weight: 600; margin-top: 5px; }
+  .header .alt-baslik { font-size: 11px; margin-top: 3px; color: #444; }
+  .header .meta { font-size: 10px; color: #666; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
   th { background: #333; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; }
   td { padding: 4px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
   tr:nth-child(even) td { background: #f7f7f7; }
   tr:last-child td { border-bottom: 2px solid #333; }
-  .footer { margin-top: 18px; display: flex; justify-content: space-between; font-size: 10px; color: #555; }
+  .footer { margin-top: 22px; display: flex; justify-content: space-between; font-size: 10px; color: #444; line-height: 1.8; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>
   <div class="header">
-    <div class="okul">${escapeHtml(okulAdi)}</div>
-    <div class="baslik">${escapeHtml(baslik)}</div>
-    <div class="meta">Toplam ${ogrenciler.length} öğrenci &nbsp;·&nbsp; ${tarih}</div>
+    ${gosterOkul && okulAdi ? `<div class="okul">${escapeHtml(okulAdi)}</div>` : ''}
+    ${gosterBaslik ? `<div class="baslik">${escapeHtml(baslik)}</div>` : ''}
+    ${gosterAlt && altBaslik ? `<div class="alt-baslik">${escapeHtml(altBaslik)}</div>` : ''}
+    <div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>
   </div>
   <table>
     <thead><tr>${thHTML}</tr></thead>
     <tbody>${trHTML}</tbody>
   </table>
-  <div class="footer">
-    <span>Sınıf Öğretmeni: .......................................</span>
-    <span>Onay: .......................................</span>
-  </div>
+  ${(imzaSol || imzaSag) ? `<div class="footer"><div>${imzaSol}</div><div style="text-align:right;">${imzaSag}</div></div>` : ''}
 </body>
 </html>`;
 
