@@ -64,8 +64,8 @@
   --bg-app-soft: var(--nm-bg-dark);
   --bg-card:     var(--nm-bg-light);
   --bg-topbar:   var(--nm-bg);
-  --bg-sidebar:  #0F2A2A;
-  --bg-sidebar-2:#071A1A;
+  --bg-sidebar:  #1B3A3A;
+  --bg-sidebar-2:#122828;
   --bg-secondary:#D8E2E6;
 
   /* Metin */
@@ -121,8 +121,8 @@
   --bg-app-soft: var(--nm-bg-dark);
   --bg-card:     var(--nm-bg-light);
   --bg-topbar:   var(--nm-bg);
-  --bg-sidebar:  #080F10;
-  --bg-sidebar-2:#040808;
+  --bg-sidebar:  #0E1A1C;
+  --bg-sidebar-2:#0A1214;
   --bg-secondary:#141E22;
 
   --ink:              #D0ECEC;
@@ -410,18 +410,18 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .nav{ display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto; overflow-x:hidden; }
 .nav-separator{ font-family: var(--font-mono); font-size:9.5px; letter-spacing:.08em; color: rgba(10,200,200,0.45); padding:14px 12px 4px; white-space:nowrap; text-transform:uppercase; }
 .nav-tab{
-  display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:none; color: rgba(184,238,238,0.60);
+  display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:none; color: rgba(210,248,248,0.82);
   font-size:13.5px; font-weight:600; padding:9px 11px; border-radius: var(--radius-sm); cursor:pointer; border-left: 3px solid transparent;
   transition: background .12s ease, color .12s ease; white-space:nowrap; overflow:hidden;
 }
 .nav-tab:hover{ background: rgba(10,200,200,0.10); color: #B0EEEE; }
 .nav-tab.active{
-  background: rgba(10,110,110,0.22);
-  color: #B0EEEE;
+  background: rgba(10,130,130,0.30);
+  color: #E0FAFA;
   border-left-color: #3DDEDE;
 }
 [data-theme="dark"] .nav-tab.active{ color: #5EEBEB; background: rgba(10,110,110,0.30); }
-.nav-tab .nt-ico{ font-family: var(--font-mono); font-size:11px; width:20px; height:20px; border-radius:6px; background: rgba(10,200,200,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.nav-tab .nt-ico{ font-size:15px; width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .nav-tab .nt-label{ overflow:hidden; text-overflow:ellipsis; }
 
 .nav-cikis-btn{
@@ -440,7 +440,7 @@ body.nav-collapsed .nav-cikis-btn .nt-label{ display:none; }
   transition: background .12s ease, color .12s ease; white-space:nowrap; width:100%; box-sizing:border-box;
 }
 .nav-group-toggle:hover{ background: rgba(10,200,200,0.10); color: #B0EEEE; }
-.nav-group-toggle .nt-ico{ font-family: var(--font-mono); font-size:11px; width:20px; height:20px; border-radius:6px; background: rgba(237,233,218,0.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.nav-group-toggle .nt-ico{ font-size:15px; width:26px; height:26px; border-radius:7px; background: rgba(237,233,218,0.10); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .nav-group-toggle .nt-label{ overflow:hidden; text-overflow:ellipsis; flex:1; }
 .nav-group-toggle .toggle-arrow{ font-size:8px; flex-shrink:0; transition: transform .2s ease; }
 .nav-group-check:checked + .nav-group-toggle .toggle-arrow{ transform: rotate(90deg); }
@@ -457,7 +457,7 @@ body.nav-collapsed .nav-cikis-btn .nt-label{ display:none; }
   padding: 6px 8px;
   border-left: none;
 }
-.nav-group .nav-sub-tab .nt-ico{ display:flex; font-size:13px; width:18px; height:18px; background: rgba(210,248,245,0.10); border-radius:5px; align-items:center; justify-content:center; }
+.nav-group .nav-sub-tab .nt-ico{ display:flex; font-size:14px; width:22px; height:22px; border-radius:6px; align-items:center; justify-content:center; }
 
 .nav-foot{ padding-top: 14px; border-top: 1px solid rgba(237,233,218,0.10); margin-top:10px; }
 .nav-foot .btn-ghost{ color: var(--ink-on-dark-muted); border-color: rgba(10,200,200,0.15); }
@@ -2107,3 +2107,30 @@ body.tatil-aktif .tatil-gizle {
 .ajanda-aksiyonlar input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
 [data-theme="dark"] .ajanda-satir { background: #2a2a2a; }
 [data-theme="dark"] .ajanda-baslik { color: #eee; }
+
+/* ── Renkli nav ikonları ── */
+.ni-panel    { background: rgba(99,179,237,0.18);  }
+.ni-ogretmen { background: rgba(104,211,145,0.18); }
+.ni-sinif    { background: rgba(246,173,85,0.18);  }
+.ni-ders     { background: rgba(159,122,234,0.18); }
+.ni-nobet    { background: rgba(252,129,74,0.18);  }
+.ni-takvim   { background: rgba(237,100,166,0.18); }
+.ni-evrak    { background: rgba(99,179,237,0.18);  }
+.ni-notlar   { background: rgba(246,173,85,0.18);  }
+.ni-tasima   { background: rgba(72,187,120,0.18);  }
+.ni-sinav    { background: rgba(252,129,74,0.18);  }
+.ni-dokumanlar{ background: rgba(246,173,85,0.18); }
+.ni-diger    { background: rgba(160,174,192,0.15); }
+.ni-okul     { background: rgba(99,179,237,0.18);  }
+.ni-veri     { background: rgba(104,211,145,0.18); }
+.ni-ayarlar  { background: rgba(160,174,192,0.18); }
+/* alt sekmeler */
+.ni-kulupler { background: rgba(237,100,166,0.18); }
+.ni-bgw      { background: rgba(252,129,74,0.18);  }
+.ni-zumre    { background: rgba(104,211,145,0.18); }
+.ni-sok      { background: rgba(159,122,234,0.18); }
+.ni-bep      { background: rgba(99,179,237,0.18);  }
+.ni-rehber   { background: rgba(72,187,120,0.18);  }
+.ni-maarif   { background: rgba(246,173,85,0.18);  }
+.ni-digrevr  { background: rgba(160,174,192,0.18); }
+.ni-aylik    { background: rgba(252,129,74,0.18);  }
