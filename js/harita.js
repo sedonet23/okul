@@ -570,3 +570,38 @@ function haritaFavoriOdakla(id) {
   haritaOrnek.setView([f.lat, f.lng], 16);
   haritaFavoriMarkerlar[id]?.openPopup();
 }
+
+/* ================================================================
+   TAM EKRAN
+   ================================================================ */
+let _haritaTamEkranAktif = false;
+
+function haritaTamEkran() {
+  const konteyner = document.getElementById('haritaKonteyner');
+  const btn       = document.getElementById('haritaTamEkranBtn');
+  if (!konteyner) return;
+
+  if (!_haritaTamEkranAktif) {
+    // Tam ekrana gir
+    konteyner.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:9998;border-radius:0;border:none;';
+    btn.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9999;background:#fff;border:2px solid rgba(0,0,0,0.2);border-radius:6px;padding:5px 9px;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15);line-height:1;';
+    btn.textContent = '✕';
+    btn.title = 'Tam Ekrandan Çık';
+    document.body.style.overflow = 'hidden';
+    _haritaTamEkranAktif = true;
+  } else {
+    // Tam ekrandan çık
+    konteyner.style.cssText = 'width:100%;height:60vh;min-height:340px;border-radius:12px;overflow:hidden;border:1px solid var(--border);';
+    btn.style.cssText = 'position:absolute;bottom:10px;right:10px;z-index:1000;background:#fff;border:2px solid rgba(0,0,0,0.2);border-radius:6px;padding:5px 9px;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15);line-height:1;';
+    btn.textContent = '⛶';
+    btn.title = 'Tam Ekran';
+    document.body.style.overflow = '';
+    _haritaTamEkranAktif = false;
+  }
+  setTimeout(() => haritaOrnek && haritaOrnek.invalidateSize(), 50);
+}
+
+// ESC ile tam ekrandan çık
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && _haritaTamEkranAktif) haritaTamEkran();
+});
