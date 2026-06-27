@@ -203,6 +203,7 @@ function sinifDetayOgrenciRender(s){
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulOgrInput_${s.id}').click()">📋 e-Okul Aktar</button>
           <input type="file" id="eOkulOgrInput_${s.id}" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0], '${s.id}'); this.value='';">
           <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
+          <button class="btn btn-ghost btn-sm" onclick="sinifListeOlusturModalAc('${s.id}')">📋 Liste Oluştur</button>
         </span>
       </h4>
       ${html}
@@ -358,4 +359,162 @@ function sinifAdlari(){
   const tanimli = siniflar.map(s=>s.ad);
   const programdaGecen = dersProgrami.map(d=>d.sinif);
   return [...new Set([...tanimli, ...programdaGecen])].sort((a,b)=>a.localeCompare(b,'tr'));
+}
+
+/* ================================================================
+   SINIF LİSTE OLUŞTUR
+   ================================================================ */
+
+const LISTE_HAZIR_SUTUNLAR = [
+  { key: 'siraNo',     label: 'Sıra No',      fn: (v, i) => String(i + 1) },
+  { key: 'ogrenciAdi', label: 'Ad Soyad',     fn: v => v.ogrenciAdi || '' },
+  { key: 'ogrenciNo',  label: 'Öğrenci No',   fn: v => v.ogrenciNo  || '' },
+  { key: 'cinsiyet',   label: 'Cinsiyet',      fn: v => v.cinsiyet   || '' },
+  { key: 'veliAdi',    label: 'Veli Adı',      fn: v => v.veliAdi    || '' },
+  { key: 'yakinlik',   label: 'Yakınlık',      fn: v => v.yakinlik1 || v.yakinlik || '' },
+  { key: 'telefon1',   label: 'Telefon 1',     fn: v => v.telefon1 || v.telefon || '' },
+  { key: 'telefon2',   label: 'Telefon 2',     fn: v => v.telefon2   || '' },
+  { key: 'adres',      label: 'Adres',         fn: v => v.adres      || '' },
+  { key: 'servisAdi',  label: 'Servis',        fn: v => v.servisAdi  || '' },
+  { key: 'notlar',     label: 'Notlar',        fn: v => v.notlar     || '' },
+];
+
+/* ---------- modal ---------- */
+function sinifListeOlusturModalAc(sinifId) {
+  const s = siniflar.find(x => x.id === sinifId);
+  if (!s) return;
+
+  const checkboxler = LISTE_HAZIR_SUTUNLAR.map(col => `
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">
+      <input type="checkbox" value="${col.key}" checked style="cursor:pointer;width:15px;height:15px;">
+      <span>${escapeHtml(col.label)}</span>
+    </label>`).join('');
+
+  const body = `
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Sayfa Yönü</label>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="radio" name="listeYon" value="portrait" checked> Dikey (A4)
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+          <input type="radio" name="listeYon" value="landscape"> Yatay (A4)
+        </label>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Sütunları Seç</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;margin-top:8px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+        ${checkboxler}
+      </div>
+    </div>
+    <div style="margin-bottom:6px;">
+      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Özel Sütun Ekle (Boş)</label>
+      <div id="ozelSutunListesi" style="margin-top:6px;display:flex;flex-direction:column;gap:6px;"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="listeOzelSutunEkle()">+ Özel Sütun Ekle</button>
+    </div>
+    <div style="margin-bottom:6px;">
+      <label style="font-size:12px;font-weight:600;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;">Liste Başlığı</label>
+      <input id="listeBaslikInput" value="${escapeHtml(s.ad)} Sınıfı Öğrenci Listesi" style="width:100%;margin-top:4px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+    </div>
+  `;
+
+  modalAc(`📋 Liste Oluştur — ${escapeHtml(s.ad)}`, body, () => {
+    sinifListesiYazdir(sinifId);
+  }, null);
+  const kb = document.getElementById('modalKaydetBtn');
+  if (kb) kb.textContent = '🖨️ Listeyi Yazdır';
+}
+
+function listeOzelSutunEkle() {
+  const kap = document.getElementById('ozelSutunListesi');
+  if (!kap) return;
+  const sira = kap.children.length + 1;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  div.innerHTML = `
+    <input class="ozel-sutun-input" type="text" placeholder="Sütun adı (örn: İmza)" value=""
+      style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+    <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="this.parentElement.remove()">✕</button>
+  `;
+  kap.appendChild(div);
+}
+
+/* ---------- yazdırma ---------- */
+function sinifListesiYazdir(sinifId) {
+  const s = siniflar.find(x => x.id === sinifId);
+  if (!s) return;
+
+  // seçili hazır sütunlar
+  const seciliKeyler = [...document.querySelectorAll('#modalBody input[type=checkbox]:checked')].map(el => el.value);
+  const seciliSutunlar = LISTE_HAZIR_SUTUNLAR.filter(c => seciliKeyler.includes(c.key));
+
+  // özel sütunlar
+  const ozelSutunlar = [...document.querySelectorAll('.ozel-sutun-input')]
+    .map(el => el.value.trim()).filter(Boolean)
+    .map(label => ({ key: '_ozel_' + label, label, fn: () => '' }));
+
+  const tumSutunlar = [...seciliSutunlar, ...ozelSutunlar];
+  if (!tumSutunlar.length) { toast('En az bir sütun seçin.'); return; }
+
+  const yon = document.querySelector('input[name="listeYon"]:checked')?.value || 'portrait';
+  const baslik = document.getElementById('listeBaslikInput')?.value.trim()
+    || `${s.ad} Sınıfı Öğrenci Listesi`;
+  const okulAdi = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : 'Okul Yönetim Paneli';
+
+  const ogrenciler = veliler
+    .filter(v => v.sinifId === s.id)
+    .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+
+  const thHTML = tumSutunlar.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
+  const trHTML = ogrenciler.map((v, i) =>
+    `<tr>${tumSutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
+  ).join('');
+
+  const tarih = new Date().toLocaleDateString('tr-TR');
+
+  const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${baslik}</title>
+<style>
+  @page { size: A4 ${yon}; margin: 1.2cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; }
+  .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+  .header .okul { font-size: 14px; font-weight: 700; letter-spacing: .5px; }
+  .header .baslik { font-size: 13px; margin-top: 4px; }
+  .header .meta { font-size: 10px; color: #555; margin-top: 3px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { background: #333; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  td { padding: 4px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+  tr:last-child td { border-bottom: 2px solid #333; }
+  .footer { margin-top: 18px; display: flex; justify-content: space-between; font-size: 10px; color: #555; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="okul">${escapeHtml(okulAdi)}</div>
+    <div class="baslik">${escapeHtml(baslik)}</div>
+    <div class="meta">Toplam ${ogrenciler.length} öğrenci &nbsp;·&nbsp; ${tarih}</div>
+  </div>
+  <table>
+    <thead><tr>${thHTML}</tr></thead>
+    <tbody>${trHTML}</tbody>
+  </table>
+  <div class="footer">
+    <span>Sınıf Öğretmeni: .......................................</span>
+    <span>Onay: .......................................</span>
+  </div>
+</body>
+</html>`;
+
+  modalKapat();
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
 }
