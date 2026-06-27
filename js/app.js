@@ -779,6 +779,14 @@ function sekmeAc(tab){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
 }
+function haritaSekmesiAc(){
+  sekmeAc('harita');
+  // Harita başlatmayı bir sonraki tick'e bırak (DOM görünür olduktan sonra)
+  setTimeout(()=>{
+    if(typeof haritaBaslat === 'function') haritaBaslat();
+    if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
+  }, 50);
+}
 function uygulamaBaslat(){
   document.getElementById('bugunMetni').textContent = bugunMetni();
   baglantilariKur();

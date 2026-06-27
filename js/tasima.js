@@ -79,6 +79,11 @@ function servisDetayAc(id){
         ${s.plaka ? `<div class="detay-row">🚘 Plaka: <strong>${escapeHtml(s.plaka)}</strong></div>` : ''}
         <div class="detay-row">🗺️ Güzergah: ${escapeHtml(s.guzergah||'—')}</div>
         <div class="detay-row">Durum: <span class="badge badge-${servisDurumRengi(s.durum)}">${escapeHtml(s.durum||'Aktif')}</span></div>
+        ${s.guzergahMesafe ? `<div class="detay-row">📏 Güzergah Mesafesi: <strong>${s.guzergahMesafe} km</strong>
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="detayPanelKapat(); haritaSekmesiAc(); setTimeout(()=>haritaGuzergahiYukle('${s.id}'),200)">🗺️ Haritada Gör</button>
+        </div>` : `<div class="detay-row" style="color:var(--ink-muted);font-size:12px;">📏 Güzergah mesafesi henüz ölçülmedi.
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="detayPanelKapat(); haritaSekmesiAc(); setTimeout(()=>{ document.getElementById('haritaServisSec').value='${s.id}'; haritaServisSecildiRender('${s.id}'); },200)">🗺️ Ölç</button>
+        </div>`}
         ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
       </div>
       <div class="detay-card">
@@ -262,6 +267,7 @@ function tasimaBaglantilariKur(){
     servisler = s.docs.map(d=>({id:d.id,...d.data()}));
     renderServisler();
     renderVeriSekmesi();
+    if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
   }, hataGoster);
 }
 
