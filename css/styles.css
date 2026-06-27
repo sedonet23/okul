@@ -1915,3 +1915,36 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   line-height: 1;
 }
 .maarif-cb-label:hover { box-shadow: var(--nm-out); }
+
+/* ================================================================
+   PERİYODİK İŞLER — TAKVİM ENTEGRASYONU
+   ================================================================ */
+.ajanda-periyodik {
+  border-left: 3px solid var(--brand-mid);
+  background: var(--brand-light);
+}
+.ajanda-periyodik-acil {
+  border-left-color: var(--red-danger);
+  background: var(--red-danger-wash);
+  animation: periyodik-blink 1.4s ease-in-out infinite;
+}
+@keyframes periyodik-blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+.periyodik-nokta { background: var(--brand-mid); }
+.periyodik-pulse {
+  color: var(--red-danger);
+  animation: periyodik-blink 1s ease-in-out infinite;
+  font-size: 11px;
+}
+.periyodik-uyari-banner {
+  background: var(--red-danger-wash);
+  border-left: 4px solid var(--red-danger);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--red-danger);
+  animation: periyodik-blink 1.6s ease-in-out infinite;
+}
