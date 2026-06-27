@@ -142,7 +142,6 @@ function sinifDetayBilgiRender(s){
       <h4 class="detay-card-header">
         <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${toplamOgrenci})</span>
         <span class="detay-card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="sinifListesiRaporu('${s.id}')">📋 Rapor Al</button>
           <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulBilgiInput_${s.id}').click()">📋 e-Okul Aktar</button>
           <input type="file" id="eOkulBilgiInput_${s.id}" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0], '${s.id}'); this.value='';">
@@ -200,7 +199,6 @@ function sinifDetayOgrenciRender(s){
       <h4 class="detay-card-header">
         <span class="detay-card-title">🧑‍🎓 Öğrenci Listesi (${ogrenciler.length})</span>
         <span class="detay-card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="sinifListesiRaporu('${s.id}')">📋 Rapor Al</button>
           <button class="btn btn-ghost btn-sm" onclick="sinifOgrenciExcelModalAc('${s.id}')">📥 Excel'den Ekle</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulOgrInput_${s.id}').click()">📋 e-Okul Aktar</button>
           <input type="file" id="eOkulOgrInput_${s.id}" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0], '${s.id}'); this.value='';">
