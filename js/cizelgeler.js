@@ -108,6 +108,9 @@ function renderCizelge(tip){
   if(tip === 'sosyalKulupler'){
     _renderSosyalKulupler(el, veri); return;
   }
+  if(tip === 'maarifRapor'){
+    _renderMaarifMatris(el, veri); return;
+  }
   if(tip === 'bepPlani' || tip === 'rehberlik'){
     _renderBelgeTablosu(el, tip, veri, true); return;
   }
@@ -133,13 +136,85 @@ function _renderSosyalKulupler(el, veri){
     </div>`).join('')}</div>`;
 }
 
+/* ---- Maarif Model: DERS × AY matris görünümü (image 4 tarzı) ---- */
+function _renderMaarifMatris(el, veri){
+  if(!veri.length){
+    el.innerHTML='<p class="empty-state">Henüz kayıt eklenmedi.</p>'; return;
+  }
+
+  // Satır: her kayıt (ders + sınıf kombinasyonu)
+  // Sütun: Eylül–Haziran (9–6), her ay 1 checkbox (kontroller[0..9])
+  const RAPOR_AYLARI = [
+    {ad:'Eyl', no:9}, {ad:'Eki', no:10}, {ad:'Kas', no:11},
+    {ad:'Ara', no:12}, {ad:'Oca', no:1}, {ad:'Şub', no:2},
+    {ad:'Mar', no:3}, {ad:'Nis', no:4}, {ad:'May', no:5}, {ad:'Haz', no:6}
+  ];
+
+  // Öğretmene göre grupla
+  const gruplar = {};
+  veri.forEach(k=>{
+    const ogId = k.ogretmenId||'__yok__';
+    if(!gruplar[ogId]) gruplar[ogId]=[];
+    gruplar[ogId].push(k);
+  });
+
+  let html = '';
+  Object.entries(gruplar).forEach(([ogId, kayitlar])=>{
+    const ogAdi = ogId==='__yok__' ? 'Öğretmen Atanmamış' : _ogretmenAdi(ogId);
+    html += `<div class="maarif-grup" style="margin-bottom:24px;">
+      <div class="belge-ogretmen-baslik" style="border-radius:var(--radius-md) var(--radius-md) 0 0;">
+        <span class="belge-ogretmen-adi">${escapeHtml(ogAdi)}</span>
+      </div>
+      <div class="maarif-tablo-wrap">
+        <table class="maarif-tablo">
+          <thead><tr>
+            <th class="maarif-th-ders">DERS / SINIF</th>
+            ${RAPOR_AYLARI.map(a=>`<th>${a.ad}</th>`).join('')}
+            <th></th>
+          </tr></thead>
+          <tbody>`;
+
+    kayitlar
+      .sort((a,b)=>(a.rapor||a.sinif||'').localeCompare(b.rapor||b.sinif||'','tr'))
+      .forEach(k=>{
+        const kontroller = k.kontroller||[];
+        // kontroller dizisi: ay indeksine göre (0=Eyl, 1=Eki,... 9=Haz)
+        // kayıttaki 'ay' alanı 1-12 arası → matris sütununa map
+        // Ama matris modunda: her kayıt = 1 satır (rapor+sınıf), her ay ayrı checkbox
+        // Ay bazlı modda: kontroller[ayIndex] = tamamlandı/değil
+        html += `<tr>
+          <td class="maarif-td-ders">
+            <div class="maarif-ders-adi">${escapeHtml(k.rapor||'—')}</div>
+            ${k.sinif?`<div class="maarif-sinif">${escapeHtml(k.sinif)}</div>`:''}
+          </td>
+          ${RAPOR_AYLARI.map((a,i)=>{
+            const tamamlandi = !!kontroller[i];
+            return `<td class="maarif-td-cb">
+              <label class="maarif-cb-label ${tamamlandi?'tamam':''}">
+                <input type="checkbox" ${tamamlandi?'checked':''}
+                  onchange="belgeKontrolToggle('maarifRapor','${k.id}',${i},this.checked)">
+                ${tamamlandi?'<span class="maarif-check">✓</span>':'<span class="maarif-bos"></span>'}
+              </label>
+            </td>`;
+          }).join('')}
+          <td><button class="btn btn-ghost btn-sm" onclick="cizelgeSatirModalAc('maarifRapor','${k.id}')">✎</button></td>
+        </tr>`;
+      });
+
+    html += `</tbody></table></div></div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+/* Maarif matris için kontrol toggle — checkbox label'ı da anında güncelle */
 /* ---- Genel belge tablosu (maarifRapor, zumre, sok, bepPlani, rehberlik) ---- */
 const CIZELGE_META = {
   maarifRapor: {
     baslik: 'Maarif Model Aylık Raporlar',
     alanlar: [
       { key:'ogretmenId',  etiket:'Öğretmen', tip:'ogretmen' },
-      { key:'sinif',       etiket:'Sınıf',    tip:'metin' },
+      { key:'sinif', etiket:'Sınıf', tip:'sinif' },
       { key:'ay',          etiket:'Ay',        tip:'ay' },
       { key:'rapor',       etiket:'Rapor Türü',tip:'metin' },
       { key:'aciklama',    etiket:'Açıklama', tip:'textarea', opsiyonel:true }
@@ -185,7 +260,7 @@ const CIZELGE_META = {
     baslik: 'Yıllık / BEP Planları',
     alanlar: [
       { key:'ogretmenId', etiket:'Öğretmen',  tip:'ogretmen' },
-      { key:'sinif',      etiket:'Sınıf',     tip:'metin' },
+      { key:'sinif', etiket:'Sınıf', tip:'sinif' },
       { key:'tur',        etiket:'Plan Türü', tip:'select', secenekler:['Yıllık Plan','BEP Planı','Ünite Planı'] },
       { key:'donem',      etiket:'Dönem',     tip:'donem' },
       { key:'aciklama',   etiket:'Notlar',    tip:'textarea', opsiyonel:true }
@@ -201,7 +276,7 @@ const CIZELGE_META = {
     baslik: 'Rehberlik',
     alanlar: [
       { key:'ogretmenId', etiket:'Öğretmen',   tip:'ogretmen' },
-      { key:'sinif',      etiket:'Sınıf',      tip:'metin' },
+      { key:'sinif', etiket:'Sınıf', tip:'sinif' },
       { key:'ay',         etiket:'Ay',          tip:'ay' },
       { key:'konu',       etiket:'Konu/Etkinlik',tip:'metin' },
       { key:'aciklama',   etiket:'Notlar',      tip:'textarea', opsiyonel:true }
@@ -298,19 +373,39 @@ function _belgeKaydHtml(tip, kayit, meta){
 function belgeKontrolToggle(tip, id, index, deger){
   const kayit = (cizelgeVerileri[tip]||[]).find(x=>x.id===id);
   if(!kayit) return;
-  const kontroller = [...(kayit.kontroller||Array(CIZELGE_META[tip].kontroller.length).fill(false))];
-  while(kontroller.length < CIZELGE_META[tip].kontroller.length) kontroller.push(false);
+
+  // maarifRapor matris: 10 ay sütunu
+  const uzunluk = tip==='maarifRapor'
+    ? 10
+    : (CIZELGE_META[tip]?.kontroller?.length || 4);
+
+  const kontroller = [...(kayit.kontroller||Array(uzunluk).fill(false))];
+  while(kontroller.length < uzunluk) kontroller.push(false);
   kontroller[index] = deger;
+
   db.collection(_cCol(tip)).doc(id).update({ kontroller })
     .then(()=>{
-      // Label görünümünü hemen güncelle
+      if(tip === 'maarifRapor'){
+        // Matris label'ını güncelle
+        const labels = document.querySelectorAll(`tr td .maarif-cb-label`);
+        // Satır içindeki ilgili label'ı bul — checkbox'ın input'undan parent al
+        const allCb = document.querySelectorAll(`[onchange*="'maarifRapor','${id}',${index},"]`);
+        allCb.forEach(cb=>{
+          const lbl = cb.closest('label');
+          if(!lbl) return;
+          lbl.classList.toggle('tamam', deger);
+          lbl.querySelector('.maarif-check, .maarif-bos').outerHTML =
+            deger ? '<span class="maarif-check">✓</span>' : '<span class="maarif-bos"></span>';
+        });
+        return;
+      }
+      // Diğer tipler: label sınıfı güncelle
       const item = document.querySelectorAll(`#belge-${id} .belge-kontrol-item`)[index];
       if(item) item.classList.toggle('tamamlandi', deger);
-      // Mini sayacı güncelle
       const sayac = document.querySelector(`#belge-${id} .belge-mini-sayac`);
       if(sayac){
         const yeni = kontroller.filter(Boolean).length;
-        const top  = CIZELGE_META[tip].kontroller.length;
+        const top  = uzunluk;
         sayac.textContent = `${yeni}/${top}`;
         sayac.className = `belge-mini-sayac ${yeni===top?'tamam':yeni>0?'kismi':''}`;
       }
@@ -348,6 +443,13 @@ function cizelgeSatirModalAc(tip, id){
       bodyHtml += `<select id="f_${alan.key}">
         <option value="">— Seçiniz —</option>
         ${AYLAR_TR.map((ay,i)=>`<option value="${i+1}" ${String(i+1)===String(val)?'selected':''}>${ay}</option>`).join('')}
+      </select>`;
+    } else if(alan.tip==='sinif'){
+      bodyHtml += `<select id="f_${alan.key}">
+        <option value="">— Sınıf Seçiniz —</option>
+        ${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[])
+          .map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===val?'selected':''}>${escapeHtml(s.ad)}</option>`)
+          .join('')}
       </select>`;
     } else if(alan.tip==='donem'){
       bodyHtml += `<select id="f_${alan.key}">
