@@ -64,29 +64,30 @@
       <button class="nav-tab" data-tab="siniflar"><span class="nt-ico">Sn</span><span class="nt-label">Sınıflar</span></button>
       <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico">Dr</span><span class="nt-label">Ders Programı</span></button>
       <button class="nav-tab" data-tab="nobet"><span class="nt-ico">Nb</span><span class="nt-label">Nöbet Programı</span></button>
-      <button class="nav-tab" data-tab="takvim"><span class="nt-ico">📅</span><span class="nt-label">Takvim</span></button>
+      <button class="nav-tab" data-tab="hatirlaticilar"><span class="nt-ico">!</span><span class="nt-label">Hatırlatıcılar</span></button>
+      <button class="nav-tab" data-tab="gorevler"><span class="nt-ico">✓</span><span class="nt-label">Görevler</span></button>
       <button class="nav-tab" data-tab="evrak"><span class="nt-ico">Ev</span><span class="nt-label">Evrak Takibi</span></button>
       <button class="nav-tab" data-tab="notlar"><span class="nt-ico">●</span><span class="nt-label">Notlar</span></button>
       <button class="nav-tab" data-tab="tasima"><span class="nt-ico">🚌</span><span class="nt-label">Taşıma</span></button>
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico">📝</span><span class="nt-label">Sınav İşlemleri</span></button>
       
-      <div class="nav-separator">— Çizelgeler —</div>
-      
+      <div class="nav-separator">— Çizelgeler & Belgeler —</div>
+
       <!-- Açılır menü: Çizelgeler (saf CSS ile çalışır, JS'e bağımlı değildir) -->
       <input type="checkbox" id="cizelgelerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="cizelgelerCheck">
         <span class="nt-ico">📋</span><span class="nt-label">Çizelgeler</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="cizelgelerMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><span class="nt-label">Sosyal Kulüpler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><span class="nt-label">Belirli Gün Ve Haftalar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="zumre"><span class="nt-label">Zümre</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="sok"><span class="nt-label">ŞÖK</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><span class="nt-label">Yıllık/BEP Planı</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><span class="nt-label">Rehberlik</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><span class="nt-label">Maarif Model Raporlar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><span class="nt-label">Diğer Evraklar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><span class="nt-label">Aylık İşler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><span class="nt-ico">🎭</span><span class="nt-label">Sosyal Kulüpler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><span class="nt-ico">📅</span><span class="nt-label">Belirli Gün &amp; Haftalar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="zumre"><span class="nt-ico">👥</span><span class="nt-label">Zümre</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sok"><span class="nt-ico">📐</span><span class="nt-label">ŞÖK</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><span class="nt-ico">📖</span><span class="nt-label">Yıllık / BEP Planı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><span class="nt-ico">🧭</span><span class="nt-label">Rehberlik</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><span class="nt-ico">📊</span><span class="nt-label">Maarif Model Raporlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><span class="nt-ico">🗂️</span><span class="nt-label">Diğer Evraklar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><span class="nt-ico">🔄</span><span class="nt-label">Aylık İşler</span></button>
       </div>
       
       <button class="nav-tab" data-tab="okulBilgileri"><span class="nt-ico">🏫</span><span class="nt-label">Okul Bilgileri</span></button>
@@ -133,7 +134,7 @@
           <div class="qa-item" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-evrak">📄</div><div class="qa-label">Evrak Ekle</div></div>
           <div class="qa-item" onclick="sekmeAc('nobet');"><div class="qa-icon qa-nobet">🛡️</div><div class="qa-label">Nöbet</div></div>
           <div class="qa-item" onclick="notlarModalAc();"><div class="qa-icon qa-not">📝</div><div class="qa-label">Not Ekle</div></div>
-          <div class="qa-item" onclick="sekmeAc('takvim'); takvimYeniEkleAc('gorev');"><div class="qa-icon qa-gorev">✅</div><div class="qa-label">Görev Ekle</div></div>
+          <div class="qa-item" onclick="sekmeAc('gorevler'); gorevModalAc();"><div class="qa-icon qa-gorev">✅</div><div class="qa-label">Görev Ekle</div></div>
         </div>
       </div>
 
@@ -143,20 +144,11 @@
       </div>
       <div class="dash-cols">
         <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3>👮 Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
-        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')"><h3>⏰ Yaklaşan Etkinlikler &amp; Görevler</h3><div id="dashHatirlaticilar"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('hatirlaticilar')"><h3>⏰ Yaklaşan Hatırlatıcılar</h3><div id="dashHatirlaticilar"></div></div>
       </div>
       <div class="dash-cols">
         <div class="card dash-card-clickable" onclick="sekmeAc('belirliGunler')"><h3>🎉 Yaklaşan Belirli Gün Ve Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
-        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')">
-          <h3>📅 Bu Ay</h3>
-          <div id="dashMiniTakvim"></div>
-        </div>
-      </div>
-      <div class="dash-cols">
-        <div class="card" onclick="sekmeAc('takvim')" style="cursor:pointer;">
-          <h3>🗓️ Yıllık Görünüm</h3>
-          <div id="dashYillikGorunum"></div>
-        </div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('gorevler')"><h3>📌 Görev Durumu</h3><div id="dashGorevler"></div></div>
       </div>
       <div class="dash-cols">
         <!-- 4. Not Alma (duyurular yerine) -->
@@ -261,29 +253,39 @@
       </div>
     </section>
 
-    <section id="tab-takvim" class="tab-panel">
+    <section id="tab-hatirlaticilar" class="tab-panel">
       <div class="page-header">
-        <div>
-          <div class="page-title">📅 Takvim</div>
-          <div class="page-sub" id="takvimAyBasligi"></div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(-1)">◀ Önceki</button>
-          <button class="btn btn-ghost btn-sm" onclick="takvimBugunGit()">Bugün</button>
-          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(1)">Sonraki ▶</button>
-          <button class="btn btn-amber" onclick="takvimYeniEkleAc()">+ Ekle</button>
-        </div>
+        <div><div class="page-title">Hatırlatıcılar</div><div class="page-sub">Vadesi gelenler için push bildirimi gönderilir (GitHub Actions ile)</div></div>
+        <button class="btn btn-amber" onclick="hatirlaticiModalAc()">+ Yeni Hatırlatıcı</button>
       </div>
-
-      <!-- Aylık grid -->
-      <div class="card takvim-kart">
-        <div class="takvim-grid" id="takvimGrid"></div>
+      <div class="card">
+        <div style="margin-bottom:14px;display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="hatirlaticiFiltreSec('tumu')">Tümü</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="bekleyen" onclick="hatirlaticiFiltreSec('bekleyen')">Bekleyen</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="tamamlanan" onclick="hatirlaticiFiltreSec('tamamlanan')">Tamamlanan</button>
+        </div>
+        <div id="hatirlaticiListesi"></div>
       </div>
+    </section>
 
-      <!-- Ajanda: yaklaşan 30 gün -->
-      <div class="card" style="margin-top:0;">
-        <h3>📋 Ajanda — Yaklaşan 30 Gün</h3>
-        <div id="takvimAjanda"></div>
+    <section id="tab-gorevler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Görevler</div><div class="page-sub">Kartları sürükleyip bırakarak durumunu değiştirin</div></div>
+        <button class="btn btn-amber" onclick="gorevModalAc()">+ Yeni Görev</button>
+      </div>
+      <div class="kanban">
+        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapilacak')">
+          <div class="kanban-col-header"><span>Yapılacak</span><span id="sayacYapilacak">0</span></div>
+          <div id="kolonYapilacak"></div>
+        </div>
+        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'yapiliyor')">
+          <div class="kanban-col-header"><span>Yapılıyor</span><span id="sayacYapiliyor">0</span></div>
+          <div id="kolonYapiliyor"></div>
+        </div>
+        <div class="kanban-col" ondragover="event.preventDefault()" ondrop="gorevBirak(event,'tamamlandi')">
+          <div class="kanban-col-header"><span>Tamamlandı</span><span id="sayacTamamlandi">0</span></div>
+          <div id="kolonTamamlandi"></div>
+        </div>
       </div>
     </section>
 
@@ -740,7 +742,6 @@
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
 <script src="js/notlar.js"></script>
-<script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
