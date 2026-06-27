@@ -199,17 +199,16 @@ function takvimAjandaRender(){
     }
   });
 
-  // Periyodik işler — başlangıç ve bitiş tarihleri + gecikmiş olanlar
+  // Periyodik işler — başlangıç, bitiş tarihleri + gecikmiş olanlar
   (typeof periyodikIsler !== 'undefined' ? periyodikIsler : []).forEach(p=>{
     if(p.tamamlandi) return;
     if(p.baslangic && p.baslangic >= bugunISO && p.baslangic <= bitisISO){
       satirlar.push({ iso: p.baslangic, tip: 'periyodik', obj: p, altTip: 'baslangic' });
     }
-    if(p.bitis && p.bitis >= bugunISO && p.bitis <= bitisISO){
-      // baslangic ile aynı tarihse tekrar ekleme
-      if(p.bitis !== p.baslangic) satirlar.push({ iso: p.bitis, tip: 'periyodik', obj: p, altTip: 'bitis' });
+    if(p.bitis && p.bitis >= bugunISO && p.bitis <= bitisISO && p.bitis !== p.baslangic){
+      satirlar.push({ iso: p.bitis, tip: 'periyodik', obj: p, altTip: 'bitis' });
     }
-    // Bitiş tarihi geçmişte ama tamamlanmamış — bugün göster
+    // Bitiş geçmişte ama tamamlanmamış → bugün göster
     if(p.bitis && p.bitis < bugunISO){
       satirlar.push({ iso: bugunISO, tip: 'periyodik', obj: p, altTip: 'gecmis' });
     }
@@ -265,8 +264,8 @@ function takvimAjandaRender(){
         </div>`;
       } else if(s.tip==='periyodik'){
         const p = s.obj;
-        const acil = p.bitis===bugunISO||p.bitis===yarinISO;
         const gecmis = s.altTip==='gecmis';
+        const acil = !gecmis && (p.bitis===bugunISO||p.bitis===yarinISO);
         const metaMetin = gecmis
           ? `⚠️ Gecikmiş — Teslim: ${_trFormatTarih(p.bitis)}`
           : s.altTip==='baslangic'
@@ -275,7 +274,7 @@ function takvimAjandaRender(){
         html += `<div class="ajanda-satir ajanda-periyodik${acil||gecmis?' ajanda-periyodik-acil':''}">
           <span class="ajanda-tip-ikon">🔄</span>
           <div class="ajanda-icerik">
-            <div class="ajanda-baslik">${escapeHtml(p.isAdi||'Periyodik İş')} ${acil||gecmis?'<span class="periyodik-pulse">●</span>':''}</div>
+            <div class="ajanda-baslik">${escapeHtml(p.isAdi||'Periyodik İş')}${acil||gecmis?' <span class="periyodik-pulse">●</span>':''}</div>
             <div class="ajanda-meta">${metaMetin}</div>
           </div>
           <button class="btn btn-ghost btn-sm" onclick="sekmeAc('periyodikIsler')">Git</button>
