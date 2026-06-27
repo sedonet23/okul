@@ -728,6 +728,17 @@
   </div>
 </div>
 
+<div id="dokumanViewer" style="display:none;position:fixed;inset:0;z-index:9999;background:#111;flex-direction:column;">
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a1a1a;flex-shrink:0;">
+    <button onclick="dokumanViewerKapat()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Kapat</button>
+    <span id="dokumanViewerBaslik" style="color:#fff;font-size:14px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <button id="dokumanViewerIndirBtn" onclick="dokumanViewerIndir()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;padding:6px 14px;border-radius:8px;font-size:14px;cursor:pointer;">⬇ İndir</button>
+  </div>
+  <div style="flex:1;overflow:hidden;position:relative;">
+    <embed id="dokumanViewerEmbed" src="" type="" style="width:100%;height:100%;border:none;">
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h3 id="modalTitle"></h3>
