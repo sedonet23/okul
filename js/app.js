@@ -736,7 +736,7 @@ function baglantilariKur(){
     db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); if(tip==='sosyalKulupler') renderSosyalKuluplerListesi(); }, hataGoster);
   });
   db.collection(COL.belirliGunler).onSnapshot(s=>{ belirliGunlerListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderBelirliGunler(); renderYaklasanEtkinlikler(); }, hataGoster);
-  db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); renderDigerEvrak(); }, hataGoster);
+  db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); if(typeof renderDigerEvrak==='function') renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
   if(typeof servisOturmaBaglantisiKur === "function") servisOturmaBaglantisiKur();

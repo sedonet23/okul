@@ -564,4 +564,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     });
   });
+
+  // Periyodik işler değişince takvimi güncelle
+  // (periyodik.js global periyodikIsler array'ini dolduruyor — değişimi izle)
+  let _periyodikSayac = 0;
+  setInterval(()=>{
+    const yeniSayac = (typeof periyodikIsler !== 'undefined') ? periyodikIsler.length : 0;
+    if(yeniSayac !== _periyodikSayac){
+      _periyodikSayac = yeniSayac;
+      takvimGridRender();
+      takvimAjandaRender();
+      renderDashMiniTakvim && renderDashMiniTakvim();
+      renderDashYillikGorunum && renderDashYillikGorunum();
+    }
+  }, 2000);
 });

@@ -244,9 +244,12 @@ function cizelgeSatirModalAc(tip,id){
    ================================================================ */
 function _bepModal(id){
   const kayit=id?(cizelgeVerileri.bepPlani||[]).find(x=>x.id===id):null;
-  const sinifSecimHtml = kayit
-    ? `<select id="f_sinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===(kayit.sinif||'')?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}</select>`
-    : `<div class="ogr-checkbox-liste" id="f_sinifler" style="max-height:150px;">${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<label class="ogr-cb-row"><input type="checkbox" value="${escapeHtml(s.ad)}"><span>${escapeHtml(s.ad)}</span></label>`).join('')}</div>`;
+  // Her iki modda da çoklu checkbox — düzenlemede mevcut sınıf işaretli gelir
+  const seciliSinifler = kayit ? (kayit.sinif ? [kayit.sinif] : []) : [];
+  const sinifSecimHtml = `<div class="ogr-checkbox-liste" id="f_sinifler" style="max-height:150px;">
+    ${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[])
+      .map(s=>`<label class="ogr-cb-row"><input type="checkbox" value="${escapeHtml(s.ad)}" ${seciliSinifler.includes(s.ad)?'checked':''}><span>${escapeHtml(s.ad)}</span></label>`).join('')}
+  </div>`;
   const body=`
     <div class="form-group"><label>Öğretmen</label>
       <select id="f_ogretmenId"><option value="">— Seçiniz —</option>${(typeof ogretmenler!=='undefined'?ogretmenler:[]).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(o=>`<option value="${o.id}" ${o.id===(kayit?kayit.ogretmenId:'')?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}</select>
@@ -254,7 +257,7 @@ function _bepModal(id){
     <div class="form-group"><label>Branş</label>
       <select id="f_brans"><option value="">— Seçiniz —</option>${(typeof bransListesi!=='undefined'?[...bransListesi].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(b=>`<option value="${escapeHtml(b.ad)}" ${b.ad===(kayit?kayit.brans||'':'')?'selected':''}>${escapeHtml(b.ad)}</option>`).join('')}</select>
     </div>
-    <div class="form-group"><label>${kayit?'Sınıf':'Sınıflar (her sınıf ayrı kayıt)'}</label>${sinifSecimHtml}</div>
+    <div class="form-group"><label>Sınıflar <span style="font-size:11px;color:var(--ink-muted);">(opsiyonel — her sınıf ayrı kayıt)</span></label>${sinifSecimHtml}</div>
     <div class="form-group"><label>Notlar</label><textarea id="f_aciklama" rows="2">${escapeHtml(kayit?kayit.aciklama||'':'')}</textarea></div>`;
   modalAc(kayit?'Yıllık / BEP Planı — Düzenle':'Yıllık / BEP Planı — Yeni Kayıt',body,()=>{
     const ogretmenId=document.getElementById('f_ogretmenId').value;
@@ -262,24 +265,26 @@ function _bepModal(id){
     const aciklama=document.getElementById('f_aciklama').value.trim();
     if(!ogretmenId){toast('Öğretmen seçiniz.');return;}
     if(!brans){toast('Branş seçiniz.');return;}
+    const seciliSinifler=_secilenIdler('f_sinifler');
     if(kayit){
-      const sinif=document.getElementById('f_sinif').value;
-      if(!sinif){toast('Sınıf seçiniz.');return;}
-      kaydet(COL.bepPlani,kayit.id,{ogretmenId,brans,sinif,aciklama,kontroller:kayit.kontroller||[false,false]});
+      // Düzenleme: sınıf değişmişse tek kayıt güncelle
+      const yeniSinif = seciliSinifler[0]||kayit.sinif||'';
+      kaydet(COL.bepPlani,kayit.id,{ogretmenId,brans,sinif:yeniSinif,aciklama,kontroller:kayit.kontroller||[false,false]});
     } else {
-      const seciliSinifler=_secilenIdler('f_sinifler');
-      if(!seciliSinifler.length){toast('En az bir sınıf seçiniz.');return;}
-      seciliSinifler.forEach(sinif=>{
-        db.collection(COL.bepPlani).add({ogretmenId,brans,sinif,aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
-      });
-      toast(`${seciliSinifler.length} sınıf için kayıt oluşturuldu.`);
+      if(!seciliSinifler.length){
+        // Sınıf seçilmemişse sınıfsız tek kayıt
+        db.collection(COL.bepPlani).add({ogretmenId,brans,sinif:'',aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
+        toast('Kayıt oluşturuldu.');
+      } else {
+        seciliSinifler.forEach(sinif=>{
+          db.collection(COL.bepPlani).add({ogretmenId,brans,sinif,aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
+        });
+        toast(`${seciliSinifler.length} sınıf için kayıt oluşturuldu.`);
+      }
     }
     modalKapat();
   },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(COL.bepPlani).doc(kayit.id).delete();modalKapat();}}:null);
 }
-/* ================================================================
-   MAARİF MODEL — Modal + Matris
-   ================================================================ */
 function _maarifModal(id){
   const kayit=id?(cizelgeVerileri.maarifRapor||[]).find(x=>x.id===id):null;
   const sinifSecimHtml=kayit
@@ -553,4 +558,70 @@ function raporCizelge(tip){
     <script>window.onload=function(){window.print();}<\/script>
   </body></html>`);
   pencere.document.close();
+}
+
+/* ================================================================
+   DİĞER EVRAKLAR — Modal + Liste
+   ================================================================ */
+let digerEvrakListesi = [];
+
+function digerEvrakModalAc(id){
+  const e = id ? digerEvrakListesi.find(x=>x.id===id) : null;
+  const EVRAK_TURLERI = ['Veli Toplantı Tutanağı','Zümre Tutanağı','Kurul Kararı','Dilekçe','Rapor','Diğer'];
+  const body = `
+    <div class="form-group"><label>Evrak Adı</label>
+      <input id="f_evrakAdi" value="${e?escapeHtml(e.evrakAdi):''}" placeholder="örn: Veli Toplantı Tutanağı - 1A">
+    </div>
+    <div class="form-group"><label>Tür</label>
+      <select id="f_tur">${EVRAK_TURLERI.map(t=>`<option ${t===(e?e.tur:'Veli Toplantı Tutanağı')?'selected':''}>${t}</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label>Sınıf (opsiyonel)</label>
+      <select id="f_sinif"><option value="">— Seçiniz —</option>
+        ${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[])
+          .map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===(e?e.sinif||'':'')?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label>Tarih</label>
+      <input type="date" id="f_tarih" value="${e?e.tarih:new Date().toISOString().slice(0,10)}">
+    </div>
+    <div class="form-group"><label>Açıklama</label>
+      <textarea id="f_aciklama" rows="2">${e?escapeHtml(e.aciklama||''):''}</textarea>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+      <label style="margin:0;">Teslim Edildi</label>
+      <input type="checkbox" id="f_teslim" style="width:auto;" ${e&&e.teslimEdildi?'checked':''}>
+    </div>`;
+  modalAc(e?'Evrak Düzenle':'Yeni Evrak', body, ()=>{
+    const evrakAdi = document.getElementById('f_evrakAdi').value.trim();
+    const tarih    = document.getElementById('f_tarih').value;
+    if(!evrakAdi){ toast('Evrak adı zorunludur.'); return; }
+    kaydet(COL.digerEvrak, e?e.id:null, {
+      evrakAdi,
+      tur:         document.getElementById('f_tur').value,
+      sinif:       document.getElementById('f_sinif').value,
+      tarih,
+      aciklama:    document.getElementById('f_aciklama').value.trim(),
+      teslimEdildi:document.getElementById('f_teslim').checked
+    });
+    modalKapat();
+  }, e?()=>{ if(confirm('Bu evrakı silmek istiyor musunuz?')){ db.collection(COL.digerEvrak).doc(e.id).delete(); modalKapat(); } }:null);
+}
+
+function renderDigerEvrak(){
+  const el = document.getElementById('digerEvrakTablo'); if(!el) return;
+  const liste = [...digerEvrakListesi].sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+  if(!liste.length){ el.innerHTML='<p class="empty-state">Henüz evrak eklenmedi.</p>'; return; }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;">${liste.map(e=>`
+    <div class="belge-kayit ${e.teslimEdildi?'belge-tamam':''}">
+      <div class="belge-kayit-baslik">
+        <div>
+          <div class="belge-kayit-ozet">${escapeHtml(e.evrakAdi||'—')}</div>
+          <div class="belge-kayit-not">${escapeHtml(e.tur||'')}${e.sinif?' · '+escapeHtml(e.sinif):''}${e.tarih?' · '+(e.tarih.split('-').reverse().join('.')):''}${e.aciklama?' · '+escapeHtml(e.aciklama):''}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+          ${e.teslimEdildi?'<span class="badge badge-sage">✓ Teslim</span>':'<span class="badge badge-amber">Bekliyor</span>'}
+          <button class="btn btn-ghost btn-sm" onclick="digerEvrakModalAc('${e.id}')">Düzenle</button>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
 }
