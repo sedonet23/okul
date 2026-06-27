@@ -87,6 +87,7 @@ function servisDetayAc(id){
           <span class="detay-card-actions">
             <button class="btn btn-ghost btn-sm" onclick="servisOgrenciExcelIceAktarModalAc('${id}')">📥 Excel'den Ekle</button>
             <button class="btn btn-amber btn-sm" onclick="servisOgrenciEkleModalAc('${id}')">➕ Öğrenci Ekle</button>
+            <button class="btn btn-ghost btn-sm" onclick="servisListeOlusturModalAc('${id}')">📋 Liste Oluştur</button>
           </span>
         </h4>
         ${ogrenciListeHtml}
@@ -262,4 +263,218 @@ function tasimaBaglantilariKur(){
     renderServisler();
     renderVeriSekmesi();
   }, hataGoster);
+}
+
+/* ================================================================
+   SERVİS LİSTE OLUŞTUR
+   ================================================================ */
+
+const SERVIS_LISTE_SUTUNLAR = [
+  { key: 'siraNo',     label: 'Sıra No',    fn: (v, i) => String(i + 1) },
+  { key: 'ogrenciAdi', label: 'Ad Soyad',   fn: v => v.ogrenciAdi || '' },
+  { key: 'ogrenciNo',  label: 'Öğrenci No', fn: v => v.ogrenciNo  || '' },
+  { key: 'sinif',      label: 'Sınıf',      fn: v => { const sn = siniflar.find(s=>s.id===v.sinifId); return sn ? sn.ad : (v.sinifId||''); } },
+  { key: 'cinsiyet',   label: 'Cinsiyet',   fn: v => v.cinsiyet   || '' },
+  { key: 'veliAdi',    label: 'Veli Adı',   fn: v => v.veliAdi    || '' },
+  { key: 'yakinlik',   label: 'Yakınlık',   fn: v => v.yakinlik1 || v.yakinlik || '' },
+  { key: 'telefon1',   label: 'Telefon 1',  fn: v => v.telefon1 || v.telefon || '' },
+  { key: 'telefon2',   label: 'Telefon 2',  fn: v => v.telefon2   || '' },
+  { key: 'adres',      label: 'Adres',      fn: v => v.adres      || '' },
+  { key: 'notlar',     label: 'Notlar',     fn: v => v.notlar     || '' },
+];
+
+function servisListeOlusturModalAc(servisId) {
+  const s = servisler.find(x => x.id === servisId);
+  if (!s) return;
+
+  const _okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const _yil = (() => { const y = new Date().getFullYear(); return `${y}-${y+1}`; })();
+  const inputStil = 'width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;';
+  const bolum = (lbl) => `<div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">${lbl}</div>`;
+
+  const checkboxler = SERVIS_LISTE_SUTUNLAR.map(col => `
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">
+      <input type="checkbox" value="${col.key}" checked style="cursor:pointer;width:15px;height:15px;">
+      <span>${escapeHtml(col.label)}</span>
+    </label>`).join('');
+
+  const body = `
+    ${bolum('Sayfa Yönü')}
+    <div style="display:flex;gap:16px;">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="radio" name="svListeYon" value="portrait" checked> Dikey (A4)
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
+        <input type="radio" name="svListeYon" value="landscape"> Yatay (A4)
+      </label>
+    </div>
+
+    ${bolum('Başlık Bilgileri')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_okulAdi" placeholder="Okul Adı" value="${escapeHtml(_okulAdi)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_okulAdiGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_baslik" placeholder="Liste Başlığı" value="${escapeHtml(s.servisAdi||'Servis')} Öğrenci Listesi" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_baslikGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_altBaslik" placeholder="Alt Başlık (isteğe bağlı)" value="${s.guzergah ? escapeHtml(s.guzergah) : ''}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_altBaslikGoster" ${s.guzergah?'checked':''}> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_egitimYili" placeholder="Eğitim-Öğretim Yılı" value="${escapeHtml(_yil)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_egitimYiliGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_tarih" placeholder="Tarih" value="${new Date().toLocaleDateString('tr-TR')}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_tarihGoster" checked> Göster</label>
+      </div>
+    </div>
+
+    ${bolum('İmza / Onay Satırı')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_sofor" placeholder="Şoför Adı" value="${escapeHtml(s.soforAdi||'')}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_soforGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="sv_lb_mudur" placeholder="Müdür / Onay Kişisi Adı" value="" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="sv_lb_mudurGoster" checked> Göster</label>
+      </div>
+    </div>
+
+    ${bolum('Sütunları Seç')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+      ${checkboxler}
+    </div>
+
+    ${bolum('Özel Sütun Ekle (Boş)')}
+    <div id="sv_ozelSutunListesi" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="servisListeOzelSutunEkle()">+ Özel Sütun Ekle</button>
+  `;
+
+  modalAc(`📋 Liste Oluştur — ${escapeHtml(s.servisAdi||'Servis')}`, body, () => {
+    servisListesiYazdir(servisId);
+  }, null);
+  const kb = document.getElementById('modalKaydetBtn');
+  if (kb) kb.textContent = '🖨️ Listeyi Yazdır';
+}
+
+function servisListeOzelSutunEkle() {
+  const kap = document.getElementById('sv_ozelSutunListesi');
+  if (!kap) return;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;';
+  div.innerHTML = `
+    <input class="sv-ozel-sutun-input" type="text" placeholder="Sütun adı (örn: İniş Durağı)"
+      style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+    <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="this.parentElement.remove()">✕</button>
+  `;
+  kap.appendChild(div);
+}
+
+function servisListesiYazdir(servisId) {
+  const s = servisler.find(x => x.id === servisId);
+  if (!s) return;
+
+  const seciliKeyler = [...document.querySelectorAll('#modalBody input[type=checkbox]')]
+    .filter(el => el.checked && !el.id.startsWith('sv_lb_'))
+    .map(el => el.value);
+  const seciliSutunlar = SERVIS_LISTE_SUTUNLAR.filter(c => seciliKeyler.includes(c.key));
+
+  const ozelSutunlar = [...document.querySelectorAll('.sv-ozel-sutun-input')]
+    .map(el => el.value.trim()).filter(Boolean)
+    .map(label => ({ key: '_ozel_' + label, label, fn: () => '' }));
+
+  const tumSutunlar = [...seciliSutunlar, ...ozelSutunlar];
+  if (!tumSutunlar.length) { toast('En az bir sütun seçin.'); return; }
+
+  const g = id => document.getElementById(id);
+  const gv = id => g(id)?.value?.trim() || '';
+  const gc = id => g(id)?.checked ?? false;
+
+  const yon        = document.querySelector('input[name="svListeYon"]:checked')?.value || 'portrait';
+  const okulAdi    = gv('sv_lb_okulAdi');
+  const baslik     = gv('sv_lb_baslik') || `${s.servisAdi||'Servis'} Öğrenci Listesi`;
+  const altBaslik  = gv('sv_lb_altBaslik');
+  const egitimYili = gv('sv_lb_egitimYili');
+  const tarih      = gv('sv_lb_tarih') || new Date().toLocaleDateString('tr-TR');
+  const sofor      = gv('sv_lb_sofor');
+  const mudur      = gv('sv_lb_mudur');
+
+  const gosterOkul     = gc('sv_lb_okulAdiGoster');
+  const gosterBaslik   = gc('sv_lb_baslikGoster');
+  const gosterAlt      = gc('sv_lb_altBaslikGoster');
+  const gosterYil      = gc('sv_lb_egitimYiliGoster');
+  const gosterTarih    = gc('sv_lb_tarihGoster');
+  const gosterSofor    = gc('sv_lb_soforGoster');
+  const gosterMudur    = gc('sv_lb_mudurGoster');
+
+  const ogrenciler = veliler
+    .filter(v => v.servisId === servisId)
+    .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+
+  const thHTML = tumSutunlar.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
+  const trHTML = ogrenciler.map((v, i) =>
+    `<tr>${tumSutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
+  ).join('');
+
+  const metaParcalar = [];
+  if (gosterYil && egitimYili) metaParcalar.push(escapeHtml(egitimYili) + ' Eğitim-Öğretim Yılı');
+  if (gosterTarih && tarih) metaParcalar.push(escapeHtml(tarih));
+
+  const imzaSol = gosterSofor
+    ? `Şoför: ${sofor ? `<strong>${escapeHtml(sofor)}</strong>` : '...............................'}<br><br>İmza: .......................`
+    : '';
+  const imzaSag = gosterMudur
+    ? `Müdür: ${mudur ? `<strong>${escapeHtml(mudur)}</strong>` : '...............................'}<br><br>İmza: .......................`
+    : '';
+
+  const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(baslik)}</title>
+<style>
+  @page { size: A4 ${yon}; margin: 1.2cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; }
+  .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+  .header .okul { font-size: 15px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+  .header .baslik { font-size: 13px; font-weight: 600; margin-top: 5px; }
+  .header .alt-baslik { font-size: 11px; margin-top: 3px; color: #444; }
+  .header .meta { font-size: 10px; color: #666; margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  th { background: #333; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; }
+  td { padding: 4px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+  tr:last-child td { border-bottom: 2px solid #333; }
+  .ogrenci-sayisi { margin-top: 8px; font-size: 10px; color: #444; text-align: right; }
+  .footer { margin-top: 16px; display: flex; justify-content: space-between; font-size: 10px; color: #444; line-height: 1.8; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    ${gosterOkul && okulAdi ? `<div class="okul">${escapeHtml(okulAdi)}</div>` : ''}
+    ${gosterBaslik ? `<div class="baslik">${escapeHtml(baslik)}</div>` : ''}
+    ${gosterAlt && altBaslik ? `<div class="alt-baslik">${escapeHtml(altBaslik)}</div>` : ''}
+    ${metaParcalar.length ? `<div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+  </div>
+  <table>
+    <thead><tr>${thHTML}</tr></thead>
+    <tbody>${trHTML}</tbody>
+  </table>
+  <div class="ogrenci-sayisi">Toplam öğrenci sayısı: <strong>${ogrenciler.length}</strong></div>
+  ${(imzaSol || imzaSag) ? `<div class="footer"><div>${imzaSol}</div><div style="text-align:right;">${imzaSag}</div></div>` : ''}
+</body>
+</html>`;
+
+  modalKapat();
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
 }
