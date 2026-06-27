@@ -1949,7 +1949,13 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   animation: periyodik-blink 1.6s ease-in-out infinite;
 }
 
-/* Tatil modu — JS ile birlikte güçlü gizleme */
+/* Tatil modu — body.tatil-aktif class ile güçlü gizleme */
+body.tatil-aktif .tatil-gizle {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+/* Eski inline-style tabanlı kural da kalsın (geriye dönük uyumluluk) */
 .tatil-aktif .tatil-gizle,
 .tatil-gizle[style*="display:none"],
 .tatil-gizle[style*="display: none"] {
@@ -1961,11 +1967,8 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
    DASHBOARD — Mini Takvim (Bu Ay)
    ================================================================ */
 .mini-takvim-baslik {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--brand);
-  margin-bottom: 8px;
-  text-align: center;
+  font-size: 13px; font-weight: 700; color: var(--brand);
+  margin-bottom: 8px; text-align: center;
 }
 .mini-takvim-grid {
   display: grid;
@@ -1973,38 +1976,24 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   gap: 2px;
 }
 .mini-gun-etiket {
-  text-align: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-muted, #888);
-  padding: 2px 0 4px;
+  text-align: center; font-size: 10px; font-weight: 700;
+  color: var(--text-muted, #888); padding: 2px 0 4px;
 }
 .mini-hucre {
-  text-align: center;
-  font-size: 11px;
-  padding: 4px 2px;
-  border-radius: 4px;
-  cursor: default;
-  line-height: 1.4;
-  color: var(--ink, #222);
-  transition: background 0.15s;
+  text-align: center; font-size: 11px; padding: 4px 2px;
+  border-radius: 4px; line-height: 1.4; color: var(--ink, #222);
 }
 .mini-hucre.bos { visibility: hidden; }
 .mini-hucre.bugun {
-  background: var(--brand);
-  color: #fff;
-  font-weight: 700;
-  border-radius: 6px;
+  background: var(--brand); color: #fff;
+  font-weight: 700; border-radius: 6px;
 }
 .mini-hucre.has-event {
   background: var(--brand-light, #DFF2F2);
-  font-weight: 600;
-  color: var(--brand-dark);
+  font-weight: 600; color: var(--brand-dark);
 }
-.mini-hucre.bugun.has-event {
-  background: var(--brand);
-  color: #fff;
-}
+.mini-hucre.bugun.has-event { background: var(--brand); color: #fff; }
+[data-theme="dark"] .mini-hucre { color: var(--ink, #eee); }
 
 /* ================================================================
    DASHBOARD — Yıllık Görünüm
@@ -2014,42 +2003,106 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
-@media (max-width: 480px) {
-  .yillik-grid { grid-template-columns: repeat(3, 1fr); }
-}
+@media (max-width: 480px) { .yillik-grid { grid-template-columns: repeat(3, 1fr); } }
 .yillik-ay {
-  border-radius: 8px;
-  padding: 8px 4px 6px;
-  text-align: center;
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  background: var(--nm-bg-dark, #C8D0D8);
-  box-shadow: var(--nm-sm);
+  border-radius: 8px; padding: 8px 4px 6px; text-align: center;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  background: var(--nm-bg-dark, #C8D0D8); box-shadow: var(--nm-sm);
 }
 .yillik-ay:hover { transform: translateY(-2px); box-shadow: var(--nm-out); }
-.yillik-ay-ad {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--ink, #333);
-  letter-spacing: 0.3px;
-}
-.yillik-sayac {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--brand);
-  margin-top: 2px;
-}
-/* Yoğunluk renkleri */
+.yillik-ay-ad { font-size: 11px; font-weight: 700; color: var(--ink, #333); }
+.yillik-sayac { font-size: 10px; font-weight: 600; color: var(--brand); margin-top: 2px; }
 .yillik-yogunluk-0 { background: var(--nm-bg-dark, #C8D0D8); }
 .yillik-yogunluk-1 { background: #b7e4d4; }
 .yillik-yogunluk-2 { background: #5ec49a; }
 .yillik-yogunluk-3 { background: #1a9b6e; }
-.yillik-yogunluk-3 .yillik-ay-ad,
-.yillik-yogunluk-3 .yillik-sayac { color: #fff; }
+.yillik-yogunluk-3 .yillik-ay-ad, .yillik-yogunluk-3 .yillik-sayac { color: #fff; }
 .yillik-yogunluk-2 .yillik-ay-ad { color: #0a4a30; }
 [data-theme="dark"] .yillik-yogunluk-0 { background: #2a2a2a; }
 [data-theme="dark"] .yillik-yogunluk-1 { background: #1a3d2e; }
 [data-theme="dark"] .yillik-yogunluk-2 { background: #1e6b4a; }
 [data-theme="dark"] .yillik-yogunluk-3 { background: #1a9b6e; }
-[data-theme="dark"] .mini-hucre { color: var(--ink, #eee); }
 [data-theme="dark"] .yillik-ay-ad { color: var(--ink, #eee); }
+
+/* ================================================================
+   TAKVİM SAYFASI — Aylık Grid
+   ================================================================ */
+.takvim-kart { overflow-x: auto; }
+
+#takvimGrid .takvim-gun-basliklari,
+.takvim-gun-basliklari {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.takvim-gun-etiket {
+  text-align: center; font-size: 11px; font-weight: 700;
+  color: var(--text-muted, #888); padding: 4px 0;
+}
+#takvimGrid .takvim-gunler,
+.takvim-gunler {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 3px;
+}
+.takvim-hucre {
+  min-height: 48px; border-radius: 8px; padding: 4px 3px 3px;
+  cursor: pointer; background: var(--nm-bg-dark, #C8D0D8);
+  box-shadow: var(--nm-sm); transition: box-shadow 0.15s, transform 0.12s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.takvim-hucre:hover { box-shadow: var(--nm-out); transform: translateY(-1px); }
+.takvim-hucre.bos {
+  background: transparent; box-shadow: none;
+  cursor: default; pointer-events: none;
+}
+.takvim-hucre.bugun { background: var(--brand); box-shadow: var(--nm-out); }
+.takvim-hucre.bugun .takvim-gun-no { color: #fff; }
+.takvim-gun-no { font-size: 13px; font-weight: 600; color: var(--ink, #222); line-height: 1.3; }
+.takvim-nokta-satir { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+.takvim-nokta { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+.etkinlik-nokta { background: var(--brand); }
+.etkinlik-nokta.oncelik-yüksek { background: #DC2626; }
+.etkinlik-nokta.oncelik-orta   { background: var(--amber, #E8A020); }
+.etkinlik-nokta.oncelik-düşük  { background: var(--brand-mid, #2AABAB); }
+.gorev-nokta { background: var(--amber, #E8A020); }
+.gorev-nokta.gorev-gecmis { background: #DC2626; }
+.gorev-nokta.gorev-bugun  { background: var(--amber-deep, #C07810); }
+.takvim-nokta-sayi { font-size: 9px; color: var(--ink-muted, #888); }
+[data-theme="dark"] .takvim-hucre { background: #2a2a2a; }
+[data-theme="dark"] .takvim-gun-no { color: #eee; }
+[data-theme="dark"] .takvim-hucre.bugun { background: var(--brand); }
+
+/* ================================================================
+   TAKVİM SAYFASI — Ajanda satırları
+   ================================================================ */
+.ajanda-tarih-grup { margin-bottom: 14px; }
+.ajanda-tarih-baslik {
+  font-size: 12px; font-weight: 700; color: var(--ink-muted, #888);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 0 6px; border-bottom: 1px solid var(--border, #ddd);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+}
+.ajanda-satir {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  background: var(--nm-bg-dark, #C8D0D8);
+  box-shadow: var(--nm-sm);
+}
+.ajanda-etkinlik { border-left: 3px solid var(--brand); }
+.ajanda-gorev    { border-left: 3px solid var(--amber, #E8A020); }
+.ajanda-tip-ikon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.ajanda-icerik   { flex: 1 !important; min-width: 0; }
+.ajanda-baslik   { font-size: 13px; font-weight: 600; color: var(--ink, #222); }
+.ajanda-meta     { font-size: 11px; color: var(--ink-muted, #888); margin-top: 2px; }
+.ajanda-aksiyonlar {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.ajanda-aksiyonlar input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+[data-theme="dark"] .ajanda-satir { background: #2a2a2a; }
+[data-theme="dark"] .ajanda-baslik { color: #eee; }
