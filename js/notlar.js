@@ -21,12 +21,27 @@ const NOT_RENKLERI = [
 ];
 
 /* ---- Aktif çizim durumu ---- */
-let _cizimAktif = false;
 let _cizimCiziyor = false;
 let _cizimCanvas = null;
 let _cizimCtx = null;
 let _cizimRenk = '#1A2A2A';
-let _cizimKalinlik = 3;
+let _cizimKalinlik = 4;
+let _cizimArac = 'kalem';   // kalem | firca | highlighter | silgi | pan
+let _cizimZemin = '#ffffff';
+
+// Zoom & pan durumu
+let _czZoom = 1;
+let _czPanX = 0;
+let _czPanY = 0;
+let _czLastX = 0;
+let _czLastY = 0;
+let _czPinchBaslangic = null;
+let _czPinchZoomBaslangic = 1;
+
+// Offscreen buffer (gerçek çizim buraya)
+let _czOffCanvas = null;
+let _czOffCtx = null;
+let _czAnimFrame = null;
 
 /* ====================================================
    RENDER — Notlar Grid
@@ -377,25 +392,82 @@ function _todoVerisiOku() {
 }
 
 /* ====================================================
-   TİP: ÇİZİM — Canvas
+   TİP: ÇİZİM — Profesyonel Canvas Editörü
    ==================================================== */
 function _cizimEditHtml(mevcutData) {
   return `
     <div class="form-group">
       <label>Çizim</label>
-      <div class="cizim-araclari">
-        <label>Renk: <input type="color" id="cizimRenk" value="${_cizimRenk}" onchange="_cizimRenkDegis(this.value)"></label>
-        <label>Kalınlık:
-          <select id="cizimKalinlik" onchange="_cizimKalinlikDegis(this.value)">
-            <option value="1">İnce</option>
-            <option value="3" selected>Normal</option>
-            <option value="6">Kalın</option>
-            <option value="14">Çok Kalın</option>
-          </select>
-        </label>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="_cizimSil()">🗑️ Temizle</button>
+
+      <!-- Araç Çubuğu Satır 1: Araçlar -->
+      <div class="cizim-toolbar">
+        <div class="cizim-arac-grup">
+          <button type="button" class="cizim-arac-btn aktif" id="czArac_kalem"
+            onclick="_czAracSec('kalem',this)" title="Kalem">✏️</button>
+          <button type="button" class="cizim-arac-btn" id="czArac_firca"
+            onclick="_czAracSec('firca',this)" title="Fırça">🖌️</button>
+          <button type="button" class="cizim-arac-btn" id="czArac_highlighter"
+            onclick="_czAracSec('highlighter',this)" title="İşaretleyici">🖍️</button>
+          <button type="button" class="cizim-arac-btn" id="czArac_silgi"
+            onclick="_czAracSec('silgi',this)" title="Silgi">🧹</button>
+          <button type="button" class="cizim-arac-btn" id="czArac_pan"
+            onclick="_czAracSec('pan',this)" title="Kaydır/Zoom">🤚</button>
+        </div>
+
+        <div class="cizim-ayirici-v"></div>
+
+        <!-- Renk -->
+        <div class="cizim-arac-grup">
+          <input type="color" id="czRenk" value="${_cizimRenk}" title="Renk"
+            onchange="_czRenkDegis(this.value)" style="width:34px;height:34px;padding:2px;border-radius:8px;border:2px solid var(--border);cursor:pointer;">
+          <div class="cizim-hazir-renkler">
+            ${['#1A2A2A','#DC2626','#2563EB','#16A34A','#F97316','#9333EA','#ffffff'].map(r=>
+              `<button type="button" class="cz-hazir-renk" style="background:${r};${r==='#ffffff'?'border:2px solid #ccc;':''}"
+                onclick="_czHizliRenk('${r}')" title="${r}"></button>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div class="cizim-ayirici-v"></div>
+
+        <!-- Kalınlık -->
+        <div class="cizim-arac-grup">
+          ${[2,4,8,16].map((k,i)=>
+            `<button type="button" class="cz-kalinlik-btn${i===1?' aktif':''}" data-k="${k}"
+              onclick="_czKalinlikSec(${k},this)" title="${k}px">
+              <span style="display:block;width:${Math.min(k,14)}px;height:${Math.min(k,14)}px;background:currentColor;border-radius:50%;"></span>
+            </button>`
+          ).join('')}
+        </div>
+
+        <div class="cizim-ayirici-v"></div>
+
+        <!-- Zemin Rengi -->
+        <div class="cizim-arac-grup">
+          <label style="font-size:11px;color:var(--ink-muted);line-height:1;">Zemin</label>
+          <div class="cizim-hazir-renkler">
+            ${['#ffffff','#FEF9C3','#DCFCE7','#DBEAFE','#F3F4F6','#1C1C1C'].map(z=>
+              `<button type="button" class="cz-hazir-renk${z===(mevcutData?_cizimZemin:z)==='#ffffff'?'':''}"
+                style="background:${z};${z==='#ffffff'?'border:2px solid #ccc;':''}"
+                onclick="_czZeminDegis('${z}')" title="Zemin: ${z}"></button>`
+            ).join('')}
+          </div>
+        </div>
+
+        <div style="margin-left:auto;">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="_czGeriAl()" title="Geri Al">↩</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="_czTemizle()" title="Temizle">🗑️</button>
+        </div>
       </div>
-      <canvas id="cizimCanvas" class="cizim-canvas" width="600" height="280"></canvas>
+
+      <!-- Canvas Kapsayıcı (clip + overflow) -->
+      <div class="cizim-kapsayici" id="czKapsayici">
+        <canvas id="cizimCanvas" class="cizim-canvas"></canvas>
+      </div>
+
+      <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;text-align:center;">
+        İki parmakla yakınlaştır/uzaklaştır · 🤚 ile kaydır
+      </div>
       <input type="hidden" id="f_cizimData" value="${escapeHtml(mevcutData)}">
     </div>
   `;
@@ -406,83 +478,277 @@ function _cizimBaslat(mevcutData) {
   if (!_cizimCanvas) return;
   _cizimCtx = _cizimCanvas.getContext('2d');
 
-  // Canvas boyutunu container'a göre ayarla
-  const w = _cizimCanvas.parentElement.clientWidth - 32;
-  if (w > 100) _cizimCanvas.width = w;
+  // Zoom/pan sıfırla
+  _czZoom = 1; _czPanX = 0; _czPanY = 0;
 
-  // Beyaz arka plan
-  _cizimCtx.fillStyle = '#ffffff';
-  _cizimCtx.fillRect(0, 0, _cizimCanvas.width, _cizimCanvas.height);
+  // Canvas görüntü boyutu (CSS)
+  const kap = document.getElementById('czKapsayici');
+  const w = kap ? kap.clientWidth : 340;
+  const h = Math.round(w * 0.55);
+  _cizimCanvas.style.width = w + 'px';
+  _cizimCanvas.style.height = h + 'px';
+
+  // Offscreen buffer — gerçek çizim kalitesi için 2x
+  _czOffCanvas = document.createElement('canvas');
+  _czOffCanvas.width = w * 2;
+  _czOffCanvas.height = h * 2;
+  _czOffCtx = _czOffCanvas.getContext('2d');
+
+  // Display canvas
+  _cizimCanvas.width = w * 2;
+  _cizimCanvas.height = h * 2;
+
+  // Zemin
+  _czOffCtx.fillStyle = _cizimZemin;
+  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
 
   // Mevcut çizimi yükle
   if (mevcutData) {
     const img = new Image();
-    img.onload = () => _cizimCtx.drawImage(img, 0, 0);
+    img.onload = () => {
+      _czOffCtx.drawImage(img, 0, 0, _czOffCanvas.width, _czOffCanvas.height);
+      _czEkranaYaz();
+    };
     img.src = mevcutData;
+  } else {
+    _czEkranaYaz();
   }
 
-  // Mouse olayları
-  _cizimCanvas.addEventListener('mousedown', _cizimBasla);
-  _cizimCanvas.addEventListener('mousemove', _cizimCiz);
-  _cizimCanvas.addEventListener('mouseup', _cizimBitir);
-  _cizimCanvas.addEventListener('mouseleave', _cizimBitir);
+  _czGecmis = [];
+  _czGecmisKaydet();
 
-  // Touch olayları (mobil)
-  _cizimCanvas.addEventListener('touchstart', e => { e.preventDefault(); _cizimBasla(_touchToMouse(e)); }, { passive: false });
-  _cizimCanvas.addEventListener('touchmove', e => { e.preventDefault(); _cizimCiz(_touchToMouse(e)); }, { passive: false });
-  _cizimCanvas.addEventListener('touchend', _cizimBitir);
+  // Olaylar
+  const c = _cizimCanvas;
+  c.addEventListener('mousedown', _czMouseBasla);
+  c.addEventListener('mousemove', _czMouseHareket);
+  c.addEventListener('mouseup', _czMouseBitir);
+  c.addEventListener('mouseleave', _czMouseBitir);
+  c.addEventListener('wheel', _czTeker, { passive: false });
+  c.addEventListener('touchstart', _czTouchBasla, { passive: false });
+  c.addEventListener('touchmove', _czTouchHareket, { passive: false });
+  c.addEventListener('touchend', _czTouchBitir);
 }
 
-function _touchToMouse(e) {
+// Geçmiş (geri al)
+let _czGecmis = [];
+function _czGecmisKaydet() {
+  if (!_czOffCanvas) return;
+  if (_czGecmis.length > 30) _czGecmis.shift();
+  _czGecmis.push(_czOffCanvas.toDataURL());
+}
+function _czGeriAl() {
+  if (_czGecmis.length < 2) return;
+  _czGecmis.pop();
+  const snap = _czGecmis[_czGecmis.length - 1];
+  const img = new Image();
+  img.onload = () => {
+    _czOffCtx.clearRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
+    _czOffCtx.drawImage(img, 0, 0);
+    _czEkranaYaz();
+  };
+  img.src = snap;
+}
+
+// Ekrana yaz (zoom+pan uygulanmış)
+function _czEkranaYaz() {
+  if (!_cizimCtx || !_czOffCanvas) return;
+  _cizimCtx.clearRect(0, 0, _cizimCanvas.width, _cizimCanvas.height);
+  _cizimCtx.save();
+  _cizimCtx.translate(_czPanX * 2, _czPanY * 2);
+  _cizimCtx.scale(_czZoom, _czZoom);
+  _cizimCtx.drawImage(_czOffCanvas, 0, 0);
+  _cizimCtx.restore();
+}
+
+// Canvas → offscreen koordinat dönüşümü
+function _czEkrandenOff(ex, ey) {
   const rect = _cizimCanvas.getBoundingClientRect();
-  const t = e.touches[0];
-  return { clientX: t.clientX, clientY: t.clientY, _rect: rect };
-}
-
-function _cizimKonum(e) {
-  const rect = e._rect || _cizimCanvas.getBoundingClientRect();
-  const scaleX = _cizimCanvas.width / rect.width;
-  const scaleY = _cizimCanvas.height / rect.height;
+  const scaleX = (_cizimCanvas.width / rect.width);
+  const scaleY = (_cizimCanvas.height / rect.height);
+  const cx = (ex - rect.left) * scaleX;
+  const cy = (ey - rect.top) * scaleY;
   return {
-    x: (e.clientX - rect.left) * scaleX,
-    y: (e.clientY - rect.top) * scaleY
+    x: (cx - _czPanX * 2) / _czZoom,
+    y: (cy - _czPanY * 2) / _czZoom
   };
 }
 
-function _cizimBasla(e) {
-  _cizimCiziyor = true;
-  const { x, y } = _cizimKonum(e);
-  _cizimCtx.beginPath();
-  _cizimCtx.moveTo(x, y);
-}
-
-function _cizimCiz(e) {
-  if (!_cizimCiziyor) return;
-  const { x, y } = _cizimKonum(e);
-  _cizimCtx.lineTo(x, y);
-  _cizimCtx.strokeStyle = _cizimRenk;
-  _cizimCtx.lineWidth = _cizimKalinlik;
-  _cizimCtx.lineCap = 'round';
-  _cizimCtx.lineJoin = 'round';
-  _cizimCtx.stroke();
-}
-
-function _cizimBitir() {
-  if (!_cizimCiziyor) return;
-  _cizimCiziyor = false;
-  if (_cizimCanvas) {
-    document.getElementById('f_cizimData').value = _cizimCanvas.toDataURL('image/png');
+// Araç ayarları
+function _czAracAyarla(ctx, silgi) {
+  if (silgi) {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = _cizimKalinlik * 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.globalCompositeOperation = 'source-over';
+    switch (_cizimArac) {
+      case 'firca':
+        ctx.strokeStyle = _cizimRenk;
+        ctx.lineWidth = _cizimKalinlik * 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 0.6;
+        break;
+      case 'highlighter':
+        ctx.strokeStyle = _cizimRenk;
+        ctx.lineWidth = _cizimKalinlik * 6;
+        ctx.lineCap = 'square';
+        ctx.lineJoin = 'bevel';
+        ctx.globalAlpha = 0.35;
+        break;
+      default: // kalem
+        ctx.strokeStyle = _cizimRenk;
+        ctx.lineWidth = _cizimKalinlik;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.globalAlpha = 1;
+    }
   }
 }
 
-function _cizimRenkDegis(v) { _cizimRenk = v; }
-function _cizimKalinlikDegis(v) { _cizimKalinlik = parseInt(v); }
+// Mouse
+function _czMouseBasla(e) {
+  _cizimCiziyor = true;
+  const { x, y } = _czEkrandenOff(e.clientX, e.clientY);
+  _czLastX = x; _czLastY = y;
+  if (_cizimArac === 'pan') return;
+  const silgi = _cizimArac === 'silgi';
+  _czAracAyarla(_czOffCtx, silgi);
+  _czOffCtx.beginPath();
+  _czOffCtx.moveTo(x, y);
+}
+function _czMouseHareket(e) {
+  if (!_cizimCiziyor) return;
+  const { x, y } = _czEkrandenOff(e.clientX, e.clientY);
+  if (_cizimArac === 'pan') {
+    const rect = _cizimCanvas.getBoundingClientRect();
+    const scaleX = _cizimCanvas.width / rect.width;
+    const scaleY = _cizimCanvas.height / rect.height;
+    _czPanX += (e.clientX - _czLastX * rect.width / _cizimCanvas.width * scaleX) / scaleX / 2;
+    _czPanY += (e.clientY - _czLastY * rect.height / _cizimCanvas.height * scaleY) / scaleY / 2;
+    _czLastX = x; _czLastY = y;
+    _czEkranaYaz(); return;
+  }
+  _czOffCtx.lineTo(x, y);
+  _czOffCtx.stroke();
+  _czEkranaYaz();
+  _czLastX = x; _czLastY = y;
+}
+function _czMouseBitir() {
+  if (!_cizimCiziyor) return;
+  _cizimCiziyor = false;
+  _czOffCtx.globalAlpha = 1;
+  _czGecmisKaydet();
+  _czVeriKaydet();
+}
 
-function _cizimSil() {
-  if (!_cizimCanvas || !_cizimCtx) return;
-  _cizimCtx.fillStyle = '#ffffff';
-  _cizimCtx.fillRect(0, 0, _cizimCanvas.width, _cizimCanvas.height);
-  document.getElementById('f_cizimData').value = '';
+// Tekerlek zoom
+function _czTeker(e) {
+  e.preventDefault();
+  const delta = e.deltaY < 0 ? 1.1 : 0.9;
+  const yeniZoom = Math.max(0.5, Math.min(5, _czZoom * delta));
+  _czZoom = yeniZoom;
+  _czEkranaYaz();
+}
+
+// Touch
+function _czTouchBasla(e) {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    _cizimCiziyor = false;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    _czPinchBaslangic = Math.hypot(dx, dy);
+    _czPinchZoomBaslangic = _czZoom;
+    _czLastX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    _czLastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    return;
+  }
+  const t = e.touches[0];
+  const synth = { clientX: t.clientX, clientY: t.clientY };
+  _czMouseBasla(synth);
+}
+function _czTouchHareket(e) {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    // Pinch zoom
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (_czPinchBaslangic) {
+      _czZoom = Math.max(0.5, Math.min(5, _czPinchZoomBaslangic * dist / _czPinchBaslangic));
+    }
+    // Pan (iki parmak ortası)
+    const mx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const my = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    _czPanX += (mx - _czLastX) / _czZoom;
+    _czPanY += (my - _czLastY) / _czZoom;
+    _czLastX = mx; _czLastY = my;
+    _czEkranaYaz();
+    return;
+  }
+  const t = e.touches[0];
+  _czMouseHareket({ clientX: t.clientX, clientY: t.clientY });
+}
+function _czTouchBitir(e) {
+  _czPinchBaslangic = null;
+  if (e.touches.length === 0) _czMouseBitir();
+}
+
+// Yardımcılar
+function _czVeriKaydet() {
+  if (!_czOffCanvas) return;
+  document.getElementById('f_cizimData').value = _czOffCanvas.toDataURL('image/png');
+}
+function _czAracSec(arac, btn) {
+  _cizimArac = arac;
+  document.querySelectorAll('.cizim-arac-btn').forEach(b => b.classList.remove('aktif'));
+  btn.classList.add('aktif');
+  _cizimCanvas.style.cursor = arac === 'pan' ? 'grab' : arac === 'silgi' ? 'cell' : 'crosshair';
+}
+function _czRenkDegis(v) { _cizimRenk = v; }
+function _czHizliRenk(v) {
+  _cizimRenk = v;
+  const el = document.getElementById('czRenk');
+  if (el) el.value = v;
+  // pan/silgi ise kalem moduna geç
+  if (_cizimArac === 'pan' || _cizimArac === 'silgi') {
+    _czAracSec('kalem', document.getElementById('czArac_kalem'));
+  }
+}
+function _czKalinlikSec(k, btn) {
+  _cizimKalinlik = k;
+  document.querySelectorAll('.cz-kalinlik-btn').forEach(b => b.classList.remove('aktif'));
+  btn.classList.add('aktif');
+}
+function _czZeminDegis(renk) {
+  _cizimZemin = renk;
+  if (!_czOffCtx || !_czOffCanvas) return;
+  // Mevcut içeriği geçici sakla
+  const snap = document.createElement('canvas');
+  snap.width = _czOffCanvas.width; snap.height = _czOffCanvas.height;
+  snap.getContext('2d').drawImage(_czOffCanvas, 0, 0);
+  _czOffCtx.globalCompositeOperation = 'source-over';
+  _czOffCtx.globalAlpha = 1;
+  _czOffCtx.fillStyle = renk;
+  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
+  _czOffCtx.drawImage(snap, 0, 0);
+  _czEkranaYaz();
+  _czGecmisKaydet();
+  _czVeriKaydet();
+}
+function _czTemizle() {
+  if (!_czOffCtx || !_czOffCanvas) return;
+  _czOffCtx.globalCompositeOperation = 'source-over';
+  _czOffCtx.globalAlpha = 1;
+  _czOffCtx.fillStyle = _cizimZemin;
+  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
+  _czEkranaYaz();
+  _czGecmisKaydet();
+  _czVeriKaydet();
 }
 
 /* ====================================================
@@ -637,9 +903,8 @@ function _notKaydet(mevcutId, tip) {
       break;
     }
     case 'cizim': {
-      // Canvas'tan son veriyi al
-      if (_cizimCanvas) {
-        document.getElementById('f_cizimData').value = _cizimCanvas.toDataURL('image/png');
+      if (_czOffCanvas) {
+        document.getElementById('f_cizimData').value = _czOffCanvas.toDataURL('image/png');
       }
       const cizimData = document.getElementById('f_cizimData')?.value || '';
       veri.cizimData = cizimData;
