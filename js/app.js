@@ -529,32 +529,7 @@ function evrakModalAc(id){
   }, e ? ()=>{ if(confirm('Bu evrak kaydını silmek istiyor musunuz?')){ db.collection(COL.evrak).doc(e.id).delete(); modalKapat(); } } : null);
 }
 
-/* ============== NOTLAR (genel notlar) ============== */
-function renderNotlar(){
-  let liste = [...notlar].sort((a,b)=>(b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||''));
-  document.getElementById('notlarGrid').innerHTML = liste.length ? liste.map(n=>`
-    <div class="note-card" onclick="notlarModalAc('${n.id}')">
-      <div class="note-title">${escapeHtml(n.baslik||'(Başlıksız)')}</div>
-      <div class="note-icerik">${escapeHtml((n.icerik||'').slice(0,160))}</div>
-      <div class="note-tarih">${formatTarih(n.tarih)}</div>
-    </div>
-  `).join('') : '<p class="empty-state">Henüz not eklenmedi.</p>';
-}
-function notlarModalAc(id){
-  const n = id ? notlar.find(x=>x.id===id) : null;
-  const body = `
-    <div class="form-group"><label>Başlık</label><input id="f_baslik" value="${n?escapeHtml(n.baslik):''}"></div>
-    <div class="form-group"><label>İçerik</label><textarea id="f_icerik" rows="6">${n?escapeHtml(n.icerik||''):''}</textarea></div>
-    <div class="form-group"><label>Tarih</label><input type="date" id="f_tarih" value="${n?n.tarih:todayISO()}"></div>
-  `;
-  modalAc(n?'Not Düzenle':'Not Ekle', body, ()=>{
-    const baslik = document.getElementById('f_baslik').value.trim();
-    const icerik = document.getElementById('f_icerik').value.trim();
-    if(!baslik && !icerik){ toast('Başlık veya içerik girilmelidir.'); return; }
-    kaydet(COL.notlar, n?n.id:null, { baslik, icerik, tarih: document.getElementById('f_tarih').value });
-    modalKapat();
-  }, n ? ()=>{ if(confirm('Bu notu silmek istiyor musunuz?')){ db.collection(COL.notlar).doc(n.id).delete(); modalKapat(); } } : null);
-}
+/* ============== NOTLAR — notlar.js dosyasına taşındı ============== */
 
 /* ============== GENEL BAKIŞ (DASHBOARD) ============== */
 function renderDashboard(){
@@ -588,11 +563,7 @@ function renderDashboard(){
   `;
 
   /* ---- Son Notlar ---- */
-  const notlarEl = document.getElementById('dashNotlar');
-  if(notlarEl){
-    const sonNotlar = [...notlar].sort((a,b)=>(b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||'')).slice(0,4);
-    notlarEl.innerHTML = sonNotlar.length ? sonNotlar.map(n=>`<div class="dash-row" style="cursor:pointer;" onclick="notlarModalAc('${n.id}')"><strong>${escapeHtml(n.baslik||'(Başlıksız)')}</strong> — ${escapeHtml((n.icerik||'').slice(0,70))}</div>`).join('') : '<p class="empty-state">Henüz not eklenmedi.</p>';
-  }
+  if(typeof renderDashboardNotlar === 'function') renderDashboardNotlar();
 
   /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
   renderZilSayaci(bugunGun);
