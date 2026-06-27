@@ -282,7 +282,11 @@ function _notEditModalAc(n) {
 
   // Post-render işlemler
   setTimeout(() => {
-    if (tip === 'cizim') _cizimBaslat(n.cizimData || '');
+    if (tip === 'cizim') {
+      _cizimBaslat(n.cizimData || '');
+      // Şablon butonlarını aktif yap
+      _czUpdateSablonButtons(_czSablonTipi);
+    }
     if (tip === 'tablo') _tabloPostRender();
   }, 150);
 }
@@ -470,11 +474,11 @@ function _cizimEditHtml(mevcutData) {
       <div class="cizim-sablon-bar">
         <label style="font-size:11px;font-weight:600;color:var(--ink-muted);">Şablon:</label>
         <div class="cizim-sablon-grup">
-          <button type="button" class="cz-sablon-btn aktif" onclick="_czSablonDegis('duz')" title="Düz">⬜</button>
-          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('cizgili')" title="Çizgili">📝</button>
-          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('kareleli')" title="Kareleli">📊</button>
-          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('noktalı')" title="Noktalı">⠿</button>
-          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('defter')" title="Defter">📓</button>
+          <button type="button" class="cz-sablon-btn aktif" data-sablon="duz" onclick="_czSablonDegis('duz'); _czUpdateSablonButtons('duz');" title="Düz">⬜</button>
+          <button type="button" class="cz-sablon-btn" data-sablon="cizgili" onclick="_czSablonDegis('cizgili'); _czUpdateSablonButtons('cizgili');" title="Çizgili">📝</button>
+          <button type="button" class="cz-sablon-btn" data-sablon="kareleli" onclick="_czSablonDegis('kareleli'); _czUpdateSablonButtons('kareleli');" title="Kareleli">📊</button>
+          <button type="button" class="cz-sablon-btn" data-sablon="noktalı" onclick="_czSablonDegis('noktalı'); _czUpdateSablonButtons('noktalı');" title="Noktalı">⠿</button>
+          <button type="button" class="cz-sablon-btn" data-sablon="defter" onclick="_czSablonDegis('defter'); _czUpdateSablonButtons('defter');" title="Defter">📓</button>
         </div>
       </div>
 
@@ -806,6 +810,17 @@ function _czZeminDegis(renk) {
 
 // Şablon sistemi
 let _czSablonTipi = 'duz'; // duz | cizgili | kareleli | noktalı | defter
+
+function _czUpdateSablonButtons(sablon) {
+  // Tüm butonları güncelle
+  document.querySelectorAll('.cz-sablon-btn').forEach(btn => {
+    if (btn.dataset.sablon === sablon) {
+      btn.classList.add('aktif');
+    } else {
+      btn.classList.remove('aktif');
+    }
+  });
+}
 
 function _czSablonDegis(sablon) {
   _czSablonTipi = sablon;
