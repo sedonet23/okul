@@ -169,37 +169,55 @@ function dokumanSatirHtml(d, cihazda) {
 /* ================================================================
    Dosya açma / görüntüleme
    ================================================================ */
+let _dokumanViewerBlob = null;
+let _dokumanViewerId   = null;
+
 async function dokumanAc(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   if (!d) return;
 
-  // Harici URL varsa direkt aç
   if (d.hariciUrl) {
     window.open(d.hariciUrl, '_blank');
     return;
   }
 
   const blob = await idbOku(id);
-  if (!blob) {
-    toast('Bu dosya bu cihazda mevcut değil.');
-    return;
-  }
+  if (!blob) { toast('Bu dosya bu cihazda mevcut değil.'); return; }
 
   const uzanti = (d.dosyaAdi || '').split('.').pop().toLowerCase();
+  const reader = new FileReader();
 
-  if (['jpg','jpeg','png','gif','webp','svg'].includes(uzanti)) {
-    // Resim — modal içinde göster
-    const reader = new FileReader();
-    reader.onload = e => {
-      const body = `<img src="${e.target.result}" style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">`;
-      modalAc(escapeHtml(d.ad || d.dosyaAdi || 'Resim'), body, null, null);
-      document.getElementById('modalKaydetBtn').style.display = 'none';
-    };
-    reader.readAsDataURL(blob);
-  } else {
-    // PDF ve diğer tüm dosyalar — indirme olarak aç (mobil için en güvenilir)
-    dokumanIndir(id);
-  }
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    _dokumanViewerBlob = blob;
+    _dokumanViewerId   = id;
+
+    const viewer  = document.getElementById('dokumanViewer');
+    const embed   = document.getElementById('dokumanViewerEmbed');
+    const baslik  = document.getElementById('dokumanViewerBaslik');
+
+    baslik.textContent = d.ad || d.dosyaAdi || 'Döküman';
+    embed.src  = dataUrl;
+    embed.type = blob.type || '';
+    viewer.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  };
+
+  reader.readAsDataURL(blob);
+}
+
+function dokumanViewerKapat() {
+  const viewer = document.getElementById('dokumanViewer');
+  if (viewer) viewer.style.display = 'none';
+  document.body.style.overflow = '';
+  const embed = document.getElementById('dokumanViewerEmbed');
+  if (embed) embed.src = '';
+  _dokumanViewerBlob = null;
+  _dokumanViewerId   = null;
+}
+
+function dokumanViewerIndir() {
+  if (_dokumanViewerId) dokumanIndir(_dokumanViewerId);
 }
 
 async function dokumanIndir(id) {
