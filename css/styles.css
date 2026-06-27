@@ -1949,18 +1949,25 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   animation: periyodik-blink 1.6s ease-in-out infinite;
 }
 
-/* Tatil modu — body.tatil-aktif class ile güçlü gizleme */
-body.tatil-aktif .tatil-gizle {
-  display: none !important;
-  visibility: hidden !important;
-  pointer-events: none !important;
-}
-/* Eski inline-style tabanlı kural da kalsın (geriye dönük uyumluluk) */
+/* Tatil modu — JS ile birlikte güçlü gizleme */
 .tatil-aktif .tatil-gizle,
 .tatil-gizle[style*="display:none"],
 .tatil-gizle[style*="display: none"] {
   display: none !important;
   visibility: hidden !important;
+}
+
+/* ================================================================
+   TATİL MODU — Güçlü Gizleme (body class + inline style)
+   ================================================================ */
+body.tatil-aktif .tatil-gizle {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* ================================================================
@@ -2028,19 +2035,15 @@ body.tatil-aktif .tatil-gizle {
    TAKVİM SAYFASI — Aylık Grid
    ================================================================ */
 .takvim-kart { overflow-x: auto; }
-
-#takvimGrid .takvim-gun-basliklari,
 .takvim-gun-basliklari {
   display: grid !important;
   grid-template-columns: repeat(7, 1fr) !important;
-  gap: 2px;
-  margin-bottom: 4px;
+  gap: 2px; margin-bottom: 4px;
 }
 .takvim-gun-etiket {
   text-align: center; font-size: 11px; font-weight: 700;
   color: var(--text-muted, #888); padding: 4px 0;
 }
-#takvimGrid .takvim-gunler,
 .takvim-gunler {
   display: grid !important;
   grid-template-columns: repeat(7, 1fr) !important;
@@ -2086,8 +2089,8 @@ body.tatil-aktif .tatil-gizle {
 }
 .ajanda-satir {
   display: flex !important;
-  align-items: flex-start !important;
-  gap: 8px !important;
+  align-items: flex-start;
+  gap: 8px;
   padding: 8px 10px;
   border-radius: 8px;
   margin-bottom: 5px;
@@ -2097,12 +2100,10 @@ body.tatil-aktif .tatil-gizle {
 .ajanda-etkinlik { border-left: 3px solid var(--brand); }
 .ajanda-gorev    { border-left: 3px solid var(--amber, #E8A020); }
 .ajanda-tip-ikon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
-.ajanda-icerik   { flex: 1 !important; min-width: 0; }
+.ajanda-icerik   { flex: 1; min-width: 0; }
 .ajanda-baslik   { font-size: 13px; font-weight: 600; color: var(--ink, #222); }
 .ajanda-meta     { font-size: 11px; color: var(--ink-muted, #888); margin-top: 2px; }
-.ajanda-aksiyonlar {
-  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
-}
+.ajanda-aksiyonlar { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ajanda-aksiyonlar input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
 [data-theme="dark"] .ajanda-satir { background: #2a2a2a; }
 [data-theme="dark"] .ajanda-baslik { color: #eee; }
