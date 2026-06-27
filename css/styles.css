@@ -1640,3 +1640,222 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 #havaDurumuKart > div:first-of-type small {
   color: rgba(255,255,255,0.80) !important;
 }
+
+/* ================================================================
+   TAKVİM MODÜLÜ — takvim.js CSS
+   ================================================================ */
+
+/* ---- Aylık Grid ---- */
+.takvim-kart { padding: 10px !important; }
+
+.takvim-gun-basliklari {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.takvim-gun-etiket {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  padding: 4px 0;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+.takvim-gunler {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.takvim-hucre {
+  min-height: 72px;
+  padding: 5px 4px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--nm-bg);
+  box-shadow: var(--nm-sm);
+  cursor: pointer;
+  transition: box-shadow .15s, transform .12s;
+  position: relative;
+  overflow: hidden;
+}
+.takvim-hucre:hover {
+  box-shadow: var(--nm-out);
+  transform: translateY(-1px);
+}
+.takvim-hucre.bos {
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  pointer-events: none;
+}
+.takvim-hucre.bugun {
+  box-shadow: inset 0 0 0 2px var(--brand), var(--nm-sm);
+}
+.takvim-hucre.bugun .takvim-gun-no {
+  color: var(--brand);
+  font-weight: 800;
+}
+
+.takvim-gun-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.takvim-nokta-satir {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+.takvim-nokta {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.takvim-nokta-sayi {
+  font-size: 9px;
+  color: var(--ink-muted);
+  font-weight: 700;
+}
+/* Etkinlik nokta renkleri */
+.etkinlik-nokta.oncelik-düşük { background: var(--green-success); }
+.etkinlik-nokta.oncelik-orta  { background: var(--amber); }
+.etkinlik-nokta.oncelik-yüksek{ background: var(--red-danger); }
+/* Görev nokta renkleri */
+.gorev-nokta.gorev-tamam    { background: var(--gray-muted); }
+.gorev-nokta.gorev-normal   { background: var(--brand); }
+.gorev-nokta.gorev-orta     { background: var(--green-success); }
+.gorev-nokta.gorev-yakin    { background: var(--amber); }
+.gorev-nokta.gorev-bugun    { background: var(--color-warning); }
+.gorev-nokta.gorev-gecmis   { background: var(--red-danger); }
+
+/* ---- Ajanda ---- */
+.ajanda-tarih-grup { margin-bottom: 14px; }
+.ajanda-tarih-baslik {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.ajanda-satir {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 5px;
+  background: var(--nm-bg);
+  box-shadow: var(--nm-sm);
+  transition: box-shadow .12s;
+}
+.ajanda-satir:hover { box-shadow: var(--nm-out); }
+.ajanda-etkinlik { border-left: 3px solid var(--brand); }
+.ajanda-gorev    { border-left: 3px solid var(--amber); }
+
+/* Görev son tarih renk durumları */
+.ajanda-gorev.gorev-gecmis { border-left-color: var(--red-danger);    background: var(--red-danger-wash); }
+.ajanda-gorev.gorev-bugun  { border-left-color: var(--color-warning);  background: rgba(245,158,11,.08); }
+.ajanda-gorev.gorev-yakin  { border-left-color: var(--amber);          background: var(--amber-wash); }
+.ajanda-gorev.gorev-orta   { border-left-color: var(--green-success);  background: var(--green-success-wash); }
+.ajanda-gorev.gorev-tamam  { border-left-color: var(--gray-muted); opacity: .65; }
+
+.ajanda-tip-ikon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.ajanda-icerik   { flex: 1; min-width: 0; }
+.ajanda-baslik   { font-size: 13.5px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ajanda-meta     { font-size: 11.5px; color: var(--ink-muted); margin-top: 2px; }
+.ajanda-aksiyonlar { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.ajanda-aksiyonlar input[type=checkbox] { width: auto; accent-color: var(--brand); cursor: pointer; }
+
+/* ---- Mini Takvim (Dashboard) ---- */
+.mini-takvim-baslik {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.mini-takvim-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.mini-gun-etiket {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  padding-bottom: 2px;
+}
+.mini-hucre {
+  text-align: center;
+  font-size: 11px;
+  padding: 3px 1px;
+  border-radius: 4px;
+  color: var(--ink-soft);
+  cursor: default;
+  line-height: 1.4;
+}
+.mini-hucre.bos { visibility: hidden; }
+.mini-hucre.bugun {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  border-radius: 50%;
+}
+.mini-hucre.has-event { position: relative; }
+.mini-hucre.has-event::after {
+  content: '';
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: var(--amber);
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+/* ---- Yıllık Görünüm (Dashboard) ---- */
+.yillik-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.yillik-ay {
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--nm-bg);
+  box-shadow: var(--nm-sm);
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow .15s, transform .12s;
+}
+.yillik-ay:hover { box-shadow: var(--nm-out); transform: translateY(-1px); }
+.yillik-ay-ad  { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.yillik-sayac  { font-size: 11px; font-weight: 800; margin-top: 4px; border-radius: 8px; padding: 1px 6px; display: inline-block; }
+/* Yoğunluk seviyeleri */
+.yillik-yogunluk-0 .yillik-sayac { display: none; }
+.yillik-yogunluk-1 { border-left: 3px solid var(--green-success); }
+.yillik-yogunluk-1 .yillik-sayac { background: var(--green-success-wash); color: var(--green-success); }
+.yillik-yogunluk-2 { border-left: 3px solid var(--amber); }
+.yillik-yogunluk-2 .yillik-sayac { background: var(--amber-wash); color: var(--amber-deep); }
+.yillik-yogunluk-3 { border-left: 3px solid var(--red-danger); }
+.yillik-yogunluk-3 .yillik-sayac { background: var(--red-danger-wash); color: var(--red-danger); }
+
+@media (max-width: 600px) {
+  .takvim-hucre { min-height: 52px; padding: 3px 2px; }
+  .takvim-gun-no { font-size: 11px; }
+  .takvim-nokta  { width: 5px; height: 5px; }
+  .yillik-grid   { grid-template-columns: repeat(3, 1fr); }
+  .ajanda-satir  { flex-wrap: wrap; }
+}
