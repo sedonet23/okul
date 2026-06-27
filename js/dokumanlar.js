@@ -185,24 +185,19 @@ async function dokumanAc(id) {
     return;
   }
 
-  const url    = URL.createObjectURL(blob);
   const uzanti = (d.dosyaAdi || '').split('.').pop().toLowerCase();
 
   if (['jpg','jpeg','png','gif','webp','svg'].includes(uzanti)) {
     // Resim — modal içinde göster
-    const body = `<img src="${url}" style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">`;
-    modalAc(escapeHtml(d.ad || d.dosyaAdi || 'Resim'), body, null, null);
-    document.getElementById('modalKaydetBtn').style.display = 'none';
-  } else if (uzanti === 'pdf') {
-    // PDF — yeni pencerede iframe
-    const w = window.open('', '_blank', 'width=900,height=700');
-    w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(d.ad||'PDF')}</title>
-      <style>*{margin:0;padding:0;}body{height:100vh;display:flex;flex-direction:column;}
-      iframe{flex:1;border:none;}</style></head><body>
-      <iframe src="${url}"></iframe></body></html>`);
-    w.document.close();
+    const reader = new FileReader();
+    reader.onload = e => {
+      const body = `<img src="${e.target.result}" style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:8px;">`;
+      modalAc(escapeHtml(d.ad || d.dosyaAdi || 'Resim'), body, null, null);
+      document.getElementById('modalKaydetBtn').style.display = 'none';
+    };
+    reader.readAsDataURL(blob);
   } else {
-    // Diğerleri — indirme olarak aç
+    // PDF ve diğer tüm dosyalar — indirme olarak aç (mobil için en güvenilir)
     dokumanIndir(id);
   }
 }
@@ -212,22 +207,24 @@ async function dokumanIndir(id) {
   if (!d) return;
 
   if (d.hariciUrl) {
-    const a = document.createElement('a');
-    a.href = d.hariciUrl;
-    a.target = '_blank';
-    a.click();
+    window.open(d.hariciUrl, '_blank');
     return;
   }
 
   const blob = await idbOku(id);
   if (!blob) { toast('Bu dosya bu cihazda mevcut değil.'); return; }
 
-  const url = URL.createObjectURL(blob);
-  const a   = document.createElement('a');
-  a.href     = url;
-  a.download = d.dosyaAdi || d.ad || 'dosya';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
+  // FileReader ile base64'e çevir — mobil Chrome'da en güvenilir yöntem
+  const reader = new FileReader();
+  reader.onload = e => {
+    const a = document.createElement('a');
+    a.href     = e.target.result;
+    a.download = d.dosyaAdi || d.ad || 'dosya';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  reader.readAsDataURL(blob);
 }
 
 /* ================================================================
