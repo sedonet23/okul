@@ -787,11 +787,9 @@ function _raporServisOturmaGoster(servisIdFiltre) {
     const plan = (typeof servisOturmaPlani !== 'undefined' ? servisOturmaPlani : [])
       .find(p => p.servisId === servis.id);
 
-    // Tek servis seçilmişse sayfa sonu yok; tüm servisler modunda her biri ayrı sayfada
-    const sayfaSonu = !ilk && !servisIdFiltre ? '<div class="sayfa-sonu"></div>' : '';
+    // Tüm servisler modunda her biri ayrı sayfada
+    if (!ilk && !servisIdFiltre) html += '<div class="sayfa-sonu"></div>';
     ilk = false;
-
-    html += sayfaSonu;
 
     html += `<div class="bolum-baslik">🚌 ${escapeHtml(servis.servisAdi || 'Servis')}
       ${servis.guzergah ? ` — <span style="font-weight:400">${escapeHtml(servis.guzergah)}</span>` : ''}
@@ -803,49 +801,185 @@ function _raporServisOturmaGoster(servisIdFiltre) {
       &nbsp;|&nbsp; Durum: ${escapeHtml(servis.durum || 'Aktif')}
     </p>`;
 
-    if (plan && plan.yerlesim && plan.yerlesim.length) {
-      const aktifYer = plan.yerlesim.filter(y => y.aktif !== false && !y.soforYani);
-      const kapasite = aktifYer.length;
-      const dolu    = (plan.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
-      const rezerve = (plan.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
+    // Plan varsa kullan, yoksa varsayılan ducato şablonu oluştur
+    const gecerliPlan = (plan && plan.yerlesim && plan.yerlesim.length)
+      ? plan
+      : {
+          servisId: servis.id,
+          sablon: 'ducato',
+          yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.ducato.yerlesimUret() : [],
+          koltuklar: [],
+        };
 
-      html += `<span class="ozet-kutu">Kapasite: ${kapasite}</span>
-               <span class="ozet-kutu">Dolu: ${dolu}</span>
-               <span class="ozet-kutu">Rezerve: ${rezerve}</span>
-               <span class="ozet-kutu">Boş: ${Math.max(0, kapasite - dolu - rezerve)}</span>`;
+    const aktifYer = gecerliPlan.yerlesim.filter(y => y.aktif !== false && !y.soforYani);
+    const kapasite = aktifYer.length;
+    const dolu     = (gecerliPlan.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
+    const rezerve  = (gecerliPlan.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
+    const bos      = Math.max(0, kapasite - dolu - rezerve);
 
-      // Araç Koltuk Düzeni — her zaman göster
-      html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
+    if (!plan || !plan.yerlesim || !plan.yerlesim.length) {
+      html += `<p style="font-size:10px;color:#888;padding:0 0 4px 8px;">⚠️ Oturma planı henüz oluşturulmamış — varsayılan Ducato (2+1) şablonu gösteriliyor.</p>`;
+    }
 
-    } else {
-      // Oturma planı oluşturulmamış — varsayılan Ducato (2+1) boş şablon bas
-      html += `<p style="font-size:10px;color:#888;padding:0 0 6px 8px;">
-        Oturma planı henüz oluşturulmamış. Varsayılan Ducato (2+1) şablonu boş olarak gösteriliyor.
-      </p>`;
+    html += `<span class="ozet-kutu">Kapasite: ${kapasite}</span>
+             <span class="ozet-kutu">Dolu: ${dolu}</span>
+             <span class="ozet-kutu">Rezerve: ${rezerve}</span>
+             <span class="ozet-kutu">Boş: ${bos}</span>`;
 
-      const varsayilanPlan = {
-        servisId: servis.id,
-        sablon: 'ducato',
-        yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.ducato.yerlesimUret() : [],
-        koltuklar: [],
-      };
-      const kapasiteVars = varsayilanPlan.yerlesim.length;
-
-      html += `<span class="ozet-kutu">Kapasite: ${kapasiteVars}</span>
-               <span class="ozet-kutu">Dolu: 0</span>
-               <span class="ozet-kutu">Rezerve: 0</span>
-               <span class="ozet-kutu">Boş: ${kapasiteVars}</span>`;
-
-      if (kapasiteVars) {
-        html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, varsayilanPlan) : '';
-      }
+    if (typeof soRaporGovdeHtml === 'function' && gecerliPlan.yerlesim.length) {
+      html += soRaporGovdeHtml(servis, gecerliPlan);
     }
   });
 
   _raporPenceresiniAc(html, '🚌 Servis Oturma Planı');
 }
 
-/* _soRaporGovdeHtml → servis-oturma.js içindeki soRaporGovdeHtml'e taşındı (v3.1) */
+
+/* ================================================================
+   SINIF LİSTESİ RAPORU — siniflar.js detay panelinden çağrılır
+   Alan seçimi checkbox + serbest özel sütun desteği
+   ================================================================ */
+function sinifListesiRaporu(sinifId) {
+  const s = siniflar.find(x => x.id === sinifId);
+  if (!s) { toast('Sınıf bulunamadı.'); return; }
+
+  const sabitAlanlar = [
+    { id: 'sira',       etiket: 'Sıra No',    varsayilan: true  },
+    { id: 'ogrenciNo',  etiket: 'Öğrenci No', varsayilan: true  },
+    { id: 'ogrenciAdi', etiket: 'Öğrenci Adı',varsayilan: true  },
+    { id: 'cinsiyet',   etiket: 'Cinsiyet',   varsayilan: false },
+    { id: 'veliAdi',    etiket: 'Veli Adı',   varsayilan: true  },
+    { id: 'yakinlik',   etiket: 'Yakınlık',   varsayilan: false },
+    { id: 'telefon1',   etiket: 'Telefon 1',  varsayilan: true  },
+    { id: 'telefon2',   etiket: 'Telefon 2',  varsayilan: false },
+    { id: 'telefon3',   etiket: 'Telefon 3',  varsayilan: false },
+    { id: 'adres',      etiket: 'Adres',      varsayilan: false },
+    { id: 'servis',     etiket: 'Servis',     varsayilan: false },
+    { id: 'not',        etiket: 'Not',        varsayilan: false },
+  ];
+
+  const alanlarHtml = sabitAlanlar.map(a => `
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 0;border-bottom:1px solid #f3f4f6;">
+      <input type="checkbox" class="sl-alan-cb" data-id="${a.id}" ${a.varsayilan ? 'checked' : ''}
+             style="width:16px;height:16px;accent-color:#0A6E6E;cursor:pointer;flex-shrink:0;">
+      <span style="font-size:13px;">${a.etiket}</span>
+    </label>`).join('');
+
+  const modalIcerik = `
+    <p style="margin:0 0 12px;font-size:13px;color:var(--ink-muted);">
+      <strong>${escapeHtml(s.ad)}</strong> sınıfı için rapor yapılandırın.
+    </p>
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:#374151;">📋 Gösterilecek Alanlar</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">
+        ${alanlarHtml}
+      </div>
+    </div>
+    <div>
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px;color:#374151;">
+        ➕ Özel Sütunlar
+        <span style="font-size:11px;font-weight:400;color:var(--ink-muted);"> — elle doldurulacak boş sütun</span>
+      </div>
+      <div id="sl-ozel-liste" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_slOzelSutunEkle()">➕ Sütun Ekle</button>
+    </div>
+  `;
+
+  _raporModalAc(`📋 ${escapeHtml(s.ad)} — Sınıf Listesi Raporu`, modalIcerik, () => {
+    const seciliAlanlar = {};
+    document.querySelectorAll('.sl-alan-cb').forEach(cb => {
+      seciliAlanlar[cb.dataset.id] = cb.checked;
+    });
+    const ozelSutunlar = [];
+    document.querySelectorAll('.sl-ozel-input').forEach(inp => {
+      const v = inp.value.trim();
+      if (v) ozelSutunlar.push(v);
+    });
+    modalKapat();
+    _sinifListesiRaporuGoster(s, seciliAlanlar, ozelSutunlar);
+  });
+}
+
+function _slOzelSutunEkle() {
+  const liste = document.getElementById('sl-ozel-liste');
+  if (!liste) return;
+  liste.insertAdjacentHTML('beforeend', `
+    <div class="sl-ozel-satir" style="display:flex;gap:6px;align-items:center;">
+      <input type="text" class="sl-ozel-input"
+             placeholder="Sütun adı (örn: Kan Grubu)"
+             style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+      <button type="button" class="btn btn-ghost btn-xs"
+              onclick="this.closest('.sl-ozel-satir').remove()">🗑️</button>
+    </div>`);
+  const inputs = liste.querySelectorAll('.sl-ozel-input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function _sinifListesiRaporuGoster(s, seciliAlanlar, ozelSutunlar) {
+  const ogrenciler = veliler
+    .filter(v => v.sinifId === s.id)
+    .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+
+  let thHtml = '';
+  if (seciliAlanlar.sira)       thHtml += '<th style="width:28px;">#</th>';
+  if (seciliAlanlar.ogrenciNo)  thHtml += '<th>Öğrenci No</th>';
+  if (seciliAlanlar.ogrenciAdi) thHtml += '<th>Öğrenci Adı Soyadı</th>';
+  if (seciliAlanlar.cinsiyet)   thHtml += '<th style="width:52px;">Cinsiyet</th>';
+  if (seciliAlanlar.veliAdi)    thHtml += '<th>Veli Adı</th>';
+  if (seciliAlanlar.yakinlik)   thHtml += '<th style="width:60px;">Yakınlık</th>';
+  if (seciliAlanlar.telefon1)   thHtml += '<th>Telefon 1</th>';
+  if (seciliAlanlar.telefon2)   thHtml += '<th>Telefon 2</th>';
+  if (seciliAlanlar.telefon3)   thHtml += '<th>Telefon 3</th>';
+  if (seciliAlanlar.adres)      thHtml += '<th>Adres</th>';
+  if (seciliAlanlar.servis)     thHtml += '<th>Servis</th>';
+  if (seciliAlanlar.not)        thHtml += '<th>Not</th>';
+  ozelSutunlar.forEach(ad => thHtml += `<th>${escapeHtml(ad)}</th>`);
+
+  let tbodyHtml = '';
+  ogrenciler.forEach((v, i) => {
+    const servisObj = (typeof servisler !== 'undefined') ? servisler.find(sv => sv.id === v.servisId) : null;
+    const servisAdi = servisObj ? servisObj.servisAdi : (v.servisAdi || '—');
+    tbodyHtml += '<tr>';
+    if (seciliAlanlar.sira)       tbodyHtml += `<td>${i + 1}</td>`;
+    if (seciliAlanlar.ogrenciNo)  tbodyHtml += `<td>${escapeHtml(v.ogrenciNo || '—')}</td>`;
+    if (seciliAlanlar.ogrenciAdi) tbodyHtml += `<td>${escapeHtml(v.ogrenciAdi || '—')}</td>`;
+    if (seciliAlanlar.cinsiyet)   tbodyHtml += `<td>${escapeHtml(v.cinsiyet || '—')}</td>`;
+    if (seciliAlanlar.veliAdi)    tbodyHtml += `<td>${escapeHtml(v.veliAdi || '—')}</td>`;
+    if (seciliAlanlar.yakinlik)   tbodyHtml += `<td>${escapeHtml(v.yakinlik1 || v.yakinlik || '—')}</td>`;
+    if (seciliAlanlar.telefon1)   tbodyHtml += `<td>${escapeHtml(v.telefon1 || v.telefon || '—')}</td>`;
+    if (seciliAlanlar.telefon2)   tbodyHtml += `<td>${escapeHtml(v.telefon2 || '—')}</td>`;
+    if (seciliAlanlar.telefon3)   tbodyHtml += `<td>${escapeHtml(v.telefon3 || '—')}</td>`;
+    if (seciliAlanlar.adres)      tbodyHtml += `<td>${escapeHtml(v.adres || '—')}</td>`;
+    if (seciliAlanlar.servis)     tbodyHtml += `<td>${escapeHtml(servisAdi)}</td>`;
+    if (seciliAlanlar.not)        tbodyHtml += `<td>${escapeHtml(v.notlar || '')}</td>`;
+    ozelSutunlar.forEach(() => tbodyHtml += '<td></td>');
+    tbodyHtml += '</tr>';
+  });
+
+  if (!tbodyHtml) {
+    tbodyHtml = `<tr><td colspan="20" style="text-align:center;color:#888;padding:12px;">Bu sınıfta kayıtlı öğrenci yok.</td></tr>`;
+  }
+
+  const kizSayisi   = ogrenciler.filter(v => v.cinsiyet === 'Kız').length;
+  const erkekSayisi = ogrenciler.filter(v => v.cinsiyet === 'Erkek').length;
+  const sinifObj    = siniflar.find(x => x.id === s.id);
+  const ogretmenStr = sinifObj ? sinifOgretmeniAdi(sinifObj) : '—';
+
+  const html = `
+    <div style="margin-bottom:10px;">
+      <span class="ozet-kutu">👩‍🏫 ${escapeHtml(ogretmenStr)}</span>
+      <span class="ozet-kutu">Toplam: ${ogrenciler.length} öğrenci</span>
+      ${kizSayisi   ? `<span class="ozet-kutu" style="border-color:#f9a8d4;color:#be185d;">Kız: ${kizSayisi}</span>` : ''}
+      ${erkekSayisi ? `<span class="ozet-kutu" style="border-color:#93c5fd;color:#1d4ed8;">Erkek: ${erkekSayisi}</span>` : ''}
+    </div>
+    <table>
+      <thead><tr>${thHtml}</tr></thead>
+      <tbody>${tbodyHtml}</tbody>
+    </table>`;
+
+  _raporPenceresiniAc(html, `📋 ${s.ad} — Sınıf Listesi`);
+}
+
 function _soRaporGovdeHtml_KALDIRILDI(servis, plan) {
   const kapasite   = plan.kapasite   || 14;
   const siraSayisi = plan.siraSayisi || 7;

@@ -729,20 +729,25 @@ function renderOturmaServisler() {
     const dolu      = (plan?.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
     const rezerve   = (plan?.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
     const bos       = Math.max(0, toplam - dolu - rezerve);
-    return `<div class="oturma-servis-kart" onclick="servisOturmaModalAc('${s.id}')">
-      <div style="flex:1;">
+    return `<div class="oturma-servis-kart" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);" onclick="servisOturmaModalAc('${s.id}')">
+      <div style="flex:1;min-width:0;">
         <strong>${escapeHtml(s.servisAdi || 'Servis')}</strong>
         <span class="badge badge-${s.durum === 'Pasif' ? 'gray' : 'sage'}" style="margin-left:6px;">${escapeHtml(s.durum || 'Aktif')}</span>
         ${sablonObj ? `<span style="margin-left:6px;font-size:12px;color:#6b7280;">${sablonObj.ikon} ${sablonObj.ad}</span>` : ''}
         ${s.plaka ? `<span style="margin-left:6px;font-size:12px;color:#6b7280;">🚘 ${escapeHtml(s.plaka)}</span>` : ''}
-        <div class="oturma-servis-ozet">
+        <div class="oturma-servis-ozet" style="font-size:12px;color:#6b7280;margin-top:3px;">
           ${s.guzergah ? escapeHtml(s.guzergah) + ' · ' : ''}
           ${plan ? `${toplam} koltuk · 🟢 ${dolu} dolu · ⬜ ${bos} boş · 🔵 ${rezerve} rezerve` : 'Oturma planı henüz oluşturulmadı'}
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();servisOturmaModalAc('${s.id}')">
-        💺 ${plan ? 'Düzenle' : 'Oluştur'}
-      </button>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();servisOturmaModalAc('${s.id}')">
+          💺 ${plan ? 'Düzenle' : 'Oluştur'}
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();servisYolcuListesiRaporu('${s.id}')">
+          👥 Yolcu Listesi
+        </button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1012,74 +1017,53 @@ function soRaporGovdeHtml(servis, plan) {
 
 
 /* ================================================================
-   YOLCU LİSTESİ RAPORU — Servis öğrenci listesi, veli iletişim bilgileriyle
+   YOLCU LİSTESİ RAPORU
    ================================================================ */
 function servisYolcuListesiRaporu(servisId) {
   const servis = servisler.find(x => x.id === servisId);
   const plan   = servisOturmaPlani.find(p => p.servisId === servisId);
   if (!servis) return;
 
-  // Dolu koltukları sıraya göre sırala
   const koltuklar = (plan?.koltuklar || [])
     .filter(k => k.ogrenciId || k.ogrenciAdi)
     .sort((a, b) => (a.no || 0) - (b.no || 0));
 
-  if (!koltuklar.length) {
-    toast('Bu serviste atanmış öğrenci yok.');
-    return;
-  }
+  if (!koltuklar.length) { toast('Bu serviste atanmış öğrenci yok.'); return; }
 
-  // Her koltuk için veli verisini eşleştir
-  const satirlar = koltuklar.map((k, i) => {
-    const v = k.ogrenciId ? veliler.find(x => x.id === k.ogrenciId) : null;
+  const satirlar = koltuklar.map((k) => {
+    const v        = k.ogrenciId ? veliler.find(x => x.id === k.ogrenciId) : null;
     const sinifObj = v ? siniflar.find(s => s.id === v.sinifId) : null;
-    const sinifAdi = sinifObj ? sinifObj.ad : '—';
-    const veliAdi  = v ? (v.veliAdi || '—') : '—';
-    const tel1     = v ? (v.telefon1 || v.telefon || '—') : '—';
-    const tel2     = v ? (v.telefon2 || '') : '';
-    const tel3     = v ? (v.telefon3 || '') : '';
-    const adres    = v ? (v.adres || '—') : '—';
-    const telefonlar = [tel1, tel2, tel3].filter(t => t && t !== '—').join(' / ') || '—';
-
+    const telefonlar = [v?.telefon1 || v?.telefon, v?.telefon2, v?.telefon3]
+      .filter(Boolean).join(' / ') || '—';
     return `<tr>
-      <td style="text-align:center;">${k.no}</td>
+      <td style="text-align:center;width:28px;">${k.no}</td>
       <td><strong>${escapeHtml(k.ogrenciAdi || v?.ogrenciAdi || '—')}</strong></td>
-      <td>${escapeHtml(sinifAdi)}</td>
-      <td>${escapeHtml(veliAdi)}</td>
+      <td style="width:46px;">${escapeHtml(sinifObj?.ad || '—')}</td>
+      <td>${escapeHtml(v?.veliAdi || '—')}</td>
       <td>${escapeHtml(telefonlar)}</td>
-      <td style="font-size:9px;">${escapeHtml(adres)}</td>
+      <td style="font-size:9px;">${escapeHtml(v?.adres || '—')}</td>
     </tr>`;
   }).join('');
 
-  const dolu    = koltuklar.length;
   const aktifYer = (plan?.yerlesim || []).filter(y => y.aktif !== false && !y.soforYani);
-  const kapasite = aktifYer.length;
 
   const html = `
     <div style="margin-bottom:10px;">
       <span class="ozet-kutu">🚌 ${escapeHtml(servis.servisAdi)}</span>
       ${servis.plaka ? `<span class="ozet-kutu">🚘 ${escapeHtml(servis.plaka)}</span>` : ''}
-      ${servis.soforAdi ? `<span class="ozet-kutu">Şoför: ${escapeHtml(servis.soforAdi)}${servis.soforTelefon ? ' · 📞 ' + escapeHtml(servis.soforTelefon) : ''}</span>` : ''}
+      ${servis.soforAdi ? `<span class="ozet-kutu">Şoför: ${escapeHtml(servis.soforAdi)}${servis.soforTelefon ? ' 📞 ' + escapeHtml(servis.soforTelefon) : ''}</span>` : ''}
       ${servis.guzergah ? `<span class="ozet-kutu">📍 ${escapeHtml(servis.guzergah)}</span>` : ''}
-      <span class="ozet-kutu">Dolu: ${dolu} / ${kapasite}</span>
+      <span class="ozet-kutu">Dolu: ${koltuklar.length} / ${aktifYer.length}</span>
     </div>
     <table>
-      <thead>
-        <tr>
-          <th style="width:28px;">Koltuk</th>
-          <th>Öğrenci Adı</th>
-          <th style="width:46px;">Sınıf</th>
-          <th>Veli Adı</th>
-          <th>Telefon</th>
-          <th>Adres</th>
-        </tr>
-      </thead>
+      <thead><tr>
+        <th>Koltuk</th><th>Öğrenci Adı</th><th>Sınıf</th>
+        <th>Veli Adı</th><th>Telefon</th><th>Adres</th>
+      </tr></thead>
       <tbody>${satirlar}</tbody>
-    </table>
-  `;
+    </table>`;
 
   if (typeof _raporPenceresiniAc === 'function') {
     _raporPenceresiniAc(html, `👥 ${servis.servisAdi} — Yolcu Listesi`, { logoGoster: true });
   }
 }
-
