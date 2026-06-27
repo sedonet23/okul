@@ -581,7 +581,6 @@ function tatilModuKartlariniUygula(){
   const tatil = dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu;
   document.querySelectorAll('.tatil-gizle').forEach(el=>{
     el.style.display = tatil ? 'none' : '';
-    el.style.visibility = tatil ? 'hidden' : '';
   });
   // dash-cols container'larını da güncelle (flex display override'ı için)
   if(tatil){
