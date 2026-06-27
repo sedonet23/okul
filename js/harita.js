@@ -267,11 +267,18 @@ async function haritaCizgiGuncelle() {
         { color: '#f59e0b', weight: 4, opacity: 0.8, dashArray: '8,4' }
       ).addTo(haritaOrnek);
     } else {
-      _osrmToplamMesafe = data.routes[0].distance; // metre
-      // GeoJSON polyline çiz
-      haritaPolyline = L.geoJSON(data.routes[0].geometry, {
-        style: { color: '#2196F3', weight: 5, opacity: 0.85 }
+      _osrmToplamMesafe = data.routes[0].distance;
+      // GeoJSON koordinatlarını [lat,lng] dizisine çevir
+      const rotaNoktalar = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      haritaPolyline = L.polyline(rotaNoktalar, {
+        color: '#2196F3', weight: 5, opacity: 0.85
       }).addTo(haritaOrnek);
+
+      // Çizgiye tıklayınca ara nokta ekle
+      haritaPolyline.on('click', e => {
+        L.DomEvent.stopPropagation(e);
+        haritaAraNokataEkle(e.latlng.lat, e.latlng.lng);
+      });
     }
   } catch (e) {
     console.warn('OSRM hatası:', e);
@@ -605,3 +612,78 @@ function haritaTamEkran() {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && _haritaTamEkranAktif) haritaTamEkran();
 });
+
+/* ================================================================
+   ARA NOKTA — Çizgiye tıklayarak güzergahı farklı yola çek
+   ================================================================ */
+function haritaAraNokataEkle(lat, lng) {
+  // En yakın iki nokta arasına sıraya ekle
+  if (haritaKoordinatlar.length < 2) return;
+
+  let enYakinIdx = 0;
+  let enYakinMesafe = Infinity;
+  const tiklanenL = L.latLng(lat, lng);
+
+  for (let i = 0; i < haritaKoordinatlar.length - 1; i++) {
+    const a = L.latLng(haritaKoordinatlar[i].lat, haritaKoordinatlar[i].lng);
+    const b = L.latLng(haritaKoordinatlar[i+1].lat, haritaKoordinatlar[i+1].lng);
+    // Segment orta noktasına mesafe
+    const orta = L.latLng((a.lat+b.lat)/2, (a.lng+b.lng)/2);
+    const d = tiklanenL.distanceTo(orta);
+    if (d < enYakinMesafe) { enYakinMesafe = d; enYakinIdx = i; }
+  }
+
+  // Ara nokta olduğunu belirt (farklı renk)
+  const sira = enYakinIdx + 2; // araya girdiği pozisyon
+  const marker = L.marker([lat, lng], {
+    draggable: true,
+    icon: haritaAraNokIkon(),
+  }).addTo(haritaOrnek);
+
+  marker.bindPopup(`
+    <div style="min-width:130px;">
+      <strong>Ara Nokta</strong><br>
+      <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small><br>
+      <button onclick="haritaNoktaSil(${enYakinIdx + 1})"
+        style="margin-top:6px;padding:3px 10px;background:#e53e3e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;">
+        🗑 Sil
+      </button>
+    </div>`
+  ).openPopup();
+
+  marker.on('dragend', e => {
+    const idx = haritaMarkerlar.indexOf(marker);
+    if (idx === -1) return;
+    const pos = e.target.getLatLng();
+    haritaKoordinatlar[idx].lat = pos.lat;
+    haritaKoordinatlar[idx].lng = pos.lng;
+    haritaCizgiGuncelle();
+  });
+
+  // Listeye ve marker dizisine sıraya ekle
+  haritaKoordinatlar.splice(enYakinIdx + 1, 0, { lat, lng, ad: 'Ara Nokta' });
+  haritaMarkerlar.splice(enYakinIdx + 1, 0, marker);
+
+  // Tüm marker numaralarını güncelle
+  haritaMarkerlar.forEach((m, i) => m.setIcon(
+    haritaKoordinatlar[i].ad === 'Ara Nokta' ? haritaAraNokIkon(i+1) : haritaOzelIkon(i+1)
+  ));
+
+  haritaCizgiGuncelle();
+  haritaBilgiGuncelle();
+}
+
+function haritaAraNokIkon(numara) {
+  return L.divIcon({
+    className: '',
+    html: `<div style="
+      background:#ff9800;color:#fff;font-weight:700;font-size:11px;
+      width:22px;height:22px;border-radius:50%;display:flex;
+      align-items:center;justify-content:center;
+      border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,0.3);">
+      ${numara || '·'}
+    </div>`,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
