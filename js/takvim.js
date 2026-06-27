@@ -123,7 +123,7 @@ function takvimGridRender(){
 
     // Periyodik işler (başlangıç veya bitiş bu gün)
     const periyodikBuGun = (typeof periyodikIsler !== 'undefined' ? periyodikIsler : [])
-      .filter(p => !p.tamamlandi && (p.baslangicTarihi === isoGun || p.bitisTarihi === isoGun));
+      .filter(p => !p.tamamlandi && (p.baslangic === isoGun || p.bitis === isoGun));
 
     let noktaHtml = '';
     if(etkinlikler.length){
@@ -145,7 +145,7 @@ function takvimGridRender(){
     if(periyodikBuGun.length){
       noktaHtml += `<div class="takvim-nokta-satir">`;
       periyodikBuGun.slice(0,3).forEach(p=>{
-        noktaHtml += `<span class="takvim-nokta periyodik-nokta" title="${escapeHtml(p.baslik||p.ad||'Periyodik')}"></span>`;
+        noktaHtml += `<span class="takvim-nokta periyodik-nokta" title="${escapeHtml(p.isAdi||'Periyodik')}"></span>`;
       });
       if(periyodikBuGun.length>3) noktaHtml += `<span class="takvim-nokta-sayi">+${periyodikBuGun.length-3}</span>`;
       noktaHtml += `</div>`;
@@ -199,14 +199,19 @@ function takvimAjandaRender(){
     }
   });
 
-  // Periyodik işler — başlangıç ve bitiş tarihleri
+  // Periyodik işler — başlangıç ve bitiş tarihleri + gecikmiş olanlar
   (typeof periyodikIsler !== 'undefined' ? periyodikIsler : []).forEach(p=>{
     if(p.tamamlandi) return;
-    if(p.baslangicTarihi && p.baslangicTarihi >= bugunISO && p.baslangicTarihi <= bitisISO){
-      satirlar.push({ iso: p.baslangicTarihi, tip: 'periyodik', obj: p, altTip: 'baslangic' });
+    if(p.baslangic && p.baslangic >= bugunISO && p.baslangic <= bitisISO){
+      satirlar.push({ iso: p.baslangic, tip: 'periyodik', obj: p, altTip: 'baslangic' });
     }
-    if(p.bitisTarihi && p.bitisTarihi >= bugunISO && p.bitisTarihi <= bitisISO){
-      satirlar.push({ iso: p.bitisTarihi, tip: 'periyodik', obj: p, altTip: 'bitis' });
+    if(p.bitis && p.bitis >= bugunISO && p.bitis <= bitisISO){
+      // baslangic ile aynı tarihse tekrar ekleme
+      if(p.bitis !== p.baslangic) satirlar.push({ iso: p.bitis, tip: 'periyodik', obj: p, altTip: 'bitis' });
+    }
+    // Bitiş tarihi geçmişte ama tamamlanmamış — bugün göster
+    if(p.bitis && p.bitis < bugunISO){
+      satirlar.push({ iso: bugunISO, tip: 'periyodik', obj: p, altTip: 'gecmis' });
     }
   });
 
@@ -223,9 +228,9 @@ function takvimAjandaRender(){
   const yarin = new Date(bugun); yarin.setDate(yarin.getDate()+1);
   const yarinISO = `${yarin.getFullYear()}-${_pad2(yarin.getMonth()+1)}-${_pad2(yarin.getDate())}`;
   const acilPeriyodik = (typeof periyodikIsler!=='undefined'?periyodikIsler:[])
-    .filter(p=>!p.tamamlandi && p.bitisTarihi && (p.bitisTarihi===bugunISO||p.bitisTarihi===yarinISO));
+    .filter(p=>!p.tamamlandi && p.bitis && (p.bitis===bugunISO||p.bitis===yarinISO));
   if(acilPeriyodik.length){
-    html += `<div class="periyodik-uyari-banner">⚡ <strong>${acilPeriyodik.length} görevin</strong> teslim tarihi bugün veya yarın: ${acilPeriyodik.map(p=>escapeHtml(p.baslik||p.ad||'—')).join(', ')}</div>`;
+    html += `<div class="periyodik-uyari-banner">⚡ <strong>${acilPeriyodik.length} görevin</strong> teslim tarihi bugün veya yarın: ${acilPeriyodik.map(p=>escapeHtml(p.isAdi||'—')).join(', ')}</div>`;
   }
 
   Object.keys(gruplar).sort().forEach(iso=>{
@@ -260,12 +265,18 @@ function takvimAjandaRender(){
         </div>`;
       } else if(s.tip==='periyodik'){
         const p = s.obj;
-        const acil = p.bitisTarihi===bugunISO||p.bitisTarihi===yarinISO;
-        html += `<div class="ajanda-satir ajanda-periyodik${acil?' ajanda-periyodik-acil':''}">
+        const acil = p.bitis===bugunISO||p.bitis===yarinISO;
+        const gecmis = s.altTip==='gecmis';
+        const metaMetin = gecmis
+          ? `⚠️ Gecikmiş — Teslim: ${_trFormatTarih(p.bitis)}`
+          : s.altTip==='baslangic'
+            ? `Başlangıç: ${_trFormatTarih(s.iso)}${p.bitis?' · Teslim: '+_trFormatTarih(p.bitis):''}`
+            : `Teslim: ${_trFormatTarih(s.iso)}`;
+        html += `<div class="ajanda-satir ajanda-periyodik${acil||gecmis?' ajanda-periyodik-acil':''}">
           <span class="ajanda-tip-ikon">🔄</span>
           <div class="ajanda-icerik">
-            <div class="ajanda-baslik">${escapeHtml(p.baslik||p.ad||'Periyodik İş')} ${acil?'<span class="periyodik-pulse">●</span>':''}</div>
-            <div class="ajanda-meta">${s.altTip==='baslangic'?'Başlangıç':'Teslim'}: ${_trFormatTarih(s.iso)}</div>
+            <div class="ajanda-baslik">${escapeHtml(p.isAdi||'Periyodik İş')} ${acil||gecmis?'<span class="periyodik-pulse">●</span>':''}</div>
+            <div class="ajanda-meta">${metaMetin}</div>
           </div>
           <button class="btn btn-ghost btn-sm" onclick="sekmeAc('periyodikIsler')">Git</button>
         </div>`;

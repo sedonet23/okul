@@ -110,6 +110,7 @@ function periyodikBaglantilariKur(){
   db.collection(COL.periyodikIsler).onSnapshot(s=>{
     periyodikIsler = s.docs.map(d=>({id:d.id,...d.data()}));
     renderPeriyodikIsler();
+    if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle();
   }, hataGoster);
   db.collection(COL.periyodikSablon).doc('sablon').onSnapshot(doc=>{
     periyodikSablonu = doc.exists ? (doc.data().gorevler||[]) : [];
