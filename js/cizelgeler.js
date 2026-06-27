@@ -23,6 +23,7 @@ function _ogretmenListesiHtml(seciliIdler, inputId){
 function _secilenIdler(inputId){ return Array.from(document.querySelectorAll(`#${inputId} input[type=checkbox]:checked`)).map(el=>el.value); }
 function _ilerlemeHtml(tamam,toplam){ const y=toplam?Math.round(tamam/toplam*100):0; return `<span class="belge-ilerleme-metin">${tamam}/${toplam}</span><div class="belge-ilerleme-bar"><div class="belge-ilerleme-ic" style="width:${y}%"></div></div>`; }
 const DONEM_ETIKETLER=['1. Dönem','2. Dönem','Yıl Sonu'];
+const KULUP_KONTROLLER=['Yıllık Plan','Toplum Hizm. Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','Sene Sonu Rap.'];
 const AYLAR_TR=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function _donemTikleriHtml(tip,id,k3){
@@ -39,7 +40,7 @@ function _tekTikHtml(tip,id,k1){
 function belgeKontrolToggle(tip,id,index,deger){
   const liste=tip==='belirliGunler'?belirliGunlerListesi:(cizelgeVerileri[tip]||[]);
   const kayit=liste.find(x=>x.id===id); if(!kayit) return;
-  const uzunluk=tip==='maarifRapor'?10:tip==='belirliGunler'?1:3;
+  const uzunluk=tip==='maarifRapor'?10:tip==='belirliGunler'?1:tip==='sosyalKulupler'?12:3;
   const kontroller=[...(kayit.kontroller||Array(uzunluk).fill(false))];
   while(kontroller.length<uzunluk) kontroller.push(false);
   kontroller[index]=deger;
@@ -89,7 +90,7 @@ function sosyalKulupModalAc(id){
   modalAc(k?'Kulüp Düzenle':'Yeni Kulüp',body,()=>{
     const ad=document.getElementById('f_kulupAdi').value.trim();
     if(!ad){toast('Kulüp adı zorunludur.');return;}
-    kaydet(COL.sosyalKulupler,k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||[false,false,false]):[false,false,false]});
+    kaydet(COL.sosyalKulupler,k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)});
     modalKapat();
   },k?()=>{if(confirm('Bu kulübü silmek istiyor musunuz?')){db.collection(COL.sosyalKulupler).doc(k.id).delete();modalKapat();}}:null);
 }
@@ -99,8 +100,8 @@ function renderSosyalKuluplerListesi(){ renderCizelge('sosyalKulupler'); }
 function _renderSosyalKulupler(el,veri){
   if(!veri.length){el.innerHTML='<p class="empty-state">Henüz kulüp eklenmedi.</p>';return;}
   el.innerHTML=`<div class="kulup-grid">${veri.map(k=>{
-    const k3=k.kontroller||[false,false,false];
-    const t=k3.filter(Boolean).length;
+    const k12=[...(k.kontroller||[])]; while(k12.length<12) k12.push(false);
+    const t=k12.filter(Boolean).length;
     return `<div class="kulup-kart ${k.aktif===false?'kulup-pasif':''}" id="belge-${k.id}">
       <div class="kulup-kart-baslik">
         <span>${escapeHtml(k.ad)}</span>
@@ -108,10 +109,15 @@ function _renderSosyalKulupler(el,veri){
       </div>
       <div class="kulup-ogretmenler">${k.ogretmenIdler&&k.ogretmenIdler.length?k.ogretmenIdler.map(id=>`<span class="ogr-badge">${escapeHtml(_ogretmenAdi(id))}</span>`).join(''):'<span style="color:var(--ink-muted);font-size:12px;">Öğretmen atanmadı</span>'}</div>
       <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
-        <span class="belge-mini-sayac ${t===3?'tamam':t>0?'kismi':''}">${t}/3</span>
+        <span class="belge-mini-sayac ${t===12?'tamam':t>0?'kismi':''}">${t}/12</span>
         <button class="btn btn-ghost btn-sm" onclick="sosyalKulupModalAc('${k.id}')">Düzenle</button>
       </div>
-      ${_donemTikleriHtml('sosyalKulupler',k.id,k3)}
+      <div class="belge-kontroller">${KULUP_KONTROLLER.map((ad,i)=>`
+        <label class="belge-kontrol-item ${k12[i]?'tamamlandi':''}">
+          <input type="checkbox" ${k12[i]?'checked':''} onchange="belgeKontrolToggle('sosyalKulupler','${k.id}',${i},this.checked)">
+          <span>${ad}</span>
+        </label>`).join('')}
+      </div>
     </div>`;
   }).join('')}</div>`;
 }
@@ -401,8 +407,15 @@ function renderOgretmenBelgeDurumu(ogretmenId){
   if(kuluplar.length){
     html+=`<div class="belge-grup-baslik">🎭 Sosyal Kulüpler</div>`;
     kuluplar.forEach(k=>{
-      const k3=k.kontroller||[false,false,false];const t=k3.filter(Boolean).length;
-      html+=`<div class="belge-kayit" id="belge-${k.id}" style="margin-bottom:6px;"><div class="belge-kayit-baslik"><span class="belge-kayit-ozet">${escapeHtml(k.ad)}</span><span class="belge-mini-sayac ${t===3?'tamam':t>0?'kismi':''}">${t}/3</span></div>${_donemTikleriHtml('sosyalKulupler',k.id,k3)}</div>`;
+      const k12=[...(k.kontroller||[])]; while(k12.length<12) k12.push(false);
+      const t=k12.filter(Boolean).length;
+      html+=`<div class="belge-kayit" id="belge-${k.id}" style="margin-bottom:6px;">
+        <div class="belge-kayit-baslik">
+          <span class="belge-kayit-ozet">${escapeHtml(k.ad)}</span>
+          <span class="belge-mini-sayac ${t===12?'tamam':t>0?'kismi':''}">${t}/12</span>
+        </div>
+        <div class="belge-kontroller">${KULUP_KONTROLLER.map((ad,i)=>`<label class="belge-kontrol-item ${k12[i]?'tamamlandi':''}"><input type="checkbox" ${k12[i]?'checked':''} onchange="belgeKontrolToggle('sosyalKulupler','${k.id}',${i},this.checked)"><span>${ad}</span></label>`).join('')}</div>
+      </div>`;
     });
   }
 
