@@ -372,11 +372,117 @@ function dersModalAc(gun, saat, mevcut){
 
 /* Nöbet Programı: bkz. js/nobet.js (tarih bazlı aylık modül) */
 
-/* hatirlaticiFiltreSec, renderHatirlaticilar, hatirlaticiTamamlandiToggle, hatirlaticiModalAc
-   → takvim.js dosyasına taşındı */
+/* ============== HATIRLATICILAR ============== */
+function hatirlaticiFiltreSec(f){
+  hatirlaticiFiltre = f;
+  document.querySelectorAll('#tab-hatirlaticilar .filtre-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+  renderHatirlaticilar();
+}
+function renderHatirlaticilar(){
+  let liste = [...hatirlaticilar];
+  if(hatirlaticiFiltre==='bekleyen') liste = liste.filter(h=>!h.tamamlandi);
+  if(hatirlaticiFiltre==='tamamlanan') liste = liste.filter(h=>h.tamamlandi);
+  liste.sort((a,b)=>(a.tarih+(a.saat||'')).localeCompare(b.tarih+(b.saat||'')));
+  const bugun = todayISO();
+  document.getElementById('hatirlaticiListesi').innerHTML = liste.length ? liste.map(h=>{
+    const gecikmis = !h.tamamlandi && h.tarih < bugun;
+    return `<div class="reminder-row ${h.tamamlandi?'done':''} ${gecikmis?'overdue':''}">
+      <input type="checkbox" style="width:auto;" ${h.tamamlandi?'checked':''} onchange="hatirlaticiTamamlandiToggle('${h.id}', this.checked)">
+      <div class="reminder-body">
+        <div class="reminder-title">${escapeHtml(h.baslik)}</div>
+        <div class="reminder-meta">${formatTarih(h.tarih)}${h.saat?' · '+h.saat:''}${h.kategori?' · '+escapeHtml(h.kategori):''}${h.aciklama?' · '+escapeHtml(h.aciklama):''}</div>
+      </div>
+      <span class="badge badge-${oncelikRengi(h.oncelik)}">${escapeHtml(h.oncelik||'Orta')}</span>
+      <button class="btn btn-ghost btn-sm" onclick="hatirlaticiModalAc('${h.id}')">Düzenle</button>
+    </div>`;
+  }).join('') : '<p class="empty-state">Hatırlatıcı bulunamadı.</p>';
+}
+function hatirlaticiTamamlandiToggle(id, deger){ db.collection(COL.hatirlaticilar).doc(id).update({tamamlandi:deger}); }
+function hatirlaticiModalAc(id){
+  const h = id ? hatirlaticilar.find(x=>x.id===id) : null;
+  const body = `
+    <div class="form-group"><label>Başlık</label><input id="f_baslik" value="${h?escapeHtml(h.baslik):''}"></div>
+    <div class="form-group"><label>Tarih</label><input type="date" id="f_tarih" value="${h?h.tarih:todayISO()}"></div>
+    <div class="form-group"><label>Saat (opsiyonel)</label><input type="time" id="f_saat" value="${h&&h.saat?h.saat:''}"></div>
+    <div class="form-group"><label>Öncelik</label><select id="f_oncelik">${ONCELIKLER.map(o=>`<option ${o===(h?h.oncelik:'Orta')?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Açıklama</label><textarea id="f_aciklama" rows="2">${h?escapeHtml(h.aciklama||''):''}</textarea></div>
+    ${h?'<p style="font-size:11.8px;color:var(--text-muted);">Tarih/saat değiştirirseniz push bildirimi tekrar gönderim için sıfırlanır.</p>':''}
+  `;
+  modalAc(h?'Hatırlatıcı Düzenle':'Hatırlatıcı Ekle', body, ()=>{
+    const baslik = document.getElementById('f_baslik').value.trim();
+    const tarih = document.getElementById('f_tarih').value;
+    if(!baslik || !tarih){ toast('Başlık ve tarih zorunludur.'); return; }
+    const saat = document.getElementById('f_saat').value;
+    const tarihSaatDegisti = h && (h.tarih !== tarih || (h.saat||'') !== saat);
+    kaydet(COL.hatirlaticilar, h?h.id:null, {
+      baslik, tarih, saat,
+      oncelik: document.getElementById('f_oncelik').value,
+      aciklama: document.getElementById('f_aciklama').value.trim(),
+      tamamlandi: h ? !!h.tamamlandi : false,
+      bildirimGonderildi: h ? (tarihSaatDegisti ? false : !!h.bildirimGonderildi) : false
+    });
+    modalKapat();
+  }, h ? ()=>{ if(confirm('Bu hatırlatıcıyı silmek istiyor musunuz?')){ db.collection(COL.hatirlaticilar).doc(h.id).delete(); modalKapat(); } } : null);
+}
 
-/* renderGorevler, gorevBirak, gorevModalAc → takvim.js dosyasına taşındı */
-/* gorevTamamlandiMi → takvim.js'de tanımlı */
+/* ============== GÖREVLER ============== */
+function renderGorevler(){
+  const kolonlar = { yapilacak: document.getElementById('kolonYapilacak'), yapiliyor: document.getElementById('kolonYapiliyor'), tamamlandi: document.getElementById('kolonTamamlandi') };
+  Object.values(kolonlar).forEach(k=>k.innerHTML='');
+  const sayac = { yapilacak:0, yapiliyor:0, tamamlandi:0 };
+  const bugun = todayISO();
+  gorevler.forEach(g=>{
+    sayac[g.durum] = (sayac[g.durum]||0) + 1;
+    const gecikmis = g.durum!=='tamamlandi' && g.sonTarih && g.sonTarih < bugun;
+    const div = document.createElement('div');
+    div.className = 'task-card';
+    div.draggable = true;
+    div.addEventListener('dragstart', e=>{ e.dataTransfer.setData('text/plain', g.id); div.classList.add('dragging'); });
+    div.addEventListener('dragend', ()=> div.classList.remove('dragging'));
+    div.innerHTML = `
+      <div class="task-title">${escapeHtml(g.baslik)}</div>
+      ${g.aciklama?`<div class="task-desc">${escapeHtml(g.aciklama)}</div>`:''}
+      <div class="task-meta">
+        <span class="badge badge-${oncelikRengi(g.oncelik)}">${escapeHtml(g.oncelik||'Orta')}</span>
+        ${g.sonTarih?`<span class="task-due ${gecikmis?'overdue':''}">${formatTarih(g.sonTarih)}</span>`:''}
+      </div>
+      <div class="task-actions"><button class="btn btn-ghost btn-sm" onclick="gorevModalAc('${g.id}')">Düzenle</button></div>
+    `;
+    (kolonlar[g.durum]||kolonlar.yapilacak).appendChild(div);
+  });
+  document.getElementById('sayacYapilacak').textContent = sayac.yapilacak||0;
+  document.getElementById('sayacYapiliyor').textContent = sayac.yapiliyor||0;
+  document.getElementById('sayacTamamlandi').textContent = sayac.tamamlandi||0;
+}
+function gorevBirak(e, yeniDurum){
+  e.preventDefault();
+  const id = e.dataTransfer.getData('text/plain');
+  if(id) db.collection(COL.gorevler).doc(id).update({durum:yeniDurum});
+}
+function gorevModalAc(id){
+  const g = id ? gorevler.find(x=>x.id===id) : null;
+  const durumlar = [['yapilacak','Yapılacak'],['yapiliyor','Yapılıyor'],['tamamlandi','Tamamlandı']];
+  const body = `
+    <div class="form-group"><label>Başlık</label><input id="f_baslik" value="${g?escapeHtml(g.baslik):''}"></div>
+    <div class="form-group"><label>Açıklama</label><textarea id="f_aciklama" rows="2">${g?escapeHtml(g.aciklama||''):''}</textarea></div>
+    <div class="form-group"><label>Son Tarih (opsiyonel)</label><input type="date" id="f_sonTarih" value="${g&&g.sonTarih?g.sonTarih:''}"></div>
+    <div class="form-group"><label>Öncelik</label><select id="f_oncelik">${ONCELIKLER.map(o=>`<option ${o===(g?g.oncelik:'Orta')?'selected':''}>${o}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Durum</label><select id="f_durum">${durumlar.map(([v,l])=>`<option value="${v}" ${v===(g?g.durum:'yapilacak')?'selected':''}>${l}</option>`).join('')}</select></div>
+  `;
+  modalAc(g?'Görev Düzenle':'Görev Ekle', body, ()=>{
+    const baslik = document.getElementById('f_baslik').value.trim();
+    if(!baslik){ toast('Başlık zorunludur.'); return; }
+    const sonTarih = document.getElementById('f_sonTarih').value;
+    const sonTarihDegisti = g && (g.sonTarih||'') !== sonTarih;
+    kaydet(COL.gorevler, g?g.id:null, {
+      baslik, aciklama: document.getElementById('f_aciklama').value.trim(),
+      sonTarih, oncelik: document.getElementById('f_oncelik').value,
+      durum: document.getElementById('f_durum').value,
+      bildirimGonderildi: g ? (sonTarihDegisti ? false : !!g.bildirimGonderildi) : false
+    });
+    modalKapat();
+  }, g ? ()=>{ if(confirm('Bu görevi silmek istiyor musunuz?')){ db.collection(COL.gorevler).doc(g.id).delete(); modalKapat(); } } : null);
+}
 
 /* ============== EVRAK TAKİBİ ============== */
 function evrakFiltreSec(f){
@@ -437,8 +543,8 @@ function renderDashboard(){
     <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🏫 ${siniflar.length}</div><div class="stat-chip-label">Sınıf</div></div>
     <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🧑‍🎓 ${toplamOgrenci}</div><div class="stat-chip-label">Öğrenci</div></div>
     <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-chip-num">🚺 ${kadinOgretmen} / 🚹 ${erkekOgretmen}</div><div class="stat-chip-label">Kadın / Erkek Öğretmen</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('takvim')"><div class="stat-chip-num">📌 ${gorevler.filter(g=>!gorevTamamlandiMi(g)).length}</div><div class="stat-chip-label">Açık Görev</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('takvim')"><div class="stat-chip-num">⏰ ${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Etkinlik</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('gorevler')"><div class="stat-chip-num">📌 ${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-chip-label">Açık Görev</div></div>
+    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('hatirlaticilar')"><div class="stat-chip-num">⏰ ${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Hatırlatıcı</div></div>
     <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('evrak')"><div class="stat-chip-num">📄 ${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
   `;
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
@@ -447,10 +553,14 @@ function renderDashboard(){
 
   /* "Bugün Nöbetçi Öğretmenler" kartı artık js/nobet.js > renderNobetBugunVeHafta() tarafından dolduruluyor. */
 
-  /* Yaklaşan etkinlikler & görevler → takvim.js */
-  if(typeof renderDashHatirlaticilar === 'function') renderDashHatirlaticilar();
-  if(typeof renderDashMiniTakvim === 'function') renderDashMiniTakvim();
-  if(typeof renderDashYillikGorunum === 'function') renderDashYillikGorunum();
+  const yaklasan = hatirlaticilar.filter(h=>!h.tamamlandi).sort((a,b)=>(a.tarih+(a.saat||'')).localeCompare(b.tarih+(b.saat||''))).slice(0,5);
+  document.getElementById('dashHatirlaticilar').innerHTML = yaklasan.length ? yaklasan.map(h=>`<div class="dash-row">${formatTarih(h.tarih)} — ${escapeHtml(h.baslik)}</div>`).join('') : '<p class="empty-state">Bekleyen hatırlatıcı yok.</p>';
+
+  document.getElementById('dashGorevler').innerHTML = `
+    <div class="dash-row">Yapılacak: <strong>${gorevler.filter(g=>g.durum==='yapilacak').length}</strong></div>
+    <div class="dash-row">Yapılıyor: <strong>${gorevler.filter(g=>g.durum==='yapiliyor').length}</strong></div>
+    <div class="dash-row">Tamamlandı: <strong>${gorevler.filter(g=>g.durum==='tamamlandi').length}</strong></div>
+  `;
 
   /* ---- Son Notlar ---- */
   if(typeof renderDashboardNotlar === 'function') renderDashboardNotlar();
@@ -545,11 +655,14 @@ function yedekVerisiOlustur(){
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
     dersSaatleriAyarlari: dersSaatleriAyarlari || undefined,
     siniflar, veliler, servisler,
+    dersListesi: typeof dersListesi !== 'undefined' ? dersListesi : [],
+    bransListesi: typeof bransListesi !== 'undefined' ? bransListesi : [],
     okulBilgileri: okulBilgileriAyari || undefined,
     periyodikSablon: periyodikSablonu || undefined,
     sosyalKulupler: cizelgeVerileri.sosyalKulupler, sok: cizelgeVerileri.sok, zumre: cizelgeVerileri.zumre,
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
-    belirliGunler: belirliGunlerListesi, digerEvrak: digerEvrakListesi,
+    belirliGunler: typeof belirliGunlerListesi !== 'undefined' ? belirliGunlerListesi : [],
+    digerEvrak: typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [],
     sinavlar, denemeSinavlari
   };
 }
@@ -579,7 +692,8 @@ async function yedektenGeriYukle(file){
       [data.bepPlani, COL.bepPlani],[data.rehberlik, COL.rehberlik],[data.maarifRapor, COL.maarifRapor],
       [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
       [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler],
-      [data.sinavlar, COL.sinavlar],[data.denemeSinavlari, COL.denemeSinavlari]
+      [data.sinavlar, COL.sinavlar],[data.denemeSinavlari, COL.denemeSinavlari],
+      [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi]
     ];
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
@@ -613,8 +727,8 @@ function baglantilariKur(){
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } }, hataGoster);
   nobetBaglantilariKur();
-  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle(); renderDashboard(); }, hataGoster);
-  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle(); renderDashboard(); }, hataGoster);
+  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
+  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
   db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); }, hataGoster);
   db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); }, hataGoster);
 

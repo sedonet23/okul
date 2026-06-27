@@ -121,6 +121,10 @@ function takvimGridRender(){
     const gorevBuGun = (typeof gorevler !== 'undefined' ? gorevler : [])
       .filter(g => g.sonTarih === isoGun);
 
+    // Periyodik işler (başlangıç veya bitiş bu gün)
+    const periyodikBuGun = (typeof periyodikIsler !== 'undefined' ? periyodikIsler : [])
+      .filter(p => !p.tamamlandi && (p.baslangicTarihi === isoGun || p.bitisTarihi === isoGun));
+
     let noktaHtml = '';
     if(etkinlikler.length){
       noktaHtml += `<div class="takvim-nokta-satir">`;
@@ -136,6 +140,14 @@ function takvimGridRender(){
         noktaHtml += `<span class="takvim-nokta gorev-nokta ${gorevRenkSinifi(g)}" title="${escapeHtml(g.baslik)}"></span>`;
       });
       if(gorevBuGun.length>3) noktaHtml += `<span class="takvim-nokta-sayi">+${gorevBuGun.length-3}</span>`;
+      noktaHtml += `</div>`;
+    }
+    if(periyodikBuGun.length){
+      noktaHtml += `<div class="takvim-nokta-satir">`;
+      periyodikBuGun.slice(0,3).forEach(p=>{
+        noktaHtml += `<span class="takvim-nokta periyodik-nokta" title="${escapeHtml(p.baslik||p.ad||'Periyodik')}"></span>`;
+      });
+      if(periyodikBuGun.length>3) noktaHtml += `<span class="takvim-nokta-sayi">+${periyodikBuGun.length-3}</span>`;
       noktaHtml += `</div>`;
     }
 
@@ -160,10 +172,9 @@ function takvimAjandaRender(){
   const bitis    = new Date(); bitis.setDate(bitis.getDate()+30);
   const bitisISO = `${bitis.getFullYear()}-${_pad2(bitis.getMonth()+1)}-${_pad2(bitis.getDate())}`;
 
-  // Tüm günleri topla
   const satirlar = [];
 
-  // Etkinlikler
+  // Etkinlikler (hatırlatıcılar)
   (typeof hatirlaticilar !== 'undefined' ? hatirlaticilar : []).forEach(h=>{
     if(h.tamamlandi) return;
     if(!h.tekrar || !h.tekrar.tip){
@@ -171,19 +182,16 @@ function takvimAjandaRender(){
         satirlar.push({ iso: h.tarih, tip: 'etkinlik', obj: h });
       }
     } else {
-      // Tekrarlayan → her günü kontrol et
       const bas = new Date(Math.max(new Date(h.tarih+'T00:00:00'), new Date(bugunISO+'T00:00:00')));
       const bit = new Date(Math.min(bitis, h.tekrar.bitisISOtarihi ? new Date(h.tekrar.bitisISOtarihi+'T00:00:00') : bitis));
       for(let d=new Date(bas); d<=bit; d.setDate(d.getDate()+1)){
         const iso = `${d.getFullYear()}-${_pad2(d.getMonth()+1)}-${_pad2(d.getDate())}`;
-        if(etkinlikBuGundeAktifMi(h, iso)){
-          satirlar.push({ iso, tip: 'etkinlik', obj: h });
-        }
+        if(etkinlikBuGundeAktifMi(h, iso)) satirlar.push({ iso, tip: 'etkinlik', obj: h });
       }
     }
   });
 
-  // Görevler (son tarih aralığında olan, tamamlanmamış)
+  // Görevler
   (typeof gorevler !== 'undefined' ? gorevler : []).forEach(g=>{
     if(gorevTamamlandiMi(g)) return;
     if(g.sonTarih && g.sonTarih >= bugunISO && g.sonTarih <= bitisISO){
@@ -191,15 +199,35 @@ function takvimAjandaRender(){
     }
   });
 
+  // Periyodik işler — başlangıç ve bitiş tarihleri
+  (typeof periyodikIsler !== 'undefined' ? periyodikIsler : []).forEach(p=>{
+    if(p.tamamlandi) return;
+    if(p.baslangicTarihi && p.baslangicTarihi >= bugunISO && p.baslangicTarihi <= bitisISO){
+      satirlar.push({ iso: p.baslangicTarihi, tip: 'periyodik', obj: p, altTip: 'baslangic' });
+    }
+    if(p.bitisTarihi && p.bitisTarihi >= bugunISO && p.bitisTarihi <= bitisISO){
+      satirlar.push({ iso: p.bitisTarihi, tip: 'periyodik', obj: p, altTip: 'bitis' });
+    }
+  });
+
   satirlar.sort((a,b)=>(a.iso+(a.obj.saat||'')).localeCompare(b.iso+(b.obj.saat||'')));
 
   if(!satirlar.length){ el.innerHTML = '<p class="empty-state">Önümüzdeki 30 günde etkinlik veya görev yok.</p>'; return; }
 
-  // Tarihe göre grupla
   const gruplar = {};
   satirlar.forEach(s=>{ if(!gruplar[s.iso]) gruplar[s.iso]=[]; gruplar[s.iso].push(s); });
 
   let html = '';
+  // Yanıp sönen bildirim: bugün veya yarın biten periyodik iş var mı?
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  const yarin = new Date(bugun); yarin.setDate(yarin.getDate()+1);
+  const yarinISO = `${yarin.getFullYear()}-${_pad2(yarin.getMonth()+1)}-${_pad2(yarin.getDate())}`;
+  const acilPeriyodik = (typeof periyodikIsler!=='undefined'?periyodikIsler:[])
+    .filter(p=>!p.tamamlandi && p.bitisTarihi && (p.bitisTarihi===bugunISO||p.bitisTarihi===yarinISO));
+  if(acilPeriyodik.length){
+    html += `<div class="periyodik-uyari-banner">⚡ <strong>${acilPeriyodik.length} görevin</strong> teslim tarihi bugün veya yarın: ${acilPeriyodik.map(p=>escapeHtml(p.baslik||p.ad||'—')).join(', ')}</div>`;
+  }
+
   Object.keys(gruplar).sort().forEach(iso=>{
     html += `<div class="ajanda-tarih-grup">
       <div class="ajanda-tarih-baslik">${_trFormatTarih(iso)}${iso===bugunISO?' <span class="badge badge-sage">Bugün</span>':''}</div>`;
@@ -217,7 +245,7 @@ function takvimAjandaRender(){
             <button class="btn btn-ghost btn-sm" onclick="takvimEtkinlikDuzenle('${h.id}')">Düzenle</button>
           </div>
         </div>`;
-      } else {
+      } else if(s.tip==='gorev'){
         const g = s.obj;
         html += `<div class="ajanda-satir ajanda-gorev ${gorevRenkSinifi(g)}">
           <span class="ajanda-tip-ikon">✅</span>
@@ -229,6 +257,17 @@ function takvimAjandaRender(){
             <input type="checkbox" title="Tamamlandı" ${gorevTamamlandiMi(g)?'checked':''} onchange="gorevToggleAjanda('${g.id}',this.checked)">
             <button class="btn btn-ghost btn-sm" onclick="takvimGorevDuzenle('${g.id}')">Düzenle</button>
           </div>
+        </div>`;
+      } else if(s.tip==='periyodik'){
+        const p = s.obj;
+        const acil = p.bitisTarihi===bugunISO||p.bitisTarihi===yarinISO;
+        html += `<div class="ajanda-satir ajanda-periyodik${acil?' ajanda-periyodik-acil':''}">
+          <span class="ajanda-tip-ikon">🔄</span>
+          <div class="ajanda-icerik">
+            <div class="ajanda-baslik">${escapeHtml(p.baslik||p.ad||'Periyodik İş')} ${acil?'<span class="periyodik-pulse">●</span>':''}</div>
+            <div class="ajanda-meta">${s.altTip==='baslangic'?'Başlangıç':'Teslim'}: ${_trFormatTarih(s.iso)}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="sekmeAc('periyodikIsler')">Git</button>
         </div>`;
       }
     });

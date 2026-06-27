@@ -24,6 +24,8 @@ function _secilenIdler(inputId){ return Array.from(document.querySelectorAll(`#$
 function _ilerlemeHtml(tamam,toplam){ const y=toplam?Math.round(tamam/toplam*100):0; return `<span class="belge-ilerleme-metin">${tamam}/${toplam}</span><div class="belge-ilerleme-bar"><div class="belge-ilerleme-ic" style="width:${y}%"></div></div>`; }
 const DONEM_ETIKETLER=['1. Dönem','2. Dönem','Yıl Sonu'];
 const KULUP_KONTROLLER=['Yıllık Plan','Toplum Hizm. Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','Sene Sonu Rap.'];
+const REHBERLIK_KONTROLLER=['Yıllık Çalışma Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.Dönem Sonu Rap.','Sene Sonu Rap.'];
+const BEP_KONTROLLER=['Yıllık Ders Planı','BEP Planı'];
 const AYLAR_TR=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function _donemTikleriHtml(tip,id,k3){
@@ -40,7 +42,7 @@ function _tekTikHtml(tip,id,k1){
 function belgeKontrolToggle(tip,id,index,deger){
   const liste=tip==='belirliGunler'?belirliGunlerListesi:(cizelgeVerileri[tip]||[]);
   const kayit=liste.find(x=>x.id===id); if(!kayit) return;
-  const uzunluk=tip==='maarifRapor'?10:tip==='belirliGunler'?1:tip==='sosyalKulupler'?12:3;
+  const uzunluk=tip==='maarifRapor'?10:tip==='belirliGunler'?1:tip==='sosyalKulupler'?12:tip==='rehberlik'?12:tip==='bepPlani'?2:3;
   const kontroller=[...(kayit.kontroller||Array(uzunluk).fill(false))];
   while(kontroller.length<uzunluk) kontroller.push(false);
   kontroller[index]=deger;
@@ -128,11 +130,12 @@ function _renderSosyalKulupler(el,veri){
 const CIZELGE_META={
   zumre:    { baslik:'Zümre Toplantıları',
     alanlar:[
-      {key:'ogretmenId', etiket:'Öğretmen',              tip:'ogretmen'},
-      {key:'brans',      etiket:'Branş/Ders',             tip:'brans'},
-      {key:'sinif',      etiket:'Sınıf (opsiyonel)',      tip:'sinif', opsiyonel:true},
-      {key:'aciklama',   etiket:'Notlar',                 tip:'textarea', opsiyonel:true}
-    ]
+      {key:'ogretmenId', etiket:'Öğretmen',         tip:'ogretmen'},
+      {key:'brans',      etiket:'Branş/Ders',        tip:'brans'},
+      {key:'sinif',      etiket:'Sınıf (opsiyonel)', tip:'sinif', opsiyonel:true},
+      {key:'aciklama',   etiket:'Notlar',             tip:'textarea', opsiyonel:true}
+    ],
+    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
   },
   sok: { baslik:'ŞÖK – Şube Öğretmenler Kurulu',
     alanlar:[
@@ -140,22 +143,20 @@ const CIZELGE_META={
       {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
       {key:'konu',       etiket:'Konu',     tip:'metin'},
       {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
-    ]
+    ],
+    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
   },
   bepPlani: { baslik:'Yıllık / BEP Planları',
-    alanlar:[
-      {key:'ogretmenId', etiket:'Öğretmen',  tip:'ogretmen'},
-      /* sinif ve tur çoklu — bepPlani için özel modal (_bepModal) kullanılır */
-    ],
-    _ozel: true
+    _ozel: true, /* özel modal: _bepModal */
+    kontroller: BEP_KONTROLLER
   },
   rehberlik:{ baslik:'Rehberlik',
     alanlar:[
-      {key:'ogretmenId', etiket:'Öğretmen',       tip:'ogretmen'},
-      {key:'sinif',      etiket:'Sınıf',            tip:'sinif'},
-      {key:'konu',       etiket:'Konu/Etkinlik',    tip:'metin'},
-      {key:'aciklama',   etiket:'Notlar',            tip:'textarea', opsiyonel:true}
-    ]
+      {key:'ogretmenId', etiket:'Öğretmen', tip:'ogretmen'},
+      {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
+      {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
+    ],
+    kontroller: REHBERLIK_KONTROLLER
   }
 };
 
@@ -163,27 +164,32 @@ function _renderDonemTablosu(el,tip,veri){
   const meta=CIZELGE_META[tip];
   if(!meta){el.innerHTML='<p class="empty-state">Yapılandırma bulunamadı.</p>';return;}
   if(!veri.length){el.innerHTML='<p class="empty-state">Henüz kayıt eklenmedi.</p>';return;}
+  const kontrolAdlari = tip==='sosyalKulupler' ? KULUP_KONTROLLER
+    : tip==='rehberlik' ? REHBERLIK_KONTROLLER
+    : tip==='bepPlani'  ? BEP_KONTROLLER
+    : (meta.kontroller||DONEM_ETIKETLER);
+  const kontrolSayisi = kontrolAdlari.length;
   const gruplar={};
   veri.forEach(k=>{const ogId=k.ogretmenId||'__yok__';if(!gruplar[ogId])gruplar[ogId]=[];gruplar[ogId].push(k);});
   let html='';
   Object.entries(gruplar).forEach(([ogId,kayitlar])=>{
     const ogAdi=ogId==='__yok__'?'Öğretmen Atanmamış':_ogretmenAdi(ogId);
     const tamam=kayitlar.reduce((t,k)=>(k.kontroller||[]).filter(Boolean).length+t,0);
-    const toplam=kayitlar.length*3;
+    const toplam=kayitlar.length*kontrolSayisi;
     html+=`<div class="belge-ogretmen-grup"><div class="belge-ogretmen-baslik"><span class="belge-ogretmen-adi">${escapeHtml(ogAdi)}</span>${_ilerlemeHtml(tamam,toplam)}</div>`;
     kayitlar.forEach(k=>{
-      const k3=k.kontroller||[false,false,false];
-      const ozet=meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama').map(a=>{let v=k[a.key]||'';return v?escapeHtml(String(v)):'';}).filter(Boolean).join(' · ');
-      const mt=k3.filter(Boolean).length;
+      const kArr=[...(k.kontroller||[])]; while(kArr.length<kontrolSayisi) kArr.push(false);
+      const ozet=meta.alanlar?meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama').map(a=>{let v=k[a.key]||'';return v?escapeHtml(String(v)):'';}).filter(Boolean).join(' · '):'';
+      const mt=kArr.filter(Boolean).length;
       html+=`<div class="belge-kayit" id="belge-${k.id}">
         <div class="belge-kayit-baslik">
           <div class="belge-kayit-ozet">${ozet||'(detay yok)'}</div>
           <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-            <span class="belge-mini-sayac ${mt===3?'tamam':mt>0?'kismi':''}">${mt}/3</span>
+            <span class="belge-mini-sayac ${mt===kontrolSayisi?'tamam':mt>0?'kismi':''}">${mt}/${kontrolSayisi}</span>
             <button class="btn btn-ghost btn-sm" onclick="cizelgeSatirModalAc('${tip}','${k.id}')">Düzenle</button>
           </div>
         </div>
-        ${_donemTikleriHtml(tip,k.id,k3)}
+        <div class="belge-kontroller">${kontrolAdlari.map((ad,i)=>`<label class="belge-kontrol-item ${kArr[i]?'tamamlandi':''}"><input type="checkbox" ${kArr[i]?'checked':''} onchange="belgeKontrolToggle('${tip}','${k.id}',${i},this.checked)"><span>${ad}</span></label>`).join('')}</div>
       </div>`;
     });
     html+='</div>';
@@ -233,58 +239,44 @@ function cizelgeSatirModalAc(tip,id){
 }
 
 /* ================================================================
-   YILLIK / BEP — Sınıf çoklu + Plan Türü çoklu → ayrı kayıtlar
+   YILLIK / BEP — Branş + Sınıf çoklu → ayrı kayıtlar
+   Evraklar: Yıllık Ders Planı, BEP Planı (2 kontrol)
    ================================================================ */
 function _bepModal(id){
   const kayit=id?(cizelgeVerileri.bepPlani||[]).find(x=>x.id===id):null;
-
   const sinifSecimHtml = kayit
     ? `<select id="f_sinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===(kayit.sinif||'')?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}</select>`
     : `<div class="ogr-checkbox-liste" id="f_sinifler" style="max-height:150px;">${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<label class="ogr-cb-row"><input type="checkbox" value="${escapeHtml(s.ad)}"><span>${escapeHtml(s.ad)}</span></label>`).join('')}</div>`;
-
-  const turlar = ['Yıllık Plan','BEP Planı'];
-  const turSecimHtml = kayit
-    ? `<div class="ogr-checkbox-liste" id="f_turler" style="max-height:90px;">${turlar.map(t=>`<label class="ogr-cb-row"><input type="checkbox" value="${t}" ${(kayit.tur||'')=== t ?'checked':''}><span>${t}</span></label>`).join('')}</div>`
-    : `<div class="ogr-checkbox-liste" id="f_turler" style="max-height:90px;">${turlar.map(t=>`<label class="ogr-cb-row"><input type="checkbox" value="${t}"><span>${t}</span></label>`).join('')}</div>`;
-
   const body=`
     <div class="form-group"><label>Öğretmen</label>
       <select id="f_ogretmenId"><option value="">— Seçiniz —</option>${(typeof ogretmenler!=='undefined'?ogretmenler:[]).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(o=>`<option value="${o.id}" ${o.id===(kayit?kayit.ogretmenId:'')?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}</select>
     </div>
+    <div class="form-group"><label>Branş</label>
+      <select id="f_brans"><option value="">— Seçiniz —</option>${(typeof bransListesi!=='undefined'?[...bransListesi].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(b=>`<option value="${escapeHtml(b.ad)}" ${b.ad===(kayit?kayit.brans||'':'')?'selected':''}>${escapeHtml(b.ad)}</option>`).join('')}</select>
+    </div>
     <div class="form-group"><label>${kayit?'Sınıf':'Sınıflar (her sınıf ayrı kayıt)'}</label>${sinifSecimHtml}</div>
-    <div class="form-group"><label>${kayit?'Plan Türü':'Plan Türleri (her tür ayrı kayıt)'}</label>${turSecimHtml}</div>
     <div class="form-group"><label>Notlar</label><textarea id="f_aciklama" rows="2">${escapeHtml(kayit?kayit.aciklama||'':'')}</textarea></div>`;
-
   modalAc(kayit?'Yıllık / BEP Planı — Düzenle':'Yıllık / BEP Planı — Yeni Kayıt',body,()=>{
     const ogretmenId=document.getElementById('f_ogretmenId').value;
+    const brans=document.getElementById('f_brans').value;
     const aciklama=document.getElementById('f_aciklama').value.trim();
     if(!ogretmenId){toast('Öğretmen seçiniz.');return;}
-
+    if(!brans){toast('Branş seçiniz.');return;}
     if(kayit){
-      // Düzenleme: tek kayıt
       const sinif=document.getElementById('f_sinif').value;
-      const seciliTurler=_secilenIdler('f_turler');
       if(!sinif){toast('Sınıf seçiniz.');return;}
-      if(!seciliTurler.length){toast('En az bir plan türü seçiniz.');return;}
-      kaydet(COL.bepPlani,kayit.id,{ogretmenId,sinif,tur:seciliTurler.join(', '),aciklama,kontroller:kayit.kontroller||[false,false,false]});
+      kaydet(COL.bepPlani,kayit.id,{ogretmenId,brans,sinif,aciklama,kontroller:kayit.kontroller||[false,false]});
     } else {
       const seciliSinifler=_secilenIdler('f_sinifler');
-      const seciliTurler=_secilenIdler('f_turler');
       if(!seciliSinifler.length){toast('En az bir sınıf seçiniz.');return;}
-      if(!seciliTurler.length){toast('En az bir plan türü seçiniz.');return;}
-      let sayac=0;
       seciliSinifler.forEach(sinif=>{
-        seciliTurler.forEach(tur=>{
-          db.collection(COL.bepPlani).add({ogretmenId,sinif,tur,aciklama,kontroller:[false,false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
-          sayac++;
-        });
+        db.collection(COL.bepPlani).add({ogretmenId,brans,sinif,aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
       });
-      toast(`${sayac} kayıt oluşturuldu.`);
+      toast(`${seciliSinifler.length} sınıf için kayıt oluşturuldu.`);
     }
     modalKapat();
   },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(COL.bepPlani).doc(kayit.id).delete();modalKapat();}}:null);
 }
-
 /* ================================================================
    MAARİF MODEL — Modal + Matris
    ================================================================ */
@@ -446,13 +438,16 @@ function renderOgretmenBelgeDurumu(ogretmenId){
     const meta=CIZELGE_META[tip];
     const kayitlar=(cizelgeVerileri[tip]||[]).filter(k=>k.ogretmenId===ogretmenId);
     if(!kayitlar.length) return;
+    const kontrolAdlari=tip==='rehberlik'?REHBERLIK_KONTROLLER:tip==='bepPlani'?BEP_KONTROLLER:(meta.kontroller||DONEM_ETIKETLER);
+    const kontrolSayisi=kontrolAdlari.length;
     const t=kayitlar.reduce((s,k)=>(k.kontroller||[]).filter(Boolean).length+s,0);
-    const top=kayitlar.length*3;
+    const top=kayitlar.length*kontrolSayisi;
     html+=`<div class="belge-grup-baslik">${etiket} <span class="belge-mini-sayac ${t===top&&top>0?'tamam':t>0?'kismi':''}" style="margin-left:6px;">${t}/${top}</span></div>`;
     kayitlar.forEach(k=>{
-      const k3=k.kontroller||[false,false,false];
-      const ozet=meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama').map(a=>{let v=k[a.key]||'';return v?escapeHtml(String(v)):'';}).filter(Boolean).join(' · ');
-      html+=`<div class="belge-kayit" id="belge-${k.id}" style="margin-bottom:4px;"><div class="belge-kayit-ozet">${ozet||'(detay yok)'}</div>${_donemTikleriHtml(tip,k.id,k3)}</div>`;
+      const kArr=[...(k.kontroller||[])]; while(kArr.length<kontrolSayisi) kArr.push(false);
+      const ozetAlanlar=meta.alanlar?meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama'):[];
+      const ozet=ozetAlanlar.map(a=>{let v=k[a.key]||'';return v?escapeHtml(String(v)):'';}).filter(Boolean).join(' · ');
+      html+=`<div class="belge-kayit" id="belge-${k.id}" style="margin-bottom:4px;"><div class="belge-kayit-ozet">${ozet||escapeHtml((k.sinif||'')+(k.brans?' · '+k.brans:''))}</div><div class="belge-kontroller">${kontrolAdlari.map((ad,i)=>`<label class="belge-kontrol-item ${kArr[i]?'tamamlandi':''}"><input type="checkbox" ${kArr[i]?'checked':''} onchange="belgeKontrolToggle('${tip}','${k.id}',${i},this.checked)"><span>${ad}</span></label>`).join('')}</div></div>`;
     });
   });
 
@@ -482,3 +477,80 @@ function renderOgretmenBelgeDurumu(ogretmenId){
     };
   },100);
 })();
+
+/* ================================================================
+   RAPOR ALMA — Yazdır
+   ================================================================ */
+function raporCizelge(tip){
+  const basliklar = {
+    sosyalKulupler: 'Sosyal Kulüpler Evrak Takip Çizelgesi',
+    belirliGunler:  'Belirli Gün Ve Haftalar Çizelgesi',
+    zumre:          'Zümre Toplantıları Takip Çizelgesi',
+    sok:            'ŞÖK – Şube Öğretmenler Kurulu Çizelgesi',
+    bepPlani:       'Yıllık / BEP Planları Takip Çizelgesi',
+    rehberlik:      'Rehberlik Evrak Takip Çizelgesi',
+    maarifRapor:    'Maarif Model Aylık Raporlar Çizelgesi'
+  };
+  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
+    ? okulBilgileriAyari.okulAdi : 'Koruk İlk-Ortaokulu';
+  const tarih = new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+
+  // İçerik div'i al
+  const tabloId = {sosyalKulupler:'sosyalKuluplerTablo',belirliGunler:'belirliGunlerTablo',zumre:'zumreTablo',sok:'sokTablo',bepPlani:'bepTablo',rehberlik:'rehberlikTablo',maarifRapor:'maarifTablo'}[tip];
+  const icerikEl = document.getElementById(tabloId);
+  if(!icerikEl){ toast('Çizelge henüz yüklenmedi.'); return; }
+
+  const icerik = icerikEl.innerHTML;
+  const pencere = window.open('','_blank','width=900,height=700');
+  pencere.document.write(`<!DOCTYPE html><html lang="tr"><head>
+    <meta charset="UTF-8">
+    <title>${basliklar[tip]||'Çizelge'}</title>
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Segoe UI',Arial,sans-serif;font-size:12px;color:#111;padding:20px;}
+      h1{font-size:16px;margin-bottom:4px;}
+      .alt{font-size:11px;color:#555;margin-bottom:16px;}
+      /* Belge grup başlıkları */
+      .belge-ogretmen-grup{margin-bottom:18px;border:1px solid #ccc;border-radius:6px;overflow:hidden;}
+      .belge-ogretmen-baslik{background:#0A7A7A;color:#fff;padding:8px 12px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:13px;}
+      .belge-ilerleme-metin{font-size:11px;opacity:.9;}
+      .belge-ilerleme-bar{height:4px;background:rgba(255,255,255,.3);border-radius:2px;width:80px;}
+      .belge-ilerleme-ic{height:100%;background:#fff;border-radius:2px;}
+      .belge-kayit{padding:8px 12px;border-bottom:1px solid #eee;}
+      .belge-kayit:last-child{border-bottom:none;}
+      .belge-kayit-baslik{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+      .belge-kayit-ozet{font-weight:600;font-size:12px;}
+      .belge-kontroller{display:flex;flex-wrap:wrap;gap:6px;}
+      .belge-kontrol-item{display:flex;align-items:center;gap:4px;padding:3px 8px;border:1px solid #ccc;border-radius:12px;font-size:11px;color:#444;}
+      .belge-kontrol-item.tamamlandi{background:#d1fae5;border-color:#059669;color:#065f46;}
+      .belge-kontrol-item input{display:none;}
+      .belge-mini-sayac{font-size:11px;font-weight:700;padding:2px 6px;border-radius:10px;background:#e5e7eb;}
+      .belge-mini-sayac.tamam{background:#d1fae5;color:#059669;}
+      .belge-mini-sayac.kismi{background:#fef3c7;color:#92400e;}
+      /* Maarif matris */
+      .maarif-tablo{width:100%;border-collapse:collapse;font-size:11px;}
+      .maarif-tablo th{background:#0A7A7A;color:#fff;padding:5px 4px;text-align:center;}
+      .maarif-th-ders{text-align:left;padding-left:8px;}
+      .maarif-tablo td{border:1px solid #ddd;padding:4px;text-align:center;}
+      .maarif-td-ders{text-align:left;padding-left:8px;}
+      .maarif-ders-adi{font-weight:700;}
+      .maarif-sinif{font-size:10px;color:#555;}
+      .maarif-cb-label{display:inline-block;width:20px;height:20px;border:1px solid #ccc;border-radius:4px;text-align:center;line-height:20px;}
+      .maarif-cb-label.tamam{background:#0A7A7A;border-color:#0A7A7A;color:#fff;}
+      .maarif-check{font-size:13px;font-weight:900;}
+      /* Kulüp */
+      .kulup-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+      .kulup-kart{border:1px solid #ccc;border-radius:6px;padding:10px;border-top:3px solid #0A7A7A;}
+      .kulup-kart-baslik{font-weight:700;margin-bottom:6px;font-size:13px;}
+      .ogr-badge{background:#e0f2f2;color:#0A7A7A;border-radius:10px;padding:2px 8px;font-size:11px;display:inline-block;margin:2px;}
+      .btn,.badge{display:none;}
+      @media print{body{padding:10px;} button{display:none!important;}}
+    </style>
+  </head><body>
+    <h1>${escapeHtml(okulAdi)}</h1>
+    <div class="alt">${escapeHtml(basliklar[tip]||'')} · ${tarih}</div>
+    ${icerik}
+    <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  pencere.document.close();
+}
