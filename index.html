@@ -148,17 +148,26 @@
       </div>
       <div class="dash-cols">
         <div class="card dash-card-clickable" onclick="sekmeAc('belirliGunler')"><h3>🎉 Yaklaşan Belirli Gün Ve Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
-        <div class="card dash-card-clickable" onclick="sekmeAc('gorevler')"><h3>📌 Görev Durumu</h3><div id="dashGorevler"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')">
+          <h3>📅 Bu Ay</h3>
+          <div id="dashMiniTakvim"></div>
+        </div>
       </div>
       <div class="dash-cols">
-        <!-- 4. Not Alma (duyurular yerine) -->
+        <div class="card" onclick="sekmeAc('takvim')" style="cursor:pointer;">
+          <h3>🗓️ Yıllık Görünüm</h3>
+          <div id="dashYillikGorunum"></div>
+        </div>
+      </div>
+      <div class="dash-cols">
+        <!-- Not Alma -->
         <div class="card dash-card-clickable" onclick="sekmeAc('notlar')">
           <h3 style="display:flex;align-items:center;justify-content:space-between;">📝 Not Defteri <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); notlarModalAc()" style="margin-left:auto;">➕ Yeni Not</button></h3>
           <div id="dashNotlar"></div>
         </div>
       </div>
 
-      <!-- 5. İstatistikler en altta -->
+      <!-- İstatistikler en altta -->
       <div class="card"><h3>📊 Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
     </section>
 
