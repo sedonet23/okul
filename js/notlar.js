@@ -43,6 +43,9 @@ let _czOffCanvas = null;
 let _czOffCtx = null;
 let _czAnimFrame = null;
 
+// Tam ekran durumu
+let _czTamEkranAktif = false;
+
 /* ====================================================
    RENDER — Notlar Grid
    ==================================================== */
@@ -281,7 +284,7 @@ function _notEditModalAc(n) {
   setTimeout(() => {
     if (tip === 'cizim') _cizimBaslat(n.cizimData || '');
     if (tip === 'tablo') _tabloPostRender();
-  }, 80);
+  }, 150);
 }
 
 function _notRenkSec(renkId, btn) {
@@ -348,55 +351,57 @@ function _todoEditHtml(maddeler) {
 
   return `
     <div class="form-group">
-      <label>Maddeler</label>
-      <div id="todoListe" class="todo-liste">${satirlar}</div>
-      <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="_todoMaddeEkle()">+ Madde Ekle</button>
+      <label>Yapılacaklar</label>
+      <div class="todo-lista" id="todoLista">
+        ${satirlar}
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="_todoSatirEkle()">➕ Madde Ekle</button>
     </div>
   `;
 }
 
 function _todoSatirHtml(idx, metin, tamamlandi) {
   return `
-    <div class="todo-satir" id="todoSatir_${idx}" data-idx="${idx}">
-      <input type="checkbox" class="todo-cb" ${tamamlandi ? 'checked' : ''}
-        onchange="this.closest('.todo-satir').querySelector('.todo-input').classList.toggle('tamamlandi',this.checked)">
-      <input type="text" class="todo-input${tamamlandi ? ' tamamlandi' : ''}"
-        placeholder="Madde..." value="${escapeHtml(metin || '')}"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_todoMaddeEkle(this)}">
-      <button type="button" class="todo-sil-btn" onclick="this.closest('.todo-satir').remove()" title="Sil">✕</button>
+    <div class="todo-satir" style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+      <input type="checkbox" ${tamamlandi ? 'checked' : ''} class="todo-checkbox" data-idx="${idx}" onchange="_todoCheckToggle(this)">
+      <input type="text" class="todo-metin" data-idx="${idx}" value="${escapeHtml(metin)}" placeholder="Yapılacak madde...">
+      <button type="button" class="btn btn-ghost btn-xs" onclick="_todoSatirSil(${idx})">🗑️</button>
     </div>
   `;
 }
 
-let _todoSayac = 100;
-function _todoMaddeEkle(sonrasindakiInput) {
-  const liste = document.getElementById('todoListe');
-  const idx = _todoSayac++;
-  const div = document.createElement('div');
-  div.innerHTML = _todoSatirHtml(idx, '', false);
-  const satir = div.firstElementChild;
-  if (sonrasindakiInput) {
-    sonrasindakiInput.closest('.todo-satir').insertAdjacentElement('afterend', satir);
-  } else {
-    liste.appendChild(satir);
-  }
-  satir.querySelector('.todo-input').focus();
+function _todoSatirEkle() {
+  const lista = document.getElementById('todoLista');
+  const sayı = lista.querySelectorAll('.todo-satir').length;
+  const html = _todoSatirHtml(sayı, '', false);
+  lista.innerHTML += html;
+}
+
+function _todoSatirSil(idx) {
+  const satir = document.querySelector(`.todo-satir input[data-idx="${idx}"]`).closest('.todo-satir');
+  satir.remove();
+}
+
+function _todoCheckToggle(el) {
+  // Visual feedback
 }
 
 function _todoVerisiOku() {
-  const satirlar = document.querySelectorAll('#todoListe .todo-satir');
-  return Array.from(satirlar).map(s => ({
-    metin: s.querySelector('.todo-input').value.trim(),
-    tamamlandi: s.querySelector('.todo-cb').checked
-  })).filter(m => m.metin);
+  const maddeler = [];
+  document.querySelectorAll('.todo-satir').forEach(s => {
+    const metin = s.querySelector('.todo-metin').value.trim();
+    const tamamlandi = s.querySelector('.todo-checkbox').checked;
+    if (metin) maddeler.push({ metin, tamamlandi });
+  });
+  return maddeler;
 }
 
 /* ====================================================
-   TİP: ÇİZİM — Profesyonel Canvas Editörü
+   TİP: ÇİZİM — Canvas el çizimi
    ==================================================== */
 function _cizimEditHtml(mevcutData) {
   return `
-    <div class="form-group">
+    <div class="form-group cizim-container" id="cizimContainer">
       <label>Çizim</label>
 
       <!-- Araç Çubuğu Satır 1: Araçlar -->
@@ -457,6 +462,7 @@ function _cizimEditHtml(mevcutData) {
         <div style="margin-left:auto;">
           <button type="button" class="btn btn-ghost btn-sm" onclick="_czGeriAl()" title="Geri Al">↩</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="_czTemizle()" title="Temizle">🗑️</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="_czTamEkranAc()" title="Tam Ekran" id="czTamEkranBtn">🗖</button>
         </div>
       </div>
 
@@ -480,11 +486,18 @@ function _cizimBaslat(mevcutData) {
 
   // Zoom/pan sıfırla
   _czZoom = 1; _czPanX = 0; _czPanY = 0;
+  _czTamEkranAktif = false;
 
   // Canvas görüntü boyutu (CSS)
   const kap = document.getElementById('czKapsayici');
-  const w = kap ? kap.clientWidth : 340;
-  const h = Math.round(w * 0.55);
+  let w = 340;  // Varsayılan genişlik
+  if (kap) {
+    // Wait for layout to be ready
+    w = kap.offsetWidth || kap.clientWidth || 340;
+  }
+  const h = Math.max(300, Math.round(w * 0.55));  // En az 300px yükseklik
+  
+  // Canvas CSS boyutu
   _cizimCanvas.style.width = w + 'px';
   _cizimCanvas.style.height = h + 'px';
 
@@ -494,7 +507,7 @@ function _cizimBaslat(mevcutData) {
   _czOffCanvas.height = h * 2;
   _czOffCtx = _czOffCanvas.getContext('2d');
 
-  // Display canvas
+  // Display canvas — canvas element'in actual pixel boyutu
   _cizimCanvas.width = w * 2;
   _cizimCanvas.height = h * 2;
 
@@ -517,8 +530,18 @@ function _cizimBaslat(mevcutData) {
   _czGecmis = [];
   _czGecmisKaydet();
 
-  // Olaylar
+  // Olayları kaldır (varsa)
   const c = _cizimCanvas;
+  c.removeEventListener('mousedown', _czMouseBasla);
+  c.removeEventListener('mousemove', _czMouseHareket);
+  c.removeEventListener('mouseup', _czMouseBitir);
+  c.removeEventListener('mouseleave', _czMouseBitir);
+  c.removeEventListener('wheel', _czTeker);
+  c.removeEventListener('touchstart', _czTouchBasla);
+  c.removeEventListener('touchmove', _czTouchHareket);
+  c.removeEventListener('touchend', _czTouchBitir);
+
+  // Olayları ekle
   c.addEventListener('mousedown', _czMouseBasla);
   c.addEventListener('mousemove', _czMouseHareket);
   c.addEventListener('mouseup', _czMouseBitir);
@@ -629,7 +652,7 @@ function _czMouseHareket(e) {
     const scaleY = _cizimCanvas.height / rect.height;
     _czPanX += (e.clientX - _czLastX * rect.width / _cizimCanvas.width * scaleX) / scaleX / 2;
     _czPanY += (e.clientY - _czLastY * rect.height / _cizimCanvas.height * scaleY) / scaleY / 2;
-    _czLastX = x; _czLastY = y;
+    _czLastX = e.clientX; _czLastY = e.clientY;
     _czEkranaYaz(); return;
   }
   _czOffCtx.lineTo(x, y);
@@ -698,32 +721,38 @@ function _czTouchBitir(e) {
   if (e.touches.length === 0) _czMouseBitir();
 }
 
-// Yardımcılar
-function _czVeriKaydet() {
-  if (!_czOffCanvas) return;
-  document.getElementById('f_cizimData').value = _czOffCanvas.toDataURL('image/png');
-}
+// Araç seçimi
 function _czAracSec(arac, btn) {
   _cizimArac = arac;
   document.querySelectorAll('.cizim-arac-btn').forEach(b => b.classList.remove('aktif'));
   btn.classList.add('aktif');
-  _cizimCanvas.style.cursor = arac === 'pan' ? 'grab' : arac === 'silgi' ? 'cell' : 'crosshair';
 }
-function _czRenkDegis(v) { _cizimRenk = v; }
-function _czHizliRenk(v) {
-  _cizimRenk = v;
-  const el = document.getElementById('czRenk');
-  if (el) el.value = v;
-  // pan/silgi ise kalem moduna geç
-  if (_cizimArac === 'pan' || _cizimArac === 'silgi') {
-    _czAracSec('kalem', document.getElementById('czArac_kalem'));
-  }
+
+// Renk
+function _czRenkDegis(renk) {
+  _cizimRenk = renk;
+  document.getElementById('czRenk').value = renk;
 }
+function _czHizliRenk(renk) {
+  _cizimRenk = renk;
+  document.getElementById('czRenk').value = renk;
+}
+
+// Kalınlık
 function _czKalinlikSec(k, btn) {
   _cizimKalinlik = k;
   document.querySelectorAll('.cz-kalinlik-btn').forEach(b => b.classList.remove('aktif'));
   btn.classList.add('aktif');
 }
+
+// Veri kaydetme
+function _czVeriKaydet() {
+  if (_czOffCanvas) {
+    document.getElementById('f_cizimData').value = _czOffCanvas.toDataURL('image/png');
+  }
+}
+
+// Zemin değiştirme
 function _czZeminDegis(renk) {
   _cizimZemin = renk;
   if (!_czOffCtx || !_czOffCanvas) return;
@@ -749,6 +778,67 @@ function _czTemizle() {
   _czEkranaYaz();
   _czGecmisKaydet();
   _czVeriKaydet();
+}
+
+// Tam ekran modu
+function _czTamEkranAc() {
+  _czTamEkranAktif = !_czTamEkranAktif;
+  const container = document.getElementById('cizimContainer');
+  if (!container) return;
+  
+  if (_czTamEkranAktif) {
+    // Tam ekran aç
+    container.style.position = 'fixed';
+    container.style.top = '0';
+    container.style.left = '0';
+    container.style.right = '0';
+    container.style.bottom = '0';
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.zIndex = '9999';
+    container.style.padding = '10px';
+    container.style.backgroundColor = 'var(--bg-app)';
+    container.style.overflow = 'auto';
+    container.style.borderRadius = '0';
+    document.body.style.overflow = 'hidden';
+    
+    document.getElementById('czTamEkranBtn').title = 'Tam Ekrandan Çık';
+    
+    // Canvas'ı yeniden boyutlandır
+    setTimeout(() => {
+      const kap = document.getElementById('czKapsayici');
+      if (kap) {
+        const w = Math.min(kap.offsetWidth - 20, window.innerWidth - 20);
+        const h = Math.min(kap.offsetHeight - 80, window.innerHeight - 100);
+        
+        _cizimCanvas.style.width = w + 'px';
+        _cizimCanvas.style.height = h + 'px';
+        _cizimCanvas.width = w * 2;
+        _cizimCanvas.height = h * 2;
+        _czEkranaYaz();
+      }
+    }, 50);
+  } else {
+    // Tam ekrandan çık
+    container.style.position = '';
+    container.style.top = '';
+    container.style.left = '';
+    container.style.right = '';
+    container.style.bottom = '';
+    container.style.width = '';
+    container.style.height = '';
+    container.style.zIndex = '';
+    container.style.padding = '';
+    container.style.backgroundColor = '';
+    container.style.overflow = '';
+    container.style.borderRadius = '';
+    document.body.style.overflow = '';
+    
+    document.getElementById('czTamEkranBtn').title = 'Tam Ekran';
+    
+    // Canvas'ı normal boyutlandır
+    _cizimBaslat(document.getElementById('f_cizimData').value);
+  }
 }
 
 /* ====================================================
