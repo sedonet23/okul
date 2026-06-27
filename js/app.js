@@ -568,6 +568,12 @@ function renderDashboard(){
   /* ---- Zil sayacı + şu anki ders saatindeki sınıflar ---- */
   renderZilSayaci(bugunGun);
   if(typeof renderYaklasanEtkinlikler === 'function') renderYaklasanEtkinlikler();
+
+  /* ---- Takvim widget'ları ---- */
+  if(typeof renderDashHatirlaticilar  === 'function') renderDashHatirlaticilar();
+  if(typeof renderDashMiniTakvim      === 'function') renderDashMiniTakvim();
+  if(typeof renderDashYillikGorunum   === 'function') renderDashYillikGorunum();
+
   tatilModuKartlariniUygula();
 }
 
@@ -575,7 +581,14 @@ function tatilModuKartlariniUygula(){
   const tatil = dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu;
   document.querySelectorAll('.tatil-gizle').forEach(el=>{
     el.style.display = tatil ? 'none' : '';
+    el.style.visibility = tatil ? 'hidden' : '';
   });
+  // dash-cols container'larını da güncelle (flex display override'ı için)
+  if(tatil){
+    document.querySelectorAll('.dash-cols.tatil-gizle').forEach(el=>{ el.style.cssText='display:none!important'; });
+  } else {
+    document.querySelectorAll('.dash-cols.tatil-gizle').forEach(el=>{ el.style.cssText=''; });
+  }
 }
 
 function renderZilSayaci(bugunGun){
