@@ -136,68 +136,73 @@ function _renderSosyalKulupler(el, veri){
     </div>`).join('')}</div>`;
 }
 
-/* ---- Maarif Model: DERS × AY matris görünümü (image 4 tarzı) ---- */
+/* ---- Maarif Model: DERS × AY matris görünümü ---- */
 function _renderMaarifMatris(el, veri){
   if(!veri.length){
-    el.innerHTML='<p class="empty-state">Henüz kayıt eklenmedi.</p>'; return;
+    el.innerHTML='<p class="empty-state">Henüz kayıt eklenmedi. "+" ile ekleyin.</p>'; return;
   }
 
-  // Satır: her kayıt (ders + sınıf kombinasyonu)
-  // Sütun: Eylül–Haziran (9–6), her ay 1 checkbox (kontroller[0..9])
-  const RAPOR_AYLARI = [
-    {ad:'Eyl', no:9}, {ad:'Eki', no:10}, {ad:'Kas', no:11},
-    {ad:'Ara', no:12}, {ad:'Oca', no:1}, {ad:'Şub', no:2},
-    {ad:'Mar', no:3}, {ad:'Nis', no:4}, {ad:'May', no:5}, {ad:'Haz', no:6}
-  ];
+  const RAPOR_AYLARI = ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
 
-  // Öğretmene göre grupla
+  // Öğretmene göre grupla; ogretmenId boş olanları gösterme
   const gruplar = {};
   veri.forEach(k=>{
-    const ogId = k.ogretmenId||'__yok__';
-    if(!gruplar[ogId]) gruplar[ogId]=[];
-    gruplar[ogId].push(k);
+    if(!k.ogretmenId) return; // eski/bozuk kayıt — atla
+    if(!gruplar[k.ogretmenId]) gruplar[k.ogretmenId]=[];
+    gruplar[k.ogretmenId].push(k);
   });
+
+  if(!Object.keys(gruplar).length){
+    el.innerHTML='<p class="empty-state">Öğretmen atanmış kayıt yok.</p>'; return;
+  }
 
   let html = '';
   Object.entries(gruplar).forEach(([ogId, kayitlar])=>{
-    const ogAdi = ogId==='__yok__' ? 'Öğretmen Atanmamış' : _ogretmenAdi(ogId);
-    html += `<div class="maarif-grup" style="margin-bottom:24px;">
+    const ogAdi = _ogretmenAdi(ogId);
+    const tamamSay  = kayitlar.reduce((t,k)=>(k.kontroller||[]).filter(Boolean).length+t, 0);
+    const toplamSay = kayitlar.length * 10;
+    const yuzde = toplamSay ? Math.round(tamamSay/toplamSay*100) : 0;
+
+    html += `<div class="maarif-grup">
       <div class="belge-ogretmen-baslik" style="border-radius:var(--radius-md) var(--radius-md) 0 0;">
         <span class="belge-ogretmen-adi">${escapeHtml(ogAdi)}</span>
+        <span class="belge-ilerleme-metin">${tamamSay}/${toplamSay}</span>
+        <div class="belge-ilerleme-bar"><div class="belge-ilerleme-ic" style="width:${yuzde}%"></div></div>
       </div>
       <div class="maarif-tablo-wrap">
         <table class="maarif-tablo">
           <thead><tr>
             <th class="maarif-th-ders">DERS / SINIF</th>
-            ${RAPOR_AYLARI.map(a=>`<th>${a.ad}</th>`).join('')}
+            ${RAPOR_AYLARI.map(a=>`<th>${a}</th>`).join('')}
             <th></th>
           </tr></thead>
           <tbody>`;
 
     kayitlar
-      .sort((a,b)=>(a.rapor||a.sinif||'').localeCompare(b.rapor||b.sinif||'','tr'))
+      .sort((a,b)=>(a.ders||'').localeCompare(b.ders||'','tr'))
       .forEach(k=>{
-        const kontroller = k.kontroller||[];
-        // kontroller dizisi: ay indeksine göre (0=Eyl, 1=Eki,... 9=Haz)
-        // kayıttaki 'ay' alanı 1-12 arası → matris sütununa map
-        // Ama matris modunda: her kayıt = 1 satır (rapor+sınıf), her ay ayrı checkbox
-        // Ay bazlı modda: kontroller[ayIndex] = tamamlandı/değil
+        const kontroller = k.kontroller || Array(10).fill(false);
+        // sinifler: string (eski) veya array (yeni çoklu)
+        const sinifStr = Array.isArray(k.sinifler)
+          ? k.sinifler.join(', ')
+          : (k.sinif || k.sinifler || '');
+
         html += `<tr>
           <td class="maarif-td-ders">
-            <div class="maarif-ders-adi">${escapeHtml(k.rapor||'—')}</div>
-            ${k.sinif?`<div class="maarif-sinif">${escapeHtml(k.sinif)}</div>`:''}
+            <div class="maarif-ders-adi">${escapeHtml(k.ders||k.rapor||'—')}</div>
+            ${sinifStr?`<div class="maarif-sinif">${escapeHtml(sinifStr)}</div>`:''}
           </td>
-          ${RAPOR_AYLARI.map((a,i)=>{
-            const tamamlandi = !!kontroller[i];
+          ${RAPOR_AYLARI.map((_,i)=>{
+            const tamam = !!kontroller[i];
             return `<td class="maarif-td-cb">
-              <label class="maarif-cb-label ${tamamlandi?'tamam':''}">
-                <input type="checkbox" ${tamamlandi?'checked':''}
+              <label class="maarif-cb-label${tamam?' tamam':''}" title="${RAPOR_AYLARI[i]}">
+                <input type="checkbox" ${tamam?'checked':''}
                   onchange="belgeKontrolToggle('maarifRapor','${k.id}',${i},this.checked)">
-                ${tamamlandi?'<span class="maarif-check">✓</span>':'<span class="maarif-bos"></span>'}
+                ${tamam?'<span class="maarif-check">✓</span>':'<span class="maarif-bos"></span>'}
               </label>
             </td>`;
           }).join('')}
-          <td><button class="btn btn-ghost btn-sm" onclick="cizelgeSatirModalAc('maarifRapor','${k.id}')">✎</button></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="cizelgeSatirModalAc('maarifRapor','${k.id}')" title="Düzenle">✎</button></td>
         </tr>`;
       });
 
@@ -213,18 +218,13 @@ const CIZELGE_META = {
   maarifRapor: {
     baslik: 'Maarif Model Aylık Raporlar',
     alanlar: [
-      { key:'ogretmenId',  etiket:'Öğretmen', tip:'ogretmen' },
-      { key:'sinif', etiket:'Sınıf', tip:'sinif' },
-      { key:'ay',          etiket:'Ay',        tip:'ay' },
-      { key:'rapor',       etiket:'Rapor Türü',tip:'metin' },
-      { key:'aciklama',    etiket:'Açıklama', tip:'textarea', opsiyonel:true }
+      { key:'ogretmenId', etiket:'Öğretmen',  tip:'ogretmen' },
+      { key:'ders',       etiket:'Ders',       tip:'ders' },
+      { key:'sinifler',   etiket:'Sınıflar',   tip:'sinif_coklu' },
+      { key:'aciklama',   etiket:'Açıklama',   tip:'textarea', opsiyonel:true }
     ],
-    kontroller: [
-      'Rapor Hazırlandı',
-      'Müdüre Teslim Edildi',
-      'Dijital Yükleme Yapıldı',
-      'Onaylandı'
-    ]
+    // kontroller[0..9] = Eyl..Haz ayları — her satır için ayrı
+    kontroller: ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz']
   },
   zumre: {
     baslik: 'Zümre Toplantıları',
@@ -341,7 +341,8 @@ function _belgeKaydHtml(tip, kayit, meta){
     .map(a=>{
       let v = kayit[a.key]||'';
       if(a.tip==='ay') v = AYLAR_TR[parseInt(v)-1]||v;
-      return v ? escapeHtml(v) : '';
+      if(a.tip==='sinif_coklu') v = Array.isArray(v) ? v.join(', ') : v;
+      return v ? escapeHtml(String(v)) : '';
     }).filter(Boolean).join(' · ');
 
   const kontroller = kayit.kontroller || [];
@@ -435,6 +436,22 @@ function cizelgeSatirModalAc(tip, id){
           .map(o=>`<option value="${o.id}" ${o.id===val?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`)
           .join('')}
       </select>`;
+    } else if(alan.tip==='ders'){
+      bodyHtml += `<select id="f_${alan.key}">
+        <option value="">— Ders Seçiniz —</option>
+        ${(typeof dersListesi!=='undefined'?[...dersListesi].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[])
+          .map(d=>`<option value="${escapeHtml(d.ad)}" ${d.ad===val?'selected':''}>${escapeHtml(d.ad)}</option>`)
+          .join('')}
+      </select>`;
+    } else if(alan.tip==='sinif_coklu'){
+      const seciliSinifler = Array.isArray(val) ? val : (val ? [val] : []);
+      bodyHtml += `<div class="ogr-checkbox-liste" id="f_${alan.key}" style="max-height:160px;">
+        ${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[])
+          .map(s=>`<label class="ogr-cb-row">
+            <input type="checkbox" value="${escapeHtml(s.ad)}" ${seciliSinifler.includes(s.ad)?'checked':''}>
+            <span>${escapeHtml(s.ad)}</span>
+          </label>`).join('')}
+      </div>`;
     } else if(alan.tip==='textarea'){
       bodyHtml += `<textarea id="f_${alan.key}" rows="2">${escapeHtml(val)}</textarea>`;
     } else if(alan.tip==='tarih'){
@@ -474,19 +491,29 @@ function cizelgeSatirModalAc(tip, id){
       // zorunlu alan kontrolü
       const zorunlu = meta.alanlar.filter(a=>!a.opsiyonel);
       for(const alan of zorunlu){
+        if(alan.tip==='sinif_coklu'){
+          const sec = _secilenOgretmenler(`f_${alan.key}`); // checkbox'lar aynı pattern
+          if(!sec.length){ toast('"Sınıf" seçimi zorunludur — en az bir sınıf seçin.'); return; }
+          continue;
+        }
         const v = document.getElementById(`f_${alan.key}`)?.value?.trim();
         if(!v){ toast(`"${alan.etiket}" alanı zorunludur.`); return; }
       }
 
       const veri = {};
       meta.alanlar.forEach(alan=>{
-        const el = document.getElementById(`f_${alan.key}`);
-        veri[alan.key] = el ? el.value.trim() : '';
+        if(alan.tip==='sinif_coklu'){
+          veri[alan.key] = _secilenOgretmenler(`f_${alan.key}`);
+        } else {
+          const el = document.getElementById(`f_${alan.key}`);
+          veri[alan.key] = el ? el.value.trim() : '';
+        }
       });
-      // Kontrolleri koru (yeni kayıtta boş dizi)
+      // Kontrolleri koru (yeni kayıtta boş dizi — maarifRapor için 10, diğerleri meta.kontroller.length)
+      const kontrolUzunluk = tip==='maarifRapor' ? 10 : meta.kontroller.length;
       veri.kontroller = kayit
-        ? kayit.kontroller || Array(meta.kontroller.length).fill(false)
-        : Array(meta.kontroller.length).fill(false);
+        ? kayit.kontroller || Array(kontrolUzunluk).fill(false)
+        : Array(kontrolUzunluk).fill(false);
 
       kaydet(_cCol(tip), kayit?kayit.id:null, veri);
       modalKapat();
@@ -646,7 +673,8 @@ function renderOgretmenBelgeDurumu(ogretmenId){
       const ozet = ozetAlanlar.map(a=>{
         let v = kayit[a.key]||'';
         if(a.tip==='ay') v = AYLAR_TR[parseInt(v)-1]||v;
-        return v?escapeHtml(v):'';
+        if(a.tip==='sinif_coklu') v = Array.isArray(v) ? v.join(', ') : v;
+        return v?escapeHtml(String(v)):'';
       }).filter(Boolean).join(' · ');
 
       html += `<div class="belge-kayit" style="margin-bottom:8px;">
