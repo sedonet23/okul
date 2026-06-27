@@ -556,7 +556,8 @@ function renderDashboard(){
   const yaklasan = hatirlaticilar.filter(h=>!h.tamamlandi).sort((a,b)=>(a.tarih+(a.saat||'')).localeCompare(b.tarih+(b.saat||''))).slice(0,5);
   document.getElementById('dashHatirlaticilar').innerHTML = yaklasan.length ? yaklasan.map(h=>`<div class="dash-row">${formatTarih(h.tarih)} — ${escapeHtml(h.baslik)}</div>`).join('') : '<p class="empty-state">Bekleyen hatırlatıcı yok.</p>';
 
-  document.getElementById('dashGorevler').innerHTML = `
+  const dashGorevlerEl = document.getElementById('dashGorevler');
+  if(dashGorevlerEl) dashGorevlerEl.innerHTML = `
     <div class="dash-row">Yapılacak: <strong>${gorevler.filter(g=>g.durum==='yapilacak').length}</strong></div>
     <div class="dash-row">Yapılıyor: <strong>${gorevler.filter(g=>g.durum==='yapiliyor').length}</strong></div>
     <div class="dash-row">Tamamlandı: <strong>${gorevler.filter(g=>g.durum==='tamamlandi').length}</strong></div>
@@ -579,18 +580,16 @@ function renderDashboard(){
 
 function tatilModuKartlariniUygula(){
   const tatil = !!(dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
-  // body'e class ekle/çıkar — CSS'te body.tatil-aktif .tatil-gizle { display:none !important }
-  document.body.classList.toggle('tatil-aktif', tatil);
-  // Ek güvenlik: inline style da set et
-  document.querySelectorAll('.tatil-gizle').forEach(el => {
-    if (tatil) {
-      el.setAttribute('hidden-tatil', '1');
-      el.style.setProperty('display', 'none', 'important');
+  document.querySelectorAll('.tatil-gizle').forEach(el=>{
+    if(tatil){
+      // setAttribute ile !important inline style — cssText ve setProperty'den daha güvenilir
+      el.setAttribute('style', 'display:none!important;visibility:hidden!important;');
     } else {
-      el.removeAttribute('hidden-tatil');
-      el.style.removeProperty('display');
+      el.removeAttribute('style');
     }
   });
+  // body class ile CSS tarafını da tetikle
+  document.body.classList.toggle('tatil-aktif', tatil);
 }
 
 function renderZilSayaci(bugunGun){
@@ -742,8 +741,8 @@ function baglantilariKur(){
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } }, hataGoster);
   nobetBaglantilariKur();
-  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle(); }, hataGoster);
-  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle(); }, hataGoster);
+  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
+  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
   db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); }, hataGoster);
   db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); }, hataGoster);
 
