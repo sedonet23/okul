@@ -846,10 +846,11 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   .sidebar{
     position:fixed; left:0; top:0; height:100vh; transform: translateX(-100%); box-shadow: var(--shadow-lg);
     width: min(82vw, 280px) !important;
+    z-index: 9000;
   }
   body.nav-open .sidebar{ transform: translateX(0); }
   body.nav-open::after{
-    content:""; position:fixed; inset:0; background: rgba(0,0,0,.4); z-index:70;
+    content:""; position:fixed; inset:0; background: rgba(0,0,0,.4); z-index:8999;
   }
   body.nav-collapsed .sidebar .brand-title,
   body.nav-collapsed .sidebar .brand-sub,
@@ -2136,3 +2137,6 @@ body.tatil-aktif .tatil-gizle {
 .ni-aylik    { background: rgba(252,129,74,0.18);  }
 
 .ni-harita   { background: rgba(72,187,120,0.18); }
+
+/* Modal açıkken sayfa kaymasını engelle */
+body.modal-open { overflow: hidden; touch-action: none; }
