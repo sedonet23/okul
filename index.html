@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -69,6 +70,7 @@
       <button class="nav-tab" data-tab="notlar"><span class="nt-ico">●</span><span class="nt-label">Notlar</span></button>
       <button class="nav-tab" data-tab="tasima"><span class="nt-ico">🚌</span><span class="nt-label">Taşıma</span></button>
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico">📝</span><span class="nt-label">Sınav İşlemleri</span></button>
+      <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico">📁</span><span class="nt-label">Dökümanlar</span></button>
       
       <div class="nav-separator">— Çizelgeler —</div>
       
@@ -347,7 +349,20 @@
     </section>
 
     <!-- SINAV İŞLEMLERİ -->
-    <section id="tab-sinavIslemleri" class="tab-panel">
+    <section id="tab-dokumanlar" class="tab-panel">
+      <div class="panel-header">
+        <h2>📁 Dökümanlar</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="dokumanKategoriFiltre" class="form-control" style="width:180px;" onchange="renderDokumanlar()">
+            <option value="">Tüm Kategoriler</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="dokumanYukleModalAc()">+ Döküman Yükle</button>
+        </div>
+      </div>
+      <div id="dokumanlarListesi" class="evrak-liste"></div>
+    </section>
+
+        <section id="tab-sinavIslemleri" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri ve deneme sınavları</div></div>
       </div>
@@ -739,6 +754,7 @@
 <script src="js/ders-saatleri.js"></script>
 <script src="js/siniflar.js"></script>
 <script src="js/tasima.js"></script>
+<script src="js/dokumanlar.js"></script>
 <script src="js/servis-oturma.js"></script>
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
