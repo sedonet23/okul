@@ -173,16 +173,19 @@ function haritaNoktaEkle(lat, lng, ad) {
     icon: haritaOzelIkon(sira),
   }).addTo(haritaOrnek);
 
-  marker.bindPopup(`
-    <div style="min-width:140px;">
-      <strong>${etiket}</strong><br>
-      <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small><br>
-      <button onclick="haritaNoktaSil(${haritaKoordinatlar.length})"
-        style="margin-top:6px;padding:3px 10px;background:#e53e3e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;">
-        🗑 Sil
-      </button>
-    </div>`
-  ).openPopup();
+  const markerIdx = haritaKoordinatlar.length; // bu marker'ın eklenecek index'i
+  marker.bindPopup(() => {
+    const idx = haritaMarkerlar.indexOf(marker);
+    const div = document.createElement('div');
+    div.style.minWidth = '140px';
+    div.innerHTML = `<strong>${etiket}</strong><br><small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`;
+    const btn = document.createElement('button');
+    btn.textContent = '🗑 Sil';
+    btn.style.cssText = 'margin-top:6px;padding:3px 10px;background:#e53e3e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;display:block;';
+    btn.onclick = () => { haritaMarkerSil(marker); haritaOrnek.closePopup(); };
+    div.appendChild(btn);
+    return div;
+  }).openPopup();
 
   marker.on('dragend', e => {
     const idx = haritaMarkerlar.indexOf(marker);
@@ -218,6 +221,8 @@ function haritaOzelIkon(numara) {
    Nokta silme
    ================================================================ */
 function haritaNoktaSil(idx) {
+  // idx artık marker nesnesinin o anki indexini bulmak için kullanılıyor
+  // ama popup açıldığı andaki index kaymış olabilir, marker referansından bul
   if (idx < 0 || idx >= haritaMarkerlar.length) return;
   haritaOrnek.removeLayer(haritaMarkerlar[idx]);
   haritaMarkerlar.splice(idx, 1);
@@ -225,11 +230,20 @@ function haritaNoktaSil(idx) {
 
   // Numaraları güncelle
   haritaMarkerlar.forEach((m, i) => {
-    m.setIcon(haritaOzelIkon(i + 1));
+    m.setIcon(
+      haritaKoordinatlar[i]?.ad === 'Ara Nokta' ? haritaAraNokIkon(i+1) : haritaOzelIkon(i+1)
+    );
   });
 
   haritaCizgiGuncelle();
   haritaBilgiGuncelle();
+}
+
+// Marker nesnesinden index bularak sil — popup'larda kullan
+function haritaMarkerSil(marker) {
+  const idx = haritaMarkerlar.indexOf(marker);
+  if (idx === -1) return;
+  haritaNoktaSil(idx);
 }
 
 function haritaTemizle() {
@@ -640,16 +654,17 @@ function haritaAraNokataEkle(lat, lng) {
     icon: haritaAraNokIkon(),
   }).addTo(haritaOrnek);
 
-  marker.bindPopup(`
-    <div style="min-width:130px;">
-      <strong>Ara Nokta</strong><br>
-      <small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small><br>
-      <button onclick="haritaNoktaSil(${enYakinIdx + 1})"
-        style="margin-top:6px;padding:3px 10px;background:#e53e3e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;">
-        🗑 Sil
-      </button>
-    </div>`
-  ).openPopup();
+  marker.bindPopup(() => {
+    const div = document.createElement('div');
+    div.style.minWidth = '130px';
+    div.innerHTML = `<strong>Ara Nokta</strong><br><small>${lat.toFixed(5)}, ${lng.toFixed(5)}</small>`;
+    const btn = document.createElement('button');
+    btn.textContent = '🗑 Sil';
+    btn.style.cssText = 'margin-top:6px;padding:3px 10px;background:#e53e3e;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;display:block;';
+    btn.onclick = () => { haritaMarkerSil(marker); haritaOrnek.closePopup(); };
+    div.appendChild(btn);
+    return div;
+  }).openPopup();
 
   marker.on('dragend', e => {
     const idx = haritaMarkerlar.indexOf(marker);
