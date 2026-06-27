@@ -61,7 +61,8 @@ const COL = {
   servisOturma:'oy_servisOturma',
   nobetRotasyon:'oy_nobetRotasyon',
   // --- YENİ: Dökümanlar modülü ---
-  dokumanlar:'oy_dokumanlar',            // {ad, aciklama, kategori, dosyaAdi, dosyaBoyutu, hariciUrl?, yuklenmeTarihi}
+  dokumanlar:'oy_dokumanlar',
+  haritaFavoriler:'oy_haritaFavoriler',  // {ad, lat, lng, aciklama?, olusturmaTarihi}            // {ad, aciklama, kategori, dosyaAdi, dosyaUrl, dosyaBoyutu, yuklenmeTarihi, storagePath}      // tek doküman (id:'sablon'): rotasyon şablonu ve son hafta durumu           // belge ID = servisId; {servisId, sablon, yerlesim:[{sira,konum,soforYani?}], koltuklar:[{no,ogrenciId,ogrenciAdi,rezerve}]}
                                          // NOT: Müdür Yardımcıları için ayrı koleksiyon YOK — bilinçli tasarım kararı:
                                          // "Müdür Yardımcısı" zaten oy_ogretmenler içinde bir ünvan seçeneğidir (bkz. app.js OGRETMEN_UNVANLARI).
                                          // Aynı kişi için iki ayrı kayıt (öğretmen + MY) tutmak veri tekrarına ve
