@@ -185,8 +185,12 @@ function modalAc(title, bodyHtml, kaydetFn, silFn){
   kaydetBtn.style.display = 'inline-flex';
   kaydetBtn.onclick = kaydetFn;
   document.getElementById('modalOverlay').classList.add('active');
+  document.body.classList.add('modal-open');
 }
-function modalKapat(){ document.getElementById('modalOverlay').classList.remove('active'); }
+function modalKapat(){
+  document.getElementById('modalOverlay').classList.remove('active');
+  document.body.classList.remove('modal-open');
+}
 
 /* ============== ÖĞRETMENLER ============== */
 function renderOgretmenler(){

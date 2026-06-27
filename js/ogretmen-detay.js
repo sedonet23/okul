@@ -13,6 +13,7 @@ function adGeciyorMu(haystack, adSoyad){
 
 function detayPanelKapat(){
   document.getElementById('detayOverlay').classList.remove('active');
+  document.body.classList.remove('modal-open');
   detaySinifId = null;
 }
 
@@ -97,5 +98,5 @@ function ogretmenDetayAc(id){
     <div class="detay-card"><h4>Diğer Evrak</h4>${evrakHtml}</div>
   `;
 
-  document.getElementById('detayOverlay').classList.add('active');
+  document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
 }

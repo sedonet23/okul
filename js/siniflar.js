@@ -115,7 +115,7 @@ function sinifDetayAc(id){
   sinifDetayOgrenciRender(s);
 
   /* ← PANEL AÇMA — bu satır eksikti */
-  document.getElementById('detayOverlay').classList.add('active');
+  document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
 }
 
 /* ---------- bilgi sekmesi ---------- */
