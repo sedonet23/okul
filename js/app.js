@@ -755,6 +755,7 @@ function baglantilariKur(){
   tasimaBaglantilariKur();
   if(typeof servisOturmaBaglantisiKur === "function") servisOturmaBaglantisiKur();
   sinavBaglantilariKur();
+  if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur();
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
