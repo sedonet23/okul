@@ -665,8 +665,36 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
 .cz-kalinlik-btn{ width:32px; height:32px; border-radius:8px; border:2px solid transparent; background:var(--bg-card); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--ink); transition:all .12s; }
 .cz-kalinlik-btn:hover{ border-color:var(--brand); }
 .cz-kalinlik-btn.aktif{ border-color:var(--brand); background:var(--brand-light); }
-.cizim-kapsayici{ overflow:hidden; border:2px solid var(--border); border-radius:0 0 var(--radius-sm) var(--radius-sm); background:#f0f0f0; line-height:0; position:relative; }
-.cizim-canvas{ display:block; cursor:crosshair; max-width:100%; touch-action:none; image-rendering:pixelated; }
+.cizim-kapsayici{ 
+  overflow:hidden; border:2px solid var(--border); border-radius:0 0 var(--radius-sm) var(--radius-sm); 
+  background:#f0f0f0; line-height:0; position:relative; 
+  min-height:320px; max-height:600px; 
+  display:flex; align-items:center; justify-content:center;
+}
+.cizim-canvas{ 
+  display:block; cursor:crosshair; max-width:100%; touch-action:none; image-rendering:pixelated; 
+  width:100%; height:100%;
+}
+
+/* Tam ekran modu */
+.cizim-container {
+  transition: all 0.3s ease;
+}
+
+.cizim-container[style*="position: fixed"] .cizim-toolbar {
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: var(--el-2);
+}
+
+.cizim-container[style*="position: fixed"] .cizim-kapsayici {
+  flex-grow: 1;
+  min-height: calc(100vh - 160px);
+  max-height: none;
+  border-radius: 0;
+}
 
 /* Görüntü */
 .goruntu-alan{ border:2px dashed var(--border); border-radius:var(--radius-md); padding:16px; text-align:center; transition:border-color .15s; min-height:120px; display:flex; align-items:center; justify-content:center; background:var(--bg-card); }
