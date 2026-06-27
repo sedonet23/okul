@@ -466,6 +466,18 @@ function _cizimEditHtml(mevcutData) {
         </div>
       </div>
 
+      <!-- Şablon Seçimi -->
+      <div class="cizim-sablon-bar">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-muted);">Şablon:</label>
+        <div class="cizim-sablon-grup">
+          <button type="button" class="cz-sablon-btn aktif" onclick="_czSablonDegis('duz')" title="Düz">⬜</button>
+          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('cizgili')" title="Çizgili">📝</button>
+          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('kareleli')" title="Kareleli">📊</button>
+          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('noktalı')" title="Noktalı">⠿</button>
+          <button type="button" class="cz-sablon-btn" onclick="_czSablonDegis('defter')" title="Defter">📓</button>
+        </div>
+      </div>
+
       <!-- Canvas Kapsayıcı (clip + overflow) -->
       <div class="cizim-kapsayici" id="czKapsayici">
         <canvas id="cizimCanvas" class="cizim-canvas"></canvas>
@@ -482,7 +494,11 @@ function _cizimEditHtml(mevcutData) {
 function _cizimBaslat(mevcutData) {
   _cizimCanvas = document.getElementById('cizimCanvas');
   if (!_cizimCanvas) return;
-  _cizimCtx = _cizimCanvas.getContext('2d');
+  _cizimCtx = _cizimCanvas.getContext('2d', { alpha: true });
+
+  // Canvas rendering kalitesi
+  _cizimCtx.imageSmoothingEnabled = true;
+  _cizimCtx.imageSmoothingQuality = 'high';
 
   // Zoom/pan sıfırla
   _czZoom = 1; _czPanX = 0; _czPanY = 0;
@@ -505,15 +521,18 @@ function _cizimBaslat(mevcutData) {
   _czOffCanvas = document.createElement('canvas');
   _czOffCanvas.width = w * 2;
   _czOffCanvas.height = h * 2;
-  _czOffCtx = _czOffCanvas.getContext('2d');
+  _czOffCtx = _czOffCanvas.getContext('2d', { alpha: true });
+  
+  // Offscreen canvas rendering kalitesi
+  _czOffCtx.imageSmoothingEnabled = true;
+  _czOffCtx.imageSmoothingQuality = 'high';
 
   // Display canvas — canvas element'in actual pixel boyutu
   _cizimCanvas.width = w * 2;
   _cizimCanvas.height = h * 2;
 
-  // Zemin
-  _czOffCtx.fillStyle = _cizimZemin;
-  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
+  // Zemin — şablonla beraber çiz
+  _czZeminVeSablonuCiz();
 
   // Mevcut çizimi yükle
   if (mevcutData) {
@@ -637,29 +656,40 @@ function _czMouseBasla(e) {
   _cizimCiziyor = true;
   const { x, y } = _czEkrandenOff(e.clientX, e.clientY);
   _czLastX = x; _czLastY = y;
-  if (_cizimArac === 'pan') return;
+  if (_cizimArac === 'pan') {
+    // Pan başlangıç - ekran koordinatını kaydet
+    _czLastX = e.clientX;
+    _czLastY = e.clientY;
+    return;
+  }
   const silgi = _cizimArac === 'silgi';
   _czAracAyarla(_czOffCtx, silgi);
   _czOffCtx.beginPath();
   _czOffCtx.moveTo(x, y);
 }
+
 function _czMouseHareket(e) {
   if (!_cizimCiziyor) return;
-  const { x, y } = _czEkrandenOff(e.clientX, e.clientY);
+  
   if (_cizimArac === 'pan') {
-    const rect = _cizimCanvas.getBoundingClientRect();
-    const scaleX = _cizimCanvas.width / rect.width;
-    const scaleY = _cizimCanvas.height / rect.height;
-    _czPanX += (e.clientX - _czLastX * rect.width / _cizimCanvas.width * scaleX) / scaleX / 2;
-    _czPanY += (e.clientY - _czLastY * rect.height / _cizimCanvas.height * scaleY) / scaleY / 2;
-    _czLastX = e.clientX; _czLastY = e.clientY;
-    _czEkranaYaz(); return;
+    // Pan - basit offset hesaplaması
+    const deltaX = e.clientX - _czLastX;
+    const deltaY = e.clientY - _czLastY;
+    _czPanX += deltaX / _czZoom;
+    _czPanY += deltaY / _czZoom;
+    _czLastX = e.clientX;
+    _czLastY = e.clientY;
+    _czEkranaYaz();
+    return;
   }
+  
+  const { x, y } = _czEkrandenOff(e.clientX, e.clientY);
   _czOffCtx.lineTo(x, y);
   _czOffCtx.stroke();
   _czEkranaYaz();
   _czLastX = x; _czLastY = y;
 }
+
 function _czMouseBitir() {
   if (!_cizimCiziyor) return;
   _cizimCiziyor = false;
@@ -759,15 +789,134 @@ function _czZeminDegis(renk) {
   // Mevcut içeriği geçici sakla
   const snap = document.createElement('canvas');
   snap.width = _czOffCanvas.width; snap.height = _czOffCanvas.height;
-  snap.getContext('2d').drawImage(_czOffCanvas, 0, 0);
+  const snapCtx = snap.getContext('2d');
+  snapCtx.drawImage(_czOffCanvas, 0, 0);
+  
+  // Zemin temizle ve yenisini çiz
+  _czZeminVeSablonuCiz();
+  
+  // Çizimi geri çiz
   _czOffCtx.globalCompositeOperation = 'source-over';
-  _czOffCtx.globalAlpha = 1;
-  _czOffCtx.fillStyle = renk;
-  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
   _czOffCtx.drawImage(snap, 0, 0);
+  
   _czEkranaYaz();
   _czGecmisKaydet();
   _czVeriKaydet();
+}
+
+// Şablon sistemi
+let _czSablonTipi = 'duz'; // duz | cizgili | kareleli | noktalı | defter
+
+function _czSablonDegis(sablon) {
+  _czSablonTipi = sablon;
+  _czZeminDegis(_cizimZemin);
+}
+
+function _czZeminVeSablonuCiz() {
+  if (!_czOffCtx || !_czOffCanvas) return;
+  
+  // Zemin rengi
+  _czOffCtx.globalCompositeOperation = 'source-over';
+  _czOffCtx.globalAlpha = 1;
+  _czOffCtx.fillStyle = _cizimZemin;
+  _czOffCtx.fillRect(0, 0, _czOffCanvas.width, _czOffCanvas.height);
+  
+  // Şablon
+  _czOffCtx.strokeStyle = _czSablonRengi();
+  _czOffCtx.globalAlpha = 0.3;
+  _czOffCtx.lineWidth = 1;
+  
+  const w = _czOffCanvas.width;
+  const h = _czOffCanvas.height;
+  const spacing = 40; // 20px logical = 40px physical (2x scale)
+  
+  switch (_czSablonTipi) {
+    case 'cizgili':
+      // Yatay çizgiler (defter çizgileri)
+      for (let y = spacing; y < h; y += spacing) {
+        _czOffCtx.beginPath();
+        _czOffCtx.moveTo(0, y);
+        _czOffCtx.lineTo(w, y);
+        _czOffCtx.stroke();
+      }
+      // Sol kenar çizgisi (defter kenar çizgisi)
+      _czOffCtx.strokeStyle = _czSablonRengi(0.6);
+      _czOffCtx.lineWidth = 2;
+      _czOffCtx.beginPath();
+      _czOffCtx.moveTo(spacing * 1.2, 0);
+      _czOffCtx.lineTo(spacing * 1.2, h);
+      _czOffCtx.stroke();
+      break;
+      
+    case 'kareleli':
+      // Kare ızgarası
+      for (let x = spacing; x < w; x += spacing) {
+        _czOffCtx.beginPath();
+        _czOffCtx.moveTo(x, 0);
+        _czOffCtx.lineTo(x, h);
+        _czOffCtx.stroke();
+      }
+      for (let y = spacing; y < h; y += spacing) {
+        _czOffCtx.beginPath();
+        _czOffCtx.moveTo(0, y);
+        _czOffCtx.lineTo(w, y);
+        _czOffCtx.stroke();
+      }
+      break;
+      
+    case 'noktalı':
+      // Nokta şablonu
+      _czOffCtx.fillStyle = _czSablonRengi();
+      _czOffCtx.globalAlpha = 0.4;
+      for (let x = spacing; x < w; x += spacing) {
+        for (let y = spacing; y < h; y += spacing) {
+          _czOffCtx.beginPath();
+          _czOffCtx.arc(x, y, 2, 0, Math.PI * 2);
+          _czOffCtx.fill();
+        }
+      }
+      break;
+      
+    case 'defter':
+      // Defter şablonu (çizgili + kenar)
+      _czOffCtx.strokeStyle = _czSablonRengi();
+      _czOffCtx.globalAlpha = 0.25;
+      _czOffCtx.lineWidth = 1;
+      for (let y = spacing; y < h; y += spacing) {
+        _czOffCtx.beginPath();
+        _czOffCtx.moveTo(0, y);
+        _czOffCtx.lineTo(w, y);
+        _czOffCtx.stroke();
+      }
+      // Sol kenar (kırmızı hatırlatıcı)
+      _czOffCtx.strokeStyle = '#DC2626';
+      _czOffCtx.globalAlpha = 0.3;
+      _czOffCtx.lineWidth = 2;
+      _czOffCtx.beginPath();
+      _czOffCtx.moveTo(spacing * 0.8, 0);
+      _czOffCtx.lineTo(spacing * 0.8, h);
+      _czOffCtx.stroke();
+      break;
+      
+    case 'duz':
+    default:
+      // Sadece zemin rengi
+      break;
+  }
+  
+  _czOffCtx.globalAlpha = 1;
+}
+
+function _czSablonRengi(alpha = 0.3) {
+  // Zeminin rengine göre uygun şablon rengi
+  if (_cizimZemin === '#ffffff' || _cizimZemin === '#fff') {
+    return '#000000'; // Beyaz zemin → siyah şablon
+  } else if (_cizimZemin === '#1C1C1C' || _cizimZemin === '#000000') {
+    return '#ffffff'; // Koyu zemin → beyaz şablon
+  } else {
+    // Açık renkler için siyah, koyu renkler için beyaz
+    return '#000000';
+  }
 }
 function _czTemizle() {
   if (!_czOffCtx || !_czOffCanvas) return;
