@@ -1948,3 +1948,11 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   color: var(--red-danger);
   animation: periyodik-blink 1.6s ease-in-out infinite;
 }
+
+/* Tatil modu — JS ile birlikte güçlü gizleme */
+.tatil-aktif .tatil-gizle,
+.tatil-gizle[style*="display:none"],
+.tatil-gizle[style*="display: none"] {
+  display: none !important;
+  visibility: hidden !important;
+}
