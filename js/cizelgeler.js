@@ -120,10 +120,37 @@ function _renderSosyalKulupler(el,veri){
    DÖNEM TABLOSU — Zümre, ŞÖK, Yıllık/BEP, Rehberlik
    ================================================================ */
 const CIZELGE_META={
-  zumre:    { baslik:'Zümre Toplantıları',     alanlar:[{key:'ogretmenId',etiket:'Öğretmen',tip:'ogretmen'},{key:'brans',etiket:'Branş/Ders',tip:'metin'},{key:'aciklama',etiket:'Notlar',tip:'textarea',opsiyonel:true}]},
-  sok:      { baslik:'ŞÖK – Şiddet Önleme',   alanlar:[{key:'ogretmenId',etiket:'Öğretmen',tip:'ogretmen'},{key:'konu',etiket:'Konu',tip:'metin'},{key:'aciklama',etiket:'Notlar',tip:'textarea',opsiyonel:true}]},
-  bepPlani: { baslik:'Yıllık / BEP Planları',  alanlar:[{key:'ogretmenId',etiket:'Öğretmen',tip:'ogretmen'},{key:'sinif',etiket:'Sınıf',tip:'sinif'},{key:'tur',etiket:'Plan Türü',tip:'select',secenekler:['Yıllık Plan','BEP Planı','Ünite Planı']},{key:'aciklama',etiket:'Notlar',tip:'textarea',opsiyonel:true}]},
-  rehberlik:{ baslik:'Rehberlik',               alanlar:[{key:'ogretmenId',etiket:'Öğretmen',tip:'ogretmen'},{key:'sinif',etiket:'Sınıf',tip:'sinif'},{key:'konu',etiket:'Konu/Etkinlik',tip:'metin'},{key:'aciklama',etiket:'Notlar',tip:'textarea',opsiyonel:true}]}
+  zumre:    { baslik:'Zümre Toplantıları',
+    alanlar:[
+      {key:'ogretmenId', etiket:'Öğretmen',              tip:'ogretmen'},
+      {key:'brans',      etiket:'Branş/Ders',             tip:'brans'},
+      {key:'sinif',      etiket:'Sınıf (opsiyonel)',      tip:'sinif', opsiyonel:true},
+      {key:'aciklama',   etiket:'Notlar',                 tip:'textarea', opsiyonel:true}
+    ]
+  },
+  sok: { baslik:'ŞÖK – Şube Öğretmenler Kurulu',
+    alanlar:[
+      {key:'ogretmenId', etiket:'Öğretmen', tip:'ogretmen'},
+      {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
+      {key:'konu',       etiket:'Konu',     tip:'metin'},
+      {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
+    ]
+  },
+  bepPlani: { baslik:'Yıllık / BEP Planları',
+    alanlar:[
+      {key:'ogretmenId', etiket:'Öğretmen',  tip:'ogretmen'},
+      /* sinif ve tur çoklu — bepPlani için özel modal (_bepModal) kullanılır */
+    ],
+    _ozel: true
+  },
+  rehberlik:{ baslik:'Rehberlik',
+    alanlar:[
+      {key:'ogretmenId', etiket:'Öğretmen',       tip:'ogretmen'},
+      {key:'sinif',      etiket:'Sınıf',            tip:'sinif'},
+      {key:'konu',       etiket:'Konu/Etkinlik',    tip:'metin'},
+      {key:'aciklama',   etiket:'Notlar',            tip:'textarea', opsiyonel:true}
+    ]
+  }
 };
 
 function _renderDonemTablosu(el,tip,veri){
@@ -163,6 +190,7 @@ function _renderDonemTablosu(el,tip,veri){
    ================================================================ */
 function cizelgeSatirModalAc(tip,id){
   if(tip==='maarifRapor'){_maarifModal(id||null);return;}
+  if(tip==='bepPlani'){_bepModal(id||null);return;}
   const meta=CIZELGE_META[tip]; if(!meta){toast('Bilinmeyen tip: '+tip);return;}
   const kayit=id?(cizelgeVerileri[tip]||[]).find(x=>x.id===id):null;
   let bodyHtml='';
@@ -171,8 +199,11 @@ function cizelgeSatirModalAc(tip,id){
     bodyHtml+=`<div class="form-group"><label>${escapeHtml(alan.etiket)}</label>`;
     if(alan.tip==='ogretmen'){
       bodyHtml+=`<select id="f_${alan.key}"><option value="">— Seçiniz —</option>${(typeof ogretmenler!=='undefined'?ogretmenler:[]).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(o=>`<option value="${o.id}" ${o.id===val?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}</select>`;
+    } else if(alan.tip==='brans'){
+      bodyHtml+=`<select id="f_${alan.key}"><option value="">— Seçiniz —</option>${(typeof bransListesi!=='undefined'?[...bransListesi].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(b=>`<option value="${escapeHtml(b.ad)}" ${b.ad===val?'selected':''}>${escapeHtml(b.ad)}</option>`).join('')}</select>`;
     } else if(alan.tip==='sinif'){
-      bodyHtml+=`<select id="f_${alan.key}"><option value="">— Seçiniz —</option>${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===val?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}</select>`;
+      const opt=alan.opsiyonel?'<option value="">— Seçiniz (opsiyonel) —</option>':'<option value="">— Seçiniz —</option>';
+      bodyHtml+=`<select id="f_${alan.key}">${opt}${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===val?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}</select>`;
     } else if(alan.tip==='select'){
       bodyHtml+=`<select id="f_${alan.key}"><option value="">— Seçiniz —</option>${(alan.secenekler||[]).map(s=>`<option ${s===val?'selected':''}>${s}</option>`).join('')}</select>`;
     } else if(alan.tip==='textarea'){
@@ -193,6 +224,59 @@ function cizelgeSatirModalAc(tip,id){
     kaydet(_cCol(tip),kayit?kayit.id:null,veri);
     modalKapat();
   },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(_cCol(tip)).doc(kayit.id).delete();modalKapat();}}:null);
+}
+
+/* ================================================================
+   YILLIK / BEP — Sınıf çoklu + Plan Türü çoklu → ayrı kayıtlar
+   ================================================================ */
+function _bepModal(id){
+  const kayit=id?(cizelgeVerileri.bepPlani||[]).find(x=>x.id===id):null;
+
+  const sinifSecimHtml = kayit
+    ? `<select id="f_sinif"><option value="">— Seçiniz —</option>${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<option value="${escapeHtml(s.ad)}" ${s.ad===(kayit.sinif||'')?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}</select>`
+    : `<div class="ogr-checkbox-liste" id="f_sinifler" style="max-height:150px;">${(typeof siniflar!=='undefined'?[...siniflar].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(s=>`<label class="ogr-cb-row"><input type="checkbox" value="${escapeHtml(s.ad)}"><span>${escapeHtml(s.ad)}</span></label>`).join('')}</div>`;
+
+  const turlar = ['Yıllık Plan','BEP Planı'];
+  const turSecimHtml = kayit
+    ? `<div class="ogr-checkbox-liste" id="f_turler" style="max-height:90px;">${turlar.map(t=>`<label class="ogr-cb-row"><input type="checkbox" value="${t}" ${(kayit.tur||'')=== t ?'checked':''}><span>${t}</span></label>`).join('')}</div>`
+    : `<div class="ogr-checkbox-liste" id="f_turler" style="max-height:90px;">${turlar.map(t=>`<label class="ogr-cb-row"><input type="checkbox" value="${t}"><span>${t}</span></label>`).join('')}</div>`;
+
+  const body=`
+    <div class="form-group"><label>Öğretmen</label>
+      <select id="f_ogretmenId"><option value="">— Seçiniz —</option>${(typeof ogretmenler!=='undefined'?ogretmenler:[]).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(o=>`<option value="${o.id}" ${o.id===(kayit?kayit.ogretmenId:'')?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label>${kayit?'Sınıf':'Sınıflar (her sınıf ayrı kayıt)'}</label>${sinifSecimHtml}</div>
+    <div class="form-group"><label>${kayit?'Plan Türü':'Plan Türleri (her tür ayrı kayıt)'}</label>${turSecimHtml}</div>
+    <div class="form-group"><label>Notlar</label><textarea id="f_aciklama" rows="2">${escapeHtml(kayit?kayit.aciklama||'':'')}</textarea></div>`;
+
+  modalAc(kayit?'Yıllık / BEP Planı — Düzenle':'Yıllık / BEP Planı — Yeni Kayıt',body,()=>{
+    const ogretmenId=document.getElementById('f_ogretmenId').value;
+    const aciklama=document.getElementById('f_aciklama').value.trim();
+    if(!ogretmenId){toast('Öğretmen seçiniz.');return;}
+
+    if(kayit){
+      // Düzenleme: tek kayıt
+      const sinif=document.getElementById('f_sinif').value;
+      const seciliTurler=_secilenIdler('f_turler');
+      if(!sinif){toast('Sınıf seçiniz.');return;}
+      if(!seciliTurler.length){toast('En az bir plan türü seçiniz.');return;}
+      kaydet(COL.bepPlani,kayit.id,{ogretmenId,sinif,tur:seciliTurler.join(', '),aciklama,kontroller:kayit.kontroller||[false,false,false]});
+    } else {
+      const seciliSinifler=_secilenIdler('f_sinifler');
+      const seciliTurler=_secilenIdler('f_turler');
+      if(!seciliSinifler.length){toast('En az bir sınıf seçiniz.');return;}
+      if(!seciliTurler.length){toast('En az bir plan türü seçiniz.');return;}
+      let sayac=0;
+      seciliSinifler.forEach(sinif=>{
+        seciliTurler.forEach(tur=>{
+          db.collection(COL.bepPlani).add({ogretmenId,sinif,tur,aciklama,kontroller:[false,false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
+          sayac++;
+        });
+      });
+      toast(`${sayac} kayıt oluşturuldu.`);
+    }
+    modalKapat();
+  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(COL.bepPlani).doc(kayit.id).delete();modalKapat();}}:null);
 }
 
 /* ================================================================
