@@ -384,11 +384,11 @@
     <!-- SOSYAL KULÜPLER -->
     <section id="tab-sosyalKulupler" class="tab-panel">
       <div class="page-header">
-        <div><div class="page-title">Sosyal Kulüpler</div><div class="page-sub">Hücreye tıklayarak ilgili görev/raporu kaydedildi olarak işaretleyin</div></div>
+        <div><div class="page-title">Sosyal Kulüpler</div><div class="page-sub">Teslim edilmesi gereken evrakları işaretleyin</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('sosyalKulupler')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="sosyalKulupModalAc()">+ Yeni Kulüp</button>
-          <button class="btn btn-primary btn-sm" onclick="sosyalKuluplerKaydet()">✓ Kaydet</button>
         </div>
       </div>
       <div id="sosyalKuluplerListesi" style="display:none; margin-bottom:20px;"></div>
@@ -400,6 +400,7 @@
       <div class="page-header">
         <div><div class="page-title">Belirli Gün ve Haftalar</div><div class="page-sub">Görev dağılım çizelgesi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('belirliGunler')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="belirliGunModalAc()">+ Yeni Etkinlik</button>
         </div>
@@ -412,6 +413,7 @@
       <div class="page-header">
         <div><div class="page-title">Zümre Toplantıları</div><div class="page-sub">Zümre toplantı takip çizelgesi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('zumre')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="cizelgeSatirModalAc('zumre')">+ Yeni Zümre</button>
         </div>
@@ -424,6 +426,7 @@
       <div class="page-header">
         <div><div class="page-title">ŞÖK – Şube Öğretmenler Kurulu</div><div class="page-sub">Şube öğretmenler kurulu toplantı takip çizelgesi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('sok')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="cizelgeSatirModalAc('sok')">+ Kayıt Ekle</button>
         </div>
@@ -434,8 +437,9 @@
     <!-- YILLIK / BEP PLANI -->
     <section id="tab-bepPlani" class="tab-panel">
       <div class="page-header">
-        <div><div class="page-title">Yıllık / BEP Planları</div><div class="page-sub">Öğretmen bazlı yıllık plan ve BEP takibi</div></div>
+        <div><div class="page-title">Yıllık / BEP Planları</div><div class="page-sub">Öğretmen ve sınıf bazlı yıllık plan ve BEP takibi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('bepPlani')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="cizelgeSatirModalAc('bepPlani')">+ Kayıt Ekle</button>
         </div>
@@ -448,6 +452,7 @@
       <div class="page-header">
         <div><div class="page-title">Rehberlik</div><div class="page-sub">Sınıf danışmanı ve aylık rehberlik takibi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('rehberlik')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="cizelgeSatirModalAc('rehberlik')">+ Kayıt Ekle</button>
         </div>
@@ -460,6 +465,7 @@
       <div class="page-header">
         <div><div class="page-title">Maarif Model Aylık Raporlar</div><div class="page-sub">Ders ve sınıf bazlı aylık rapor takibi</div></div>
         <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('maarifRapor')">🖨️ Rapor</button>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
           <button class="btn btn-amber" onclick="cizelgeSatirModalAc('maarifRapor')">+ Kayıt Ekle</button>
         </div>
