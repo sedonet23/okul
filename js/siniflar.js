@@ -525,7 +525,6 @@ function sinifListesiYazdir(sinifId) {
 
   const metaParcalar = [];
   if (gosterYil && egitimYili) metaParcalar.push(escapeHtml(egitimYili) + ' Eğitim-Öğretim Yılı');
-  metaParcalar.push(`Toplam ${ogrenciler.length} öğrenci`);
   if (gosterTarih && tarih) metaParcalar.push(escapeHtml(tarih));
 
   const imzaSol = gosterOgretmen && ogretmen
@@ -554,7 +553,8 @@ function sinifListesiYazdir(sinifId) {
   td { padding: 4px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
   tr:nth-child(even) td { background: #f7f7f7; }
   tr:last-child td { border-bottom: 2px solid #333; }
-  .footer { margin-top: 22px; display: flex; justify-content: space-between; font-size: 10px; color: #444; line-height: 1.8; }
+  .ogrenci-sayisi { margin-top: 8px; font-size: 10px; color: #444; text-align: right; }
+  .footer { margin-top: 16px; display: flex; justify-content: space-between; font-size: 10px; color: #444; line-height: 1.8; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
@@ -563,12 +563,13 @@ function sinifListesiYazdir(sinifId) {
     ${gosterOkul && okulAdi ? `<div class="okul">${escapeHtml(okulAdi)}</div>` : ''}
     ${gosterBaslik ? `<div class="baslik">${escapeHtml(baslik)}</div>` : ''}
     ${gosterAlt && altBaslik ? `<div class="alt-baslik">${escapeHtml(altBaslik)}</div>` : ''}
-    <div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>
+    ${metaParcalar.length ? `<div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>` : ''}
   </div>
   <table>
     <thead><tr>${thHTML}</tr></thead>
     <tbody>${trHTML}</tbody>
   </table>
+  <div class="ogrenci-sayisi">Toplam öğrenci sayısı: <strong>${ogrenciler.length}</strong></div>
   ${(imzaSol || imzaSag) ? `<div class="footer"><div>${imzaSol}</div><div style="text-align:right;">${imzaSag}</div></div>` : ''}
 </body>
 </html>`;
