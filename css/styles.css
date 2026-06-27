@@ -1956,3 +1956,100 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
   display: none !important;
   visibility: hidden !important;
 }
+
+/* ================================================================
+   DASHBOARD — Mini Takvim (Bu Ay)
+   ================================================================ */
+.mini-takvim-baslik {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brand);
+  margin-bottom: 8px;
+  text-align: center;
+}
+.mini-takvim-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.mini-gun-etiket {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted, #888);
+  padding: 2px 0 4px;
+}
+.mini-hucre {
+  text-align: center;
+  font-size: 11px;
+  padding: 4px 2px;
+  border-radius: 4px;
+  cursor: default;
+  line-height: 1.4;
+  color: var(--ink, #222);
+  transition: background 0.15s;
+}
+.mini-hucre.bos { visibility: hidden; }
+.mini-hucre.bugun {
+  background: var(--brand);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 6px;
+}
+.mini-hucre.has-event {
+  background: var(--brand-light, #DFF2F2);
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+.mini-hucre.bugun.has-event {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* ================================================================
+   DASHBOARD — Yıllık Görünüm
+   ================================================================ */
+.yillik-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+@media (max-width: 480px) {
+  .yillik-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.yillik-ay {
+  border-radius: 8px;
+  padding: 8px 4px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  background: var(--nm-bg-dark, #C8D0D8);
+  box-shadow: var(--nm-sm);
+}
+.yillik-ay:hover { transform: translateY(-2px); box-shadow: var(--nm-out); }
+.yillik-ay-ad {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink, #333);
+  letter-spacing: 0.3px;
+}
+.yillik-sayac {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-top: 2px;
+}
+/* Yoğunluk renkleri */
+.yillik-yogunluk-0 { background: var(--nm-bg-dark, #C8D0D8); }
+.yillik-yogunluk-1 { background: #b7e4d4; }
+.yillik-yogunluk-2 { background: #5ec49a; }
+.yillik-yogunluk-3 { background: #1a9b6e; }
+.yillik-yogunluk-3 .yillik-ay-ad,
+.yillik-yogunluk-3 .yillik-sayac { color: #fff; }
+.yillik-yogunluk-2 .yillik-ay-ad { color: #0a4a30; }
+[data-theme="dark"] .yillik-yogunluk-0 { background: #2a2a2a; }
+[data-theme="dark"] .yillik-yogunluk-1 { background: #1a3d2e; }
+[data-theme="dark"] .yillik-yogunluk-2 { background: #1e6b4a; }
+[data-theme="dark"] .yillik-yogunluk-3 { background: #1a9b6e; }
+[data-theme="dark"] .mini-hucre { color: var(--ink, #eee); }
+[data-theme="dark"] .yillik-ay-ad { color: var(--ink, #eee); }
