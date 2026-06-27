@@ -781,10 +781,17 @@ function _raporServisOturmaGoster(servisIdFiltre) {
   if (!hedefServisler.length) { toast('Servis bulunamadı.'); return; }
 
   let html = '';
+  let ilk  = true;
 
   hedefServisler.forEach(servis => {
     const plan = (typeof servisOturmaPlani !== 'undefined' ? servisOturmaPlani : [])
       .find(p => p.servisId === servis.id);
+
+    // Tek servis seçilmişse sayfa sonu yok; tüm servisler modunda her biri ayrı sayfada
+    const sayfaSonu = !ilk && !servisIdFiltre ? '<div class="sayfa-sonu"></div>' : '';
+    ilk = false;
+
+    html += sayfaSonu;
 
     html += `<div class="bolum-baslik">🚌 ${escapeHtml(servis.servisAdi || 'Servis')}
       ${servis.guzergah ? ` — <span style="font-weight:400">${escapeHtml(servis.guzergah)}</span>` : ''}

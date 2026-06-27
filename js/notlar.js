@@ -116,11 +116,23 @@ function _notOnizleme(n) {
       ).join('')}</table>`;
     }
     default: {
-      // metin — HTML'den temiz metin çıkar
+      // metin — HTML yapısını koru (liste, kalın vb. görünsün), güvenli kırp
       const tmp = document.createElement('div');
       tmp.innerHTML = n.icerik || '';
-      const temizMetin = (tmp.textContent || '').slice(0, 160);
-      return `<span>${escapeHtml(temizMetin)}</span>`;
+      // 160 karakteri aşan metin düğümlerini kırp
+      let karakter = 0;
+      const kırp = (node) => {
+        if (karakter >= 160) { node.parentNode && node.parentNode.removeChild(node); return; }
+        if (node.nodeType === 3) {
+          const kalan = 160 - karakter;
+          if (node.textContent.length > kalan) node.textContent = node.textContent.slice(0, kalan) + '…';
+          karakter += node.textContent.length;
+        } else {
+          Array.from(node.childNodes).forEach(kırp);
+        }
+      };
+      Array.from(tmp.childNodes).forEach(kırp);
+      return `<div class="note-icerik-onizleme">${tmp.innerHTML}</div>`;
     }
   }
 }
@@ -376,9 +388,12 @@ function _todoSatirHtml(idx, metin, tamamlandi) {
 
 function _todoSatirEkle() {
   const lista = document.getElementById('todoLista');
-  const sayı = lista.querySelectorAll('.todo-satir').length;
-  const html = _todoSatirHtml(sayı, '', false);
-  lista.innerHTML += html;
+  const sayi = lista.querySelectorAll('.todo-satir').length;
+  const html = _todoSatirHtml(sayi, '', false);
+  lista.insertAdjacentHTML('beforeend', html);
+  // Yeni eklenen input'a odaklan
+  const inputs = lista.querySelectorAll('.todo-metin');
+  if (inputs.length) inputs[inputs.length - 1].focus();
 }
 
 function _todoSatirSil(idx) {

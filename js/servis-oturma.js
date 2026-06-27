@@ -121,7 +121,8 @@ function servisOturmaModalAc(servisId) {
           </div>
           <div class="so-alt-butonlar">
             <button class="btn btn-ghost btn-sm" onclick="soTumunuTemizle()">🗑️ Atamaları Temizle</button>
-            <button class="btn btn-ghost btn-sm" onclick="_soRaporDogrudan('${servisId}')">🖨️ Rapor Al</button>
+            <button class="btn btn-ghost btn-sm" onclick="_soRaporDogrudan('${servisId}')">🖨️ Oturma Planı</button>
+            <button class="btn btn-ghost btn-sm" onclick="servisYolcuListesiRaporu('${servisId}')">👥 Yolcu Listesi</button>
           </div>
         </div>
       </div>
@@ -210,7 +211,7 @@ function _soRenderArac(servisId) {
 
   /* ── CSS Grid şablonu ──
      Ducato: [sol-dis][sol-ic] [kor] [sag-dis]     → 3 koltuk sütunu + koridor
-     Büyük:  [sol-dis][sol-ic] [kor] [sag-ic][sag-dis] → 4 koltuk sütunu + koridor
+     Büyük:  [sol-dis][sol-ic] [sag-ic][sag-dis] → 4 koltuk sütunu + koridor
      Her koltuk: 40px, koridor: 14px, gap: 3px */
   const K = 40, KOR = 14, GAP = 3;
   const solKonumlar = buyuk ? ['sol-dis','sol-ic'] : ['sol-dis','sol-ic'];
@@ -1009,8 +1010,76 @@ function soRaporGovdeHtml(servis, plan) {
     html += `</div>`;
   });
 
-  html += `</div>`; // koltuk bölümü
-  html += `</div></div>`; // araç + sarmal
 
-  return html;
+/* ================================================================
+   YOLCU LİSTESİ RAPORU — Servis öğrenci listesi, veli iletişim bilgileriyle
+   ================================================================ */
+function servisYolcuListesiRaporu(servisId) {
+  const servis = servisler.find(x => x.id === servisId);
+  const plan   = servisOturmaPlani.find(p => p.servisId === servisId);
+  if (!servis) return;
+
+  // Dolu koltukları sıraya göre sırala
+  const koltuklar = (plan?.koltuklar || [])
+    .filter(k => k.ogrenciId || k.ogrenciAdi)
+    .sort((a, b) => (a.no || 0) - (b.no || 0));
+
+  if (!koltuklar.length) {
+    toast('Bu serviste atanmış öğrenci yok.');
+    return;
+  }
+
+  // Her koltuk için veli verisini eşleştir
+  const satirlar = koltuklar.map((k, i) => {
+    const v = k.ogrenciId ? veliler.find(x => x.id === k.ogrenciId) : null;
+    const sinifObj = v ? siniflar.find(s => s.id === v.sinifId) : null;
+    const sinifAdi = sinifObj ? sinifObj.ad : '—';
+    const veliAdi  = v ? (v.veliAdi || '—') : '—';
+    const tel1     = v ? (v.telefon1 || v.telefon || '—') : '—';
+    const tel2     = v ? (v.telefon2 || '') : '';
+    const tel3     = v ? (v.telefon3 || '') : '';
+    const adres    = v ? (v.adres || '—') : '—';
+    const telefonlar = [tel1, tel2, tel3].filter(t => t && t !== '—').join(' / ') || '—';
+
+    return `<tr>
+      <td style="text-align:center;">${k.no}</td>
+      <td><strong>${escapeHtml(k.ogrenciAdi || v?.ogrenciAdi || '—')}</strong></td>
+      <td>${escapeHtml(sinifAdi)}</td>
+      <td>${escapeHtml(veliAdi)}</td>
+      <td>${escapeHtml(telefonlar)}</td>
+      <td style="font-size:9px;">${escapeHtml(adres)}</td>
+    </tr>`;
+  }).join('');
+
+  const dolu    = koltuklar.length;
+  const aktifYer = (plan?.yerlesim || []).filter(y => y.aktif !== false && !y.soforYani);
+  const kapasite = aktifYer.length;
+
+  const html = `
+    <div style="margin-bottom:10px;">
+      <span class="ozet-kutu">🚌 ${escapeHtml(servis.servisAdi)}</span>
+      ${servis.plaka ? `<span class="ozet-kutu">🚘 ${escapeHtml(servis.plaka)}</span>` : ''}
+      ${servis.soforAdi ? `<span class="ozet-kutu">Şoför: ${escapeHtml(servis.soforAdi)}${servis.soforTelefon ? ' · 📞 ' + escapeHtml(servis.soforTelefon) : ''}</span>` : ''}
+      ${servis.guzergah ? `<span class="ozet-kutu">📍 ${escapeHtml(servis.guzergah)}</span>` : ''}
+      <span class="ozet-kutu">Dolu: ${dolu} / ${kapasite}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px;">Koltuk</th>
+          <th>Öğrenci Adı</th>
+          <th style="width:46px;">Sınıf</th>
+          <th>Veli Adı</th>
+          <th>Telefon</th>
+          <th>Adres</th>
+        </tr>
+      </thead>
+      <tbody>${satirlar}</tbody>
+    </table>
+  `;
+
+  if (typeof _raporPenceresiniAc === 'function') {
+    _raporPenceresiniAc(html, `👥 ${servis.servisAdi} — Yolcu Listesi`, { logoGoster: true });
+  }
 }
+
