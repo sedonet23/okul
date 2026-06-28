@@ -1093,8 +1093,10 @@ function _crsfTabloStyle() {
     table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
     table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:28px;overflow:hidden;height:32px;}
     table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:28px;height:32px;}
-    table.crsf tr:nth-child(even) td.hucre{background:#f0f9f9;}
-    table.crsf tr:nth-child(even) td.bos{background:#f0f9f9;}
+    table.crsf tr:nth-child(even) td.hucre{background:inherit;}
+    table.crsf tr:nth-child(even) td.bos{background:inherit;}
+    table.crsf td.gun-dolgu,
+    table.crsf th.gun-dolgu.gun-th{background:#e8f5f5 !important;}
     table.crsf td.gun-ilk,
     table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
@@ -1262,8 +1264,9 @@ function raporTumSiniflarCarsaf() {
   let th1 = `<th class="gun-grup"></th>`;
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
   let th2 = `<th class="saat-th">Sınıf</th>`;
-  GUNLER.forEach(() => {
-    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}">${s}</th>`; });
+  GUNLER.forEach((g, gi) => {
+    const dolgu = gi % 2 === 0 ? ' gun-dolgu' : '';
+    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}${dolgu}">${s}</th>`; });
   });
 
   const rows = seciliSiniflar.map(sn => {
@@ -1299,8 +1302,9 @@ function raporTumOgretmenlerCarsaf() {
   let th1 = `<th class="gun-grup"></th>`;
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
   let th2 = `<th class="saat-th">Öğretmen</th>`;
-  GUNLER.forEach(() => {
-    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}">${s}</th>`; });
+  GUNLER.forEach((g, gi) => {
+    const dolgu = gi % 2 === 0 ? ' gun-dolgu' : '';
+    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}${dolgu}">${s}</th>`; });
   });
 
   const rows = seciliOgretmenler.map(o => {
