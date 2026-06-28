@@ -183,7 +183,10 @@ function modalAc(title, bodyHtml, kaydetFn, silFn){
   else { silBtn.style.display='none'; silBtn.onclick=null; }
   const kaydetBtn = document.getElementById('modalKaydetBtn');
   kaydetBtn.style.display = 'inline-flex';
-  kaydetBtn.onclick = kaydetFn;
+  kaydetBtn.onclick = kaydetFn ? () => {
+    try { kaydetFn(); }
+    catch(e) { console.error('Kaydet hatası:', e); toast('Hata: ' + e.message); }
+  } : null;
   document.getElementById('modalOverlay').classList.add('active');
   document.body.classList.add('modal-open');
 }

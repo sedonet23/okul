@@ -105,24 +105,25 @@ function sinavModalAc(id){
     if(!seciliSiniflar.length){ toast('En az bir sınıf seçin.'); return; }
     const ders = document.getElementById('f_snDers').value.trim();
     if(!ders){ toast('Ders zorunludur.'); return; }
+    const gd = id => { const el = document.getElementById(id); return el ? el.value : ''; };
     const veri = {
       siniflar: seciliSiniflar.join(', '),
       sinif: seciliSiniflar[0],
       ders,
-      ogretmenId: document.getElementById('f_snOgretmen').value,
-      tarih: document.getElementById('f_snTarih').value,
-      donem: document.getElementById('f_snDonem').value,
-      yaziliSirasi: document.getElementById('f_snSirasi').value,
-      dersSaati: document.getElementById('f_snDersSaati').value,
-      tur: document.getElementById('f_snTur').value,
-      senaryoNo: document.getElementById('f_snSenaryoNo').value,
-      yayinevi: document.getElementById('f_snYayinevi').value.trim(),
-      notlar: document.getElementById('f_snNotlar').value.trim()
+      ogretmenId: gd('f_snOgretmen'),
+      tarih:       gd('f_snTarih'),
+      donem:       gd('f_snDonem'),
+      yaziliSirasi:gd('f_snSirasi'),
+      dersSaati:   gd('f_snDersSaati'),
+      tur:         gd('f_snTur'),
+      senaryoNo:   gd('f_snSenaryoNo'),
+      yayinevi:    gd('f_snYayinevi').trim(),
+      notlar:      gd('f_snNotlar').trim(),
     };
+    modalKapat();
     const ref = db.collection(COL.sinavlar);
     const islem = s ? ref.doc(s.id).update(veri) : ref.add({...veri, eklenmeTarihi: new Date().toISOString()});
-    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
-    modalKapat();
+    islem.then(()=>toast('Kaydedildi.')).catch(err=>toast('Kayıt hatası: '+err.message));
   }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ db.collection(COL.sinavlar).doc(s.id).delete(); modalKapat(); } } : null);
 }
 
