@@ -206,6 +206,94 @@ function ogretmenRaporOlustur(id) {
        </table>`
     : '<p style="color:#888;font-style:italic;">Görevli olduğu etkinlik yok.</p>';
 
+  /* ---- Belge Durumu ---- */
+  const AYLAR_KISALT = ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
+  const DONEM_KISALT = ['1. Dönem','2. Dönem','Yıl Sonu'];
+  const CHECK = '✅', BOSH = '⬜';
+
+  function belgeSatirHtml(baslik, kontrolAdlari, kArr) {
+    const satirlar = kontrolAdlari.map((ad, i) => {
+      const tamam = Array.isArray(kArr) ? !!kArr[i] : !!(kArr && kArr[ad]);
+      return `<tr>
+        <td style="padding:3px 8px;font-size:10px;">${escapeHtml(ad)}</td>
+        <td style="padding:3px 8px;text-align:center;font-size:13px;">${tamam ? CHECK : BOSH}</td>
+      </tr>`;
+    }).join('');
+    return `<div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:#0A6E6E;padding:3px 0 2px;border-bottom:1px solid #c8e6e4;">${escapeHtml(baslik)}</div>
+      <table style="width:100%;border-collapse:collapse;"><tbody>${satirlar}</tbody></table>
+    </div>`;
+  }
+
+  let belgeDurumHtml = '';
+
+  // Maarif Raporları
+  const maarifKayitlar = (cizelgeVerileri.maarifRapor || []).filter(k => k.ogretmenId === id);
+  if (maarifKayitlar.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin-bottom:6px;">📊 MAARİF RAPORLARI</div>';
+    maarifKayitlar.forEach(k => {
+      const k10 = Array.isArray(k.kontroller) ? k.kontroller : [];
+      belgeDurumHtml += belgeSatirHtml(
+        `${escapeHtml(k.ders || '—')} · ${escapeHtml(k.sinif || '')}`,
+        AYLAR_KISALT, k10
+      );
+    });
+  }
+
+  // Zümre
+  const zumreKayitlar = (cizelgeVerileri.zumre || []).filter(k =>
+    k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
+  );
+  if (zumreKayitlar.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">👥 ZÜMRE</div>';
+    zumreKayitlar.forEach(k => {
+      const kArr = Array.isArray(k.kontroller) ? k.kontroller : [k.durumlar?.['1-donem']||false, k.durumlar?.['2-donem']||false, k.durumlar?.['yil-sonu']||false];
+      belgeDurumHtml += belgeSatirHtml(k.ad || k.brans || '—', DONEM_KISALT, kArr);
+    });
+  }
+
+  // ŞÖK
+  const sokKayitlar = (cizelgeVerileri.sok || []).filter(k =>
+    k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
+  );
+  if (sokKayitlar.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">📋 ŞÖK</div>';
+    sokKayitlar.forEach(k => {
+      const kArr = Array.isArray(k.kontroller) ? k.kontroller : [k.durumlar?.['1-donem']||false, k.durumlar?.['2-donem']||false, k.durumlar?.['yil-sonu']||false];
+      belgeDurumHtml += belgeSatirHtml(k.ad || '—', DONEM_KISALT, kArr);
+    });
+  }
+
+  // Rehberlik
+  const rehberlikBelge = (cizelgeVerileri.rehberlik || []).filter(k =>
+    k.ogretmenId === id || adGeciyorMu(k.danisman, adSoyad)
+  );
+  if (rehberlikBelge.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">🧭 REHBERLİK</div>';
+    rehberlikBelge.forEach(k => {
+      const k12 = Array.isArray(k.kontroller) ? k.kontroller
+        : Object.entries(k.durumlar || {}).map(([,v]) => !!v);
+      const ayAdlari = ['Yıllık Çalışma Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.Dönem Sonu Rap.','Sene Sonu Rap.'];
+      belgeDurumHtml += belgeSatirHtml(k.ad || '—', ayAdlari.slice(0, k12.length || 12), k12);
+    });
+  }
+
+  // BEP
+  const bepKayitlar2 = (cizelgeVerileri.bepPlani || []).filter(k =>
+    k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
+  );
+  if (bepKayitlar2.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">📌 BEP PLANI</div>';
+    bepKayitlar2.forEach(k => {
+      const kArr = [k.durumlar?.['yillik-plan']||false, k.durumlar?.['bep']||false];
+      belgeDurumHtml += belgeSatirHtml(k.ad || '—', ['Yıllık Plan','BEP'], kArr);
+    });
+  }
+
+  if (!belgeDurumHtml) {
+    belgeDurumHtml = '<p style="color:#888;font-style:italic;">Belge kaydı yok.</p>';
+  }
+
   /* ---- Diğer Evraklar ---- */
   const evraklar = (digerEvrakListesi || [])
     .filter(e => (e.ogretmen || '').localeCompare(adSoyad, 'tr', { sensitivity: 'base' }) === 0);
@@ -273,6 +361,12 @@ function ogretmenRaporOlustur(id) {
     <div class="ogr-rapor-bolum">
       <h3>📆 Belirli Gün ve Haftalar</h3>
       ${belirliGunHtml}
+    </div>
+
+    <!-- Belge Durumu -->
+    <div class="ogr-rapor-bolum">
+      <h3>📁 Belge Durumu</h3>
+      ${belgeDurumHtml}
     </div>
 
     <!-- Evrak -->
