@@ -423,20 +423,19 @@ function sinavRaporYazdir() {
   const gv  = id => document.getElementById(id)?.value?.trim() || '';
   const yon = document.querySelector('input[name="rprYon"]:checked')?.value || 'portrait';
 
-  const okulAdi    = gc('rpr_okulGoster')    ? gv('rpr_okulAdi')    : '';
-  const egitimYili = gc('rpr_yilGoster')     ? gv('rpr_egitimYili') : '';
-  const tarih      = gc('rpr_tarihGoster')   ? gv('rpr_tarih')      : '';
-  // Başlığı dönem + sıraya göre otomatik oluştur
-  const baslikMetin = gc('rpr_baslikGoster')
-    ? `${egitimYili ? egitimYili+' EĞİTİM ÖĞRETİM YILI ' : ''}${seciliDonem.toUpperCase()} ${seciliSirasi.toUpperCase()} SINAV TARİHLERİ`
-    : '';
-  const baslik = baslikMetin;
-
+  // Önce seçim değerlerini oku
+  const seciliDonem    = document.querySelector('input[name="rprDonem"]:checked')?.value || '1. Dönem';
+  const seciliSirasi   = document.querySelector('input[name="rprSirasi"]:checked')?.value || '1. Yazılı';
+  const seciliDonemler = [seciliDonem];
   const seciliSiniflar = [...document.querySelectorAll('.rprSinifCb:checked')].map(c=>c.value);
   const seciliKolonlar = [...document.querySelectorAll('.rprKolonCb:checked')].map(c=>c.value);
-  const seciliDonem  = document.querySelector('input[name="rprDonem"]:checked')?.value || '1. Dönem';
-  const seciliSirasi = document.querySelector('input[name="rprSirasi"]:checked')?.value || '1. Yazılı';
-  const seciliDonemler = [seciliDonem];
+
+  const okulAdi    = gc('rpr_okulGoster')   ? gv('rpr_okulAdi')    : '';
+  const egitimYili = gc('rpr_yilGoster')    ? gv('rpr_egitimYili') : '';
+  const tarih      = gc('rpr_tarihGoster')  ? gv('rpr_tarih')      : '';
+  const baslik     = gc('rpr_baslikGoster')
+    ? `${egitimYili ? egitimYili + ' EĞİTİM ÖĞRETİM YILI ' : ''}${seciliDonem.toUpperCase()} ${seciliSirasi.toUpperCase()} SINAV TARİHLERİ`
+    : '';
 
   if (!seciliSiniflar.length) { toast('En az bir sınıf seçin.'); return; }
   if (!seciliKolonlar.length) { toast('En az bir kolon seçin.'); return; }
