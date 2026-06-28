@@ -1090,7 +1090,7 @@ function _crsfTabloStyle() {
     table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:52px;}
     table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:3px 4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #075757;}
     table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #999 !important;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:9px;border:1px solid #999 !important;padding:4px 3px;text-align:center;vertical-align:middle;white-space:normal;width:72px;line-height:1.4;}
     table.crsf td.hucre{padding:4px 3px;border:1px solid #999 !important;vertical-align:middle;text-align:center;overflow:hidden;height:36px;}
     table.crsf td.bos{background:#fafafa;border:1px solid #999 !important;height:36px;}
     table.crsf tr:nth-child(even) td.hucre{background:inherit;}
@@ -1103,7 +1103,7 @@ function _crsfTabloStyle() {
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
     .c-ders{font-weight:700;font-size:6.5px;color:#1a1a1a;line-height:1.2;white-space:nowrap;}
     .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
-    .c-zaman{font-weight:400;font-size:6px;display:block;color:#0A8080;margin-top:1px;line-height:1.2;}
+    .c-zaman{font-weight:400;font-size:8px;display:block;color:#0A8080;margin-top:2px;line-height:1.3;}
     #crsf-sarici{transform-origin:top left;display:inline-block;}
     .c-ders-tam{font-weight:700;font-size:10px;color:#1a1a1a;line-height:1.4;white-space:normal;}
     .c-ogr-kucuk{color:#555;font-size:8px;line-height:1.3;white-space:normal;display:block;max-width:100%;word-break:break-word;}
@@ -1146,49 +1146,51 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         // A4 yatay ~1122px @96dpi, dikey ~794px
         var hedefW = 1056; // A4 yatay - kenarlar
         var scale  = tabloW > hedefW ? (hedefW / tabloW) : 1;
+        var scaleStr = scale < 1 ? scale.toFixed(4) : '1';
         styleEl.textContent = [
-          '@page { size: A4 landscape; margin: 8mm; }',
+          '@page { size: A4 landscape; margin: 5mm; }',
           '@media print {',
           '  .rapor-toolbar { display:none !important; }',
           '  html { -webkit-print-color-adjust:exact; print-color-adjust:exact; }',
-          '  body { margin:0; zoom:' + scale + '; }',
-          '  .crsf-wrap { overflow:visible !important; }',
-          '  table.crsf { table-layout:auto !important; }',
+          '  body { margin:0; padding:0; }',
+          '  .crsf-wrap { overflow:visible !important; transform:scale(' + scaleStr + '); transform-origin:top left; display:block; width:' + Math.ceil(tabloW * scale + 10) + 'px; }',
+          '  table.crsf { width:' + tabloW + 'px !important; }',
           '}'
         ].join('\n');
-        window.print();
+        setTimeout(function(){ window.print(); }, 150);
       }
     <\/script>`;
-
-  // Toolbar'a Görüntü Kaydet butonu ekle — _raporPenceresiniAc'dan sonra enjekte edeceğiz
-  // Bunun için htmlIcerik içine özel toolbar eki koyuyoruz
-  const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="pdfKaydet()" style="background:#6366f1;color:#fff;">📄 PDF Kaydet</button>`;
 
   const pdfBaslik = `<div id="crsf-pdf-baslik" style="margin-bottom:8px;border-bottom:2px solid #0A6E6E;padding-bottom:5px;">
     <div style="font-size:14px;font-weight:700;color:#0A6E6E;">${escapeHtml(baslikMetin)}</div>
   </div>`;
 
+  // PDF butonu - ektraStyle içindeki pdfKaydet() fonksiyonunu çağırır
+  const pdfBtnHtml = `<button onclick="pdfKaydet()"
+    style="padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;background:#6366f1;color:#fff;">
+    📄 PDF Kaydet
+  </button>`;
+
   const icerik = ektraStyle +
     _crsfTabloStyle() +
-    `<div id="crsf-extra-btn" style="display:none;">${gorselBtn}</div>` +
+    pdfBtnHtml +   // toolbar'dan önce icerik'e gömdük, _raporPenceresiniAc bunu toolbar'a taşıyacak
     pdfBaslik +
     `<div class="crsf-wrap" style="overflow-x:auto;"><div id="crsf-sarici" style="display:inline-block;min-width:100%;">${tabloHtml}</div></div>`;
 
-  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
-
-  // Toolbar'a butonu ekle (blob açıldıktan sonra)
-  setTimeout(function() {
-    try {
-      if (!win || win.closed) return;
-      var toolbar = win.document.querySelector('.rapor-toolbar');
-      var btn = win.document.getElementById('btn-gorsel');
-      if (toolbar && btn) {
-        var klon = btn.cloneNode(true);
-        klon.onclick = win.pdfKaydet;
-        toolbar.insertBefore(klon, toolbar.children[1]);
-      }
-    } catch(e) {}
-  }, 1500);
+  _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false, onAc: function(win) {
+    // Butonu toolbar'a taşı
+    setTimeout(function() {
+      try {
+        if (!win || win.closed) return;
+        var toolbar = win.document.querySelector('.rapor-toolbar');
+        var btn = win.document.querySelector('[onclick="pdfKaydet()"]');
+        if (toolbar && btn && !toolbar.contains(btn)) {
+          toolbar.insertBefore(btn, toolbar.children[1]);
+          btn.style.display = 'inline-flex';
+        }
+      } catch(e) {}
+    }, 600);
+  }});
 }
 
 const CRSF_SAATLER = [1,2,3,4,5,6,7];
@@ -1217,7 +1219,7 @@ function raporTekSinifCarsaf() {
   }).join('');
 
   const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
-  const baslik = m.baslik || `${sn} Sınıfı Haftalık Ders Programı`;
+  const baslik = (m.baslik && m.baslik !== 'Ders Programı') ? m.baslik : `${sn} Sınıfı Haftalık Ders Programı`;
   const tablo = `<table class="crsf" style="width:100%;table-layout:auto;">
     <thead><tr><th class="saat-th" style="width:90px;">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
@@ -1249,7 +1251,7 @@ function raporTekOgretmenCarsaf() {
   }).join('');
 
   const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
-  const baslik = m.baslik || `${ogrAd} — Haftalık Ders Programı`;
+  const baslik = (m.baslik && m.baslik !== 'Ders Programı') ? m.baslik : `${ogrAd} — Haftalık Ders Programı`;
   const tablo = `<table class="crsf" style="width:100%;table-layout:auto;">
     <thead><tr><th class="saat-th" style="width:90px;">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
