@@ -1093,8 +1093,10 @@ function _crsfTabloStyle() {
     table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
     table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:28px;overflow:hidden;height:32px;}
     table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:28px;height:32px;}
-    table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
-    table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
+    table.crsf tr:nth-child(even) td.hucre{background:#f0f9f9;}
+    table.crsf tr:nth-child(even) td.bos{background:#f0f9f9;}
+    table.crsf td.gun-ilk,
+    table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
     .c-ders{font-weight:700;font-size:6.5px;color:#1a1a1a;line-height:1.2;white-space:nowrap;}
     .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
@@ -1261,7 +1263,7 @@ function raporTumSiniflarCarsaf() {
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
   let th2 = `<th class="saat-th">Sınıf</th>`;
   GUNLER.forEach(() => {
-    CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
+    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}">${s}</th>`; });
   });
 
   const rows = seciliSiniflar.map(sn => {
@@ -1298,7 +1300,7 @@ function raporTumOgretmenlerCarsaf() {
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
   let th2 = `<th class="saat-th">Öğretmen</th>`;
   GUNLER.forEach(() => {
-    CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
+    CRSF_SAATLER.forEach((s, si) => { th2 += `<th class="gun-th${si===0?' gun-ilk':''}">${s}</th>`; });
   });
 
   const rows = seciliOgretmenler.map(o => {
