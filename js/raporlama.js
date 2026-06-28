@@ -1170,7 +1170,7 @@ function crsfSvgKaydet(win, baslikMetin) {
     baslikRenk:'#0A6E6E',
   };
 
-  var SATIR_W = 78; var GUN_W = 34; var SATIR_H = 46;
+  var SATIR_W = 90; var GUN_W = 90; var SATIR_H = 52;
   var PAD = 14; var PROGRAM_BASLIK_H = 30; var FONT = 'Arial,sans-serif';
 
   var thSatiri = satirlar[0];
@@ -1222,21 +1222,21 @@ function crsfSvgKaydet(win, baslikMetin) {
       var cDers  = hucre.querySelector('.c-ders,.c-ders-tam');
       var cOgr   = hucre.querySelector('.c-ogr,.c-ogr-kucuk');
 
-      if (strong) lines.push({t:strong.textContent.trim(), sz:8.5, fw:'bold', clr:fg});
-      if (cZaman) lines.push({t:cZaman.textContent.trim(), sz:7.5, fw:'normal', clr: isSatirLbl?'#0A6060':fg});
-      if (cSinif) lines.push({t:cSinif.textContent.trim(), sz:8.5, fw:'bold', clr:RENK.sinifRenk});
-      if (cDers)  lines.push({t:cDers.textContent.trim(),  sz:8.5, fw:'bold', clr: isDolgu?'#0a2020':'#111'});
-      if (cOgr)   lines.push({t:cOgr.textContent.trim(),   sz:7,   fw:'normal', clr: isDolgu?'#1a3a3a':RENK.ogrRenk});
+      if (strong) lines.push({t:strong.textContent.trim(), sz:10, fw:'bold', clr:fg});
+      if (cZaman) lines.push({t:cZaman.textContent.trim(), sz:8.5, fw:'normal', clr: isSatirLbl?'#0A6060':fg});
+      if (cSinif) lines.push({t:cSinif.textContent.trim(), sz:10, fw:'bold', clr:RENK.sinifRenk});
+      if (cDers)  lines.push({t:cDers.textContent.trim(),  sz:10, fw:'bold', clr: isDolgu?'#0a2020':'#111'});
+      if (cOgr)   lines.push({t:cOgr.textContent.trim(),   sz:8.5, fw:'normal', clr: isDolgu?'#1a3a3a':RENK.ogrRenk});
 
       if (!lines.length) {
         var txt = hucre.textContent.trim();
-        if (txt) lines.push({t:txt, sz: isGunGrup?9:isGunTh?8:isSatirLbl?8.5:8.5, fw:'bold', clr:fg});
+        if (txt) lines.push({t:txt, sz: isGunGrup?10:isGunTh?9:isSatirLbl?9:9, fw:'bold', clr:fg});
       }
 
-      var lh = 11;
+      var lh = 13;
       var startY = y + SATIR_H/2 - (lines.length-1)*lh/2;
       lines.forEach(function(ln, li) {
-        var maxC = Math.floor(w/(ln.sz*0.52));
+        var maxC = Math.floor(w/(ln.sz*0.48));
         var t = ln.t.length > maxC ? ln.t.slice(0,maxC-1)+'…' : ln.t;
         var ly = startY + li*lh;
         svg.push('<text x="'+(x+w/2)+'" y="'+ly+'" font-family="'+FONT+'" font-size="'+ln.sz+'" font-weight="'+ln.fw+'" fill="'+ln.clr+'" text-anchor="middle" dominant-baseline="middle">'+_svgEsc(t)+'</text>');
