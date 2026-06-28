@@ -1122,75 +1122,141 @@ function _crsfTabloStyle() {
 function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
   modalKapat();
 
-  const ektraStyle = `
-    <style>
-      @page{size:A4 ${landscape?'landscape':'portrait'};margin:0.5cm;}
-      @media print{@page{size:A4 ${landscape?'landscape':'portrait'};margin:0.5cm;}
-        .rapor-toolbar{display:none!important;}
-        #icerik-sarici{transform:none!important;}
-        body{${landscape?'width:297mm;':''}}
-      }
-    </style>
-    <script>
-      function pdfKaydet() {
-        var styleEl = document.getElementById('crsf-page-style');
-        if (!styleEl) {
-          styleEl = document.createElement('style');
-          styleEl.id = 'crsf-page-style';
-          document.head.appendChild(styleEl);
-        }
-        // Tablo genişliğine göre scale hesapla
-        var sarici = document.getElementById('crsf-sarici');
-        var tablo  = sarici ? sarici.querySelector('table') : null;
-        var tabloW = tablo ? tablo.scrollWidth : 0;
-        // A4 yatay ~1122px @96dpi, dikey ~794px
-        var hedefW = 1056; // A4 yatay - kenarlar
-        var scale  = tabloW > hedefW ? (hedefW / tabloW) : 1;
-        var scaleStr = scale < 1 ? scale.toFixed(4) : '1';
-        styleEl.textContent = [
-          '@page { size: A4 landscape; margin: 5mm; }',
-          '@media print {',
-          '  .rapor-toolbar { display:none !important; }',
-          '  html { -webkit-print-color-adjust:exact; print-color-adjust:exact; }',
-          '  body { margin:0; padding:0; }',
-          '  .crsf-wrap { overflow:visible !important; transform:scale(' + scaleStr + '); transform-origin:top left; display:block; width:' + Math.ceil(tabloW * scale + 10) + 'px; }',
-          '  table.crsf { width:' + tabloW + 'px !important; }',
-          '}'
-        ].join('\n');
-        setTimeout(function(){ window.print(); }, 150);
-      }
-    <\/script>`;
-
-  const pdfBaslik = `<div id="crsf-pdf-baslik" style="margin-bottom:8px;border-bottom:2px solid #0A6E6E;padding-bottom:5px;">
+  const baslikHtml = `<div style="margin-bottom:8px;border-bottom:2px solid #0A6E6E;padding-bottom:5px;">
     <div style="font-size:14px;font-weight:700;color:#0A6E6E;">${escapeHtml(baslikMetin)}</div>
   </div>`;
 
-  // PDF butonu - ektraStyle içindeki pdfKaydet() fonksiyonunu çağırır
-  const pdfBtnHtml = `<button onclick="pdfKaydet()"
+  const svgBtnHtml = `<button id="btn-svg-kaydet"
     style="padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;background:#6366f1;color:#fff;">
-    📄 PDF Kaydet
+    🖼 SVG Kaydet
   </button>`;
 
-  const icerik = ektraStyle +
-    _crsfTabloStyle() +
-    pdfBtnHtml +   // toolbar'dan önce icerik'e gömdük, _raporPenceresiniAc bunu toolbar'a taşıyacak
-    pdfBaslik +
+  const icerik = _crsfTabloStyle() +
+    svgBtnHtml +
+    baslikHtml +
     `<div class="crsf-wrap" style="overflow-x:auto;"><div id="crsf-sarici" style="display:inline-block;min-width:100%;">${tabloHtml}</div></div>`;
 
-  _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false, onAc: function(win) {
-    // Butonu toolbar'a taşı
-    setTimeout(function() {
-      try {
-        if (!win || win.closed) return;
-        var toolbar = win.document.querySelector('.rapor-toolbar');
-        var btn = win.document.querySelector('[onclick="pdfKaydet()"]');
-        if (toolbar && btn && !toolbar.contains(btn)) {
-          toolbar.insertBefore(btn, toolbar.children[1]);
-          btn.style.display = 'inline-flex';
-        }
-      } catch(e) {}
-    }, 600);
-  }});
+  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
+
+  setTimeout(function() {
+    try {
+      if (!win || win.closed) return;
+      var toolbar = win.document.querySelector('.rapor-toolbar');
+      var btn     = win.document.getElementById('btn-svg-kaydet');
+      if (toolbar && btn) toolbar.insertBefore(btn, toolbar.children[1]);
+      if (btn) btn.addEventListener('click', function() { crsfSvgKaydet(win, baslikMetin); });
+    } catch(e) {}
+  }, 700);
+}
+
+function crsfSvgKaydet(win, baslikMetin) {
+  var doc   = win.document;
+  var tablo = doc.querySelector('table.crsf');
+  if (!tablo) { alert('Tablo bulunamadı.'); return; }
+
+  var satirlar = Array.from(tablo.querySelectorAll('tr'));
+  if (!satirlar.length) return;
+
+  var RENK = {
+    gunGrup:'#1a6b9a', gunGrupYazi:'#ffffff',
+    gunTh:'#0A6E6E',   gunThYazi:'#ffffff',
+    satirLbl:'#b2dede',satirLblYazi:'#0a3030',
+    dolgu:'#a8d8d4',   dolguYazi:'#0a2525',
+    bos:'#f5f5f5',
+    hucre:'#ffffff',   hucreYazi:'#111111',
+    kenarlık:'#777777',
+    sinifRenk:'#0a3a6e',
+    ogrRenk:'#333333',
+    baslikRenk:'#0A6E6E',
+  };
+
+  var SATIR_W = 78; var GUN_W = 34; var SATIR_H = 46;
+  var PAD = 14; var PROGRAM_BASLIK_H = 30; var FONT = 'Arial,sans-serif';
+
+  var thSatiri = satirlar[0];
+  var thler = Array.from(thSatiri.querySelectorAll('th,td'));
+  var toplamSutun = thler.reduce(function(a,th){ return a + parseInt(th.getAttribute('colspan')||'1'); }, 0);
+  var toplamW = PAD*2 + SATIR_W + (toplamSutun-1)*GUN_W;
+  var toplamH = PAD*2 + PROGRAM_BASLIK_H + 8 + satirlar.length * SATIR_H;
+
+  var svg = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="'+toplamW+'" height="'+toplamH+'" viewBox="0 0 '+toplamW+' '+toplamH+'">',
+    '<rect width="'+toplamW+'" height="'+toplamH+'" fill="white"/>',
+    '<text x="'+PAD+'" y="'+(PAD+20)+'" font-family="'+FONT+'" font-size="14" font-weight="bold" fill="'+RENK.baslikRenk+'">' + _svgEsc(baslikMetin) + '</text>',
+    '<line x1="'+PAD+'" y1="'+(PAD+PROGRAM_BASLIK_H)+'" x2="'+(toplamW-PAD)+'" y2="'+(PAD+PROGRAM_BASLIK_H)+'" stroke="'+RENK.baslikRenk+'" stroke-width="1.5"/>',
+  ];
+
+  var baseY = PAD + PROGRAM_BASLIK_H + 8;
+
+  satirlar.forEach(function(tr, ri) {
+    var y = baseY + ri * SATIR_H;
+    var x = PAD;
+    Array.from(tr.querySelectorAll('th,td')).forEach(function(hucre, ci) {
+      var colspan = parseInt(hucre.getAttribute('colspan')||'1');
+      var w = ci===0 ? SATIR_W : GUN_W*colspan;
+      var cls = hucre.className||'';
+      var isGunGrup  = cls.includes('gun-grup');
+      var isGunTh    = cls.includes('gun-th') && !cls.includes('gun-grup');
+      var isSatirLbl = cls.includes('satir-lbl');
+      var isDolgu    = cls.includes('gun-dolgu');
+      var isBos      = cls.includes('bos');
+
+      var bg = isGunGrup ? RENK.gunGrup
+             : isGunTh   ? (isDolgu ? '#5aa8a4' : RENK.gunTh)
+             : isSatirLbl? RENK.satirLbl
+             : isDolgu   ? RENK.dolgu
+             : isBos     ? RENK.bos
+             : RENK.hucre;
+      var fg = isGunGrup||isGunTh ? '#fff'
+             : isSatirLbl          ? RENK.satirLblYazi
+             : isDolgu             ? RENK.dolguYazi
+             : RENK.hucreYazi;
+
+      svg.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+SATIR_H+'" fill="'+bg+'" stroke="'+RENK.kenarlık+'" stroke-width="0.5"/>');
+
+      var lines = [];
+      var strong = hucre.querySelector('strong');
+      var cZaman = hucre.querySelector('.c-zaman');
+      var cSinif = hucre.querySelector('.c-sinif');
+      var cDers  = hucre.querySelector('.c-ders,.c-ders-tam');
+      var cOgr   = hucre.querySelector('.c-ogr,.c-ogr-kucuk');
+
+      if (strong) lines.push({t:strong.textContent.trim(), sz:8.5, fw:'bold', clr:fg});
+      if (cZaman) lines.push({t:cZaman.textContent.trim(), sz:7.5, fw:'normal', clr: isSatirLbl?'#0A6060':fg});
+      if (cSinif) lines.push({t:cSinif.textContent.trim(), sz:8.5, fw:'bold', clr:RENK.sinifRenk});
+      if (cDers)  lines.push({t:cDers.textContent.trim(),  sz:8.5, fw:'bold', clr: isDolgu?'#0a2020':'#111'});
+      if (cOgr)   lines.push({t:cOgr.textContent.trim(),   sz:7,   fw:'normal', clr: isDolgu?'#1a3a3a':RENK.ogrRenk});
+
+      if (!lines.length) {
+        var txt = hucre.textContent.trim();
+        if (txt) lines.push({t:txt, sz: isGunGrup?9:isGunTh?8:isSatirLbl?8.5:8.5, fw:'bold', clr:fg});
+      }
+
+      var lh = 11;
+      var startY = y + SATIR_H/2 - (lines.length-1)*lh/2;
+      lines.forEach(function(ln, li) {
+        var maxC = Math.floor(w/(ln.sz*0.52));
+        var t = ln.t.length > maxC ? ln.t.slice(0,maxC-1)+'…' : ln.t;
+        var ly = startY + li*lh;
+        svg.push('<text x="'+(x+w/2)+'" y="'+ly+'" font-family="'+FONT+'" font-size="'+ln.sz+'" font-weight="'+ln.fw+'" fill="'+ln.clr+'" text-anchor="middle" dominant-baseline="middle">'+_svgEsc(t)+'</text>');
+      });
+
+      x += w;
+    });
+  });
+
+  svg.push('</svg>');
+  var blob = new Blob([svg.join('\n')], {type:'image/svg+xml;charset=utf-8'});
+  var url  = URL.createObjectURL(blob);
+  var a    = doc.createElement('a');
+  a.href = url; a.download = (_svgEsc(baslikMetin)||'ders-programi').replace(/[^\w\s\-]/g,'').trim()+'.svg';
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+}
+
+function _svgEsc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 const CRSF_SAATLER = [1,2,3,4,5,6,7];
