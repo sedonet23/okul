@@ -602,7 +602,10 @@ async function dersListesiExceliIceAktar(file){
       const ad = String(row[cAd]||'').trim();
       if(!ad) continue;
       if(dersListesi.some(d=>(d.ad||'').localeCompare(ad,'tr',{sensitivity:'base'})===0)){ atlanan++; continue; }
-      await db.collection(COL.dersListesi).add({ ad });
+      const kisaltmaHam = (cAd < header.length - 1) ? String(aoa[i][cAd+1]||'').trim().toUpperCase() : '';
+      const veriObj = { ad };
+      if (kisaltmaHam) veriObj.kisaltma = kisaltmaHam;
+      await db.collection(COL.dersListesi).add(veriObj);
       dersListesi.push({ ad }); // aynı dosyada tekrar geçen aynı isim ikinci kez eklenmesin
       eklenen++;
     }
@@ -760,4 +763,58 @@ function eOkulOnayModalAc(bloklar, onSinifId){
       toast('İçe aktarma hatası: '+err.message);
     }
   }, null);
+}
+
+/* ============== YAZILI SINAVLAR (Veri sekmesi) ============== */
+async function yaziliSinavExceliIceAktar(file){
+  if(!file) return;
+  try{
+    const wb = await workbookOku(file);
+    const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
+    if(!aoa){ toast('Sayfa okunamadı.'); return; }
+    const headerIdx = aoa.findIndex(r=>r.some(c=>
+      normBaslik(c)==='SINIF' || normBaslik(c)==='SINIF(LAR)' || normBaslik(c)==='DERS'
+    ));
+    if(headerIdx===-1){ toast('Başlık satırı bulunamadı.'); return; }
+    const header = aoa[headerIdx].map(normBaslik);
+    const col = (...adlar)=>{ for(const a of adlar){ const i=header.indexOf(a); if(i!==-1) return i; } return -1; };
+    const cSinif   = col('SINIF(LAR)','SINIF');
+    const cDers    = col('DERS');
+    const cTarih   = col('TARİH','TARIH');
+    const cDonem   = col('DÖNEM','DONEM');
+    const cSirasi  = col('YAZILI SIRASI','SIRASI');
+    const cTur     = col('TÜR','TUR');
+    const cDersSaati = col('KAÇINCI DERS','KACINCI DERS','DERS SAATİ');
+    const cSenaryo = col('SENARYO NO');
+    const cYayinevi= col('YAYINEVİ','YAYINEVI');
+    const cNotlar  = col('NOTLAR','NOT');
+
+    let eklenen=0, guncellenen=0;
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const row = aoa[i]; if(!row) continue;
+      const siniflar2 = cSinif!==-1 ? String(row[cSinif]||'').trim() : '';
+      const ders = cDers!==-1 ? String(row[cDers]||'').trim() : '';
+      const tarih = cTarih!==-1 ? excelTarihToISO(row[cTarih]) : '';
+      if(!siniflar2 || !ders || !tarih) continue;
+      const ogretmenId = '';
+      const veri = {
+        siniflar: siniflar2, sinif: siniflar2.split(',')[0].trim(),
+        ders, tarih,
+        donem:    cDonem!==-1    ? String(row[cDonem]||'').trim()    : '1. Dönem',
+        yaziliSirasi: cSirasi!==-1 ? String(row[cSirasi]||'').trim() : '1. Yazılı',
+        tur:      cTur!==-1     ? String(row[cTur]||'').trim()      : 'Yazılı',
+        dersSaati:cDersSaati!==-1 ? String(row[cDersSaati]||'').trim() : '',
+        senaryoNo:cSenaryo!==-1  ? String(row[cSenaryo]||'').trim() : '',
+        yayinevi: cYayinevi!==-1 ? String(row[cYayinevi]||'').trim(): '',
+        notlar:   cNotlar!==-1  ? String(row[cNotlar]||'').trim()   : '',
+        ogretmenId,
+      };
+      const mevcut = (typeof sinavlar!=='undefined' ? sinavlar : []).find(s=>
+        s.siniflar===siniflar2 && s.ders===ders && s.tarih===tarih
+      );
+      if(mevcut){ await db.collection(COL.sinavlar).doc(mevcut.id).update(veri); guncellenen++; }
+      else { await db.collection(COL.sinavlar).add({...veri, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
+    }
+    toast(`Yazılı sınavlar içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
+  }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }

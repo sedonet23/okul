@@ -879,3 +879,147 @@ function ogrenciSablonIndir(){
 function telefonTemizle(t){ return String(t||'').replace(/[^0-9+]/g,''); }
 function telefonAra(telefon){ const no=telefonTemizle(telefon); if(no) window.location.href=`tel:${no}`; }
 function whatsappGonder(telefon, mesaj){ let no=telefonTemizle(telefon); if(no.startsWith("0")) no="90"+no.substring(1); window.open(`https://wa.me/${no}?text=${encodeURIComponent(mesaj||"")}`,"_blank"); }
+
+/* ================================================================
+   EXCEL ŞABLON İNDİRME
+   SheetJS ile tarayıcıda şablon oluşturup indirir — sunucu gerektirmez.
+   ================================================================ */
+
+const SABLON_TANIMLARI = {
+  ogretmenler: {
+    baslik: 'ÖĞRETMEN LİSTESİ — İçe Aktarma Şablonu',
+    not: '* işaretli alanlar zorunludur.',
+    kolonlar: [
+      {ad:'Ad', gen:15, zon:true}, {ad:'Soyad', gen:15, zon:true},
+      {ad:'Ünvan', gen:20}, {ad:'Branş', gen:20},
+      {ad:'Derece', gen:8}, {ad:'Kademe', gen:8},
+      {ad:'Telefon', gen:14}, {ad:'E-Posta', gen:22},
+      {ad:'Sorumlu Sınıf', gen:14}, {ad:'Not', gen:20}
+    ],
+    ornek: ['Fatma','Şenocak','Öğretmen','Türkçe','5','3','0532...','fatma@mail.com','5-A','']
+  },
+  siniflar: {
+    baslik: 'SINIF LİSTESİ — İçe Aktarma Şablonu',
+    not: 'Sınıf Öğretmeni: uygulamada kayıtlı Ad Soyad formatında yazın.',
+    kolonlar: [
+      {ad:'Sınıf Adı', gen:12, zon:true}, {ad:'Seviye', gen:10},
+      {ad:'Şube', gen:8}, {ad:'Derslik', gen:10}, {ad:'Sınıf Öğretmeni', gen:22}
+    ],
+    ornek: ['5-A','5','A','D-12','Fatma Şenocak']
+  },
+  ogrenciler: {
+    baslik: 'ÖĞRENCİ / VELİ LİSTESİ — İçe Aktarma Şablonu',
+    not: 'Servis: uygulamada kayıtlı servis adını yazın.',
+    kolonlar: [
+      {ad:'Öğrenci Adı', gen:20, zon:true}, {ad:'Öğrenci No', gen:12},
+      {ad:'Cinsiyet', gen:10}, {ad:'Sınıf', gen:10},
+      {ad:'Veli Adı', gen:18}, {ad:'Yakınlık', gen:12},
+      {ad:'Telefon 1', gen:14}, {ad:'Telefon 2', gen:14}, {ad:'Telefon 3', gen:14},
+      {ad:'Adres', gen:25}, {ad:'Servis', gen:18}, {ad:'Notlar', gen:20}
+    ],
+    ornek: ['Ali Yılmaz','1001','Erkek','5-A','Mehmet Yılmaz','Baba','0532...','','','Merkez Mah.','1. Servis','']
+  },
+  dersler: {
+    baslik: 'DERS LİSTESİ — İçe Aktarma Şablonu',
+    not: 'Kısaltma: çarşaf raporda kullanılır (MAT, TÜR, FEN...)',
+    kolonlar: [{ad:'Ders Adı', gen:25, zon:true}, {ad:'Kısaltma', gen:12}, {ad:'Not', gen:25}],
+    ornek: ['Matematik','MAT','']
+  },
+  branslar: {
+    baslik: 'BRANŞ LİSTESİ — İçe Aktarma Şablonu',
+    not: 'Öğretmen kayıtlarında branş alanında açılır listede görünür.',
+    kolonlar: [{ad:'Branş Adı', gen:30, zon:true}, {ad:'Not', gen:25}],
+    ornek: ['Sınıf Öğretmenliği','']
+  },
+  dersProgrami: {
+    baslik: 'DERS PROGRAMI — İçe Aktarma Şablonu',
+    not: 'Saat: 1-7 arası sayı. Gün: Pazartesi/Salı/Çarşamba/Perşembe/Cuma.',
+    kolonlar: [
+      {ad:'Sınıf', gen:10, zon:true}, {ad:'Gün', gen:12, zon:true},
+      {ad:'Saat', gen:8, zon:true}, {ad:'Ders', gen:20, zon:true},
+      {ad:'Öğretmen', gen:22}
+    ],
+    ornek: ['5-A','Pazartesi','1','Matematik','Ünal Balık']
+  },
+  nobetProgrami: {
+    baslik: 'NÖBET PROGRAMI — İçe Aktarma Şablonu',
+    not: 'Tatil için "Resmi Tatil", hafta sonu için "Haftasonu" yazın.',
+    kolonlar: [
+      {ad:'Tarih', gen:14, zon:true}, {ad:'Gün', gen:12, zon:true},
+      {ad:'Okul Binası', gen:20}, {ad:'Bahçe', gen:20},
+      {ad:'Koridor', gen:20}, {ad:'Nöbetçi Amir', gen:22}
+    ],
+    ornek: ['01.09.2026','Salı','Fatma Şenocak','Ünal Balık','','Sedat Karagöz']
+  },
+  servisOgrencileri: {
+    baslik: 'SERVİS ÖĞRENCİ LİSTESİ — İçe Aktarma Şablonu',
+    not: 'Tek servis için kullanılır. Uygulamada önce servisi seçin.',
+    kolonlar: [
+      {ad:'Öğrenci Adı', gen:22, zon:true}, {ad:'Öğrenci No', gen:12},
+      {ad:'Sınıf', gen:10}, {ad:'Not', gen:25}
+    ],
+    ornek: ['Ali Yılmaz','1001','5-A','']
+  },
+  yaziliSinavlar: {
+    baslik: 'YAZILI SINAV TAKVİMİ — İçe Aktarma Şablonu',
+    not: 'Birden fazla sınıf için virgülle ayırın: "5-A, 6-A". Tür: Yazılı/Sınav/Proje.',
+    kolonlar: [
+      {ad:'Sınıf(lar)', gen:16, zon:true}, {ad:'Ders', gen:20, zon:true},
+      {ad:'Tarih', gen:12, zon:true}, {ad:'Dönem', gen:12},
+      {ad:'Yazılı Sırası', gen:14}, {ad:'Tür', gen:10},
+      {ad:'Kaçıncı Ders', gen:12}, {ad:'Senaryo No', gen:12},
+      {ad:'Yayınevi', gen:14}, {ad:'Notlar', gen:20}
+    ],
+    ornek: ['5-A, 6-A','Matematik','15.10.2026','1. Dönem','1. Yazılı','Yazılı','3','2','MEB','']
+  }
+};
+
+function sablonIndir(tip) {
+  const t = SABLON_TANIMLARI[tip];
+  if (!t) return;
+
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+  const BASLIK_BG = 'FF0A6E6E', ZORUNLU_BG = 'FFFFF3E0', NOT_BG = 'FFE6F4F4', ORNEK_BG = 'FFF0F8F8';
+
+  // Satır 1: Ana başlık
+  ws['A1'] = { v: t.baslik, t: 's' };
+  const mergeEnd = XLSX.utils.encode_col(t.kolonlar.length - 1) + '1';
+
+  // Satır 2: Not
+  ws['A2'] = { v: '⚠ ' + t.not + ' (* zorunlu alan)', t: 's' };
+
+  // Satır 3: Kolon başlıkları
+  t.kolonlar.forEach((k, i) => {
+    const hucre = XLSX.utils.encode_cell({r: 2, c: i});
+    ws[hucre] = { v: k.ad + (k.zon ? ' *' : ''), t: 's' };
+  });
+
+  // Satır 4: Örnek veri
+  t.ornek.forEach((v, i) => {
+    const hucre = XLSX.utils.encode_cell({r: 3, c: i});
+    ws[hucre] = { v: v, t: 's' };
+  });
+
+  // Boş veri satırları (5-104)
+  ws['!ref'] = `A1:${XLSX.utils.encode_col(t.kolonlar.length - 1)}104`;
+
+  // Sütun genişlikleri
+  ws['!cols'] = t.kolonlar.map(k => ({ wch: k.gen || 15 }));
+
+  // Merge: başlık ve not satırı
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:t.kolonlar.length-1} },
+    { s:{r:1,c:0}, e:{r:1,c:t.kolonlar.length-1} }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, t.baslik.slice(0, 31));
+  XLSX.writeFile(wb, `${tip}_sablonu.xlsx`);
+  toast(`"${t.baslik.split('—')[0].trim()}" şablonu indirildi.`);
+}
+
+function tumSablonlariIndir() {
+  Object.keys(SABLON_TANIMLARI).forEach((tip, i) => {
+    setTimeout(() => sablonIndir(tip), i * 300);
+  });
+}
