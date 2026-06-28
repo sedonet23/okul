@@ -1198,12 +1198,12 @@ function crsfSvgKaydet(win, baslikMetin) {
     Array.from(tr.querySelectorAll('th,td')).forEach(function(hucre, ci) {
       var colspan = parseInt(hucre.getAttribute('colspan')||'1');
       var w = ci===0 ? SATIR_W : GUN_W*colspan;
-      var cls = hucre.className||'';
-      var isGunGrup  = cls.includes('gun-grup');
-      var isGunTh    = cls.includes('gun-th') && !cls.includes('gun-grup');
-      var isSatirLbl = cls.includes('satir-lbl');
-      var isDolgu    = cls.includes('gun-dolgu');
-      var isBos      = cls.includes('bos');
+      var cl = hucre.classList;
+      var isGunGrup  = cl.contains('gun-grup');
+      var isGunTh    = cl.contains('gun-th') && !cl.contains('gun-grup');
+      var isSatirLbl = cl.contains('satir-lbl');
+      var isDolgu    = cl.contains('gun-dolgu');
+      var isBos      = cl.contains('bos');
 
       var bg = isGunGrup ? RENK.gunGrup
              : isGunTh   ? (isDolgu ? '#5aa8a4' : RENK.gunTh)
