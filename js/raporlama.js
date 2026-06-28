@@ -1130,18 +1130,23 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         if (!el) return;
         var btn = document.getElementById('btn-gorsel');
         if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
-        var genislik  = document.documentElement.scrollWidth;
-        var yukseklik = el.scrollHeight;
+        // Tüm tablo içeriğini eksiksiz yakala
+        var sarici = document.getElementById('crsf-sarici');
+        var tablo  = sarici ? sarici.querySelector('table') : null;
+        var genislik  = tablo ? tablo.scrollWidth + 4 : document.documentElement.scrollWidth;
+        var yukseklik = el.scrollHeight + 4;
         html2canvas(el, {
           scale: 2,
           backgroundColor: '#ffffff',
           useCORS: true,
-          scrollX: -window.scrollX,
-          scrollY: -window.scrollY,
+          scrollX: 0,
+          scrollY: 0,
+          x: 0,
+          y: 0,
           width: genislik,
           height: yukseklik,
-          windowWidth: genislik,
-          windowHeight: yukseklik,
+          windowWidth: genislik + 50,
+          windowHeight: yukseklik + 50,
           logging: false
         }).then(function(canvas) {
           var link = document.createElement('a');
@@ -1207,7 +1212,7 @@ function raporTekSinifCarsaf() {
 
   const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
   const baslik = m.baslik || `${sn} Sınıfı Haftalık Ders Programı`;
-  const tablo = `<table class="crsf">
+  const tablo = `<table class="crsf" style="width:100%;">
     <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
   </table>`;
@@ -1238,7 +1243,7 @@ function raporTekOgretmenCarsaf() {
 
   const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
   const baslik = m.baslik || `${ogrAd} — Haftalık Ders Programı`;
-  const tablo = `<table class="crsf">
+  const tablo = `<table class="crsf" style="width:100%;">
     <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
   </table>`;
