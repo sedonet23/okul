@@ -1057,7 +1057,7 @@ function _crsfTabloStyle() {
     table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #075757;white-space:nowrap;}
     table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8.5px;font-weight:700;border:1px solid #075757;}
     table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:8.5px;border:1px solid #7ABABA;padding:4px;text-align:center;vertical-align:middle;white-space:nowrap;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:9px;border:1px solid #7ABABA;padding:4px 3px;text-align:center;vertical-align:middle;white-space:normal;line-height:1.4;}
     table.crsf td.hucre{padding:3px 4px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;min-width:28px;}
     table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;}
     table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
@@ -1065,7 +1065,7 @@ function _crsfTabloStyle() {
     .c-sinif{font-weight:700;font-size:9px;color:#1a5276;line-height:1.3;}
     .c-ders{font-weight:600;font-size:8.5px;color:#1a1a1a;line-height:1.3;}
     .c-ogr{color:#6b7280;font-size:7px;margin-top:1px;line-height:1.2;word-break:break-word;}
-    .c-zaman{font-weight:400;font-size:6.5px;display:block;color:#888;margin-top:1px;}
+    .c-zaman{font-weight:400;font-size:7.5px;display:block;color:#0A8080;margin-top:2px;line-height:1.3;}
     #crsf-sarici{transform-origin:top left;}
     @media print{
       @page{margin:0.5cm;}
@@ -1074,33 +1074,70 @@ function _crsfTabloStyle() {
       #crsf-sarici{transform:none!important;}
     }
   </style>
-  <script>
-    // Baskıdan önce tabloyu sayfaya sığdır
-    function crsfSigdir() {
-      var sarici = document.getElementById('crsf-sarici');
-      var tablo  = sarici ? sarici.querySelector('table') : null;
-      if (!tablo) return;
-      // Yazdırılabilir genişlik: A4 dikey = 210mm - 2*0.5cm = 200mm ≈ 756px @96dpi
-      var hedefPx = 756;
-      var tabloW  = tablo.scrollWidth;
-      if (tabloW > hedefPx) {
-        var oran = hedefPx / tabloW;
-        sarici.style.transform = 'scale(' + oran + ')';
-        sarici.style.transformOrigin = 'top left';
-        sarici.style.width = (tabloW * oran) + 'px';
-        sarici.style.height = (sarici.scrollHeight * oran) + 'px';
-        sarici.parentElement.style.overflow = 'hidden';
-      }
-    }
-    window.addEventListener('load', function() { setTimeout(crsfSigdir, 100); });
-    window.addEventListener('beforeprint', crsfSigdir);
-  <\/script>`;
+`;
 }
 
-function _crsfGoster(tabloHtml, baslikMetin, m) {
+function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
   modalKapat();
-  const icerik = _crsfTabloStyle() + `<div class="crsf-wrap"><div id="crsf-sarici">${tabloHtml}</div></div>`;
-  _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
+
+  const ektraStyle = `
+    <style>
+      @page{size:A4 ${landscape?'landscape':'portrait'};margin:0.5cm;}
+      @media print{@page{size:A4 ${landscape?'landscape':'portrait'};margin:0.5cm;}
+        .rapor-toolbar{display:none!important;}
+        #icerik-sarici{transform:none!important;}
+        body{${landscape?'width:297mm;':''}}
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
+    <script>
+      function gorselKaydet() {
+        var el = document.getElementById('crsf-sarici');
+        if (!el) return;
+        var btn = document.getElementById('btn-gorsel');
+        if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
+        html2canvas(el, {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          useCORS: true,
+          logging: false
+        }).then(function(canvas) {
+          var link = document.createElement('a');
+          link.download = '${baslikMetin.replace(/[^\w\s]/g,'').trim() || 'ders-programi'}.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+          if (btn) { btn.textContent = '🖼️ Görüntü Kaydet'; btn.disabled = false; }
+        }).catch(function(e) {
+          alert('Görüntü oluşturulamadı: ' + e.message);
+          if (btn) { btn.textContent = '🖼️ Görüntü Kaydet'; btn.disabled = false; }
+        });
+      }
+    <\/script>`;
+
+  // Toolbar'a Görüntü Kaydet butonu ekle — _raporPenceresiniAc'dan sonra enjekte edeceğiz
+  // Bunun için htmlIcerik içine özel toolbar eki koyuyoruz
+  const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="gorselKaydet()" style="background:#6366f1;color:#fff;">🖼️ Görüntü Kaydet</button>`;
+
+  const icerik = ektraStyle +
+    _crsfTabloStyle() +
+    `<div id="crsf-extra-btn" style="display:none;">${gorselBtn}</div>` +
+    `<div class="crsf-wrap" style="overflow-x:auto;"><div id="crsf-sarici" style="display:inline-block;min-width:100%;">${tabloHtml}</div></div>`;
+
+  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
+
+  // Toolbar'a butonu ekle (blob açıldıktan sonra)
+  setTimeout(function() {
+    try {
+      if (!win || win.closed) return;
+      var toolbar = win.document.querySelector('.rapor-toolbar');
+      var btn = win.document.getElementById('btn-gorsel');
+      if (toolbar && btn) {
+        var klon = btn.cloneNode(true);
+        klon.onclick = win.gorselKaydet;
+        toolbar.insertBefore(klon, toolbar.children[1]);
+      }
+    } catch(e) {}
+  }, 1500);
 }
 
 const CRSF_SAATLER = [1,2,3,4,5,6,7];
@@ -1113,7 +1150,9 @@ function raporTekSinifCarsaf() {
 
   const saatRows = CRSF_SAATLER.map(saat => {
     const bil = dersSaatiBilgisi(saat);
-    const saatEtiket = bil ? `${saat}. Ders<span class="zaman">${bil.baslangic}–${bil.bitis}</span>` : `${saat}. Ders`;
+    const saatEtiket = bil
+      ? `<strong>${saat}. Ders</strong><span class="c-zaman">${bil.baslangic}–${bil.bitis}</span>`
+      : `<strong>${saat}. Ders</strong>`;
     let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
@@ -1142,7 +1181,9 @@ function raporTekOgretmenCarsaf() {
 
   const saatRows = CRSF_SAATLER.map(saat => {
     const bil = dersSaatiBilgisi(saat);
-    const saatEtiket = bil ? `${saat}. Ders<span class="zaman">${bil.baslangic}–${bil.bitis}</span>` : `${saat}. Ders`;
+    const saatEtiket = bil
+      ? `<strong>${saat}. Ders</strong><span class="c-zaman">${bil.baslangic}–${bil.bitis}</span>`
+      : `<strong>${saat}. Ders</strong>`;
     let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.ogretmenId===ogrId && x.gun===gun && x.saat===saat);
@@ -1193,7 +1234,7 @@ function raporTumSiniflarCarsaf() {
     <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
-  _crsfGoster(tablo, m.baslik || 'Sınıflar Ders Programı', m);
+  _crsfGoster(tablo, m.baslik || 'Sınıflar Ders Programı', m, true);
 }
 
 /* ── Rapor 4: Tüm Öğretmenler Çarşaf ── */
@@ -1230,5 +1271,5 @@ function raporTumOgretmenlerCarsaf() {
     <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
-  _crsfGoster(tablo, m.baslik || 'Öğretmenler Ders Programı', m);
+  _crsfGoster(tablo, m.baslik || 'Öğretmenler Ders Programı', m, true);
 }
