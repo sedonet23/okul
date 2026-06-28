@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Koruk Okul</string>
+    <string name="widget_description">Bugünün nöbet, ders ve belge bilgileri</string>
+    <string name="title_activity_main">Koruk Okul</string>
+</resources>
