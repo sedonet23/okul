@@ -1052,21 +1052,23 @@ function _crsfMeta() {
 
 function _crsfTabloStyle() {
   return `<style>
-    .crsf-wrap{overflow:visible;}
-    table.crsf{border-collapse:collapse;table-layout:auto;font-size:9px;}
-    table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #075757;white-space:nowrap;}
-    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8.5px;font-weight:700;border:1px solid #075757;}
-    table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:9px;border:1px solid #7ABABA;padding:4px 3px;text-align:center;vertical-align:middle;white-space:normal;line-height:1.4;}
-    table.crsf td.hucre{padding:3px 4px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;min-width:28px;}
-    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;}
+    .crsf-wrap{overflow-x:auto;}
+    table.crsf{border-collapse:collapse;table-layout:fixed;font-size:7px;width:max-content;}
+    table.crsf col.col-lbl{width:52px;}
+    table.crsf col.col-hucre{width:36px;}
+    table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:52px;}
+    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:36px;}
+    table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7.5px;font-weight:700;border:1px solid #145a82;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:52px;}
+    table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:36px;overflow:hidden;}
+    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:36px;}
     table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
     table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
-    .c-sinif{font-weight:700;font-size:9px;color:#1a5276;line-height:1.3;}
-    .c-ders{font-weight:600;font-size:8.5px;color:#1a1a1a;line-height:1.3;}
-    .c-ogr{color:#6b7280;font-size:6px;margin-top:1px;line-height:1.1;word-break:break-word;}
-    .c-zaman{font-weight:400;font-size:7.5px;display:block;color:#0A8080;margin-top:2px;line-height:1.3;}
-    #crsf-sarici{transform-origin:top left;}
+    .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
+    .c-ders{font-weight:600;font-size:6.5px;color:#1a1a1a;line-height:1.2;word-break:break-word;}
+    .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
+    .c-zaman{font-weight:400;font-size:6px;display:block;color:#0A8080;margin-top:1px;line-height:1.2;}
+    #crsf-sarici{transform-origin:top left;display:inline-block;}
     @media print{
       @page{margin:0.5cm;}
       .rapor-toolbar{display:none!important;}
@@ -1092,8 +1094,8 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
     <script>
       function gorselKaydet() {
-        // Toolbar hariç tüm içeriği (header + tablo) yakala
-        var el = document.getElementById('icerik-sarici') || document.getElementById('crsf-sarici');
+        // Sadece tabloyu yakala (header hariç)
+        var el = document.getElementById('crsf-sarici');
         if (!el) return;
         var btn = document.getElementById('btn-gorsel');
         if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
@@ -1219,9 +1221,9 @@ function raporTumSiniflarCarsaf() {
   if (!seciliSiniflar.length) { toast('En az bir sınıf seçin.'); return; }
 
   // Başlık: gün grubu satırı + saat numarası satırı
-  let th1 = `<th class="saat-th" rowspan="2">Sınıf</th>`;
+  let th1 = `<th class="gun-grup"></th>`;
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
-  let th2 = '';
+  let th2 = `<th class="saat-th">Sınıf</th>`;
   GUNLER.forEach(() => {
     CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
   });
@@ -1256,9 +1258,9 @@ function raporTumOgretmenlerCarsaf() {
     .filter(o => seciliIds.includes(o.id))
     .sort((a,b) => (a.ad||'').localeCompare(b.ad||'','tr'));
 
-  let th1 = `<th class="saat-th" rowspan="2">Öğretmen</th>`;
+  let th1 = `<th class="gun-grup"></th>`;
   GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
-  let th2 = '';
+  let th2 = `<th class="saat-th">Öğretmen</th>`;
   GUNLER.forEach(() => {
     CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
   });
