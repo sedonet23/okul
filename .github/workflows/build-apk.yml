@@ -3,7 +3,6 @@ name: Android APK Build
 on:
   push:
     branches: [ main ]
-    tags: [ 'v*' ]
   workflow_dispatch:
 
 jobs:
@@ -25,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-        
 
       - name: Bağımlılıkları yükle
         run: npm install
@@ -39,8 +37,6 @@ jobs:
           cp -r assets www/ 2>/dev/null || true
           cp manifest.json www/ 2>/dev/null || true
           cp firebase-messaging-sw.js www/ 2>/dev/null || true
-          echo "www/ içeriği:"
-          ls www/
 
       - name: google-services.json oluştur
         env:
@@ -57,6 +53,11 @@ jobs:
             -storepass korukokul2024 \
             -keypass korukokul2024 \
             -dname "CN=Koruk Okul,OU=Okul,O=Koruk,L=Ankara,ST=Ankara,C=TR"
+
+      - name: Gradle wrapper oluştur
+        run: |
+          cd android
+          gradle wrapper --gradle-version 8.7
 
       - name: Capacitor sync
         run: npx cap sync android
@@ -79,15 +80,3 @@ jobs:
           name: koruk-okul-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 90
-
-      - name: Release oluştur (tag varsa)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: android/app/build/outputs/apk/release/app-release.apk
-          name: Koruk Okul ${{ github.ref_name }}
-          body: |
-            APK dosyasını telefona indirip yükleyin.
-            Ayarlar → Güvenlik → Bilinmeyen kaynaklar → İzin ver
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
