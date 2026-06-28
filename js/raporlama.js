@@ -1052,26 +1052,54 @@ function _crsfMeta() {
 
 function _crsfTabloStyle() {
   return `<style>
-    .crsf-wrap{overflow-x:auto;}
-    table.crsf{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px;}
-    table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #075757;width:52px;}
+    .crsf-wrap{overflow:visible;}
+    table.crsf{border-collapse:collapse;table-layout:auto;font-size:9px;}
+    table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #075757;white-space:nowrap;}
     table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8.5px;font-weight:700;border:1px solid #075757;}
     table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:8.5px;border:1px solid #7ABABA;padding:4px;text-align:center;vertical-align:middle;white-space:normal;word-break:break-word;line-height:1.4;}
-    table.crsf td.hucre{padding:3px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:8.5px;border:1px solid #7ABABA;padding:4px;text-align:center;vertical-align:middle;white-space:nowrap;}
+    table.crsf td.hucre{padding:3px 4px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;min-width:28px;}
     table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;}
     table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
     table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
     .c-sinif{font-weight:700;font-size:9px;color:#1a5276;line-height:1.3;}
-    .c-ders{font-weight:600;font-size:8px;color:#1a1a1a;line-height:1.3;}
+    .c-ders{font-weight:600;font-size:8.5px;color:#1a1a1a;line-height:1.3;}
     .c-ogr{color:#6b7280;font-size:7px;margin-top:1px;line-height:1.2;word-break:break-word;}
     .c-zaman{font-weight:400;font-size:6.5px;display:block;color:#888;margin-top:1px;}
-  </style>`;
+    #crsf-sarici{transform-origin:top left;}
+    @media print{
+      @page{margin:0.5cm;}
+      .rapor-toolbar{display:none!important;}
+      #icerik-sarici{transform:none!important;}
+      #crsf-sarici{transform:none!important;}
+    }
+  </style>
+  <script>
+    // Baskıdan önce tabloyu sayfaya sığdır
+    function crsfSigdir() {
+      var sarici = document.getElementById('crsf-sarici');
+      var tablo  = sarici ? sarici.querySelector('table') : null;
+      if (!tablo) return;
+      // Yazdırılabilir genişlik: A4 dikey = 210mm - 2*0.5cm = 200mm ≈ 756px @96dpi
+      var hedefPx = 756;
+      var tabloW  = tablo.scrollWidth;
+      if (tabloW > hedefPx) {
+        var oran = hedefPx / tabloW;
+        sarici.style.transform = 'scale(' + oran + ')';
+        sarici.style.transformOrigin = 'top left';
+        sarici.style.width = (tabloW * oran) + 'px';
+        sarici.style.height = (sarici.scrollHeight * oran) + 'px';
+        sarici.parentElement.style.overflow = 'hidden';
+      }
+    }
+    window.addEventListener('load', function() { setTimeout(crsfSigdir, 100); });
+    window.addEventListener('beforeprint', crsfSigdir);
+  <\/script>`;
 }
 
 function _crsfGoster(tabloHtml, baslikMetin, m) {
   modalKapat();
-  const icerik = _crsfTabloStyle() + `<div class="crsf-wrap">${tabloHtml}</div>`;
+  const icerik = _crsfTabloStyle() + `<div class="crsf-wrap"><div id="crsf-sarici">${tabloHtml}</div></div>`;
   _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
 }
 
