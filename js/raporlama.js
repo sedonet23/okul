@@ -1030,8 +1030,7 @@ function crsfTipDegisti() {
 function _crsfDers(ders) {
   if (!ders) return '';
   const kisalt = ders.slice(0, 4).toUpperCase();
-  const tam    = ders.length > 4 ? escapeHtml(ders) : '';
-  return `<div class="ders">${kisalt}</div>${tam ? `<div class="ders-tam">${tam}</div>` : ''}`;
+  return `<div class="ders">${kisalt}</div>`;
 }
 
 function _crsfMeta() {
@@ -1047,9 +1046,12 @@ function _crsfMeta() {
 }
 
 function _crsfHtmlBase(yon) {
+  const yonDeger = (yon === 'landscape') ? 'landscape' : 'portrait';
   return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
 <style>
-  @page{size:A4 ${yon};margin:0.7cm;}
+  @page{size:A4 ${yonDeger};margin:0.7cm;}
+  @media print{@page{size:A4 ${yonDeger};margin:0.7cm;}}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Segoe UI',Arial,sans-serif;font-size:8.5px;color:#111;}
   .header{text-align:center;margin-bottom:8px;border-bottom:2px solid #2c3e50;padding-bottom:7px;}
@@ -1064,9 +1066,8 @@ function _crsfHtmlBase(yon) {
   td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:8.5px;border:1px solid #b8cfe0;padding:4px;text-align:center;vertical-align:middle;}
   td.hucre{padding:2px 3px;border:1px solid #ccc;vertical-align:top;font-size:7px;}
   td.bos{background:#fafafa;border:1px solid #e8e8e8;}
-  .ders{font-weight:700;font-size:7.5px;line-height:1.2;text-transform:uppercase;}
-  .ders-tam{font-weight:400;font-size:6px;color:#666;line-height:1.1;}
-  .ogr{color:#333;font-size:6.5px;margin-top:1px;word-break:break-word;line-height:1.2;}
+  .ders{font-weight:700;font-size:6.5px;line-height:1.2;text-transform:uppercase;letter-spacing:.3px;}
+  .ogr{color:#333;font-size:6px;margin-top:1px;word-break:break-word;line-height:1.2;}
   .sinif{font-weight:700;font-size:7px;color:#1a5276;}
   .zaman{font-weight:400;font-size:6px;display:block;color:#888;}
   tr:nth-child(even) td.hucre{background:#f7f9fc;}
@@ -1085,9 +1086,9 @@ function _crsfHeaderHtml(m) {
   </div>`;
 }
 
-function _crsfYazdir(html) {
+function _crsfYazdir(html, yon) {
   modalKapat();
-  const w = window.open('','_blank','width=1100,height=750');
+  const w = window.open('','_blank', yon==='landscape' ? 'width=1200,height=750' : 'width=900,height=750');
   w.document.write(html + '</body></html>');
   w.document.close();
   w.onload = () => { w.focus(); w.print(); };
@@ -1122,7 +1123,7 @@ function raporTekSinifCarsaf() {
       <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
       <tbody>${saatRows}</tbody>
     </table>`;
-  _crsfYazdir(html);
+  _crsfYazdir(html, m.yon);
 }
 
 /* ── Rapor 2: Tek Öğretmen ── */
@@ -1153,7 +1154,7 @@ function raporTekOgretmenCarsaf() {
       <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
       <tbody>${saatRows}</tbody>
     </table>`;
-  _crsfYazdir(html);
+  _crsfYazdir(html, m.yon);
 }
 
 /* ── Rapor 3: Tüm Sınıflar Çarşaf ── */
@@ -1188,7 +1189,7 @@ function raporTumSiniflarCarsaf() {
       <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
-  _crsfYazdir(html);
+  _crsfYazdir(html, m.yon);
 }
 
 /* ── Rapor 4: Tüm Öğretmenler Çarşaf ── */
@@ -1226,5 +1227,5 @@ function raporTumOgretmenlerCarsaf() {
       <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
-  _crsfYazdir(html);
+  _crsfYazdir(html, m.yon);
 }
