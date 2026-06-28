@@ -9,7 +9,7 @@
       bitisSaati, sure, sayisalBaslama, sayisalBitis, sozelBaslama, sozelBitis, notlar}
    ==================================================================== */
 
-const SINAV_TURLERI = ['Yazılı', 'Sınav Yolu'];
+const SINAV_TURLERI = ['Yazılı', 'Sınav Yolu', 'Proje'];
 
 let sinavlar = [];
 let denemeSinavlari = [];
@@ -34,7 +34,7 @@ function renderSinavlar(){
     <div class="evrak-row">
       <div class="evrak-body">
         <div class="evrak-title">${escapeHtml(s.ders||'Ders')} — ${escapeHtml(s.sinif||'')} <span class="badge badge-${sinavTurRengi(s.tur)}">${escapeHtml(s.tur||'Yazılı')}</span></div>
-        <div class="evrak-meta">${formatTarih(s.tarih)}${s.saat?' · Saat '+escapeHtml(s.saat):''}${s.ogretmenId?' · '+escapeHtml(ogretmenAdi(s.ogretmenId)):''}${s.notlar?' · '+escapeHtml(s.notlar):''}</div>
+        <div class="evrak-meta">${formatTarih(s.tarih)}${s.dersSaati?' · '+escapeHtml(s.dersSaati)+'. ders':''}${s.ogretmenId?' · '+escapeHtml(ogretmenAdi(s.ogretmenId)):''}${s.senaryoNo?' · '+escapeHtml(s.senaryoNo)+'. Senaryo':''}${s.yayinevi?' ('+escapeHtml(s.yayinevi)+')':''}${s.notlar?' · '+escapeHtml(s.notlar):''}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="sinavModalAc('${s.id}')">Düzenle</button>
     </div>
@@ -43,29 +43,69 @@ function renderSinavlar(){
 
 function sinavModalAc(id){
   const s = id ? sinavlar.find(x=>x.id===id) : null;
+
+  // Sınıf çoklu seçim
+  const mevcutSiniflar = s ? (s.siniflar||s.sinif||'').split(',').map(x=>x.trim()).filter(Boolean) : [];
+  const sinifCheckboxlar = (typeof siniflar!=='undefined'&&siniflar.length)
+    ? [...siniflar].sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(sn=>{
+        const sec = mevcutSiniflar.includes(sn.ad);
+        return `<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;white-space:nowrap;padding:3px 0;">
+          <input type="checkbox" class="snSinifCb" value="${escapeHtml(sn.ad)}" ${sec?'checked':''}>${escapeHtml(sn.ad)}
+        </label>`;
+      }).join('')
+    : '<span style="color:var(--ink-muted);font-size:12px;">Önce sınıf ekleyin</span>';
+
   const body = `
-    <div class="form-row">
-      <div class="form-group"><label>Sınıf</label><input id="f_snSinif" value="${s?escapeHtml(s.sinif||''):''}" placeholder="örn: 7-A"></div>
-      <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
+    <div class="form-group">
+      <label>Sınıf(lar)</label>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 10px;
+        max-height:130px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:4px 14px;">
+        ${sinifCheckboxlar}
+      </div>
     </div>
-    <div class="form-group"><label>Öğretmen</label><select id="f_snOgretmen">${ogretmenSecenekleri(s?s.ogretmenId:'')}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
+      <div class="form-group"><label>Tür</label>
+        <select id="f_snTur">${SINAV_TURLERI.map(t=>`<option ${t===(s?s.tur:'Yazılı')?'selected':''}>${t}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="form-group"><label>Öğretmen</label>
+      <select id="f_snOgretmen">${ogretmenSecenekleri(s?s.ogretmenId:'')}</select>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Tarih</label><input type="date" id="f_snTarih" value="${s?s.tarih:todayISO()}"></div>
-      <div class="form-group"><label>Saat</label><input type="time" id="f_snSaat" value="${s?(s.saat||''):''}"></div>
+      <div class="form-group"><label>Kaçıncı Ders <span style="font-weight:400;color:var(--ink-muted);">(isteğe bağlı)</span></label>
+        <input type="number" id="f_snDersSaati" min="1" max="8" placeholder="örn: 3" value="${s?(s.dersSaati||''):''}">
+      </div>
     </div>
-    <div class="form-group"><label>Tür</label><select id="f_snTur">${SINAV_TURLERI.map(t=>`<option ${t===(s?s.tur:'Yazılı')?'selected':''}>${t}</option>`).join('')}</select></div>
-    <div class="form-group"><label>Notlar</label><textarea id="f_snNotlar" rows="2">${s?escapeHtml(s.notlar||''):''}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Senaryo No <span style="font-weight:400;color:var(--ink-muted);">(isteğe bağlı)</span></label>
+        <input type="number" id="f_snSenaryoNo" min="1" placeholder="örn: 2" value="${s?(s.senaryoNo||''):''}">
+      </div>
+      <div class="form-group"><label>Yayınevi <span style="font-weight:400;color:var(--ink-muted);">(isteğe bağlı)</span></label>
+        <input id="f_snYayinevi" placeholder="örn: MEB, Berkay..." value="${s?escapeHtml(s.yayinevi||''):''}">
+      </div>
+    </div>
+    <div class="form-group"><label>Notlar</label>
+      <textarea id="f_snNotlar" rows="2">${s?escapeHtml(s.notlar||''):''}</textarea>
+    </div>
   `;
+
   modalAc(s?'Sınav Düzenle':'Yazılı Sınav Ekle', body, ()=>{
-    const sinif = document.getElementById('f_snSinif').value.trim();
+    const seciliSiniflar = [...document.querySelectorAll('.snSinifCb:checked')].map(c=>c.value);
+    if(!seciliSiniflar.length){ toast('En az bir sınıf seçin.'); return; }
     const ders = document.getElementById('f_snDers').value.trim();
-    if(!sinif || !ders){ toast('Sınıf ve ders zorunludur.'); return; }
+    if(!ders){ toast('Ders zorunludur.'); return; }
     kaydet(COL.sinavlar, s?s.id:null, {
-      sinif, ders,
+      siniflar: seciliSiniflar.join(', '),
+      sinif: seciliSiniflar[0], // geriye dönük uyumluluk
+      ders,
       ogretmenId: document.getElementById('f_snOgretmen').value,
       tarih: document.getElementById('f_snTarih').value,
-      saat: document.getElementById('f_snSaat').value,
+      dersSaati: document.getElementById('f_snDersSaati').value,
       tur: document.getElementById('f_snTur').value,
+      senaryoNo: document.getElementById('f_snSenaryoNo').value,
+      yayinevi: document.getElementById('f_snYayinevi').value.trim(),
       notlar: document.getElementById('f_snNotlar').value.trim()
     });
     modalKapat();
@@ -267,4 +307,172 @@ function sinavBaglantilariKur(){
     denemeSinavlari = s.docs.map(d=>({id:d.id,...d.data()}));
     renderDenemeSinavlari();
   }, hataGoster);
+}
+
+/* ================================================================
+   YAZILI SINAV RAPORU
+   ================================================================ */
+function sinavRaporModalAc() {
+  if (!sinavlar.length) { toast('Henüz sınav kaydı yok.'); return; }
+
+  const tumSiniflar = [...new Set(
+    sinavlar.flatMap(s => (s.siniflar||s.sinif||'').split(',').map(x=>x.trim()).filter(Boolean))
+  )].sort((a,b)=>a.localeCompare(b,'tr'));
+
+  const _okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari?.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const _yil = (()=>{ const y=new Date().getFullYear(); return `${y}-${y+1}`; })();
+  const inputStil = 'width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;';
+  const bolum = lbl => `<div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">${lbl}</div>`;
+
+  const sinifCblar = tumSiniflar.map(sn=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:2px 0;">
+      <input type="checkbox" class="rprSinifCb" value="${escapeHtml(sn)}" checked>${escapeHtml(sn)}
+    </label>`).join('');
+
+  const kolonlar = [
+    {key:'siniflar', label:'Sınıf'},
+    {key:'ders',     label:'Ders'},
+    {key:'tarih',    label:'Tarih'},
+    {key:'dersSaati',label:'Kaçıncı Ders'},
+    {key:'tur',      label:'Tür'},
+    {key:'ogretmen', label:'Öğretmen'},
+    {key:'senaryoNo',label:'Senaryo No'},
+    {key:'yayinevi', label:'Yayınevi'},
+    {key:'notlar',   label:'Notlar'},
+  ];
+  const kolonCblar = kolonlar.map(k=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:2px 0;">
+      <input type="checkbox" class="rprKolonCb" value="${k.key}" ${['siniflar','ders','tarih','tur','senaryoNo','yayinevi'].includes(k.key)?'checked':''}>${k.label}
+    </label>`).join('');
+
+  const body = `
+    ${bolum('Sayfa Yönü')}
+    <div style="display:flex;gap:16px;">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="radio" name="rprYon" value="portrait" checked> Dikey (A4)</label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;"><input type="radio" name="rprYon" value="landscape"> Yatay (A4)</label>
+    </div>
+    ${bolum('Başlık Bilgileri')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="rpr_okulAdi" placeholder="Okul Adı" value="${escapeHtml(_okulAdi)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="rpr_okulGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="rpr_baslik" placeholder="Rapor Başlığı" value="Yazılı Sınav Takvimi" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="rpr_baslikGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="rpr_egitimYili" placeholder="Eğitim-Öğretim Yılı" value="${escapeHtml(_yil)}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="rpr_yilGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="rpr_tarih" value="${new Date().toLocaleDateString('tr-TR')}" style="${inputStil}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="rpr_tarihGoster" checked> Göster</label>
+      </div>
+    </div>
+    ${bolum('Sınıf Filtresi')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:8px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+      ${sinifCblar}
+    </div>
+    ${bolum('Kolonlar')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:8px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+      ${kolonCblar}
+    </div>
+  `;
+
+  modalAc('🖨️ Yazılı Sınav Raporu', body, sinavRaporYazdir, null);
+  const kb = document.getElementById('modalKaydetBtn');
+  if (kb) kb.textContent = '🖨️ Yazdır';
+}
+
+function sinavRaporYazdir() {
+  const gc  = id => document.getElementById(id)?.checked ?? false;
+  const gv  = id => document.getElementById(id)?.value?.trim() || '';
+  const yon = document.querySelector('input[name="rprYon"]:checked')?.value || 'portrait';
+
+  const okulAdi    = gc('rpr_okulGoster')    ? gv('rpr_okulAdi')    : '';
+  const baslik     = gc('rpr_baslikGoster')  ? gv('rpr_baslik')     : '';
+  const egitimYili = gc('rpr_yilGoster')     ? gv('rpr_egitimYili') : '';
+  const tarih      = gc('rpr_tarihGoster')   ? gv('rpr_tarih')      : '';
+
+  const seciliSiniflar = [...document.querySelectorAll('.rprSinifCb:checked')].map(c=>c.value);
+  const seciliKolonlar = [...document.querySelectorAll('.rprKolonCb:checked')].map(c=>c.value);
+
+  if (!seciliSiniflar.length) { toast('En az bir sınıf seçin.'); return; }
+  if (!seciliKolonlar.length) { toast('En az bir kolon seçin.'); return; }
+
+  const kolonBilgi = [
+    {key:'siniflar', label:'Sınıf',         fn: s => s.siniflar||s.sinif||''},
+    {key:'ders',     label:'Ders',           fn: s => s.ders||''},
+    {key:'tarih',    label:'Tarih',          fn: s => formatTarih(s.tarih)},
+    {key:'dersSaati',label:'Kaçıncı Ders',  fn: s => s.dersSaati ? s.dersSaati+'. ders' : ''},
+    {key:'tur',      label:'Tür',            fn: s => s.tur||''},
+    {key:'ogretmen', label:'Öğretmen',       fn: s => s.ogretmenId ? ogretmenAdi(s.ogretmenId) : ''},
+    {key:'senaryoNo',label:'Senaryo No',     fn: s => s.senaryoNo ? s.senaryoNo+'. Senaryo' : ''},
+    {key:'yayinevi', label:'Yayınevi',       fn: s => s.yayinevi||''},
+    {key:'notlar',   label:'Notlar',         fn: s => s.notlar||''},
+  ].filter(k => seciliKolonlar.includes(k.key));
+
+  // Sınıfa göre grupla, tarihe göre sırala
+  const gruplar = {};
+  sinavlar
+    .filter(s => {
+      const sSiniflar = (s.siniflar||s.sinif||'').split(',').map(x=>x.trim());
+      return sSiniflar.some(sn => seciliSiniflar.includes(sn));
+    })
+    .sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''))
+    .forEach(s => {
+      const sSiniflar = (s.siniflar||s.sinif||'').split(',').map(x=>x.trim())
+        .filter(sn => seciliSiniflar.includes(sn));
+      sSiniflar.forEach(sn => {
+        if (!gruplar[sn]) gruplar[sn] = [];
+        gruplar[sn].push(s);
+      });
+    });
+
+  const thHTML = kolonBilgi.map(k=>`<th>${k.label}</th>`).join('');
+
+  const tabloHTML = Object.entries(gruplar).sort(([a],[b])=>a.localeCompare(b,'tr')).map(([sn, kayitlar])=>`
+    <tr><td colspan="${kolonBilgi.length}" style="background:#2c3e50;color:#fff;font-weight:700;font-size:11px;padding:5px 8px;letter-spacing:.5px;">
+      ${sn} Sınıfı
+    </td></tr>
+    ${kayitlar.map(s=>`<tr>${kolonBilgi.map(k=>`<td>${k.fn(s)||'—'}</td>`).join('')}</tr>`).join('')}
+  `).join('');
+
+  const metaParcalar = [egitimYili, tarih].filter(Boolean);
+
+  const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<title>${baslik||'Yazılı Sınav Takvimi'}</title>
+<style>
+  @page{size:A4 ${yon};margin:1.2cm;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;}
+  .header{text-align:center;margin-bottom:14px;border-bottom:2px solid #333;padding-bottom:10px;}
+  .header .okul{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+  .header .baslik{font-size:13px;font-weight:600;margin-top:5px;}
+  .header .meta{font-size:10px;color:#666;margin-top:4px;}
+  table{width:100%;border-collapse:collapse;margin-top:4px;}
+  th{background:#2c3e50;color:#fff;padding:5px 6px;text-align:left;font-size:10px;font-weight:600;white-space:nowrap;}
+  td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top;}
+  tr:nth-child(even) td{background:#f7f7f7;}
+  .toplam{margin-top:8px;font-size:10px;color:#444;text-align:right;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>
+<div class="header">
+  ${okulAdi?`<div class="okul">${okulAdi}</div>`:''}
+  ${baslik?`<div class="baslik">${baslik}</div>`:''}
+  ${metaParcalar.length?`<div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>`:''}
+</div>
+<table>
+  <thead><tr>${thHTML}</tr></thead>
+  <tbody>${tabloHTML}</tbody>
+</table>
+<div class="toplam">Toplam: ${sinavlar.filter(s=>{const ss=(s.siniflar||s.sinif||'').split(',').map(x=>x.trim());return ss.some(sn=>seciliSiniflar.includes(sn));}).length} kayıt</div>
+</body></html>`;
+
+  modalKapat();
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(html);
+  w.document.close();
+  w.onload = ()=>{ w.focus(); w.print(); };
 }
