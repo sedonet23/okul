@@ -28,7 +28,7 @@ jobs:
         
 
       - name: Bağımlılıkları yükle
-        run: npm ci
+        run: npm install
 
       - name: Web dosyalarını www/ klasörüne kopyala
         run: |
