@@ -70,6 +70,74 @@ function ogretmenDetayAc(id){
     `<div class="detay-row"><span class="cz-check ${e.tamamlandi?'on':''}" style="margin-right:6px;display:inline-flex;">${e.tamamlandi?'✓':''}</span>${escapeHtml(e.baslik)} <span class="detay-row-muted">${escapeHtml(e.tarih||'')}</span></div>`
   ).join('') : '<p class="empty-state">Görevli olduğu etkinlik yok.</p>';
 
+  /* ---- Haftalık Norm Hesabı ---- */
+  // Her ders kaydından seviyeye göre norm saati al
+  function seviyeCikar(sinifAdi) {
+    const m = (sinifAdi || '').match(/^(\d+)/);
+    return m ? parseInt(m[1]) : null;
+  }
+
+  let normSatirlar = [];
+  let toplamNorm = 0, toplamFiili = 0;
+
+  // Öğretmenin verdiği her ders-sınıf kombinasyonu
+  const dersGruplari = {};
+  dersleri.forEach(d => {
+    const anahtar = `${d.ders}__${d.sinif}`;
+    if (!dersGruplari[anahtar]) dersGruplari[anahtar] = { ders: d.ders, sinif: d.sinif, saatSayisi: 0 };
+    dersGruplari[anahtar].saatSayisi++;
+  });
+
+  Object.values(dersGruplari).forEach(g => {
+    const seviye = seviyeCikar(g.sinif);
+    const dersKayit = (typeof dersListesi !== 'undefined' ? dersListesi : [])
+      .find(d => d.ad === g.ders);
+    const normSaat = (dersKayit?.haftalikSaatler && seviye)
+      ? (dersKayit.haftalikSaatler[seviye] || dersKayit.haftalikSaatler[String(seviye)] || null)
+      : null;
+
+    toplamFiili += g.saatSayisi;
+    if (normSaat !== null) toplamNorm += normSaat;
+
+    normSatirlar.push({
+      ders: g.ders, sinif: g.sinif,
+      fiili: g.saatSayisi, norm: normSaat
+    });
+  });
+
+  const normTabloHtml = normSatirlar.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Ders</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Sınıf</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Norm (plan)</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Fiili (program)</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Fark</th>
+        </tr></thead>
+        <tbody>${normSatirlar.map((r, i) => {
+          const fark = r.norm !== null ? r.fiili - r.norm : null;
+          const farkRenk = fark === null ? '#999' : fark > 0 ? '#d97706' : fark < 0 ? '#dc2626' : '#16a34a';
+          const farkStr = fark === null ? '—' : fark > 0 ? `+${fark}` : `${fark}`;
+          return `<tr style="${i % 2 === 1 ? 'background:#f7f9f9;' : ''}">
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(r.ders)}</td>
+            <td style="padding:4px 8px;font-size:11px;font-weight:600;">${escapeHtml(r.sinif)}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;">${r.norm !== null ? r.norm : '—'}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:600;">${r.fiili}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:700;color:${farkRenk};">${farkStr}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:#E6F4F4;font-weight:700;">
+          <td colspan="2" style="padding:5px 8px;font-size:11px;">TOPLAM</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;">${toplamNorm || '—'}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;">${toplamFiili}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;color:${
+            toplamNorm && toplamFiili !== toplamNorm ? (toplamFiili > toplamNorm ? '#d97706' : '#dc2626') : '#16a34a'
+          };">${toplamNorm ? (toplamFiili > toplamNorm ? `+${toplamFiili-toplamNorm}` : toplamFiili < toplamNorm ? `${toplamFiili-toplamNorm}` : '✓') : '—'}</td>
+        </tr>
+        </tbody>
+      </table>`
+    : '<p style="color:#888;font-style:italic;">Ders programı kaydı yok.</p>';
+
   /* ---- Yazılı Sınavlar ---- */
   const yaziliSinavlari = (typeof sinavlar !== 'undefined' ? sinavlar : [])
     .filter(s => s.ogretmenId === id || (s.siniflar && dersleri.some(d => s.siniflar.includes(d.sinif) && s.ders === d.ders)))
@@ -341,6 +409,74 @@ function ogretmenRaporOlustur(id) {
     belgeDurumHtml = '<p style="color:#888;font-style:italic;">Belge kaydı yok.</p>';
   }
 
+  /* ---- Haftalık Norm Hesabı ---- */
+  // Her ders kaydından seviyeye göre norm saati al
+  function seviyeCikar(sinifAdi) {
+    const m = (sinifAdi || '').match(/^(\d+)/);
+    return m ? parseInt(m[1]) : null;
+  }
+
+  let normSatirlar = [];
+  let toplamNorm = 0, toplamFiili = 0;
+
+  // Öğretmenin verdiği her ders-sınıf kombinasyonu
+  const dersGruplari = {};
+  dersleri.forEach(d => {
+    const anahtar = `${d.ders}__${d.sinif}`;
+    if (!dersGruplari[anahtar]) dersGruplari[anahtar] = { ders: d.ders, sinif: d.sinif, saatSayisi: 0 };
+    dersGruplari[anahtar].saatSayisi++;
+  });
+
+  Object.values(dersGruplari).forEach(g => {
+    const seviye = seviyeCikar(g.sinif);
+    const dersKayit = (typeof dersListesi !== 'undefined' ? dersListesi : [])
+      .find(d => d.ad === g.ders);
+    const normSaat = (dersKayit?.haftalikSaatler && seviye)
+      ? (dersKayit.haftalikSaatler[seviye] || dersKayit.haftalikSaatler[String(seviye)] || null)
+      : null;
+
+    toplamFiili += g.saatSayisi;
+    if (normSaat !== null) toplamNorm += normSaat;
+
+    normSatirlar.push({
+      ders: g.ders, sinif: g.sinif,
+      fiili: g.saatSayisi, norm: normSaat
+    });
+  });
+
+  const normTabloHtml = normSatirlar.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Ders</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Sınıf</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Norm (plan)</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Fiili (program)</th>
+          <th style="padding:5px 8px;text-align:center;font-size:11px;">Fark</th>
+        </tr></thead>
+        <tbody>${normSatirlar.map((r, i) => {
+          const fark = r.norm !== null ? r.fiili - r.norm : null;
+          const farkRenk = fark === null ? '#999' : fark > 0 ? '#d97706' : fark < 0 ? '#dc2626' : '#16a34a';
+          const farkStr = fark === null ? '—' : fark > 0 ? `+${fark}` : `${fark}`;
+          return `<tr style="${i % 2 === 1 ? 'background:#f7f9f9;' : ''}">
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(r.ders)}</td>
+            <td style="padding:4px 8px;font-size:11px;font-weight:600;">${escapeHtml(r.sinif)}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;">${r.norm !== null ? r.norm : '—'}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:600;">${r.fiili}</td>
+            <td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:700;color:${farkRenk};">${farkStr}</td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:#E6F4F4;font-weight:700;">
+          <td colspan="2" style="padding:5px 8px;font-size:11px;">TOPLAM</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;">${toplamNorm || '—'}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;">${toplamFiili}</td>
+          <td style="padding:5px 8px;text-align:center;font-size:11px;color:${
+            toplamNorm && toplamFiili !== toplamNorm ? (toplamFiili > toplamNorm ? '#d97706' : '#dc2626') : '#16a34a'
+          };">${toplamNorm ? (toplamFiili > toplamNorm ? `+${toplamFiili-toplamNorm}` : toplamFiili < toplamNorm ? `${toplamFiili-toplamNorm}` : '✓') : '—'}</td>
+        </tr>
+        </tbody>
+      </table>`
+    : '<p style="color:#888;font-style:italic;">Ders programı kaydı yok.</p>';
+
   /* ---- Yazılı Sınavlar ---- */
   const yaziliSinavlari = (typeof sinavlar !== 'undefined' ? sinavlar : [])
     .filter(s => s.ogretmenId === id || (s.siniflar && dersleri.some(d => s.siniflar.includes(d.sinif) && s.ders === d.ders)))
@@ -415,6 +551,12 @@ function ogretmenRaporOlustur(id) {
     <div class="ogr-rapor-bolum">
       <h3>📅 Haftalık Ders Programı <span style="font-weight:400;font-size:10px;color:#888;">(${toplamDers} ders saati${siniflar2 ? ' · ' + siniflar2 : ''})</span></h3>
       ${dersTabloHtml}
+    </div>
+
+    <!-- Norm -->
+    <div class="ogr-rapor-bolum">
+      <h3>⏱️ Haftalık Norm Analizi</h3>
+      ${normTabloHtml}
     </div>
 
     <!-- Nöbet -->

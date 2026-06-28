@@ -66,6 +66,37 @@ function telefonEtiketle(v, telefon){
 const DERS_SELECT_YENI = '__yeni_ders_ekle__';
 const BRANS_SELECT_YENI = '__yeni_brans_ekle__';
 
+
+  // Haftalık ders saati grid HTML (ders ekle/düzenle modalında kullanılır)
+  function _haftalikSaatGridHtml(mevcutSaatler) {
+    const s = mevcutSaatler || {};
+    const gruplar = [
+      { baslik: 'İlkokul', seviyeler: [1,2,3,4] },
+      { baslik: 'Ortaokul', seviyeler: [5,6,7,8] }
+    ];
+    return gruplar.map(g => `
+      <div style="margin-bottom:6px;">
+        <div style="font-size:10px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;">${g.baslik}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          ${g.seviyeler.map(sv => `
+            <div style="text-align:center;">
+              <div style="font-size:10px;color:var(--ink-muted);margin-bottom:2px;">${sv}. Sınıf</div>
+              <input type="number" id="dl_saat_${sv}" min="0" max="10" value="${s[sv]||''}"
+                placeholder="—"
+                style="width:100%;text-align:center;padding:4px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  function _haftalikSaatOku() {
+    const saatler = {};
+    [1,2,3,4,5,6,7,8].forEach(sv => {
+      const val = parseInt(document.getElementById('dl_saat_' + sv)?.value || '');
+      if (!isNaN(val) && val > 0) saatler[sv] = val;
+    });
+    return Object.keys(saatler).length ? saatler : null;
+  }
 function dersListesiEkle(){
   const body = `
     <div class="form-group"><label>Ders Adı</label>
@@ -73,7 +104,11 @@ function dersListesiEkle(){
     <div class="form-group"><label>Kısaltma <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(çarşaf raporda kullanılır)</span></label>
       <input id="dl_kisaltma" placeholder="örn: MAT" maxlength="5" style="width:100%;text-transform:uppercase;"
         oninput="this.value=this.value.toUpperCase()"></div>
-    <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Kısaltma girilmezse ders adının ilk 3 harfi kullanılır.</div>
+    <div class="form-group">
+      <label>Haftalık Ders Saati <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(sınıf seviyesine göre)</span></label>
+      ${_haftalikSaatGridHtml()}
+    </div>
+    <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Kısaltma girilmezse ders adının ilk 3 harfi kullanılır. Saat girilmezse norm hesabı yapılmaz.</div>
   `;
   modalAc('📚 Ders Ekle', body, () => {
     const ad = document.getElementById('dl_ad').value.trim();
@@ -82,6 +117,8 @@ function dersListesiEkle(){
     if (dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr'))) { toast('Bu ders zaten listede.'); return; }
     const veri = { ad };
     if (kisaltma) veri.kisaltma = kisaltma;
+    const saatler = _haftalikSaatOku();
+    if (saatler) veri.haftalikSaatler = saatler;
     db.collection(COL.dersListesi).add(veri)
       .then(()=>{ toast('Ders eklendi.'); modalKapat(); })
       .catch(err=>toast('Hata: '+err.message));
@@ -92,12 +129,18 @@ function dersListesiSil(id){
   db.collection(COL.dersListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
 }
 function dersKisaltmaDuzenle(id, ad, mevcutKisaltma){
+  const kayit = dersListesi.find(d => d.id === id);
+  const mevcutSaatler = kayit?.haftalikSaatler || {};
   const body = `
     <div class="form-group"><label>Ders Adı</label>
       <input id="dk_ad" value="${escapeHtml(ad)}" style="width:100%;"></div>
     <div class="form-group"><label>Kısaltma</label>
       <input id="dk_kisaltma" value="${escapeHtml(mevcutKisaltma)}" placeholder="örn: MAT" maxlength="5"
         style="width:100%;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="form-group">
+      <label>Haftalık Ders Saati <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(sınıf seviyesine göre)</span></label>
+      ${_haftalikSaatGridHtml(mevcutSaatler)}
+    </div>
   `;
   modalAc(`✏️ Düzenle — ${escapeHtml(ad)}`, body, () => {
     const yeniAd = document.getElementById('dk_ad').value.trim();
@@ -105,6 +148,8 @@ function dersKisaltmaDuzenle(id, ad, mevcutKisaltma){
     if (!yeniAd) { toast('Ders adı boş olamaz.'); return; }
     const veri = { ad: yeniAd };
     if (kisaltma) veri.kisaltma = kisaltma; else veri.kisaltma = '';
+    const saatler = _haftalikSaatOku();
+    veri.haftalikSaatler = saatler || {};
     db.collection(COL.dersListesi).doc(id).update(veri)
       .then(()=>{ toast('Güncellendi.'); modalKapat(); })
       .catch(err=>toast('Hata: '+err.message));
@@ -113,14 +158,26 @@ function dersKisaltmaDuzenle(id, ad, mevcutKisaltma){
 function renderDersListesiYonetim(){
   const hedef = document.getElementById('dersListesiYonetim');
   if(!hedef) return;
-  hedef.innerHTML = dersListesi.length ? dersListesi.map(d=>`
+  hedef.innerHTML = dersListesi.length ? dersListesi.map(d => {
+    const saatOzet = d.haftalikSaatler
+      ? Object.entries(d.haftalikSaatler)
+          .sort((a,b) => +a[0] - +b[0])
+          .map(([sv, st]) => `${sv}.sınıf:${st}s`)
+          .join(' ')
+      : '';
+    return `
     <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <span>📚 ${escapeHtml(d.ad)}${d.kisaltma?` <span style="font-size:11px;background:var(--accent-muted,#e0f2f2);color:var(--accent,#0A6E6E);border-radius:4px;padding:1px 5px;font-weight:600;">${escapeHtml(d.kisaltma)}</span>`:''}</span>
-      <div style="display:flex;gap:4px;">
-        <button class="btn btn-ghost btn-sm" onclick="dersKisaltmaDuzenle('${d.id}','${escapeHtml(d.ad)}','${escapeHtml(d.kisaltma||'')}')" title="Kısaltma Düzenle">✏️</button>
+      <span style="flex:1;min-width:0;">
+        📚 ${escapeHtml(d.ad)}
+        ${d.kisaltma ? `<span style="font-size:11px;background:var(--accent-muted,#e0f2f2);color:var(--accent,#0A6E6E);border-radius:4px;padding:1px 5px;font-weight:600;margin-left:4px;">${escapeHtml(d.kisaltma)}</span>` : ''}
+        ${saatOzet ? `<div style="font-size:10px;color:var(--ink-muted);margin-top:2px;">⏱ ${escapeHtml(saatOzet)}</div>` : ''}
+      </span>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="dersKisaltmaDuzenle('${d.id}','${escapeHtml(d.ad)}','${escapeHtml(d.kisaltma||'')}')" title="Düzenle">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="dersListesiSil('${d.id}')">🗑️</button>
       </div>
-    </div>`).join('') : '<p class="empty-state">Henüz ders eklenmedi.</p>';
+    </div>`;
+  }).join('') : '<p class="empty-state">Henüz ders eklenmedi.</p>';
 }
 function dersSelectHtml(id, seciliDeger){
   const secili = seciliDeger || '';
