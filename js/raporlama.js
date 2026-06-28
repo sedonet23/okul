@@ -1064,7 +1064,7 @@ function _crsfTabloStyle() {
     table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
     .c-sinif{font-weight:700;font-size:9px;color:#1a5276;line-height:1.3;}
     .c-ders{font-weight:600;font-size:8.5px;color:#1a1a1a;line-height:1.3;}
-    .c-ogr{color:#6b7280;font-size:7px;margin-top:1px;line-height:1.2;word-break:break-word;}
+    .c-ogr{color:#6b7280;font-size:6px;margin-top:1px;line-height:1.1;word-break:break-word;}
     .c-zaman{font-weight:400;font-size:7.5px;display:block;color:#0A8080;margin-top:2px;line-height:1.3;}
     #crsf-sarici{transform-origin:top left;}
     @media print{
@@ -1092,7 +1092,8 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
     <script>
       function gorselKaydet() {
-        var el = document.getElementById('crsf-sarici');
+        // Toolbar hariç tüm içeriği (header + tablo) yakala
+        var el = document.getElementById('icerik-sarici') || document.getElementById('crsf-sarici');
         if (!el) return;
         var btn = document.getElementById('btn-gorsel');
         if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
@@ -1100,6 +1101,9 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
           scale: 2,
           backgroundColor: '#ffffff',
           useCORS: true,
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: el.scrollWidth,
           logging: false
         }).then(function(canvas) {
           var link = document.createElement('a');
@@ -1255,7 +1259,8 @@ function raporTumOgretmenlerCarsaf() {
   });
 
   const rows = seciliOgretmenler.map(o => {
-    let row = `<tr><td class="satir-lbl">${escapeHtml(o.ad||'')}</td>`;
+    const tamAd = [o.ad, o.soyad].filter(Boolean).join(' ') || o.ad || '';
+    let row = `<tr><td class="satir-lbl" style="font-size:7px;">${escapeHtml(tamAd)}</td>`;
     GUNLER.forEach(gun => {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
