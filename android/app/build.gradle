@@ -13,28 +13,36 @@ android {
         versionName "1.0.0"
     }
 
-    buildTypes {
+    signingConfigs {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
-        }
-        debug {
-            applicationIdSuffix ".debug"
+            storeFile     file("koruk-okul.jks")
+            storePassword "korukokul2024"
+            keyAlias      "koruk"
+            keyPassword   "korukokul2024"
         }
     }
 
-    signingConfigs {
+    buildTypes {
         release {
-            // GitHub Actions secrets'tan gelir
-            storeFile     file(System.getenv("KEYSTORE_PATH") ?: "keystore.jks")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias      System.getenv("KEY_ALIAS")         ?: ""
-            keyPassword   System.getenv("KEY_PASSWORD")      ?: ""
+            minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 
     compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation project(':capacitor-android')
+    implementation platform('com.google.firebase:firebase-bom:33.1.0')
+    implementation 'com.google.firebase:firebase-messaging'
+}    compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
