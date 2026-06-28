@@ -1026,6 +1026,14 @@ function crsfTipDegisti() {
 }
 
 /* ── Yardımcılar ── */
+
+function _crsfDers(ders) {
+  if (!ders) return '';
+  const kisalt = ders.slice(0, 4).toUpperCase();
+  const tam    = ders.length > 4 ? escapeHtml(ders) : '';
+  return `<div class="ders">${kisalt}</div>${tam ? `<div class="ders-tam">${tam}</div>` : ''}`;
+}
+
 function _crsfMeta() {
   const gc = id => document.getElementById(id)?.checked ?? false;
   const gv = id => document.getElementById(id)?.value?.trim() || '';
@@ -1054,14 +1062,16 @@ function _crsfHtmlBase(yon) {
   th.gun-th{background:#2c3e50;color:#fff;padding:4px 3px;text-align:center;font-size:9px;font-weight:700;border:1px solid #1a252f;}
   th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
   td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:8.5px;border:1px solid #b8cfe0;padding:4px;text-align:center;vertical-align:middle;}
-  td.hucre{padding:2px 3px;border:1px solid #ccc;vertical-align:top;font-size:7.5px;}
+  td.hucre{padding:2px 3px;border:1px solid #ccc;vertical-align:top;font-size:7px;}
   td.bos{background:#fafafa;border:1px solid #e8e8e8;}
-  .ders{font-weight:600;font-size:7.5px;line-height:1.2;}
-  .ogr{color:#555;font-size:7px;margin-top:1px;}
-  .sinif{font-weight:700;font-size:7.5px;color:#1a5276;}
-  .zaman{font-weight:400;font-size:6.5px;display:block;color:#888;}
+  .ders{font-weight:700;font-size:7.5px;line-height:1.2;text-transform:uppercase;}
+  .ders-tam{font-weight:400;font-size:6px;color:#666;line-height:1.1;}
+  .ogr{color:#333;font-size:6.5px;margin-top:1px;word-break:break-word;line-height:1.2;}
+  .sinif{font-weight:700;font-size:7px;color:#1a5276;}
+  .zaman{font-weight:400;font-size:6px;display:block;color:#888;}
   tr:nth-child(even) td.hucre{background:#f7f9fc;}
   tr:nth-child(even) td.bos{background:#f7f9fc;}
+  td.satir-lbl{white-space:normal;word-break:break-word;line-height:1.3;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>`;
 }
@@ -1098,7 +1108,7 @@ function raporTekSinifCarsaf() {
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
       row += d
-        ? `<td class="hucre"><div class="ders">${escapeHtml(d.ders)}</div><div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+        ? `<td class="hucre">${_crsfDers(d.ders)}<div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
         : `<td class="hucre bos"></td>`;
     });
     return row + '</tr>';
@@ -1129,7 +1139,7 @@ function raporTekOgretmenCarsaf() {
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.ogretmenId===ogrId && x.gun===gun && x.saat===saat);
       row += d
-        ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div><div class="ders">${escapeHtml(d.ders)}</div></td>`
+        ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div>${_crsfDers(d.ders)}</td>`
         : `<td class="hucre bos"></td>`;
     });
     return row + '</tr>';
@@ -1166,7 +1176,7 @@ function raporTumSiniflarCarsaf() {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre"><div class="ders">${escapeHtml(d.ders)}</div><div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+          ? `<td class="hucre">${_crsfDers(d.ders)}<div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
           : `<td class="hucre bos"></td>`;
       });
     });
@@ -1204,7 +1214,7 @@ function raporTumOgretmenlerCarsaf() {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div><div class="ders">${escapeHtml(d.ders)}</div></td>`
+          ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div>${_crsfDers(d.ders)}</td>`
           : `<td class="hucre bos"></td>`;
       });
     });
