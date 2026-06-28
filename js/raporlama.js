@@ -1096,7 +1096,7 @@ function _crsfTabloStyle() {
     table.crsf tr:nth-child(even) td.hucre{background:inherit;}
     table.crsf tr:nth-child(even) td.bos{background:inherit;}
     table.crsf td.gun-dolgu,
-    table.crsf th.gun-dolgu.gun-th{background:#e8f5f5 !important;}
+    table.crsf th.gun-dolgu{background:#e8f5f5 !important;}
     table.crsf td.gun-ilk,
     table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
@@ -1104,6 +1104,8 @@ function _crsfTabloStyle() {
     .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
     .c-zaman{font-weight:400;font-size:6px;display:block;color:#0A8080;margin-top:1px;line-height:1.2;}
     #crsf-sarici{transform-origin:top left;display:inline-block;}
+    .c-ders-tam{font-weight:700;font-size:8px;color:#1a1a1a;line-height:1.3;white-space:normal;}
+    .c-ogr-kucuk{color:#555;font-size:6px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%;}
     @media print{
       @page{margin:0.5cm;}
       .rapor-toolbar{display:none!important;}
@@ -1137,10 +1139,14 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         // Tüm tablo içeriğini eksiksiz yakala
         var sarici = document.getElementById('crsf-sarici');
         var tablo  = sarici ? sarici.querySelector('table') : null;
-        var genislik  = tablo ? tablo.scrollWidth + 4 : document.documentElement.scrollWidth;
-        var yukseklik = el.scrollHeight + 4;
+        var genislik  = tablo
+          ? Math.max(tablo.scrollWidth, tablo.offsetWidth, sarici.scrollWidth) + 8
+          : document.documentElement.scrollWidth;
+        var yukseklik = tablo
+          ? Math.max(tablo.scrollHeight, tablo.offsetHeight, sarici.scrollHeight) + 8
+          : el.scrollHeight + 8;
         html2canvas(el, {
-          scale: 2,
+          scale: 3,
           backgroundColor: '#ffffff',
           useCORS: true,
           scrollX: 0,
@@ -1205,16 +1211,18 @@ function raporTekSinifCarsaf() {
       ? `<strong>${saat}. Ders</strong><span class="c-zaman">${bil.baslangic}–${bil.bitis}</span>`
       : `<strong>${saat}. Ders</strong>`;
     let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
-    GUNLER.forEach(gun => {
+    GUNLER.forEach((gun, gi) => {
       const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
+      const ogrAdSoyad = d ? ogretmenAdi(d.ogretmenId) : '';
+      const dolgu = gi % 2 === 0 ? ' gun-dolgu' : '';
       row += d
-        ? `<td class="hucre">${_crsfDersHtml('', d.ders, d.ogretmenId)}</td>`
-        : `<td class="hucre bos"></td>`;
+        ? `<td class="hucre${dolgu}"><div class="c-ders-tam">${escapeHtml(d.ders)}</div><div class="c-ogr-kucuk">${escapeHtml(ogrAdSoyad)}</div></td>`
+        : `<td class="hucre bos${dolgu}"></td>`;
     });
     return row + '</tr>';
   }).join('');
 
-  const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
+  const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
   const baslik = m.baslik || `${sn} Sınıfı Haftalık Ders Programı`;
   const tablo = `<table class="crsf" style="width:100%;">
     <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
@@ -1236,16 +1244,17 @@ function raporTekOgretmenCarsaf() {
       ? `<strong>${saat}. Ders</strong><span class="c-zaman">${bil.baslangic}–${bil.bitis}</span>`
       : `<strong>${saat}. Ders</strong>`;
     let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
-    GUNLER.forEach(gun => {
+    GUNLER.forEach((gun, gi) => {
       const d = dersProgrami.find(x => x.ogretmenId===ogrId && x.gun===gun && x.saat===saat);
+      const dolgu = gi % 2 === 0 ? ' gun-dolgu' : '';
       row += d
-        ? `<td class="hucre">${_crsfDersHtml(d.sinif, d.ders, '')}</td>`
-        : `<td class="hucre bos"></td>`;
+        ? `<td class="hucre${dolgu}">${_crsfDersHtml(d.sinif, d.ders, '')}</td>`
+        : `<td class="hucre bos${dolgu}"></td>`;
     });
     return row + '</tr>';
   }).join('');
 
-  const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
+  const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
   const baslik = m.baslik || `${ogrAd} — Haftalık Ders Programı`;
   const tablo = `<table class="crsf" style="width:100%;">
     <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
