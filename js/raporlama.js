@@ -1128,7 +1128,7 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
 
   const svgBtnHtml = `<button id="btn-svg-kaydet"
     style="padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:600;background:#6366f1;color:#fff;">
-    🖼 SVG Kaydet
+    🖼 PNG Kaydet
   </button>`;
 
   const icerik = _crsfTabloStyle() +
@@ -1173,9 +1173,12 @@ function crsfSvgKaydet(win, baslikMetin) {
   var SATIR_W = 90; var GUN_W = 90; var SATIR_H = 52;
   var PAD = 14; var PROGRAM_BASLIK_H = 30; var FONT = 'Arial,sans-serif';
 
-  var thSatiri = satirlar[0];
-  var thler = Array.from(thSatiri.querySelectorAll('th,td'));
-  var toplamSutun = thler.reduce(function(a,th){ return a + parseInt(th.getAttribute('colspan')||'1'); }, 0);
+  // Her satırdaki maksimum sütun sayısını bul (colspan dahil)
+  var toplamSutun = 0;
+  satirlar.forEach(function(tr) {
+    var cols = Array.from(tr.querySelectorAll('th,td')).reduce(function(a,c){ return a+parseInt(c.getAttribute('colspan')||'1'); },0);
+    if (cols > toplamSutun) toplamSutun = cols;
+  });
   var toplamW = PAD*2 + SATIR_W + (toplamSutun-1)*GUN_W;
   var toplamH = PAD*2 + PROGRAM_BASLIK_H + 8 + satirlar.length * SATIR_H;
 
@@ -1247,12 +1250,38 @@ function crsfSvgKaydet(win, baslikMetin) {
   });
 
   svg.push('</svg>');
-  var blob = new Blob([svg.join('\n')], {type:'image/svg+xml;charset=utf-8'});
-  var url  = URL.createObjectURL(blob);
-  var a    = doc.createElement('a');
-  a.href = url; a.download = (_svgEsc(baslikMetin)||'ders-programi').replace(/[^\w\s\-]/g,'').trim()+'.svg';
-  a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+  var svgStr = svg.join('\n');
+  var blob   = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+  var svgUrl = URL.createObjectURL(blob);
+  var dosyaAd = (baslikMetin||'ders-programi').replace(/[^\w\s\-]/g,'').trim();
+
+  // SVG → Canvas → PNG
+  var img = new win.Image();
+  img.onload = function() {
+    var scale = 2; // yüksek çözünürlük
+    var canvas = doc.createElement('canvas');
+    canvas.width  = toplamW * scale;
+    canvas.height = toplamH * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0);
+    URL.revokeObjectURL(svgUrl);
+    var a = doc.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = dosyaAd + '.png';
+    a.click();
+  };
+  img.onerror = function() {
+    // PNG başarısız olursa SVG kaydet
+    URL.revokeObjectURL(svgUrl);
+    var blob2 = new Blob([svgStr], {type:'image/svg+xml;charset=utf-8'});
+    var url2  = URL.createObjectURL(blob2);
+    var a = doc.createElement('a');
+    a.href = url2; a.download = dosyaAd + '.svg';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url2); }, 3000);
+  };
+  img.src = svgUrl;
 }
 
 function _svgEsc(s) {
