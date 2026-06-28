@@ -105,9 +105,9 @@ function sinavModalAc(id){
     if(!seciliSiniflar.length){ toast('En az bir sınıf seçin.'); return; }
     const ders = document.getElementById('f_snDers').value.trim();
     if(!ders){ toast('Ders zorunludur.'); return; }
-    kaydet(COL.sinavlar, s?s.id:null, {
+    const veri = {
       siniflar: seciliSiniflar.join(', '),
-      sinif: seciliSiniflar[0], // geriye dönük uyumluluk
+      sinif: seciliSiniflar[0],
       ders,
       ogretmenId: document.getElementById('f_snOgretmen').value,
       tarih: document.getElementById('f_snTarih').value,
@@ -118,7 +118,10 @@ function sinavModalAc(id){
       senaryoNo: document.getElementById('f_snSenaryoNo').value,
       yayinevi: document.getElementById('f_snYayinevi').value.trim(),
       notlar: document.getElementById('f_snNotlar').value.trim()
-    });
+    };
+    const ref = db.collection(COL.sinavlar);
+    const islem = s ? ref.doc(s.id).update(veri) : ref.add({...veri, eklenmeTarihi: new Date().toISOString()});
+    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
     modalKapat();
   }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ db.collection(COL.sinavlar).doc(s.id).delete(); modalKapat(); } } : null);
 }
