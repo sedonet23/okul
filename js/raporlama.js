@@ -903,3 +903,318 @@ function _soRaporGovdeHtml_KALDIRILDI(servis, plan) {
 
   return html;
 }
+
+/* ================================================================
+   DERS PROGRAMI ÇARŞAF RAPORLARI — 4 tip
+   ================================================================ */
+
+function raporDersProgramiCarsafModalAc() {
+  const _okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari?.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const _yil = `${new Date().getFullYear()}-${new Date().getFullYear()+1}`;
+  const IS = 'width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;';
+  const B  = lbl => `<div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">${lbl}</div>`;
+
+  const sinifAdlariListesi = [...new Set(dersProgrami.map(d=>d.sinif).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));
+  const sinifSecOptions    = sinifAdlariListesi.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  const ogretmenSecOptions = [...ogretmenler].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+    .map(o=>`<option value="${o.id}">${escapeHtml(o.ad||'')}</option>`).join('');
+
+  const sinifCblar = sinifAdlariListesi.map(s=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:2px 0;">
+      <input type="checkbox" class="crsf_sinifCb" value="${escapeHtml(s)}" checked>${escapeHtml(s)}
+    </label>`).join('');
+
+  const ogretmenCblar = [...ogretmenler].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')).map(o=>`
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:2px 0;">
+      <input type="checkbox" class="crsf_ogrCb" value="${o.id}" checked>${escapeHtml(o.ad||'')}
+    </label>`).join('');
+
+  const body = `
+    ${B('Rapor Tipi')}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:8px;">
+        <input type="radio" name="crsfTip" value="tekSinif" checked onchange="crsfTipDegisti()"> Tek Sınıf Programı
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:8px;">
+        <input type="radio" name="crsfTip" value="tekOgretmen" onchange="crsfTipDegisti()"> Tek Öğretmen Programı
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:8px;">
+        <input type="radio" name="crsfTip" value="tumSiniflar" onchange="crsfTipDegisti()"> Tüm Sınıflar Çarşaf
+      </label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;padding:6px;border:1px solid var(--border);border-radius:8px;">
+        <input type="radio" name="crsfTip" value="tumOgretmenler" onchange="crsfTipDegisti()"> Tüm Öğretmenler Çarşaf
+      </label>
+    </div>
+
+    ${B('Sayfa Yönü')}
+    <div style="display:flex;gap:16px;">
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="crsfYon" value="landscape" checked> Yatay (A4)</label>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="crsfYon" value="portrait"> Dikey (A4)</label>
+    </div>
+
+    ${B('Başlık Bilgileri')}
+    <div style="display:grid;gap:7px;">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="crsf_okulAdi" value="${escapeHtml(_okulAdi)}" placeholder="Okul Adı" style="${IS}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="crsf_okulGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="crsf_baslik" value="Ders Programı" placeholder="Rapor Başlığı" style="${IS}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="crsf_baslikGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="crsf_yil" value="${escapeHtml(_yil)}" placeholder="Eğitim Yılı" style="${IS}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="crsf_yilGoster" checked> Göster</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+        <input id="crsf_altBaslik" value="" placeholder="Alt Başlık (isteğe bağlı)" style="${IS}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="crsf_altBaslikGoster"> Göster</label>
+      </div>
+    </div>
+
+    <!-- Tek sınıf seçimi -->
+    <div id="crsf_panelTekSinif">
+      ${B('Sınıf Seç')}
+      <select id="crsf_tekSinif" style="${IS}">${sinifSecOptions}</select>
+    </div>
+
+    <!-- Tek öğretmen seçimi -->
+    <div id="crsf_panelTekOgr" style="display:none;">
+      ${B('Öğretmen Seç')}
+      <select id="crsf_tekOgr" style="${IS}">${ogretmenSecOptions}</select>
+    </div>
+
+    <!-- Tüm sınıflar seçimi -->
+    <div id="crsf_panelTumSinif" style="display:none;">
+      ${B('Sınıfları Seç')}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 12px;padding:8px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">${sinifCblar}</div>
+    </div>
+
+    <!-- Tüm öğretmenler seçimi -->
+    <div id="crsf_panelTumOgr" style="display:none;">
+      ${B('Öğretmenleri Seç')}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:8px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;max-height:200px;overflow-y:auto;">${ogretmenCblar}</div>
+    </div>
+  `;
+
+  modalAc('📊 Ders Programı Raporu', body, () => {
+    const tip = document.querySelector('input[name="crsfTip"]:checked')?.value || 'tekSinif';
+    const dispatch = {
+      tekSinif:       raporTekSinifCarsaf,
+      tekOgretmen:    raporTekOgretmenCarsaf,
+      tumSiniflar:    raporTumSiniflarCarsaf,
+      tumOgretmenler: raporTumOgretmenlerCarsaf,
+    };
+    dispatch[tip]?.();
+  }, null);
+  const kb = document.getElementById('modalKaydetBtn');
+  if (kb) kb.textContent = '🖨️ Yazdır';
+}
+
+function crsfTipDegisti() {
+  const tip = document.querySelector('input[name="crsfTip"]:checked')?.value;
+  const paneller = {
+    tekSinif:       'crsf_panelTekSinif',
+    tekOgretmen:    'crsf_panelTekOgr',
+    tumSiniflar:    'crsf_panelTumSinif',
+    tumOgretmenler: 'crsf_panelTumOgr',
+  };
+  Object.entries(paneller).forEach(([t, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = t === tip ? '' : 'none';
+  });
+}
+
+/* ── Yardımcılar ── */
+function _crsfMeta() {
+  const gc = id => document.getElementById(id)?.checked ?? false;
+  const gv = id => document.getElementById(id)?.value?.trim() || '';
+  return {
+    okulAdi:   gc('crsf_okulGoster')     ? gv('crsf_okulAdi')   : '',
+    baslik:    gc('crsf_baslikGoster')   ? gv('crsf_baslik')    : '',
+    yil:       gc('crsf_yilGoster')      ? gv('crsf_yil')       : '',
+    altBaslik: gc('crsf_altBaslikGoster')? gv('crsf_altBaslik') : '',
+    yon:       document.querySelector('input[name="crsfYon"]:checked')?.value || 'landscape',
+  };
+}
+
+function _crsfHtmlBase(yon) {
+  return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+<style>
+  @page{size:A4 ${yon};margin:0.7cm;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:8.5px;color:#111;}
+  .header{text-align:center;margin-bottom:8px;border-bottom:2px solid #2c3e50;padding-bottom:7px;}
+  .header .okul{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+  .header .baslik{font-size:11px;font-weight:600;margin-top:3px;}
+  .header .alt{font-size:9px;margin-top:2px;color:#444;}
+  .header .meta{font-size:8px;color:#666;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  th.saat-th{background:#2c3e50;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #1a252f;width:52px;}
+  th.gun-th{background:#2c3e50;color:#fff;padding:4px 3px;text-align:center;font-size:9px;font-weight:700;border:1px solid #1a252f;}
+  th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
+  td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:8.5px;border:1px solid #b8cfe0;padding:4px;text-align:center;vertical-align:middle;}
+  td.hucre{padding:2px 3px;border:1px solid #ccc;vertical-align:top;font-size:7.5px;}
+  td.bos{background:#fafafa;border:1px solid #e8e8e8;}
+  .ders{font-weight:600;font-size:7.5px;line-height:1.2;}
+  .ogr{color:#555;font-size:7px;margin-top:1px;}
+  .sinif{font-weight:700;font-size:7.5px;color:#1a5276;}
+  .zaman{font-weight:400;font-size:6.5px;display:block;color:#888;}
+  tr:nth-child(even) td.hucre{background:#f7f9fc;}
+  tr:nth-child(even) td.bos{background:#f7f9fc;}
+  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>`;
+}
+
+function _crsfHeaderHtml(m) {
+  return `<div class="header">
+    ${m.okulAdi   ? `<div class="okul">${escapeHtml(m.okulAdi)}</div>` : ''}
+    ${m.baslik    ? `<div class="baslik">${escapeHtml(m.baslik)}</div>` : ''}
+    ${m.altBaslik ? `<div class="alt">${escapeHtml(m.altBaslik)}</div>` : ''}
+    ${m.yil       ? `<div class="meta">${escapeHtml(m.yil)} Eğitim-Öğretim Yılı</div>` : ''}
+  </div>`;
+}
+
+function _crsfYazdir(html) {
+  modalKapat();
+  const w = window.open('','_blank','width=1100,height=750');
+  w.document.write(html + '</body></html>');
+  w.document.close();
+  w.onload = () => { w.focus(); w.print(); };
+}
+
+const CRSF_SAATLER = [1,2,3,4,5,6,7];
+
+/* ── Rapor 1: Tek Sınıf ── */
+function raporTekSinifCarsaf() {
+  const m  = _crsfMeta();
+  const sn = document.getElementById('crsf_tekSinif')?.value;
+  if (!sn) { toast('Sınıf seçin.'); return; }
+
+  const saatRows = CRSF_SAATLER.map(saat => {
+    const bil = dersSaatiBilgisi(saat);
+    const saatEtiket = bil ? `${saat}. Ders<span class="zaman">${bil.baslangic}–${bil.bitis}</span>` : `${saat}. Ders`;
+    let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
+    GUNLER.forEach(gun => {
+      const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
+      row += d
+        ? `<td class="hucre"><div class="ders">${escapeHtml(d.ders)}</div><div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+        : `<td class="hucre bos"></td>`;
+    });
+    return row + '</tr>';
+  }).join('');
+
+  const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
+  m.baslik = m.baslik || `${sn} Sınıfı Ders Programı`;
+
+  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
+    <table>
+      <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
+      <tbody>${saatRows}</tbody>
+    </table>`;
+  _crsfYazdir(html);
+}
+
+/* ── Rapor 2: Tek Öğretmen ── */
+function raporTekOgretmenCarsaf() {
+  const m    = _crsfMeta();
+  const ogrId = document.getElementById('crsf_tekOgr')?.value;
+  if (!ogrId) { toast('Öğretmen seçin.'); return; }
+  const ogrAd = ogretmenAdi(ogrId);
+
+  const saatRows = CRSF_SAATLER.map(saat => {
+    const bil = dersSaatiBilgisi(saat);
+    const saatEtiket = bil ? `${saat}. Ders<span class="zaman">${bil.baslangic}–${bil.bitis}</span>` : `${saat}. Ders`;
+    let row = `<tr><td class="satir-lbl">${saatEtiket}</td>`;
+    GUNLER.forEach(gun => {
+      const d = dersProgrami.find(x => x.ogretmenId===ogrId && x.gun===gun && x.saat===saat);
+      row += d
+        ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div><div class="ders">${escapeHtml(d.ders)}</div></td>`
+        : `<td class="hucre bos"></td>`;
+    });
+    return row + '</tr>';
+  }).join('');
+
+  const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
+  m.baslik = m.baslik || `${ogrAd} — Ders Programı`;
+
+  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
+    <table>
+      <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
+      <tbody>${saatRows}</tbody>
+    </table>`;
+  _crsfYazdir(html);
+}
+
+/* ── Rapor 3: Tüm Sınıflar Çarşaf ── */
+function raporTumSiniflarCarsaf() {
+  const m = _crsfMeta();
+  const seciliSiniflar = [...document.querySelectorAll('.crsf_sinifCb:checked')].map(c=>c.value);
+  if (!seciliSiniflar.length) { toast('En az bir sınıf seçin.'); return; }
+
+  // Başlık: gün grubu satırı + saat numarası satırı
+  let th1 = `<th class="saat-th" rowspan="2">Sınıf</th>`;
+  GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
+  let th2 = '';
+  GUNLER.forEach(() => {
+    CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
+  });
+
+  const rows = seciliSiniflar.map(sn => {
+    let row = `<tr><td class="satir-lbl">${escapeHtml(sn)}</td>`;
+    GUNLER.forEach(gun => {
+      CRSF_SAATLER.forEach(saat => {
+        const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
+        row += d
+          ? `<td class="hucre"><div class="ders">${escapeHtml(d.ders)}</div><div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+          : `<td class="hucre bos"></td>`;
+      });
+    });
+    return row + '</tr>';
+  }).join('');
+
+  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
+    <table>
+      <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  _crsfYazdir(html);
+}
+
+/* ── Rapor 4: Tüm Öğretmenler Çarşaf ── */
+function raporTumOgretmenlerCarsaf() {
+  const m = _crsfMeta();
+  const seciliIds = [...document.querySelectorAll('.crsf_ogrCb:checked')].map(c=>c.value);
+  if (!seciliIds.length) { toast('En az bir öğretmen seçin.'); return; }
+
+  const seciliOgretmenler = ogretmenler
+    .filter(o => seciliIds.includes(o.id))
+    .sort((a,b) => (a.ad||'').localeCompare(b.ad||'','tr'));
+
+  let th1 = `<th class="saat-th" rowspan="2">Öğretmen</th>`;
+  GUNLER.forEach(g => { th1 += `<th class="gun-grup" colspan="${CRSF_SAATLER.length}">${g}</th>`; });
+  let th2 = '';
+  GUNLER.forEach(() => {
+    CRSF_SAATLER.forEach(s => { th2 += `<th class="gun-th">${s}</th>`; });
+  });
+
+  const rows = seciliOgretmenler.map(o => {
+    let row = `<tr><td class="satir-lbl" style="font-size:7.5px;">${escapeHtml(o.ad||'')}</td>`;
+    GUNLER.forEach(gun => {
+      CRSF_SAATLER.forEach(saat => {
+        const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
+        row += d
+          ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div><div class="ders">${escapeHtml(d.ders)}</div></td>`
+          : `<td class="hucre bos"></td>`;
+      });
+    });
+    return row + '</tr>';
+  }).join('');
+
+  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
+    <table>
+      <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  _crsfYazdir(html);
+}
