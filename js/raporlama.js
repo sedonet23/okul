@@ -1027,13 +1027,44 @@ function crsfTipDegisti() {
 
 /* ── Yardımcılar ── */
 
+function _crsfDers3(ders) {
+  if (!ders) return '';
+  // Önce dersListesi'nde kayıtlı kısaltmaya bak
+  if (typeof dersListesi !== 'undefined' && dersListesi.length) {
+    const kayit = dersListesi.find(d => (d.ad||'').toLocaleLowerCase('tr') === ders.toLocaleLowerCase('tr'));
+    if (kayit && kayit.kisaltma) return kayit.kisaltma;
+  }
+  // Türkçe yaygın ders kısaltmaları (yedek)
+  const kisaltmalar = {
+    'matematik':'MAT','türkçe':'TÜR','fen bilimleri':'FEN','fen':'FEN',
+    'sosyal bilgiler':'SOS','sosyal':'SOS','ingilizce':'İNG','din kültürü':'DİN',
+    'din':'DİN','beden eğitimi':'BED','beden':'BED','müzik':'MÜZ','resim':'RES',
+    'görsel sanatlar':'GRS','teknoloji':'TEK','bilişim':'BİL',
+    'yazarlık':'YAZ','masal':'MAS','drama':'DRM','rehberlik':'REH',
+    'tarih':'TAR','coğrafya':'COĞ','fizik':'FİZ','kimya':'KİM',
+    'biyoloji':'BİY','ahlak':'AHL','vatandaşlık':'VAT','kuran':'KUR',
+    'arapça':'ARP','spor':'SPR','çevre':'ÇEV','etkinlik':'ETK'
+  };
+  const anahtar = ders.toLocaleLowerCase('tr').trim();
+  for (const [k, v] of Object.entries(kisaltmalar)) {
+    if (anahtar.includes(k)) return v;
+  }
+  return ders.slice(0, 3).toUpperCase();
+}
+
+function _crsfOgrBasHarf(ogretmenId) {
+  if (!ogretmenId) return '';
+  const ad = ogretmenAdi(ogretmenId);
+  if (!ad) return '';
+  return ad.trim().split(/\s+/).map(p => p[0] ? p[0].toUpperCase() : '').join('');
+}
+
 function _crsfDersHtml(sinif, ders, ogretmenId) {
-  const sinifHtml = sinif  ? `<div class="c-sinif">${escapeHtml(sinif)}</div>` : '';
-  const dersHtml  = ders   ? `<div class="c-ders">${escapeHtml(ders)}</div>`   : '';
+  const sinifHtml = sinif ? `<div class="c-sinif">${escapeHtml(sinif)}</div>` : '';
+  const dersHtml  = ders  ? `<div class="c-ders">${escapeHtml(ders)}</div>`   : '';
   const ogrHtml   = ogretmenId ? `<div class="c-ogr">${escapeHtml(ogretmenAdi(ogretmenId))}</div>` : '';
   return sinifHtml + dersHtml + ogrHtml;
 }
-// Eski _crsfDers uyumluluğu için
 function _crsfDers(ders) {
   return ders ? `<div class="c-ders">${escapeHtml(ders)}</div>` : '';
 }
@@ -1057,15 +1088,15 @@ function _crsfTabloStyle() {
     table.crsf col.col-lbl{width:52px;}
     table.crsf col.col-hucre{width:36px;}
     table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:52px;}
-    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:36px;}
-    table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7.5px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:52px;}
-    table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:36px;overflow:hidden;}
-    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:36px;}
+    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:6.5px;font-weight:700;border:1px solid #075757;width:28px;}
+    table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7px;font-weight:700;border:1px solid #145a82;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
+    table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:28px;overflow:hidden;height:32px;}
+    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:28px;height:32px;}
     table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
     table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
-    .c-ders{font-weight:600;font-size:6.5px;color:#1a1a1a;line-height:1.2;word-break:break-word;}
+    .c-ders{font-weight:700;font-size:6.5px;color:#1a1a1a;line-height:1.2;white-space:nowrap;}
     .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
     .c-zaman{font-weight:400;font-size:6px;display:block;color:#0A8080;margin-top:1px;line-height:1.2;}
     #crsf-sarici{transform-origin:top left;display:inline-block;}
@@ -1234,7 +1265,7 @@ function raporTumSiniflarCarsaf() {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre"><div class="c-ders">${escapeHtml(d.ders)}</div><div class="c-ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+          ? `<td class="hucre"><div class="c-ders">${_crsfDers3(d.ders)}</div><div class="c-ogr">${_crsfOgrBasHarf(d.ogretmenId)}</div></td>`
           : `<td class="hucre bos"></td>`;
       });
     });
@@ -1284,7 +1315,7 @@ function raporTumOgretmenlerCarsaf() {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre"><div class="c-sinif">${escapeHtml(d.sinif)}</div><div class="c-ders">${escapeHtml(d.ders)}</div></td>`
+          ? `<td class="hucre"><div class="c-sinif">${escapeHtml(d.sinif)}</div><div class="c-ders">${_crsfDers3(d.ders)}</div></td>`
           : `<td class="hucre bos"></td>`;
       });
     });

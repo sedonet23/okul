@@ -67,23 +67,59 @@ const DERS_SELECT_YENI = '__yeni_ders_ekle__';
 const BRANS_SELECT_YENI = '__yeni_brans_ekle__';
 
 function dersListesiEkle(){
-  const ad = prompt('Yeni ders adı (örn: Matematik):');
-  if(!ad || !ad.trim()) return;
-  if(dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu ders zaten listede.'); return; }
-  db.collection(COL.dersListesi).add({ ad: ad.trim() })
-    .then(()=>toast('Ders eklendi.')).catch(err=>toast('Hata: '+err.message));
+  const body = `
+    <div class="form-group"><label>Ders Adı</label>
+      <input id="dl_ad" placeholder="örn: Matematik" style="width:100%;" autofocus></div>
+    <div class="form-group"><label>Kısaltma <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(çarşaf raporda kullanılır)</span></label>
+      <input id="dl_kisaltma" placeholder="örn: MAT" maxlength="5" style="width:100%;text-transform:uppercase;"
+        oninput="this.value=this.value.toUpperCase()"></div>
+    <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Kısaltma girilmezse ders adının ilk 3 harfi kullanılır.</div>
+  `;
+  modalAc('📚 Ders Ekle', body, () => {
+    const ad = document.getElementById('dl_ad').value.trim();
+    const kisaltma = document.getElementById('dl_kisaltma').value.trim().toUpperCase();
+    if (!ad) { toast('Ders adı zorunludur.'); return; }
+    if (dersListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.toLocaleLowerCase('tr'))) { toast('Bu ders zaten listede.'); return; }
+    const veri = { ad };
+    if (kisaltma) veri.kisaltma = kisaltma;
+    db.collection(COL.dersListesi).add(veri)
+      .then(()=>{ toast('Ders eklendi.'); modalKapat(); })
+      .catch(err=>toast('Hata: '+err.message));
+  }, null);
 }
 function dersListesiSil(id){
   if(!confirm('Bu dersi listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
   db.collection(COL.dersListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
 }
+function dersKisaltmaDuzenle(id, ad, mevcutKisaltma){
+  const body = `
+    <div class="form-group"><label>Ders Adı</label>
+      <input id="dk_ad" value="${escapeHtml(ad)}" style="width:100%;"></div>
+    <div class="form-group"><label>Kısaltma</label>
+      <input id="dk_kisaltma" value="${escapeHtml(mevcutKisaltma)}" placeholder="örn: MAT" maxlength="5"
+        style="width:100%;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+  `;
+  modalAc(`✏️ Düzenle — ${escapeHtml(ad)}`, body, () => {
+    const yeniAd = document.getElementById('dk_ad').value.trim();
+    const kisaltma = document.getElementById('dk_kisaltma').value.trim().toUpperCase();
+    if (!yeniAd) { toast('Ders adı boş olamaz.'); return; }
+    const veri = { ad: yeniAd };
+    if (kisaltma) veri.kisaltma = kisaltma; else veri.kisaltma = '';
+    db.collection(COL.dersListesi).doc(id).update(veri)
+      .then(()=>{ toast('Güncellendi.'); modalKapat(); })
+      .catch(err=>toast('Hata: '+err.message));
+  }, null);
+}
 function renderDersListesiYonetim(){
   const hedef = document.getElementById('dersListesiYonetim');
   if(!hedef) return;
   hedef.innerHTML = dersListesi.length ? dersListesi.map(d=>`
-    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>📚 ${escapeHtml(d.ad)}</span>
-      <button class="btn btn-ghost btn-sm" onclick="dersListesiSil('${d.id}')">🗑️</button>
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span>📚 ${escapeHtml(d.ad)}${d.kisaltma?` <span style="font-size:11px;background:var(--accent-muted,#e0f2f2);color:var(--accent,#0A6E6E);border-radius:4px;padding:1px 5px;font-weight:600;">${escapeHtml(d.kisaltma)}</span>`:''}</span>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm" onclick="dersKisaltmaDuzenle('${d.id}','${escapeHtml(d.ad)}','${escapeHtml(d.kisaltma||'')}')" title="Kısaltma Düzenle">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="dersListesiSil('${d.id}')">🗑️</button>
+      </div>
     </div>`).join('') : '<p class="empty-state">Henüz ders eklenmedi.</p>';
 }
 function dersSelectHtml(id, seciliDeger){
