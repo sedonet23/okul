@@ -25,6 +25,7 @@ function ogretmenDetayAc(id){
   document.getElementById('detayBaslik').textContent = adSoyad;
   document.getElementById('detayAltBaslik').textContent = [o.unvan||'Öğretmen', o.brans].filter(Boolean).join(' · ');
   document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); ogretmenModalAc(id); };
+  document.getElementById('detayRaporBtn').onclick = ()=>{ ogretmenRaporOlustur(id); };
 
   /* ---- Ders Programı ---- */
   const dersleri = dersProgrami.filter(d=>d.ogretmenId===id).sort((a,b)=> GUNLER.indexOf(a.gun)-GUNLER.indexOf(b.gun) || a.saat-b.saat);
@@ -99,4 +100,187 @@ function ogretmenDetayAc(id){
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+}
+
+/* ================================================================
+   ÖĞRETMEN PROFİL RAPORU
+   _raporPenceresiniAc kullanır (raporlama.js'de tanımlı).
+   ================================================================ */
+
+function ogretmenRaporOlustur(id) {
+  const o = ogretmenler.find(x => x.id === id);
+  if (!o) return;
+  const adSoyad = `${o.ad} ${o.soyad}`.trim();
+
+  /* ---- Ders Programı ---- */
+  const dersleri = dersProgrami
+    .filter(d => d.ogretmenId === id)
+    .sort((a, b) => GUNLER.indexOf(a.gun) - GUNLER.indexOf(b.gun) || a.saat - b.saat);
+
+  // Haftalık program tablosu
+  const programSatirlar = GUNLER.map(gun => {
+    const gunDersleri = dersleri.filter(d => d.gun === gun);
+    if (!gunDersleri.length) return '';
+    return gunDersleri.map(d =>
+      `<tr>
+        <td style="width:90px;font-weight:600;color:#0A6E6E;">${escapeHtml(gun)}</td>
+        <td style="width:40px;text-align:center;">${d.saat}. ders</td>
+        <td style="font-weight:600;">${escapeHtml(d.sinif)}</td>
+        <td>${escapeHtml(d.ders)}</td>
+      </tr>`
+    ).join('');
+  }).join('');
+
+  const dersTabloHtml = dersleri.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;">Gün</th>
+          <th style="padding:5px 8px;text-align:center;">Saat</th>
+          <th style="padding:5px 8px;text-align:left;">Sınıf</th>
+          <th style="padding:5px 8px;text-align:left;">Ders</th>
+        </tr></thead>
+        <tbody>${programSatirlar}</tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">Ders programında kaydı yok.</p>';
+
+  /* ---- Toplam ders saati ---- */
+  const toplamDers = dersleri.length;
+  const siniflar2 = [...new Set(dersleri.map(d => d.sinif))].join(', ');
+
+  /* ---- Nöbetler ---- */
+  const bugunISO = todayISO();
+  const nobetleri = (typeof nobetAtamalari !== 'undefined' ? nobetAtamalari : [])
+    .filter(a => a.ogretmenId === id || adGeciyorMu(a.ogretmenAdSoyad, adSoyad))
+    .sort((a, b) => a.tarih.localeCompare(b.tarih));
+
+  const nobetTabloHtml = nobetleri.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;">Tarih</th>
+          <th style="padding:5px 8px;text-align:left;">Gün</th>
+          <th style="padding:5px 8px;text-align:left;">Nöbet Yeri</th>
+        </tr></thead>
+        <tbody>${nobetleri.map(n => {
+          const yer = (typeof nobetYerleri !== 'undefined' ? nobetYerleri.find(y => y.id === n.yerId) : null);
+          const tarih = new Date(n.tarih);
+          const gunAdi = tarih.toLocaleDateString('tr-TR', { weekday: 'long' });
+          const gectiMi = n.tarih < bugunISO;
+          return `<tr style="${gectiMi ? 'color:#aaa;' : ''}">
+            <td style="padding:4px 8px;">${formatTarih(n.tarih)}</td>
+            <td style="padding:4px 8px;">${gunAdi}</td>
+            <td style="padding:4px 8px;">${escapeHtml(yer ? yer.ad : '?')}</td>
+          </tr>`;
+        }).join('')}</tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">Nöbet ataması yok.</p>';
+
+  /* ---- Sosyal Kulüpler ---- */
+  const kulupler = (cizelgeVerileri.sosyalKulupler || [])
+    .filter(s => adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id)));
+  const kulupHtml = kulupler.length
+    ? kulupler.map(k => `<div style="padding:3px 0;border-bottom:1px solid #eee;">📌 ${escapeHtml(k.ad)}</div>`).join('')
+    : '<p style="color:#888;font-style:italic;">Danışmanı olduğu kulüp yok.</p>';
+
+  /* ---- Rehberlik ---- */
+  const rehberlikler = (cizelgeVerileri.rehberlik || []).filter(s => adGeciyorMu(s.danisman, adSoyad));
+  const rehberlikHtml = rehberlikler.length
+    ? rehberlikler.map(r => `<div style="padding:3px 0;border-bottom:1px solid #eee;">🏫 ${escapeHtml(r.ad)} — Rehberlik Danışmanı</div>`).join('')
+    : '';
+
+  /* ---- Belirli Gün ve Haftalar ---- */
+  const belirliGunler = (belirliGunlerListesi || [])
+    .filter(e => (e.gorevliOgretmenler && e.gorevliOgretmenler.includes(id)) || adGeciyorMu(e.gorevliOgretmen, adSoyad));
+  const belirliGunHtml = belirliGunler.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;">Etkinlik</th>
+          <th style="padding:5px 8px;text-align:left;">Tarih</th>
+          <th style="padding:5px 8px;text-align:center;">Durum</th>
+        </tr></thead>
+        <tbody>${belirliGunler.map(e => `
+          <tr>
+            <td style="padding:4px 8px;">${escapeHtml(e.baslik)}</td>
+            <td style="padding:4px 8px;">${escapeHtml(e.tarih || '—')}</td>
+            <td style="padding:4px 8px;text-align:center;">${e.tamamlandi ? '✅' : '⏳'}</td>
+          </tr>`).join('')}</tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">Görevli olduğu etkinlik yok.</p>';
+
+  /* ---- Diğer Evraklar ---- */
+  const evraklar = (digerEvrakListesi || [])
+    .filter(e => (e.ogretmen || '').localeCompare(adSoyad, 'tr', { sensitivity: 'base' }) === 0);
+  const evrakHtml = evraklar.length
+    ? evraklar.map(e =>
+        `<div style="padding:3px 0;border-bottom:1px solid #eee;">📄 ${escapeHtml(e.evrakTuru)}${e.sinif ? ' · ' + escapeHtml(e.sinif) : ''} <span style="color:#aaa;font-size:11px;">${formatTarih(e.tarih)}</span></div>`
+      ).join('')
+    : '<p style="color:#888;font-style:italic;">Evrak kaydı yok.</p>';
+
+  /* ---- HTML Rapor ---- */
+  const tarih = new Date().toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari?.okulAdi) || '';
+
+  const icerik = `
+    <style>
+      .ogr-rapor-bolum { margin-bottom: 18px; }
+      .ogr-rapor-bolum h3 {
+        font-size: 12px; font-weight: 700; color: #0A6E6E;
+        border-bottom: 1.5px solid #0A6E6E; padding-bottom: 3px; margin-bottom: 8px;
+        text-transform: uppercase; letter-spacing: .5px;
+      }
+      .ogr-bilgi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: 11px; }
+      .ogr-bilgi-grid .lbl { color: #888; }
+      .ogr-bilgi-grid .val { font-weight: 600; color: #111; }
+      table tbody tr:nth-child(even) { background: #f7f9f9; }
+      table tbody td { font-size: 11px; }
+      table thead th { font-size: 11px; }
+    </style>
+
+    <!-- Öğretmen Bilgileri -->
+    <div class="ogr-rapor-bolum">
+      <h3>👤 Kişisel Bilgiler</h3>
+      <div class="ogr-bilgi-grid">
+        <span class="lbl">Adı Soyadı</span><span class="val">${escapeHtml(adSoyad)}</span>
+        <span class="lbl">Ünvan</span><span class="val">${escapeHtml(o.unvan || '—')}</span>
+        <span class="lbl">Branş</span><span class="val">${escapeHtml(o.brans || '—')}</span>
+        <span class="lbl">Kariyer Basamağı</span><span class="val">${escapeHtml(o.kariyerBasamagi || '—')}</span>
+        <span class="lbl">Derece / Kademe</span><span class="val">${o.derece || o.kademe ? `${o.derece || '—'} / ${o.kademe || '—'}` : '—'}</span>
+        <span class="lbl">Sorumlu Sınıf</span><span class="val">${escapeHtml(o.sorumluSinif || '—')}</span>
+        <span class="lbl">Telefon</span><span class="val">${escapeHtml(o.telefon || '—')}</span>
+        <span class="lbl">E-Posta</span><span class="val">${escapeHtml(o.eposta || '—')}</span>
+      </div>
+    </div>
+
+    <!-- Ders Programı -->
+    <div class="ogr-rapor-bolum">
+      <h3>📅 Haftalık Ders Programı <span style="font-weight:400;font-size:10px;color:#888;">(${toplamDers} ders saati${siniflar2 ? ' · ' + siniflar2 : ''})</span></h3>
+      ${dersTabloHtml}
+    </div>
+
+    <!-- Nöbet -->
+    <div class="ogr-rapor-bolum">
+      <h3>🛡️ Nöbet Çizelgesi <span style="font-weight:400;font-size:10px;color:#888;">(${nobetleri.length} kayıt)</span></h3>
+      ${nobetTabloHtml}
+    </div>
+
+    <!-- Kulüp & Rehberlik -->
+    <div class="ogr-rapor-bolum">
+      <h3>🎭 Sosyal Kulüp & Rehberlik</h3>
+      ${kulupHtml}
+      ${rehberlikHtml}
+    </div>
+
+    <!-- Belirli Gün -->
+    <div class="ogr-rapor-bolum">
+      <h3>📆 Belirli Gün ve Haftalar</h3>
+      ${belirliGunHtml}
+    </div>
+
+    <!-- Evrak -->
+    <div class="ogr-rapor-bolum">
+      <h3>📋 Diğer Evraklar</h3>
+      ${evrakHtml}
+    </div>
+  `;
+
+  _raporPenceresiniAc(icerik, `${adSoyad} — Öğretmen Profil Raporu`, { ortaliBaslik: false });
 }
