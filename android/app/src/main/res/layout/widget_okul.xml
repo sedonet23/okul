@@ -1,75 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.koruk.okul">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:orientation="vertical"
+    android:padding="12dp">
 
-    <!-- İzinler -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <TextView
+        android:id="@+id/widget_okul_adi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Okul Yönetim Paneli"
+        android:textColor="#FFFFFF"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end" />
 
-    <application
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="false"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
+    <TextView
+        android:id="@+id/widget_tarih"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#CCE8E8"
+        android:textSize="9sp"
+        android:paddingBottom="4dp" />
 
-        <!-- Ana Activity -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <!-- Deep link: koruk://okul/... -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="koruk" android:host="okul" />
-            </intent-filter>
-        </activity>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🛡 BUGÜN NÖBET"
+        android:textColor="#A8DEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
 
-        <!-- Widget -->
-        <receiver
-            android:name=".OkulWidget"
-            android:exported="true"
-            android:label="Okul Widget">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/okul_widget_info" />
-        </receiver>
+    <TextView
+        android:id="@+id/widget_nobet_icerik"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:paddingBottom="4dp" />
 
-        <!-- FCM Servis -->
-        <service
-            android:name=".OkulFirebaseMessagingService"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT" />
-            </intent-filter>
-        </service>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📅 BUGÜN DERSLER"
+        android:textColor="#A8DEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
 
-        <!-- FCM Bildirim kanalı meta -->
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="ch_genel" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notification" />
-        <meta-data
-            android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/colorPrimary" />
+    <TextView
+        android:id="@+id/widget_ders_icerik"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:paddingBottom="4dp" />
 
-    </application>
-</manifest>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📋 YAKLAŞAN BELGELER"
+        android:textColor="#A8DEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_belge_icerik"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="—"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+</LinearLayout>
