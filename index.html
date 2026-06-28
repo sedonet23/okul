@@ -314,7 +314,17 @@
       <div class="notes-grid" id="notlarGrid"></div>
     </section>
 
-    <!-- TAŞIMA -->
+    <!-- SINAV -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Sınav</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>✏️ Yazılı Sınavlar</h3>
+    <p class="detay-row-muted">Sınıf, Ders, Tarih, Dönem, Yazılı Sırası, Tür, Senaryo No, Yayınevi sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('yaziliSinavlar')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriYaziliSinavInput" accept=".xlsx,.xls" style="display:none;" onchange="yaziliSinavExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriYaziliSinavInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- TAŞIMA -->
     <section id="tab-tasima" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">Taşıma</div><div class="page-sub">Servis araçları, şoför ve güzergah bilgileri</div></div>
@@ -610,13 +620,15 @@
     </section>
 
     <section id="tab-veri" class="tab-panel">
-  <div class="page-header"><div><div class="page-title">📊 Veri</div><div class="page-sub">Tüm verileri Excel ile toplu olarak içe aktarın</div></div></div>
+  <div class="page-header"><div><div class="page-title">📊 Veri</div><div class="page-sub">Tüm verileri Excel ile toplu olarak içe aktarın</div></div>
+  <button class="btn btn-ghost btn-sm" onclick="tumSablonlariIndir()">📦 Tüm Şablonları İndir</button></div>
 
   <!-- PERSONEL -->
   <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Personel</div>
   <div class="card" style="margin-bottom:14px;">
     <h3>👨‍🏫 Öğretmenler</h3>
     <p class="detay-row-muted">Ad, soyad, branş, telefon vb. sütunları içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('ogretmenler')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriOgretmenInput" accept=".xlsx,.xls" style="display:none;" onchange="ogretmenExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgretmenInput').click()">📥 Excel Yükle</button>
   </div>
@@ -626,6 +638,7 @@
   <div class="card" style="margin-bottom:14px;">
     <h3>🏫 Sınıflar</h3>
     <p class="detay-row-muted">Sınıf Adı, Seviye, Şube, Derslik, Sınıf Öğretmeni sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('siniflar')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriSinifExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="siniflarExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriSinifExcelInput').click()">📥 Excel Yükle</button>
   </div>
@@ -634,6 +647,7 @@
     <h3>🧑‍🎓 Öğrenciler / Veliler</h3>
     <p class="detay-row-muted">Önce hangi sınıfa yükleneceğini seçin, ardından o sınıfın Excel listesini yükleyin.</p>
     <div class="form-group"><select id="veriSinifSecimi"><option value="">Sınıf seçiniz…</option></select></div>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('ogrenciler')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriOgrenciExcelYukle(this)">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgrenciInput').click()">📥 Excel Yükle</button>
   </div>
@@ -650,13 +664,15 @@
   <div class="card" style="margin-bottom:14px;">
     <h3>🗓️ Ders Programı</h3>
     <p class="detay-row-muted">Sınıf, gün, ders saati, ders adı, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('dersProgrami')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriDersInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersInput').click()">📥 Excel Yükle</button>
   </div>
 
   <div class="card" style="margin-bottom:14px;">
     <h3>📚 Dersler</h3>
-    <p class="detay-row-muted">Tek sütun: Ders adı (örn: Matematik, Türkçe, Fen Bilimleri…). Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.</p>
+    <p class="detay-row-muted">Ders Adı ve Kısaltma sütunları (Kısaltma: çarşaf ders programı raporunda kullanılır, örn: MAT, TÜR, FEN). Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('dersler')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriDersListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="dersListesiExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersListesiInput').click()">📥 Excel Yükle</button>
   </div>
@@ -664,6 +680,7 @@
   <div class="card" style="margin-bottom:14px;">
     <h3>🎓 Branşlar</h3>
     <p class="detay-row-muted">Tek sütun: Branş adı (örn: Sınıf Öğretmenliği, Matematik, Türkçe…). Öğretmen kayıtlarında branş alanında açılır listeden seçilebilir.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('branslar')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriBransListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="bransListesiExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriBransListesiInput').click()">📥 Excel Yükle</button>
   </div>
@@ -673,8 +690,19 @@
   <div class="card" style="margin-bottom:14px;">
     <h3>🛡️ Nöbet Programı</h3>
     <p class="detay-row-muted">Tarih/gün, nöbet yeri, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('nobetProgrami')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriNobetInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriNobetInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- SINAV -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Sınav</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>✏️ Yazılı Sınavlar</h3>
+    <p class="detay-row-muted">Sınıf, Ders, Tarih, Dönem, Yazılı Sırası, Tür, Senaryo No, Yayınevi sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('yaziliSinavlar')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriYaziliSinavInput" accept=".xlsx,.xls" style="display:none;" onchange="yaziliSinavExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriYaziliSinavInput').click()">📥 Excel Yükle</button>
   </div>
 
   <!-- TAŞIMA -->
@@ -683,6 +711,7 @@
     <h3>🚌 Servis Öğrencileri</h3>
     <p class="detay-row-muted">Önce hangi servise yükleneceğini seçin, ardından o servisin öğrenci listesini yükleyin.</p>
     <div class="form-group"><select id="veriServisSecimi"><option value="">Servis seçiniz…</option></select></div>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('servisOgrencileri')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriServisOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriServisOgrenciExcelYukle(this)">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriServisOgrenciInput').click()">📥 Excel Yükle</button>
   </div>
