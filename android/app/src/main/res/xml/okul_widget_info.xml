@@ -2,14 +2,8 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="250dp"
     android:minHeight="200dp"
-    android:targetCellWidth="4"
-    android:targetCellHeight="3"
-    android:maxResizeWidth="400dp"
-    android:maxResizeHeight="400dp"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_okul"
     android:resizeMode="horizontal|vertical"
-    android:widgetCategory="home_screen"
-    android:description="@string/widget_description"
-    android:previewLayout="@layout/widget_okul">
+    android:widgetCategory="home_screen">
 </appwidget-provider>
