@@ -1090,18 +1090,14 @@ function _crsfTabloStyle() {
     table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:52px;}
     table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:3px 4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #075757;}
     table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7px;font-weight:700;border:1px solid #145a82;}
-    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
-    table.crsf td.hucre{padding:4px 3px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;overflow:hidden;height:36px;}
-    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;height:36px;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #999 !important;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
+    table.crsf td.hucre{padding:4px 3px;border:1px solid #999 !important;vertical-align:middle;text-align:center;overflow:hidden;height:36px;}
+    table.crsf td.bos{background:#fafafa;border:1px solid #999 !important;height:36px;}
     table.crsf tr:nth-child(even) td.hucre{background:inherit;}
     table.crsf tr:nth-child(even) td.bos{background:inherit;}
-    table.crsf td.gun-dolgu{background:#dff0ef !important;color:#111 !important;}
-    table.crsf th.gun-dolgu{background:#b8deda !important;color:#fff !important;}
-    table.crsf td.gun-dolgu .c-sinif{color:#1a5276 !important;}
-    table.crsf td.gun-dolgu .c-ders{color:#111 !important;}
-    table.crsf td.gun-dolgu .c-ogr{color:#444 !important;}
-    table.crsf td.gun-dolgu .c-ders-tam{color:#111 !important;}
-    table.crsf td.gun-dolgu .c-ogr-kucuk{color:#444 !important;}
+    table.crsf td.gun-dolgu{background:#c8e6e4 !important;}
+    table.crsf th.gun-dolgu{background:#7fbfbb !important;color:#fff !important;}
+    table.crsf td.gun-dolgu *{color:#111 !important;}
     table.crsf td.gun-ilk,
     table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
@@ -1137,29 +1133,27 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
     </style>
     <script>
       function pdfKaydet() {
-        var sarici = document.getElementById('crsf-sarici');
-        var tablo  = sarici ? sarici.querySelector('table') : null;
-        if (!tablo) { window.print(); return; }
-        var px2mm = function(px){ return Math.ceil(px * 25.4 / 96); };
-        var genislikPx  = Math.max(tablo.scrollWidth, tablo.offsetWidth) + 10;
-        var yukseklikPx = Math.max(sarici.scrollHeight, sarici.offsetHeight) + 60;
-        var genislikMm  = Math.max(px2mm(genislikPx), 100);
-        var yukseklikMm = Math.max(px2mm(yukseklikPx), 80);
         var styleEl = document.getElementById('crsf-page-style');
         if (!styleEl) {
           styleEl = document.createElement('style');
           styleEl.id = 'crsf-page-style';
           document.head.appendChild(styleEl);
         }
+        // Tablo genişliğine göre scale hesapla
+        var sarici = document.getElementById('crsf-sarici');
+        var tablo  = sarici ? sarici.querySelector('table') : null;
+        var tabloW = tablo ? tablo.scrollWidth : 0;
+        // A4 yatay ~1122px @96dpi, dikey ~794px
+        var hedefW = 1056; // A4 yatay - kenarlar
+        var scale  = tabloW > hedefW ? (hedefW / tabloW) : 1;
         styleEl.textContent = [
-          '@page { size: ' + genislikMm + 'mm ' + yukseklikMm + 'mm; margin: 5mm; }',
+          '@page { size: A4 landscape; margin: 8mm; }',
           '@media print {',
           '  .rapor-toolbar { display:none !important; }',
-          '  #crsf-pdf-baslik { display:block !important; }',
-          '  body { margin:0; padding:0; }',
-          '  #crsf-sarici { display:block !important; }',
+          '  html { -webkit-print-color-adjust:exact; print-color-adjust:exact; }',
+          '  body { margin:0; zoom:' + scale + '; }',
           '  .crsf-wrap { overflow:visible !important; }',
-          '  table.crsf { width:100% !important; }',
+          '  table.crsf { table-layout:auto !important; }',
           '}'
         ].join('\n');
         window.print();
@@ -1170,8 +1164,8 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
   // Bunun için htmlIcerik içine özel toolbar eki koyuyoruz
   const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="pdfKaydet()" style="background:#6366f1;color:#fff;">📄 PDF Kaydet</button>`;
 
-  const pdfBaslik = `<div id="crsf-pdf-baslik" style="display:none;margin-bottom:6px;border-bottom:2px solid #0A6E6E;padding-bottom:4px;">
-    <div style="font-size:13px;font-weight:700;color:#0A6E6E;">${escapeHtml(baslikMetin)}</div>
+  const pdfBaslik = `<div id="crsf-pdf-baslik" style="margin-bottom:8px;border-bottom:2px solid #0A6E6E;padding-bottom:5px;">
+    <div style="font-size:14px;font-weight:700;color:#0A6E6E;">${escapeHtml(baslikMetin)}</div>
   </div>`;
 
   const icerik = ektraStyle +
