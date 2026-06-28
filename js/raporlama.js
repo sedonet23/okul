@@ -1046,35 +1046,46 @@ function _crsfMeta() {
 }
 
 function _crsfHtmlBase(yon) {
-  const yonDeger = (yon === 'landscape') ? 'landscape' : 'portrait';
+  const ls = (yon === 'landscape');
   return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width">
 <style>
-  @page{size:A4 ${yonDeger};margin:0.7cm;}
-  @media print{@page{size:A4 ${yonDeger};margin:0.7cm;}}
+  @page{size:A4 ${ls?'landscape':'portrait'};margin:0.6cm;}
+  @media print{@page{size:A4 ${ls?'landscape':'portrait'};margin:0.6cm;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;font-size:8.5px;color:#111;}
-  .header{text-align:center;margin-bottom:8px;border-bottom:2px solid #2c3e50;padding-bottom:7px;}
-  .header .okul{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-  .header .baslik{font-size:11px;font-weight:600;margin-top:3px;}
-  .header .alt{font-size:9px;margin-top:2px;color:#444;}
-  .header .meta{font-size:8px;color:#666;margin-top:2px;}
+  html,body{width:${ls?'297mm':'210mm'};}
+  body{font-family:'Segoe UI',Arial,sans-serif;font-size:7.5px;color:#111;padding:6px;}
+  .header{text-align:center;margin-bottom:6px;border-bottom:2px solid #2c3e50;padding-bottom:5px;}
+  .header .okul{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+  .header .baslik{font-size:10px;font-weight:600;margin-top:2px;}
+  .header .alt{font-size:8px;margin-top:2px;color:#444;}
+  .header .meta{font-size:7px;color:#666;margin-top:1px;}
   table{width:100%;border-collapse:collapse;table-layout:fixed;}
-  th.saat-th{background:#2c3e50;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #1a252f;width:52px;}
-  th.gun-th{background:#2c3e50;color:#fff;padding:4px 3px;text-align:center;font-size:9px;font-weight:700;border:1px solid #1a252f;}
-  th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
-  td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:8.5px;border:1px solid #b8cfe0;padding:4px;text-align:center;vertical-align:middle;}
-  td.hucre{padding:2px 3px;border:1px solid #ccc;vertical-align:top;font-size:7px;}
+  th.saat-th{background:#2c3e50;color:#fff;padding:3px 2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #1a252f;width:${ls?'42px':'36px'};}
+  th.gun-th{background:#2c3e50;color:#fff;padding:3px 2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #1a252f;}
+  th.gun-grup{background:#1a6b9a;color:#fff;padding:3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #145a82;}
+  td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:7.5px;border:1px solid #b8cfe0;padding:3px;text-align:center;vertical-align:middle;white-space:normal;word-break:break-word;line-height:1.3;}
+  td.hucre{padding:2px;border:1px solid #ccc;vertical-align:top;}
   td.bos{background:#fafafa;border:1px solid #e8e8e8;}
-  .ders{font-weight:700;font-size:6.5px;line-height:1.2;text-transform:uppercase;letter-spacing:.3px;}
-  .ogr{color:#333;font-size:6px;margin-top:1px;word-break:break-word;line-height:1.2;}
-  .sinif{font-weight:700;font-size:7px;color:#1a5276;}
-  .zaman{font-weight:400;font-size:6px;display:block;color:#888;}
+  .sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;}
+  .ders{font-weight:700;font-size:7px;line-height:1.2;text-transform:uppercase;}
+  .ogr{color:#444;font-size:6.5px;margin-top:1px;line-height:1.2;word-break:break-word;}
+  .zaman{font-weight:400;font-size:5.5px;display:block;color:#888;}
   tr:nth-child(even) td.hucre{background:#f7f9fc;}
   tr:nth-child(even) td.bos{background:#f7f9fc;}
-  td.satir-lbl{white-space:normal;word-break:break-word;line-height:1.3;}
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-</style></head><body>`;
+</style>
+<script>
+  // Android Chrome için yön zorla
+  window.onload = function() {
+    if (${ls?'true':'false'}) {
+      // Yazdırma diyaloğu açılmadan önce landscape ipucu ver
+      document.body.style.width = '297mm';
+    }
+    window.print();
+  };
+</script>
+</head><body>`;
 }
 
 function _crsfHeaderHtml(m) {
@@ -1091,7 +1102,7 @@ function _crsfYazdir(html, yon) {
   const w = window.open('','_blank', yon==='landscape' ? 'width=1200,height=750' : 'width=900,height=750');
   w.document.write(html + '</body></html>');
   w.document.close();
-  w.onload = () => { w.focus(); w.print(); };
+  // print() artık html içindeki window.onload içinde çağrılıyor
 }
 
 const CRSF_SAATLER = [1,2,3,4,5,6,7];
