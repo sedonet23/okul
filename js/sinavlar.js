@@ -9,7 +9,7 @@
       bitisSaati, sure, sayisalBaslama, sayisalBitis, sozelBaslama, sozelBitis, notlar}
    ==================================================================== */
 
-const SINAV_TURLERI = ['Yazılı', 'Sınav Yolu', 'Proje'];
+const SINAV_TURLERI = ['Yazılı', 'Sınav', 'Proje'];
 
 let sinavlar = [];
 let denemeSinavlari = [];
@@ -64,11 +64,20 @@ function sinavModalAc(id){
       </div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
-      <div class="form-group"><label>Tür</label>
-        <select id="f_snTur">${SINAV_TURLERI.map(t=>`<option ${t===(s?s.tur:'Yazılı')?'selected':''}>${t}</option>`).join('')}</select>
+      <div class="form-group"><label>Dönem</label>
+        <select id="f_snDonem">
+          <option value="1. Dönem" ${(s?s.donem:'')==='1. Dönem'?'selected':''}>1. Dönem</option>
+          <option value="2. Dönem" ${(s?s.donem:'')==='2. Dönem'?'selected':''}>2. Dönem</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Yazılı Sırası</label>
+        <select id="f_snSirasi">
+          <option value="1. Yazılı" ${(s?s.yaziliSirasi:'')==='1. Yazılı'?'selected':''}>1. Yazılı</option>
+          <option value="2. Yazılı" ${(s?s.yaziliSirasi:'')==='2. Yazılı'?'selected':''}>2. Yazılı</option>
+        </select>
       </div>
     </div>
+    <div class="form-group"><label>Ders</label>${dersSelectHtml('f_snDers', s?s.ders||'':'')}</div>
     <div class="form-group"><label>Öğretmen</label>
       <select id="f_snOgretmen">${ogretmenSecenekleri(s?s.ogretmenId:'')}</select>
     </div>
@@ -102,6 +111,8 @@ function sinavModalAc(id){
       ders,
       ogretmenId: document.getElementById('f_snOgretmen').value,
       tarih: document.getElementById('f_snTarih').value,
+      donem: document.getElementById('f_snDonem').value,
+      yaziliSirasi: document.getElementById('f_snSirasi').value,
       dersSaati: document.getElementById('f_snDersSaati').value,
       tur: document.getElementById('f_snTur').value,
       senaryoNo: document.getElementById('f_snSenaryoNo').value,
@@ -331,6 +342,7 @@ function sinavRaporModalAc() {
 
   const kolonlar = [
     {key:'siniflar', label:'Sınıf'},
+    {key:'donem',    label:'Dönem'},
     {key:'ders',     label:'Ders'},
     {key:'tarih',    label:'Tarih'},
     {key:'dersSaati',label:'Kaçıncı Ders'},
@@ -370,6 +382,23 @@ function sinavRaporModalAc() {
         <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;"><input type="checkbox" id="rpr_tarihGoster" checked> Göster</label>
       </div>
     </div>
+    ${bolum('Dönem ve Yazılı Sırası')}
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:4px;">Dönem</div>
+        <div style="display:flex;gap:12px;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="rprDonem" id="rpr_d1" value="1. Dönem" checked> 1. Dönem</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="rprDonem" id="rpr_d2" value="2. Dönem"> 2. Dönem</label>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:4px;">Yazılı Sırası</div>
+        <div style="display:flex;gap:12px;">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="rprSirasi" id="rpr_s1" value="1. Yazılı" checked> 1. Yazılı</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;"><input type="radio" name="rprSirasi" id="rpr_s2" value="2. Yazılı"> 2. Yazılı</label>
+        </div>
+      </div>
+    </div>
     ${bolum('Sınıf Filtresi')}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:8px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
       ${sinifCblar}
@@ -391,18 +420,26 @@ function sinavRaporYazdir() {
   const yon = document.querySelector('input[name="rprYon"]:checked')?.value || 'portrait';
 
   const okulAdi    = gc('rpr_okulGoster')    ? gv('rpr_okulAdi')    : '';
-  const baslik     = gc('rpr_baslikGoster')  ? gv('rpr_baslik')     : '';
   const egitimYili = gc('rpr_yilGoster')     ? gv('rpr_egitimYili') : '';
   const tarih      = gc('rpr_tarihGoster')   ? gv('rpr_tarih')      : '';
+  // Başlığı dönem + sıraya göre otomatik oluştur
+  const baslikMetin = gc('rpr_baslikGoster')
+    ? `${egitimYili ? egitimYili+' EĞİTİM ÖĞRETİM YILI ' : ''}${seciliDonem.toUpperCase()} ${seciliSirasi.toUpperCase()} SINAV TARİHLERİ`
+    : '';
+  const baslik = baslikMetin;
 
   const seciliSiniflar = [...document.querySelectorAll('.rprSinifCb:checked')].map(c=>c.value);
   const seciliKolonlar = [...document.querySelectorAll('.rprKolonCb:checked')].map(c=>c.value);
+  const seciliDonem  = document.querySelector('input[name="rprDonem"]:checked')?.value || '1. Dönem';
+  const seciliSirasi = document.querySelector('input[name="rprSirasi"]:checked')?.value || '1. Yazılı';
+  const seciliDonemler = [seciliDonem];
 
   if (!seciliSiniflar.length) { toast('En az bir sınıf seçin.'); return; }
   if (!seciliKolonlar.length) { toast('En az bir kolon seçin.'); return; }
 
   const kolonBilgi = [
     {key:'siniflar', label:'Sınıf',         fn: s => s.siniflar||s.sinif||''},
+    {key:'donem',    label:'Dönem',          fn: s => s.donem||''},
     {key:'ders',     label:'Ders',           fn: s => s.ders||''},
     {key:'tarih',    label:'Tarih',          fn: s => formatTarih(s.tarih)},
     {key:'dersSaati',label:'Kaçıncı Ders',  fn: s => s.dersSaati ? s.dersSaati+'. ders' : ''},
@@ -418,7 +455,9 @@ function sinavRaporYazdir() {
   sinavlar
     .filter(s => {
       const sSiniflar = (s.siniflar||s.sinif||'').split(',').map(x=>x.trim());
-      return sSiniflar.some(sn => seciliSiniflar.includes(sn));
+      const donemOk  = seciliDonemler.includes(s.donem||'1. Dönem');
+      const sirasiOk = s.yaziliSirasi === seciliSirasi;
+      return sSiniflar.some(sn => seciliSiniflar.includes(sn)) && donemOk && sirasiOk;
     })
     .sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''))
     .forEach(s => {
@@ -433,13 +472,13 @@ function sinavRaporYazdir() {
   const thHTML = kolonBilgi.map(k=>`<th>${k.label}</th>`).join('');
 
   const tabloHTML = Object.entries(gruplar).sort(([a],[b])=>a.localeCompare(b,'tr')).map(([sn, kayitlar])=>`
-    <tr><td colspan="${kolonBilgi.length}" style="background:#2c3e50;color:#fff;font-weight:700;font-size:11px;padding:5px 8px;letter-spacing:.5px;">
-      ${sn} Sınıfı
+    <tr><td colspan="${kolonBilgi.length}" style="background:#d0e4f0;color:#1a2e44;font-weight:700;font-size:11px;padding:5px 8px;letter-spacing:.4px;border:1px solid #b8cfe0;">
+      📚 ${sn} Sınıfı
     </td></tr>
     ${kayitlar.map(s=>`<tr>${kolonBilgi.map(k=>`<td>${k.fn(s)||'—'}</td>`).join('')}</tr>`).join('')}
   `).join('');
 
-  const metaParcalar = [egitimYili, tarih].filter(Boolean);
+  const metaParcalar = [tarih].filter(Boolean);
 
   const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
 <title>${baslik||'Yazılı Sınav Takvimi'}</title>
@@ -452,9 +491,9 @@ function sinavRaporYazdir() {
   .header .baslik{font-size:13px;font-weight:600;margin-top:5px;}
   .header .meta{font-size:10px;color:#666;margin-top:4px;}
   table{width:100%;border-collapse:collapse;margin-top:4px;}
-  th{background:#2c3e50;color:#fff;padding:5px 6px;text-align:left;font-size:10px;font-weight:600;white-space:nowrap;}
-  td{padding:4px 6px;border-bottom:1px solid #ddd;vertical-align:top;}
-  tr:nth-child(even) td{background:#f7f7f7;}
+  th{background:#e8f0f7;color:#1a2e44;padding:5px 6px;text-align:left;font-size:10px;font-weight:700;white-space:nowrap;border:1px solid #b8cfe0;}
+  td{padding:4px 6px;border:1px solid #ddd;vertical-align:top;}
+  tr:nth-child(even) td{background:#f7f9fc;}
   .toplam{margin-top:8px;font-size:10px;color:#444;text-align:right;}
   @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>
