@@ -70,6 +70,32 @@ function ogretmenDetayAc(id){
     `<div class="detay-row"><span class="cz-check ${e.tamamlandi?'on':''}" style="margin-right:6px;display:inline-flex;">${e.tamamlandi?'✓':''}</span>${escapeHtml(e.baslik)} <span class="detay-row-muted">${escapeHtml(e.tarih||'')}</span></div>`
   ).join('') : '<p class="empty-state">Görevli olduğu etkinlik yok.</p>';
 
+  /* ---- Yazılı Sınavlar ---- */
+  const yaziliSinavlari = (typeof sinavlar !== 'undefined' ? sinavlar : [])
+    .filter(s => s.ogretmenId === id || (s.siniflar && dersleri.some(d => s.siniflar.includes(d.sinif) && s.ders === d.ders)))
+    .sort((a, b) => (a.tarih || '').localeCompare(b.tarih || ''));
+
+  const yaziliHtml = yaziliSinavlari.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Tarih</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Sınıf</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Ders</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Dönem / Sıra</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Tür</th>
+        </tr></thead>
+        <tbody>${yaziliSinavlari.map((s, i) => `
+          <tr style="${i % 2 === 1 ? 'background:#f7f9f9;' : ''}">
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.tarih ? formatTarih(s.tarih) : '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;font-weight:600;">${escapeHtml(s.siniflar || s.sinif || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.ders || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml([s.donem, s.yaziliSirasi].filter(Boolean).join(' · ') || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.tur || '—')}</td>
+          </tr>`).join('')}
+        </tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">Yazılı sınav kaydı yok.</p>';
+
   /* ---- Diğer Evraklar ---- */
   const evraklar = (digerEvrakListesi||[]).filter(e=> (e.ogretmen||'').localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
   const evrakHtml = evraklar.length ? evraklar.map(e=>
@@ -207,35 +233,54 @@ function ogretmenRaporOlustur(id) {
     : '<p style="color:#888;font-style:italic;">Görevli olduğu etkinlik yok.</p>';
 
   /* ---- Belge Durumu ---- */
-  const AYLAR_KISALT = ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
-  const DONEM_KISALT = ['1. Dönem','2. Dönem','Yıl Sonu'];
-  const CHECK = '✅', BOSH = '⬜';
+  const AYLAR_RAPOR = ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
+  const DONEM_RAPOR = ['1. Dönem','2. Dönem','Yıl Sonu'];
+  const KULUP_RAPOR = ['Yıllık Plan','Toplum Hizm.','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','Sene Sonu'];
+  const REHB_RAPOR  = ['Yıllık Plan','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.D.Sonu','Sene Sonu'];
+  const BEP_RAPOR   = ['Yıllık Ders Planı','BEP Planı'];
 
-  function belgeSatirHtml(baslik, kontrolAdlari, kArr) {
-    const satirlar = kontrolAdlari.map((ad, i) => {
-      const tamam = Array.isArray(kArr) ? !!kArr[i] : !!(kArr && kArr[ad]);
-      return `<tr>
-        <td style="padding:3px 8px;font-size:10px;">${escapeHtml(ad)}</td>
-        <td style="padding:3px 8px;text-align:center;font-size:13px;">${tamam ? CHECK : BOSH}</td>
-      </tr>`;
+  // Yatay tablo: üstte başlıklar, altta ✅/⬜
+  function yarayTabloHtml(baslik, kolonAdlari, kArr) {
+    const thler = kolonAdlari.map(ad =>
+      `<th style="padding:4px 5px;text-align:center;font-size:9px;white-space:nowrap;background:#0A6E6E;color:#fff;border:1px solid #075757;">${escapeHtml(ad)}</th>`
+    ).join('');
+    const tdler = kolonAdlari.map((_, i) => {
+      const tamam = Array.isArray(kArr) ? !!kArr[i] : false;
+      return `<td style="padding:4px 5px;text-align:center;font-size:14px;border:1px solid #ddd;">${tamam ? '✅' : '⬜'}</td>`;
     }).join('');
-    return `<div style="margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#0A6E6E;padding:3px 0 2px;border-bottom:1px solid #c8e6e4;">${escapeHtml(baslik)}</div>
-      <table style="width:100%;border-collapse:collapse;"><tbody>${satirlar}</tbody></table>
+    return `<div style="margin-bottom:12px;overflow-x:auto;">
+      <div style="font-size:10.5px;font-weight:700;color:#0A5050;padding:3px 0 4px;">${escapeHtml(baslik)}</div>
+      <table style="border-collapse:collapse;min-width:100%;">
+        <thead><tr>${thler}</tr></thead>
+        <tbody><tr>${tdler}</tr></tbody>
+      </table>
     </div>`;
   }
 
   let belgeDurumHtml = '';
 
+  // Sosyal Kulüpler
+  const kulupBelge = (cizelgeVerileri.sosyalKulupler || []).filter(s =>
+    adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id))
+  );
+  if (kulupBelge.length) {
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin-bottom:8px;letter-spacing:.3px;">🎭 SOSYAL KULÜPLER</div>';
+    kulupBelge.forEach(k => {
+      const k12 = Array.isArray(k.kontroller) ? k.kontroller
+        : KULUP_RAPOR.map((_, i) => !!(k.durumlar && Object.values(k.durumlar)[i]));
+      belgeDurumHtml += yarayTabloHtml(k.ad || '—', KULUP_RAPOR, k12);
+    });
+  }
+
   // Maarif Raporları
   const maarifKayitlar = (cizelgeVerileri.maarifRapor || []).filter(k => k.ogretmenId === id);
   if (maarifKayitlar.length) {
-    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin-bottom:6px;">📊 MAARİF RAPORLARI</div>';
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:12px 0 8px;letter-spacing:.3px;">📊 MAARİF MODEL RAPORLARI</div>';
     maarifKayitlar.forEach(k => {
       const k10 = Array.isArray(k.kontroller) ? k.kontroller : [];
-      belgeDurumHtml += belgeSatirHtml(
-        `${escapeHtml(k.ders || '—')} · ${escapeHtml(k.sinif || '')}`,
-        AYLAR_KISALT, k10
+      belgeDurumHtml += yarayTabloHtml(
+        `${k.ders || '—'}${k.sinif ? ' · ' + k.sinif : ''}`,
+        AYLAR_RAPOR, k10
       );
     });
   }
@@ -245,10 +290,11 @@ function ogretmenRaporOlustur(id) {
     k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
   );
   if (zumreKayitlar.length) {
-    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">👥 ZÜMRE</div>';
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:12px 0 8px;letter-spacing:.3px;">👥 ZÜMRE</div>';
     zumreKayitlar.forEach(k => {
-      const kArr = Array.isArray(k.kontroller) ? k.kontroller : [k.durumlar?.['1-donem']||false, k.durumlar?.['2-donem']||false, k.durumlar?.['yil-sonu']||false];
-      belgeDurumHtml += belgeSatirHtml(k.ad || k.brans || '—', DONEM_KISALT, kArr);
+      const kArr = Array.isArray(k.kontroller) ? k.kontroller
+        : DONEM_RAPOR.map((_, i) => !!(k.durumlar && Object.values(k.durumlar)[i]));
+      belgeDurumHtml += yarayTabloHtml(k.ad || k.brans || '—', DONEM_RAPOR, kArr);
     });
   }
 
@@ -257,10 +303,11 @@ function ogretmenRaporOlustur(id) {
     k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
   );
   if (sokKayitlar.length) {
-    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">📋 ŞÖK</div>';
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:12px 0 8px;letter-spacing:.3px;">📋 ŞÖK</div>';
     sokKayitlar.forEach(k => {
-      const kArr = Array.isArray(k.kontroller) ? k.kontroller : [k.durumlar?.['1-donem']||false, k.durumlar?.['2-donem']||false, k.durumlar?.['yil-sonu']||false];
-      belgeDurumHtml += belgeSatirHtml(k.ad || '—', DONEM_KISALT, kArr);
+      const kArr = Array.isArray(k.kontroller) ? k.kontroller
+        : DONEM_RAPOR.map((_, i) => !!(k.durumlar && Object.values(k.durumlar)[i]));
+      belgeDurumHtml += yarayTabloHtml(k.ad || '—', DONEM_RAPOR, kArr);
     });
   }
 
@@ -269,12 +316,11 @@ function ogretmenRaporOlustur(id) {
     k.ogretmenId === id || adGeciyorMu(k.danisman, adSoyad)
   );
   if (rehberlikBelge.length) {
-    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">🧭 REHBERLİK</div>';
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:12px 0 8px;letter-spacing:.3px;">🧭 REHBERLİK</div>';
     rehberlikBelge.forEach(k => {
       const k12 = Array.isArray(k.kontroller) ? k.kontroller
-        : Object.entries(k.durumlar || {}).map(([,v]) => !!v);
-      const ayAdlari = ['Yıllık Çalışma Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.Dönem Sonu Rap.','Sene Sonu Rap.'];
-      belgeDurumHtml += belgeSatirHtml(k.ad || '—', ayAdlari.slice(0, k12.length || 12), k12);
+        : REHB_RAPOR.map((_, i) => !!(k.durumlar && Object.values(k.durumlar)[i]));
+      belgeDurumHtml += yarayTabloHtml(k.ad || '—', REHB_RAPOR, k12);
     });
   }
 
@@ -283,16 +329,43 @@ function ogretmenRaporOlustur(id) {
     k.ogretmenId === id || adGeciyorMu(k.ad, adSoyad)
   );
   if (bepKayitlar2.length) {
-    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:10px 0 6px;">📌 BEP PLANI</div>';
+    belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin:12px 0 8px;letter-spacing:.3px;">📌 BEP PLANI</div>';
     bepKayitlar2.forEach(k => {
-      const kArr = [k.durumlar?.['yillik-plan']||false, k.durumlar?.['bep']||false];
-      belgeDurumHtml += belgeSatirHtml(k.ad || '—', ['Yıllık Plan','BEP'], kArr);
+      const kArr = Array.isArray(k.kontroller) ? k.kontroller
+        : BEP_RAPOR.map((_, i) => !!(k.durumlar && Object.values(k.durumlar)[i]));
+      belgeDurumHtml += yarayTabloHtml(k.ad || '—', BEP_RAPOR, kArr);
     });
   }
 
   if (!belgeDurumHtml) {
     belgeDurumHtml = '<p style="color:#888;font-style:italic;">Belge kaydı yok.</p>';
   }
+
+  /* ---- Yazılı Sınavlar ---- */
+  const yaziliSinavlari = (typeof sinavlar !== 'undefined' ? sinavlar : [])
+    .filter(s => s.ogretmenId === id || (s.siniflar && dersleri.some(d => s.siniflar.includes(d.sinif) && s.ders === d.ders)))
+    .sort((a, b) => (a.tarih || '').localeCompare(b.tarih || ''));
+
+  const yaziliHtml = yaziliSinavlari.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Tarih</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Sınıf</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Ders</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Dönem / Sıra</th>
+          <th style="padding:5px 8px;text-align:left;font-size:11px;">Tür</th>
+        </tr></thead>
+        <tbody>${yaziliSinavlari.map((s, i) => `
+          <tr style="${i % 2 === 1 ? 'background:#f7f9f9;' : ''}">
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.tarih ? formatTarih(s.tarih) : '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;font-weight:600;">${escapeHtml(s.siniflar || s.sinif || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.ders || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml([s.donem, s.yaziliSirasi].filter(Boolean).join(' · ') || '—')}</td>
+            <td style="padding:4px 8px;font-size:11px;">${escapeHtml(s.tur || '—')}</td>
+          </tr>`).join('')}
+        </tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">Yazılı sınav kaydı yok.</p>';
 
   /* ---- Diğer Evraklar ---- */
   const evraklar = (digerEvrakListesi || [])
@@ -361,6 +434,12 @@ function ogretmenRaporOlustur(id) {
     <div class="ogr-rapor-bolum">
       <h3>📆 Belirli Gün ve Haftalar</h3>
       ${belirliGunHtml}
+    </div>
+
+    <!-- Yazılı Sınavlar -->
+    <div class="ogr-rapor-bolum">
+      <h3>✏️ Yazılı Sınavlar</h3>
+      ${yaziliHtml}
     </div>
 
     <!-- Belge Durumu -->
