@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "check-and-notify.js",
   "scripts": {
-    "build": "echo ok",
+    "build": "npm install",
     "start": "node check-and-notify.js"
   },
   "dependencies": {
