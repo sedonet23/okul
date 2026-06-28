@@ -1097,13 +1097,18 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         if (!el) return;
         var btn = document.getElementById('btn-gorsel');
         if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
+        var genislik  = document.documentElement.scrollWidth;
+        var yukseklik = el.scrollHeight;
         html2canvas(el, {
           scale: 2,
           backgroundColor: '#ffffff',
           useCORS: true,
-          scrollX: 0,
-          scrollY: 0,
-          windowWidth: el.scrollWidth,
+          scrollX: -window.scrollX,
+          scrollY: -window.scrollY,
+          width: genislik,
+          height: yukseklik,
+          windowWidth: genislik,
+          windowHeight: yukseklik,
           logging: false
         }).then(function(canvas) {
           var link = document.createElement('a');
@@ -1259,8 +1264,20 @@ function raporTumOgretmenlerCarsaf() {
   });
 
   const rows = seciliOgretmenler.map(o => {
-    const tamAd = [o.ad, o.soyad].filter(Boolean).join(' ') || o.ad || '';
-    let row = `<tr><td class="satir-lbl" style="font-size:7px;">${escapeHtml(tamAd)}</td>`;
+    const adParca  = o.ad  || '';
+    const soyadParca = o.soyad || '';
+    // Eğer ad alanı zaten "Ad Soyad" içeriyorsa böl, yoksa ayrı göster
+    let adGoster, soyadGoster;
+    if (soyadParca) {
+      adGoster    = adParca;
+      soyadGoster = soyadParca;
+    } else {
+      const parcalar = adParca.trim().split(' ');
+      adGoster    = parcalar.slice(0, -1).join(' ') || adParca;
+      soyadGoster = parcalar.length > 1 ? parcalar[parcalar.length - 1] : '';
+    }
+    const adHtml = `<span style="display:block;font-size:6.5px;font-weight:700;line-height:1.3;">${escapeHtml(adGoster)}</span>${soyadGoster ? `<span style="display:block;font-size:6px;font-weight:600;line-height:1.2;color:#0A5050;">${escapeHtml(soyadGoster)}</span>` : ''}`;
+    let row = `<tr><td class="satir-lbl" style="font-size:6.5px;padding:2px 3px;">${adHtml}</td>`;
     GUNLER.forEach(gun => {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
