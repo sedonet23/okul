@@ -1088,15 +1088,15 @@ function _crsfTabloStyle() {
     table.crsf col.col-lbl{width:52px;}
     table.crsf col.col-hucre{width:36px;}
     table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #075757;width:52px;}
-    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:2px;text-align:center;font-size:6.5px;font-weight:700;border:1px solid #075757;width:28px;}
+    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:3px 4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #075757;}
     table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:2px 3px;text-align:center;font-size:7px;font-weight:700;border:1px solid #145a82;}
     table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:7px;border:1px solid #7ABABA;padding:2px;text-align:center;vertical-align:middle;white-space:nowrap;overflow:hidden;width:48px;}
-    table.crsf td.hucre{padding:2px 1px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;width:28px;overflow:hidden;height:32px;}
-    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;width:28px;height:32px;}
+    table.crsf td.hucre{padding:4px 3px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;overflow:hidden;height:36px;}
+    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;height:36px;}
     table.crsf tr:nth-child(even) td.hucre{background:inherit;}
     table.crsf tr:nth-child(even) td.bos{background:inherit;}
-    table.crsf td.gun-dolgu,
-    table.crsf th.gun-dolgu{background:#e8f5f5 !important;}
+    table.crsf td.gun-dolgu{background:#dff0ef !important;}
+    table.crsf th.gun-dolgu{background:#b8deda !important;}
     table.crsf td.gun-ilk,
     table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
@@ -1104,13 +1104,15 @@ function _crsfTabloStyle() {
     .c-ogr{color:#6b7280;font-size:5.5px;margin-top:1px;line-height:1.1;overflow:hidden;text-overflow:ellipsis;display:block;white-space:nowrap;}
     .c-zaman{font-weight:400;font-size:6px;display:block;color:#0A8080;margin-top:1px;line-height:1.2;}
     #crsf-sarici{transform-origin:top left;display:inline-block;}
-    .c-ders-tam{font-weight:700;font-size:8px;color:#1a1a1a;line-height:1.3;white-space:normal;}
-    .c-ogr-kucuk{color:#555;font-size:6px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%;}
+    .c-ders-tam{font-weight:700;font-size:10px;color:#1a1a1a;line-height:1.4;white-space:normal;}
+    .c-ogr-kucuk{color:#555;font-size:8px;line-height:1.3;white-space:normal;display:block;max-width:100%;word-break:break-word;}
     @media print{
-      @page{margin:0.5cm;}
       .rapor-toolbar{display:none!important;}
       #icerik-sarici{transform:none!important;}
-      #crsf-sarici{transform:none!important;}
+      #crsf-sarici{transform:none!important;display:block!important;}
+      .crsf-wrap{overflow:visible!important;}
+      table.crsf{width:100%!important;}
+      body{margin:0;padding:0;}
     }
   </style>
 `;
@@ -1128,52 +1130,30 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         body{${landscape?'width:297mm;':''}}
       }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"><\/script>
     <script>
-      function gorselKaydet() {
-        // Sadece tabloyu yakala (header hariç)
-        var el = document.getElementById('crsf-sarici');
-        if (!el) return;
-        var btn = document.getElementById('btn-gorsel');
-        if (btn) { btn.textContent = '⏳ Oluşturuluyor...'; btn.disabled = true; }
-        // Tüm tablo içeriğini eksiksiz yakala
+      function pdfKaydet() {
         var sarici = document.getElementById('crsf-sarici');
         var tablo  = sarici ? sarici.querySelector('table') : null;
-        var genislik  = tablo
-          ? Math.max(tablo.scrollWidth, tablo.offsetWidth, sarici.scrollWidth) + 8
-          : document.documentElement.scrollWidth;
-        var yukseklik = tablo
-          ? Math.max(tablo.scrollHeight, tablo.offsetHeight, sarici.scrollHeight) + 8
-          : el.scrollHeight + 8;
-        html2canvas(el, {
-          scale: 3,
-          backgroundColor: '#ffffff',
-          useCORS: true,
-          scrollX: 0,
-          scrollY: 0,
-          x: 0,
-          y: 0,
-          width: genislik,
-          height: yukseklik,
-          windowWidth: genislik + 50,
-          windowHeight: yukseklik + 50,
-          logging: false
-        }).then(function(canvas) {
-          var link = document.createElement('a');
-          link.download = '${baslikMetin.replace(/[^\w\s]/g,'').trim() || 'ders-programi'}.png';
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          if (btn) { btn.textContent = '🖼️ Görüntü Kaydet'; btn.disabled = false; }
-        }).catch(function(e) {
-          alert('Görüntü oluşturulamadı: ' + e.message);
-          if (btn) { btn.textContent = '🖼️ Görüntü Kaydet'; btn.disabled = false; }
-        });
+        if (!tablo) { window.print(); return; }
+        var px2mm = function(px){ return Math.ceil(px * 25.4 / 96); };
+        var genislikPx  = Math.max(tablo.scrollWidth, tablo.offsetWidth) + 20;
+        var yukseklikPx = Math.max(sarici.scrollHeight, sarici.offsetHeight) + 20;
+        var genislikMm  = px2mm(genislikPx);
+        var yukseklikMm = px2mm(yukseklikPx);
+        var styleEl = document.getElementById('crsf-page-style');
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = 'crsf-page-style';
+          document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = '@page { size: ' + genislikMm + 'mm ' + yukseklikMm + 'mm; margin: 5mm; }';
+        window.print();
       }
     <\/script>`;
 
   // Toolbar'a Görüntü Kaydet butonu ekle — _raporPenceresiniAc'dan sonra enjekte edeceğiz
   // Bunun için htmlIcerik içine özel toolbar eki koyuyoruz
-  const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="gorselKaydet()" style="background:#6366f1;color:#fff;">🖼️ Görüntü Kaydet</button>`;
+  const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="pdfKaydet()" style="background:#6366f1;color:#fff;">📄 PDF Kaydet</button>`;
 
   const icerik = ektraStyle +
     _crsfTabloStyle() +
@@ -1190,7 +1170,7 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
       var btn = win.document.getElementById('btn-gorsel');
       if (toolbar && btn) {
         var klon = btn.cloneNode(true);
-        klon.onclick = win.gorselKaydet;
+        klon.onclick = win.pdfKaydet;
         toolbar.insertBefore(klon, toolbar.children[1]);
       }
     } catch(e) {}
@@ -1224,8 +1204,8 @@ function raporTekSinifCarsaf() {
 
   const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
   const baslik = m.baslik || `${sn} Sınıfı Haftalık Ders Programı`;
-  const tablo = `<table class="crsf" style="width:100%;">
-    <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
+  const tablo = `<table class="crsf" style="width:100%;table-layout:auto;">
+    <thead><tr><th class="saat-th" style="width:90px;">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
   </table>`;
   _crsfGoster(tablo, baslik, m);
@@ -1256,8 +1236,8 @@ function raporTekOgretmenCarsaf() {
 
   const thGun = GUNLER.map((g,gi)=>`<th class="gun-th${gi%2===0?' gun-dolgu':''} ">${g}</th>`).join('');
   const baslik = m.baslik || `${ogrAd} — Haftalık Ders Programı`;
-  const tablo = `<table class="crsf" style="width:100%;">
-    <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
+  const tablo = `<table class="crsf" style="width:100%;table-layout:auto;">
+    <thead><tr><th class="saat-th" style="width:90px;">Ders Saati</th>${thGun}</tr></thead>
     <tbody>${saatRows}</tbody>
   </table>`;
   _crsfGoster(tablo, baslik, m);
