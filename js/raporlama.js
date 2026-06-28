@@ -1027,10 +1027,15 @@ function crsfTipDegisti() {
 
 /* ── Yardımcılar ── */
 
+function _crsfDersHtml(sinif, ders, ogretmenId) {
+  const sinifHtml = sinif  ? `<div class="c-sinif">${escapeHtml(sinif)}</div>` : '';
+  const dersHtml  = ders   ? `<div class="c-ders">${escapeHtml(ders)}</div>`   : '';
+  const ogrHtml   = ogretmenId ? `<div class="c-ogr">${escapeHtml(ogretmenAdi(ogretmenId))}</div>` : '';
+  return sinifHtml + dersHtml + ogrHtml;
+}
+// Eski _crsfDers uyumluluğu için
 function _crsfDers(ders) {
-  if (!ders) return '';
-  const kisalt = ders.slice(0, 4).toUpperCase();
-  return `<div class="ders">${kisalt}</div>`;
+  return ders ? `<div class="c-ders">${escapeHtml(ders)}</div>` : '';
 }
 
 function _crsfMeta() {
@@ -1045,64 +1050,29 @@ function _crsfMeta() {
   };
 }
 
-function _crsfHtmlBase(yon) {
-  const ls = (yon === 'landscape');
-  return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
-<style>
-  @page{size:A4 ${ls?'landscape':'portrait'};margin:0.6cm;}
-  @media print{@page{size:A4 ${ls?'landscape':'portrait'};margin:0.6cm;}
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{width:${ls?'297mm':'210mm'};}
-  body{font-family:'Segoe UI',Arial,sans-serif;font-size:7.5px;color:#111;padding:6px;}
-  .header{text-align:center;margin-bottom:6px;border-bottom:2px solid #2c3e50;padding-bottom:5px;}
-  .header .okul{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
-  .header .baslik{font-size:10px;font-weight:600;margin-top:2px;}
-  .header .alt{font-size:8px;margin-top:2px;color:#444;}
-  .header .meta{font-size:7px;color:#666;margin-top:1px;}
-  table{width:100%;border-collapse:collapse;table-layout:fixed;}
-  th.saat-th{background:#2c3e50;color:#fff;padding:3px 2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #1a252f;width:${ls?'42px':'36px'};}
-  th.gun-th{background:#2c3e50;color:#fff;padding:3px 2px;text-align:center;font-size:7px;font-weight:700;border:1px solid #1a252f;}
-  th.gun-grup{background:#1a6b9a;color:#fff;padding:3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #145a82;}
-  td.satir-lbl{background:#e8f0f7;color:#1a2e44;font-weight:700;font-size:7.5px;border:1px solid #b8cfe0;padding:3px;text-align:center;vertical-align:middle;white-space:normal;word-break:break-word;line-height:1.3;}
-  td.hucre{padding:2px;border:1px solid #ccc;vertical-align:top;}
-  td.bos{background:#fafafa;border:1px solid #e8e8e8;}
-  .sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;}
-  .ders{font-weight:700;font-size:7px;line-height:1.2;text-transform:uppercase;}
-  .ogr{color:#444;font-size:6.5px;margin-top:1px;line-height:1.2;word-break:break-word;}
-  .zaman{font-weight:400;font-size:5.5px;display:block;color:#888;}
-  tr:nth-child(even) td.hucre{background:#f7f9fc;}
-  tr:nth-child(even) td.bos{background:#f7f9fc;}
-</style>
-<script>
-  // Android Chrome için yön zorla
-  window.onload = function() {
-    if (${ls?'true':'false'}) {
-      // Yazdırma diyaloğu açılmadan önce landscape ipucu ver
-      document.body.style.width = '297mm';
-    }
-    window.print();
-  };
-</script>
-</head><body>`;
+function _crsfTabloStyle() {
+  return `<style>
+    .crsf-wrap{overflow-x:auto;}
+    table.crsf{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px;}
+    table.crsf th.saat-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8px;font-weight:700;border:1px solid #075757;width:52px;}
+    table.crsf th.gun-th{background:#0A6E6E;color:#fff;padding:4px 3px;text-align:center;font-size:8.5px;font-weight:700;border:1px solid #075757;}
+    table.crsf th.gun-grup{background:#1a6b9a;color:#fff;padding:4px;text-align:center;font-size:9px;font-weight:700;border:1px solid #145a82;}
+    table.crsf td.satir-lbl{background:#E6F4F4;color:#0A6E6E;font-weight:700;font-size:8.5px;border:1px solid #7ABABA;padding:4px;text-align:center;vertical-align:middle;white-space:normal;word-break:break-word;line-height:1.4;}
+    table.crsf td.hucre{padding:3px;border:1px solid #d1d5db;vertical-align:middle;text-align:center;}
+    table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;}
+    table.crsf tr:nth-child(even) td.hucre{background:#f9f8ff;}
+    table.crsf tr:nth-child(even) td.bos{background:#f9f8ff;}
+    .c-sinif{font-weight:700;font-size:9px;color:#1a5276;line-height:1.3;}
+    .c-ders{font-weight:600;font-size:8px;color:#1a1a1a;line-height:1.3;}
+    .c-ogr{color:#6b7280;font-size:7px;margin-top:1px;line-height:1.2;word-break:break-word;}
+    .c-zaman{font-weight:400;font-size:6.5px;display:block;color:#888;margin-top:1px;}
+  </style>`;
 }
 
-function _crsfHeaderHtml(m) {
-  return `<div class="header">
-    ${m.okulAdi   ? `<div class="okul">${escapeHtml(m.okulAdi)}</div>` : ''}
-    ${m.baslik    ? `<div class="baslik">${escapeHtml(m.baslik)}</div>` : ''}
-    ${m.altBaslik ? `<div class="alt">${escapeHtml(m.altBaslik)}</div>` : ''}
-    ${m.yil       ? `<div class="meta">${escapeHtml(m.yil)} Eğitim-Öğretim Yılı</div>` : ''}
-  </div>`;
-}
-
-function _crsfYazdir(html, yon) {
+function _crsfGoster(tabloHtml, baslikMetin, m) {
   modalKapat();
-  const w = window.open('','_blank', yon==='landscape' ? 'width=1200,height=750' : 'width=900,height=750');
-  w.document.write(html + '</body></html>');
-  w.document.close();
-  // print() artık html içindeki window.onload içinde çağrılıyor
+  const icerik = _crsfTabloStyle() + `<div class="crsf-wrap">${tabloHtml}</div>`;
+  _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
 }
 
 const CRSF_SAATLER = [1,2,3,4,5,6,7];
@@ -1120,21 +1090,19 @@ function raporTekSinifCarsaf() {
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
       row += d
-        ? `<td class="hucre">${_crsfDers(d.ders)}<div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+        ? `<td class="hucre">${_crsfDersHtml('', d.ders, d.ogretmenId)}</td>`
         : `<td class="hucre bos"></td>`;
     });
     return row + '</tr>';
   }).join('');
 
   const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
-  m.baslik = m.baslik || `${sn} Sınıfı Ders Programı`;
-
-  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
-    <table>
-      <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
-      <tbody>${saatRows}</tbody>
-    </table>`;
-  _crsfYazdir(html, m.yon);
+  const baslik = m.baslik || `${sn} Sınıfı Haftalık Ders Programı`;
+  const tablo = `<table class="crsf">
+    <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
+    <tbody>${saatRows}</tbody>
+  </table>`;
+  _crsfGoster(tablo, baslik, m);
 }
 
 /* ── Rapor 2: Tek Öğretmen ── */
@@ -1151,21 +1119,19 @@ function raporTekOgretmenCarsaf() {
     GUNLER.forEach(gun => {
       const d = dersProgrami.find(x => x.ogretmenId===ogrId && x.gun===gun && x.saat===saat);
       row += d
-        ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div>${_crsfDers(d.ders)}</td>`
+        ? `<td class="hucre">${_crsfDersHtml(d.sinif, d.ders, '')}</td>`
         : `<td class="hucre bos"></td>`;
     });
     return row + '</tr>';
   }).join('');
 
   const thGun = GUNLER.map(g=>`<th class="gun-th">${g}</th>`).join('');
-  m.baslik = m.baslik || `${ogrAd} — Ders Programı`;
-
-  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
-    <table>
-      <thead><tr><th class="saat-th">Saat</th>${thGun}</tr></thead>
-      <tbody>${saatRows}</tbody>
-    </table>`;
-  _crsfYazdir(html, m.yon);
+  const baslik = m.baslik || `${ogrAd} — Haftalık Ders Programı`;
+  const tablo = `<table class="crsf">
+    <thead><tr><th class="saat-th">Ders Saati</th>${thGun}</tr></thead>
+    <tbody>${saatRows}</tbody>
+  </table>`;
+  _crsfGoster(tablo, baslik, m);
 }
 
 /* ── Rapor 3: Tüm Sınıflar Çarşaf ── */
@@ -1188,19 +1154,18 @@ function raporTumSiniflarCarsaf() {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.sinif===sn && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre">${_crsfDers(d.ders)}<div class="ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
+          ? `<td class="hucre"><div class="c-ders">${escapeHtml(d.ders)}</div><div class="c-ogr">${escapeHtml(ogretmenAdi(d.ogretmenId))}</div></td>`
           : `<td class="hucre bos"></td>`;
       });
     });
     return row + '</tr>';
   }).join('');
 
-  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
-    <table>
-      <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  _crsfYazdir(html, m.yon);
+  const tablo = `<table class="crsf">
+    <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  _crsfGoster(tablo, m.baslik || 'Sınıflar Ders Programı', m);
 }
 
 /* ── Rapor 4: Tüm Öğretmenler Çarşaf ── */
@@ -1221,22 +1186,21 @@ function raporTumOgretmenlerCarsaf() {
   });
 
   const rows = seciliOgretmenler.map(o => {
-    let row = `<tr><td class="satir-lbl" style="font-size:7.5px;">${escapeHtml(o.ad||'')}</td>`;
+    let row = `<tr><td class="satir-lbl">${escapeHtml(o.ad||'')}</td>`;
     GUNLER.forEach(gun => {
       CRSF_SAATLER.forEach(saat => {
         const d = dersProgrami.find(x => x.ogretmenId===o.id && x.gun===gun && x.saat===saat);
         row += d
-          ? `<td class="hucre"><div class="sinif">${escapeHtml(d.sinif)}</div>${_crsfDers(d.ders)}</td>`
+          ? `<td class="hucre"><div class="c-sinif">${escapeHtml(d.sinif)}</div><div class="c-ders">${escapeHtml(d.ders)}</div></td>`
           : `<td class="hucre bos"></td>`;
       });
     });
     return row + '</tr>';
   }).join('');
 
-  const html = _crsfHtmlBase(m.yon) + _crsfHeaderHtml(m) + `
-    <table>
-      <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  _crsfYazdir(html, m.yon);
+  const tablo = `<table class="crsf">
+    <thead><tr>${th1}</tr><tr>${th2}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  _crsfGoster(tablo, m.baslik || 'Öğretmenler Ders Programı', m);
 }
