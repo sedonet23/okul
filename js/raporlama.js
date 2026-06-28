@@ -1095,8 +1095,13 @@ function _crsfTabloStyle() {
     table.crsf td.bos{background:#fafafa;border:1px solid #e5e7eb;height:36px;}
     table.crsf tr:nth-child(even) td.hucre{background:inherit;}
     table.crsf tr:nth-child(even) td.bos{background:inherit;}
-    table.crsf td.gun-dolgu{background:#dff0ef !important;}
-    table.crsf th.gun-dolgu{background:#b8deda !important;}
+    table.crsf td.gun-dolgu{background:#dff0ef !important;color:#111 !important;}
+    table.crsf th.gun-dolgu{background:#b8deda !important;color:#fff !important;}
+    table.crsf td.gun-dolgu .c-sinif{color:#1a5276 !important;}
+    table.crsf td.gun-dolgu .c-ders{color:#111 !important;}
+    table.crsf td.gun-dolgu .c-ogr{color:#444 !important;}
+    table.crsf td.gun-dolgu .c-ders-tam{color:#111 !important;}
+    table.crsf td.gun-dolgu .c-ogr-kucuk{color:#444 !important;}
     table.crsf td.gun-ilk,
     table.crsf th.gun-ilk{border-left:2px solid #0A6E6E !important;}
     .c-sinif{font-weight:700;font-size:7px;color:#1a5276;line-height:1.2;white-space:nowrap;}
@@ -1136,17 +1141,27 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
         var tablo  = sarici ? sarici.querySelector('table') : null;
         if (!tablo) { window.print(); return; }
         var px2mm = function(px){ return Math.ceil(px * 25.4 / 96); };
-        var genislikPx  = Math.max(tablo.scrollWidth, tablo.offsetWidth) + 20;
-        var yukseklikPx = Math.max(sarici.scrollHeight, sarici.offsetHeight) + 20;
-        var genislikMm  = px2mm(genislikPx);
-        var yukseklikMm = px2mm(yukseklikPx);
+        var genislikPx  = Math.max(tablo.scrollWidth, tablo.offsetWidth) + 10;
+        var yukseklikPx = Math.max(sarici.scrollHeight, sarici.offsetHeight) + 60;
+        var genislikMm  = Math.max(px2mm(genislikPx), 100);
+        var yukseklikMm = Math.max(px2mm(yukseklikPx), 80);
         var styleEl = document.getElementById('crsf-page-style');
         if (!styleEl) {
           styleEl = document.createElement('style');
           styleEl.id = 'crsf-page-style';
           document.head.appendChild(styleEl);
         }
-        styleEl.textContent = '@page { size: ' + genislikMm + 'mm ' + yukseklikMm + 'mm; margin: 5mm; }';
+        styleEl.textContent = [
+          '@page { size: ' + genislikMm + 'mm ' + yukseklikMm + 'mm; margin: 5mm; }',
+          '@media print {',
+          '  .rapor-toolbar { display:none !important; }',
+          '  #crsf-pdf-baslik { display:block !important; }',
+          '  body { margin:0; padding:0; }',
+          '  #crsf-sarici { display:block !important; }',
+          '  .crsf-wrap { overflow:visible !important; }',
+          '  table.crsf { width:100% !important; }',
+          '}'
+        ].join('\n');
         window.print();
       }
     <\/script>`;
@@ -1155,9 +1170,14 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
   // Bunun için htmlIcerik içine özel toolbar eki koyuyoruz
   const gorselBtn = `<button id="btn-gorsel" class="btn-gorsel" onclick="pdfKaydet()" style="background:#6366f1;color:#fff;">📄 PDF Kaydet</button>`;
 
+  const pdfBaslik = `<div id="crsf-pdf-baslik" style="display:none;margin-bottom:6px;border-bottom:2px solid #0A6E6E;padding-bottom:4px;">
+    <div style="font-size:13px;font-weight:700;color:#0A6E6E;">${escapeHtml(baslikMetin)}</div>
+  </div>`;
+
   const icerik = ektraStyle +
     _crsfTabloStyle() +
     `<div id="crsf-extra-btn" style="display:none;">${gorselBtn}</div>` +
+    pdfBaslik +
     `<div class="crsf-wrap" style="overflow-x:auto;"><div id="crsf-sarici" style="display:inline-block;min-width:100%;">${tabloHtml}</div></div>`;
 
   const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
