@@ -1,0 +1,20 @@
+{
+  "appId": "com.koruk.okul",
+  "appName": "Koruk Okul",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#0A6E6E",
+      "showSpinner": false
+    }
+  }
+}
