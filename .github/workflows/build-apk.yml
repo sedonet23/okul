@@ -38,11 +38,6 @@ jobs:
           cp manifest.json www/ 2>/dev/null || true
           cp firebase-messaging-sw.js www/ 2>/dev/null || true
 
-      - name: Uygulama ikonlarını oluştur
-        run: |
-          pip install Pillow -q
-          python3 icon_gen.py
-
       - name: google-services.json oluştur
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
