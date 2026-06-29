@@ -51,11 +51,18 @@ async function widgetGuncelle() {
     const tarih = _bugunTarihStr();
     const bugunISO = new Date().toISOString().slice(0, 10);
 
+    // --- Tatil Modu Kontrolü ---
+    const tatilModu = !!(typeof dersSaatleriAyarlari !== 'undefined' &&
+                         dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
+    const tatilNotu = tatilModu
+      ? (dersSaatleriAyarlari.tatilModuNotu || 'Okul tatilde')
+      : null;
+
     // --- Nöbet ---
-    let nobetMetin = 'Nöbet yok';
+    let nobetMetin = tatilModu ? `🏖️ ${tatilNotu}` : 'Nöbet yok';
     const _nobetAtamalari = (typeof nobetAtamalari !== 'undefined') ? nobetAtamalari : [];
     const _nobetYerleri   = (typeof nobetYerleri   !== 'undefined') ? nobetYerleri   : [];
-    if (_nobetAtamalari.length) {
+    if (!tatilModu && _nobetAtamalari.length) {
       const bugunNobetler = _nobetAtamalari.filter(n => n.tarih === bugunISO);
       if (bugunNobetler.length) {
         nobetMetin = bugunNobetler.map(n => {
@@ -69,9 +76,9 @@ async function widgetGuncelle() {
     }
 
     // --- Bugünkü Dersler ---
-    let dersMetin = 'Ders yok';
+    let dersMetin = tatilModu ? `🏖️ ${tatilNotu}` : 'Ders yok';
     const _dersProgrami = (typeof dersProgrami !== 'undefined') ? dersProgrami : [];
-    if (_dersProgrami.length) {
+    if (!tatilModu && _dersProgrami.length) {
       const bugunDersler = _dersProgrami
         .filter(d => d.gun === bugunGun)
         .sort((a, b) => (a.saat || 0) - (b.saat || 0));
@@ -96,8 +103,8 @@ async function widgetGuncelle() {
       ? okulBilgileriAyari.okulAdi : 'Okul Yönetim Paneli';
 
     // --- Zil Sayacı ---
-    let zilMetin = 'Zil programı yok';
-    try {
+    let zilMetin = tatilModu ? '' : 'Zil programı yok';
+    if (!tatilModu) try {
       if (typeof dersSaatleriSegmentleri === 'function') {
         const segmentler = dersSaatleriSegmentleri();
         const simdiDk = new Date().getHours() * 60 + new Date().getMinutes();
