@@ -890,8 +890,11 @@ function haritaSekmesiAc(){
 function uygulamaBaslat(){
   document.getElementById('bugunMetni').textContent = bugunMetni();
   baglantilariKur();
-  pushDurumGuncelle();
-  pushOnMessageDinleyiciKur();
+  // Capacitor'ın initialize olmasını bekle, sonra push durumunu kontrol et
+  setTimeout(()=>{
+    pushDurumGuncelle();
+    pushOnMessageDinleyiciKur();
+  }, 1000);
   setInterval(()=>{ renderZilSayaci(GUNADI[new Date().getDay()]); }, 30000);
 }
 
