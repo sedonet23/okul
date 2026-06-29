@@ -904,6 +904,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ modalKapat(); detayPanelKapat(); } });
   document.getElementById('bildirimAcBtn')?.addEventListener('click', bildirimleriAc);
 
+  // Widget "Not Ekle" butonundan gelen deep-link
+  window.addEventListener('widgetSayfaAc', (e) => {
+    const page = e.detail?.page;
+    if (page && typeof sekmeAc === 'function') {
+      sekmeAc(page); // page = 'notlar'
+    }
+  });
+
   try{
     if(firebaseyiBaslat()){
       authDinleyiciKur();
