@@ -9,13 +9,24 @@ function isNative(){
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
+/* Native plugin'i güvenli şekilde yükle — sadece native ortamda çalışır */
+async function _getNativePush(){
+  if(!isNative()) throw new Error('Native ortam değil');
+  // Capacitor APK içinde plugin zaten global olarak mevcut
+  if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications){
+    return window.Capacitor.Plugins.PushNotifications;
+  }
+  // Fallback: dinamik import (sadece native WebView'da CDN erişilebilir)
+  const mod = await import('https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6/dist/index.js');
+  return mod.PushNotifications;
+}
+
 function pushDurumGuncelle(){
   const dot   = document.getElementById('pushDot');
   const metin = document.getElementById('pushMetin');
   if(!metin) return;
 
   if(isNative()){
-    // Native durum async — başlangıçta kısa metin yeterli
     metin.textContent = 'Bildirim durumu kontrol ediliyor...';
     _nativePushDurumKontrol(dot, metin);
     return;
@@ -36,8 +47,12 @@ function pushDurumGuncelle(){
 }
 
 async function _nativePushDurumKontrol(dot, metin){
+  if(!isNative()){
+    metin.textContent = 'Bildirim durumu alınamadı.';
+    return;
+  }
   try {
-    const { PushNotifications } = await import('https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6/dist/index.js');
+    const PushNotifications = await _getNativePush();
     const perm = await PushNotifications.checkPermissions();
     if(perm.receive === 'granted'){
       if(dot) dot.classList.add('on');
@@ -75,8 +90,12 @@ async function bildirimleriAc(){
 }
 
 async function _nativeBildirimleriAc(){
+  if(!isNative()){
+    toast('Native ortam algılanamadı.');
+    return;
+  }
   try {
-    const { PushNotifications } = await import('https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6/dist/index.js');
+    const PushNotifications = await _getNativePush();
 
     // İzin iste
     let perm = await PushNotifications.checkPermissions();
