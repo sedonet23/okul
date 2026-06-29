@@ -7,6 +7,7 @@
     android:orientation="vertical"
     android:padding="12dp">
 
+    <!-- Başlık: Okul adı + tarih -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -19,7 +20,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Okul Y&#246;netim Paneli"
+            android:text="Okul Yönetim Paneli"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -35,10 +36,11 @@
             android:textSize="9sp" />
     </LinearLayout>
 
+    <!-- Nöbet -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="&#128737; BUG&#220;N N&#214;BET"
+        android:text="&#128737; BUGÜN NÖBET"
         android:textColor="#ABDEDE"
         android:textSize="8sp"
         android:textStyle="bold" />
@@ -47,13 +49,14 @@
         android:id="@+id/widget_nobet_icerik"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="N&#246;bet verisi yok.\nUygulamay&#305; a&#231;&#305;n&#305;z."
+        android:text="Nöbet verisi yok."
         android:textColor="#FFFFFF"
         android:textSize="10sp"
         android:maxLines="2"
         android:ellipsize="end"
-        android:paddingBottom="4dp" />
+        android:paddingBottom="3dp" />
 
+    <!-- Zil -->
     <TextView
         android:id="@+id/widget_zil_icerik"
         android:layout_width="match_parent"
@@ -63,12 +66,13 @@
         android:textSize="10sp"
         android:maxLines="1"
         android:ellipsize="end"
-        android:paddingBottom="4dp" />
+        android:paddingBottom="3dp" />
 
+    <!-- Bugünkü Dersler — kalan tüm alanı doldurur -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="&#128197; BUG&#220;N DERSLER"
+        android:text="&#128197; BUGÜN DERSLER"
         android:textColor="#ABDEDE"
         android:textSize="8sp"
         android:textStyle="bold" />
@@ -78,17 +82,19 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Ders program&#305; yok.&#10;Uygulamay&#305; a&#231;&#305;n&#305;z."
+        android:text="Ders programı yok."
         android:textColor="#FFFFFF"
         android:textSize="10sp"
-        android:maxLines="5"
+        android:maxLines="6"
         android:ellipsize="end"
-        android:paddingBottom="4dp" />
+        android:gravity="top"
+        android:paddingBottom="3dp" />
 
+    <!-- Yaklaşan Belgeler -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="&#128203; YAKLA&#350;AN BELGELER"
+        android:text="&#128203; YAKLAŞAN BELGELER"
         android:textColor="#ABDEDE"
         android:textSize="8sp"
         android:textStyle="bold" />
@@ -104,6 +110,7 @@
         android:ellipsize="end"
         android:paddingBottom="6dp" />
 
+    <!-- Not Ekle butonu — her zaman en altta -->
     <TextView
         android:id="@+id/widget_not_btn"
         android:layout_width="match_parent"
@@ -114,7 +121,7 @@
         android:textStyle="bold"
         android:gravity="center"
         android:background="#33FFFFFF"
-        android:paddingTop="5dp"
-        android:paddingBottom="5dp" />
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp" />
 
 </LinearLayout>
