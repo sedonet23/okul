@@ -1,18 +1,19 @@
 {
-  "name": "okul-bildirim-servis",
-  "version": "1.0.0",
-  "main": "check-and-notify.js",
-  "scripts": {
-    "start": "node check-and-notify.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "firebase-admin": "^12.0.0",
-    "@capacitor/core": "^6.0.0",
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/cli": "^6.0.0"
-  },
-  "engines": {
-    "node": ">=18"
-  }
+    "name": "okul-bildirim-servis",
+    "version": "1.0.0",
+    "main": "check-and-notify.js",
+    "scripts": {
+        "start": "node check-and-notify.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "firebase-admin": "^12.0.0",
+        "@capacitor/core": "^6.0.0",
+        "@capacitor/android": "^6.0.0",
+        "@capacitor/cli": "^6.0.0",
+        "@capacitor/push-notifications": "^6.0.0"
+    },
+    "engines": {
+        "node": ">=18"
+    }
 }
