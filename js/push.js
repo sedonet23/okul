@@ -4,21 +4,17 @@
    - Android APK (Capacitor): Native PushNotifications plugin
    ==================================================================== */
 
-/* Capacitor native ortamda mı çalışıyoruz? */
 function isNative(){
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
-/* Native plugin'i güvenli şekilde yükle — sadece native ortamda çalışır */
+/* Native plugin'i güvenli şekilde al — CDN import YOK */
 async function _getNativePush(){
   if(!isNative()) throw new Error('Native ortam değil');
-  // Capacitor APK içinde plugin zaten global olarak mevcut
-  if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications){
+  if(window.Capacitor?.Plugins?.PushNotifications){
     return window.Capacitor.Plugins.PushNotifications;
   }
-  // Fallback: dinamik import (sadece native WebView'da CDN erişilebilir)
-  const mod = await import('https://cdn.jsdelivr.net/npm/@capacitor/push-notifications@6/dist/index.js');
-  return mod.PushNotifications;
+  throw new Error('PushNotifications plugin bulunamadı');
 }
 
 function pushDurumGuncelle(){
@@ -62,6 +58,7 @@ async function _nativePushDurumKontrol(dot, metin){
     }
   } catch(e){
     metin.textContent = 'Bildirim durumu alınamadı.';
+    console.warn('Push durum hatası:', e.message);
   }
 }
 
@@ -70,7 +67,6 @@ async function bildirimleriAc(){
     await _nativeBildirimleriAc();
     return;
   }
-  // ── Web yolu ────────────────────────────────────────────────────────
   if(!messaging){ toast('Bu tarayıcı/ortam push bildirimlerini desteklemiyor.'); return; }
   try{
     const izin = await Notification.requestPermission();
@@ -97,7 +93,6 @@ async function _nativeBildirimleriAc(){
   try {
     const PushNotifications = await _getNativePush();
 
-    // İzin iste
     let perm = await PushNotifications.checkPermissions();
     if(perm.receive === 'prompt'){
       perm = await PushNotifications.requestPermissions();
@@ -107,7 +102,6 @@ async function _nativeBildirimleriAc(){
       return;
     }
 
-    // Kayıt listener'larını kur (tekrar eklememeye dikkat)
     PushNotifications.addListener('registration', async (tokenObj) => {
       const token = tokenObj.value;
       try {
@@ -127,12 +121,10 @@ async function _nativeBildirimleriAc(){
       toast('Bildirim kayıt hatası: ' + JSON.stringify(err));
     });
 
-    // Foreground bildirim dinleyicisi
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       toast(`${notification.title || 'Bildirim'}: ${notification.body || ''}`);
     });
 
-    // Kayıt başlat
     await PushNotifications.register();
 
   } catch(e){
@@ -142,7 +134,7 @@ async function _nativeBildirimleriAc(){
 }
 
 function pushOnMessageDinleyiciKur(){
-  if(isNative()) return; // Native için listener zaten _nativeBildirimleriAc'ta kurulur
+  if(isNative()) return;
   if(!messaging) return;
   messaging.onMessage(payload=>{
     const baslik = payload.notification ? payload.notification.title : 'Bildirim';
