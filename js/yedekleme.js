@@ -22,6 +22,24 @@ const YEDEK_ARALIGI_GUN = 7; // otomatik yedekleme sıklığı
 let driveTokenClient = null;
 let driveErisimTokeni = null;
 
+/* Native Capacitor ortamında mı? */
+function _driveIsNative(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
+/* APK'da Google Drive desteklenmiyor — bölümü gizle */
+function driveNativeGizle(){
+  if(!_driveIsNative()) return;
+  // Drive kartını gizle
+  const btn = document.getElementById('driveYedekBtn');
+  if(btn){
+    const kart = btn.closest('.card');
+    if(kart){
+      kart.style.display = 'none';
+    }
+  }
+}
+
 function driveYapilandirmaEksikMi(){
   return GOOGLE_CLIENT_ID === "BURAYA_GOOGLE_CLIENT_ID";
 }
@@ -117,6 +135,7 @@ async function driveyeYedekleAt(otomatikMi){
 }
 
 function driveOtomatikYedekKontrolEt(){
+  if(_driveIsNative()) return; // APK'da Drive desteklenmiyor
   if(driveYapilandirmaEksikMi()) return;
   const son = localStorage.getItem('oySonDriveYedek');
   const aradanGecenGun = son ? (Date.now() - new Date(son).getTime()) / 86400000 : Infinity;
@@ -132,6 +151,7 @@ function driveOtomatikYedekKontrolEt(){
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
+  driveNativeGizle(); // APK'da Drive kartını gizle
   const manuelBtn = document.getElementById('driveYedekBtn');
   if(manuelBtn) manuelBtn.addEventListener('click', ()=>driveyeYedekleAt(false));
   setTimeout(driveOtomatikYedekKontrolEt, 4000); // diğer veriler yüklensin diye küçük gecikme
