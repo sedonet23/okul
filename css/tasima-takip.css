@@ -1,0 +1,377 @@
+/* =============================================
+   css/tasima-takip.css
+   TAŞIMA TAKİP ÇİZELGESİ STİLLERİ
+   ============================================= */
+
+/* ── Modal Overlay ── */
+#ttModal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(3px);
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* ── Modal Kapsayıcı ── */
+.tt-container {
+  background: var(--nm-bg, #e8ecf0);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 920px;
+  margin: auto;
+  box-shadow: 10px 10px 24px rgba(0,0,0,0.3), -4px -4px 12px rgba(255,255,255,0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+.tt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.tt-header-left  { display: flex; align-items: center; gap: 6px; }
+.tt-header-center { flex: 1; text-align: center; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.5px; }
+.tt-header-right  { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.tt-btn-icon {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 7px;
+  width: 30px; height: 30px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tt-btn-icon:hover { background: rgba(255,255,255,0.35); }
+
+.tt-ay-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 130px;
+  text-align: center;
+}
+
+.tt-btn-action {
+  background: rgba(255,255,255,0.2);
+  border: none;
+  color: #fff;
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tt-btn-action:hover { background: rgba(255,255,255,0.35); }
+
+.tt-btn-kapat {
+  background: rgba(220,0,0,0.35);
+  border: none;
+  color: #fff;
+  border-radius: 7px;
+  width: 28px; height: 28px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tt-btn-kapat:hover { background: rgba(220,0,0,0.6); }
+
+/* ── Yazdırılacak Alan ── */
+.tt-print-area {
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+
+/* ── Sayfa Başlığı ── */
+.tt-sayfa-baslik { text-align: center; margin-bottom: 10px; }
+
+.tt-baslik-1 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1b5e20;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tt-baslik-2 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #2e7d32;
+  margin-top: 2px;
+}
+
+/* ── Üst Bilgi Tablosu ── */
+.tt-info-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 0.73rem;
+}
+.tt-info-tablo td {
+  border: 1px solid #888;
+  padding: 4px 7px;
+  color: var(--ink, #222);
+}
+.tt-info-tablo .tt-lbl {
+  background: #c8e6c9;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #1b5e20;
+}
+
+/* ── Öğrenci Grid ── */
+.tt-ogrenci-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #888;
+  margin-bottom: 10px;
+}
+
+.tt-ogr-col { border-right: 1px solid #888; }
+.tt-ogr-col:last-child { border-right: none; }
+
+.tt-ogr-head {
+  display: grid;
+  grid-template-columns: 28px 1fr 52px;
+  background: #a5d6a7;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+  color: #1b5e20;
+  border-bottom: 1px solid #888;
+}
+.tt-ogr-head span { padding: 4px 2px; border-right: 1px solid #bbb; }
+.tt-ogr-head span:last-child { border-right: none; }
+
+.tt-ogr-row {
+  display: grid;
+  grid-template-columns: 28px 1fr 52px;
+  font-size: 0.65rem;
+  border-bottom: 1px solid #ddd;
+}
+.tt-ogr-row:last-child { border-bottom: none; }
+.tt-ogr-row:nth-child(even) { background: #f5f5f5; }
+.tt-ogr-row span { padding: 3px 2px; text-align: center; border-right: 1px solid #e0e0e0; color: var(--ink, #222); }
+.tt-ogr-row span:last-child { border-right: none; }
+.tt-ogr-row .tt-ogr-ad { text-align: left; padding-left: 5px; }
+
+/* ── Ana Takip Tablosu ── */
+.tt-tablo-wrap { overflow-x: auto; }
+
+.tt-ana-tablo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.67rem;
+  min-width: 660px;
+}
+.tt-ana-tablo th,
+.tt-ana-tablo td {
+  border: 1px solid #888;
+  padding: 3px 3px;
+  text-align: center;
+  vertical-align: middle;
+  color: var(--ink, #222);
+}
+.tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left; padding-left: 7px; width: 120px; color: #1b5e20; }
+.tt-th-sabah { background: #a5d6a7; font-weight: 700; color: #1b5e20; }
+.tt-th-aksam { background: #a5d6a7; font-weight: 700; color: #1b5e20; }
+.tt-th-sub   { background: #c8e6c9; font-weight: 600; font-size: 0.62rem; color: #1b5e20; }
+
+.tt-tarih-hucre { text-align: left; padding-left: 7px; font-size: 0.66rem; }
+
+/* Hafta sonu */
+.tt-ana-tablo tr.tt-hs td {
+  background: #eeeeee;
+  color: #888;
+  font-style: italic;
+  font-size: 0.62rem;
+}
+
+/* Resmi tatil */
+.tt-ana-tablo tr.tt-tatil td {
+  background: #fff8e1;
+  color: #e65100;
+}
+
+/* İmza hücresi (boş) */
+.tt-imza-hucre { min-width: 44px; }
+
+/* Input'lar */
+.tt-ana-tablo td input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--ink, #222);
+  padding: 1px;
+  outline: none;
+}
+.tt-ana-tablo td input:focus {
+  background: #e8f5e9;
+  border-radius: 3px;
+}
+
+/* ── İmza Satırı ── */
+.tt-imza-satir {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px 24px 6px;
+}
+.tt-imza-kutu { text-align: center; min-width: 140px; }
+.tt-imza-ad   { font-size: 0.72rem; color: var(--ink-muted, #555); min-height: 14px; }
+.tt-imza-unvan {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--ink, #333);
+  border-top: 1px solid #555;
+  padding-top: 4px;
+  margin-top: 26px;
+}
+
+/* ── Servis Kartındaki Buton ── */
+.btn-takip-cizelge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.18s;
+  margin-top: 5px;
+}
+.btn-takip-cizelge:hover {
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.25);
+}
+
+/* ── Dark Theme ── */
+[data-theme="dark"] .tt-container { background: #1a1f26; }
+[data-theme="dark"] .tt-print-area { background: #1a1f26; }
+[data-theme="dark"] .tt-info-tablo td { border-color: #3a3f48; color: #cdd6f4; }
+[data-theme="dark"] .tt-info-tablo .tt-lbl { background: #1a3a1a; color: #a5d6a7; }
+[data-theme="dark"] .tt-ogr-head { background: #1a3a1a; color: #a5d6a7; }
+[data-theme="dark"] .tt-ogr-head span { border-color: #2e4a2e; }
+[data-theme="dark"] .tt-ogr-row span { color: #cdd6f4; border-color: #2a2f38; }
+[data-theme="dark"] .tt-ogr-row:nth-child(even) { background: #22272e; }
+[data-theme="dark"] .tt-ogrenci-grid { border-color: #3a3f48; }
+[data-theme="dark"] .tt-ogr-col { border-color: #3a3f48; }
+[data-theme="dark"] .tt-ana-tablo th,
+[data-theme="dark"] .tt-ana-tablo td { border-color: #3a3f48; color: #cdd6f4; }
+[data-theme="dark"] .tt-th-sabah,
+[data-theme="dark"] .tt-th-aksam { background: #1a3a1a; color: #a5d6a7; }
+[data-theme="dark"] .tt-th-tarih,
+[data-theme="dark"] .tt-th-sub   { background: #1e2e1e; color: #a5d6a7; }
+[data-theme="dark"] .tt-ana-tablo tr.tt-hs td { background: #22272e; color: #555; }
+[data-theme="dark"] .tt-ana-tablo tr.tt-tatil td { background: #2a2010; color: #ffb74d; }
+[data-theme="dark"] .tt-ana-tablo td input { color: #cdd6f4; }
+[data-theme="dark"] .tt-ana-tablo td input:focus { background: #1a3a1a; }
+[data-theme="dark"] .tt-baslik-1 { color: #a5d6a7; }
+[data-theme="dark"] .tt-baslik-2 { color: #81c784; }
+[data-theme="dark"] .tt-imza-unvan { color: #cdd6f4; border-color: #555; }
+[data-theme="dark"] .tt-imza-ad { color: #888; }
+
+/* ── Yazdırma / PDF ── */
+@media print {
+  body > *:not(#ttModal) { display: none !important; }
+
+  #ttModal {
+    display: block !important;
+    position: static !important;
+    background: #fff !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .tt-container {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  .tt-header { display: none !important; }
+
+  .tt-print-area {
+    padding: 6mm 7mm !important;
+    background: #fff !important;
+  }
+
+  .tt-baslik-1 { font-size: 11pt !important; color: #000 !important; }
+  .tt-baslik-2 { font-size: 9pt !important;  color: #000 !important; }
+
+  .tt-info-tablo td { font-size: 7.5pt !important; border-color: #000 !important; color: #000 !important; }
+  .tt-info-tablo .tt-lbl {
+    background: #c8e6c9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000 !important;
+  }
+
+  .tt-ogrenci-grid { border-color: #000 !important; }
+  .tt-ogr-col { border-color: #000 !important; }
+  .tt-ogr-head {
+    background: #a5d6a7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 6.5pt !important;
+    color: #000 !important;
+  }
+  .tt-ogr-head span { border-color: #888 !important; }
+  .tt-ogr-row { font-size: 6pt !important; }
+  .tt-ogr-row span { color: #000 !important; }
+
+  .tt-ana-tablo th, .tt-ana-tablo td { border-color: #000 !important; font-size: 6pt !important; color: #000 !important; }
+  .tt-th-sabah, .tt-th-aksam {
+    background: #a5d6a7 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000 !important;
+  }
+  .tt-th-tarih, .tt-th-sub {
+    background: #c8e6c9 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #000 !important;
+  }
+  .tt-ana-tablo tr.tt-hs td {
+    background: #eeeeee !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #777 !important;
+  }
+  .tt-ana-tablo tr.tt-tatil td {
+    background: #fff8e1 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color: #b35000 !important;
+  }
+  .tt-ana-tablo td input { font-size: 6pt !important; color: #000 !important; }
+
+  .tt-imza-satir { margin-top: 10px !important; padding: 0 8px !important; }
+  .tt-imza-unvan { font-size: 7.5pt !important; color: #000 !important; border-color: #000 !important; }
+  .tt-imza-ad    { font-size: 7pt !important; color: #000 !important; }
+
+  @page { size: A4 portrait; margin: 8mm; }
+}
