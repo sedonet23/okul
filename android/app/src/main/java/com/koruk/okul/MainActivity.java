@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.getcapacitor.BridgeActivity;
-import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 public class MainActivity extends BridgeActivity {
 
@@ -14,7 +13,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetPlugin.class);
-        registerPlugin(PushNotificationsPlugin.class);
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
