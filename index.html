@@ -73,6 +73,7 @@
       <button class="nav-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
       <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
+      <button class="nav-tab" data-tab="formlar"><span class="nt-ico">📋</span><span class="nt-label">Formlar</span></button>
       
       <div class="nav-separator">— Çizelgeler —</div>
       
@@ -364,6 +365,69 @@
         </div>
       </div>
       <div id="dokumanlarListesi" class="evrak-liste"></div>
+    </section>
+
+    <!-- FORMLAR -->
+    <section id="tab-formlar" class="tab-panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📋 Formlar &amp; Belgeler</div>
+          <div class="page-sub">Yazdırılabilir okul formları ve dilekçe şablonları</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
+
+        <div class="card" style="cursor:pointer;" onclick="formOgrenciTanimaAc()">
+          <div style="font-size:32px;margin-bottom:10px;">📝</div>
+          <h3 style="margin-bottom:6px;">Öğrenci Tanıma Formu</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">
+            Yeni kayıt öğrencisi için aile bilgisi, sağlık ve iletişim formu.
+            Firestore'a kaydeder ve yazdırır.
+          </p>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px;">Formu Aç</button>
+        </div>
+
+        <div class="card" style="cursor:pointer;" onclick="formIzinDilekceAc()">
+          <div style="font-size:32px;margin-bottom:10px;">📄</div>
+          <h3 style="margin-bottom:6px;">İzin Dilekçesi</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">
+            Yıllık izin, mazeret, hastalık veya ücretsiz izin için
+            öğretmen dilekçesi şablonu. Müdür onay kutucuklu.
+          </p>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px;">Formu Aç</button>
+        </div>
+
+        <!-- İleride eklenecek kartlar için yer tutucu -->
+        <div class="card" style="opacity:.45;pointer-events:none;">
+          <div style="font-size:32px;margin-bottom:10px;">🚌</div>
+          <h3 style="margin-bottom:6px;">Servis Denetim Formu</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">Araç denetim kontrol listesi ve imza. (Yakında)</p>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;" disabled>Yakında</button>
+        </div>
+
+        <div class="card" style="opacity:.45;pointer-events:none;">
+          <div style="font-size:32px;margin-bottom:10px;">📜</div>
+          <h3 style="margin-bottom:6px;">Tebliğ Tebellüğ Belgesi</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">Okul geneli veya bireysel tebliğ ve imza listesi. (Yakında)</p>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;" disabled>Yakında</button>
+        </div>
+
+        <div class="card" style="opacity:.45;pointer-events:none;">
+          <div style="font-size:32px;margin-bottom:10px;">🗺️</div>
+          <h3 style="margin-bottom:6px;">Okul Dışı Gezi Planı</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">Gezi bilgisi, katılımcı listesi ve veli izin belgesi. (Yakında)</p>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;" disabled>Yakında</button>
+        </div>
+
+        <div class="card" style="opacity:.45;pointer-events:none;">
+          <div style="font-size:32px;margin-bottom:10px;">📬</div>
+          <h3 style="margin-bottom:6px;">Veli Toplantısı Davetiyesi</h3>
+          <p style="color:var(--ink-muted);font-size:13px;">Sınıf bazlı toplu davetiye oluşturma ve yazdırma. (Yakında)</p>
+          <button class="btn btn-ghost btn-sm" style="margin-top:12px;" disabled>Yakında</button>
+        </div>
+
+      </div>
     </section>
 
         <section id="tab-harita" class="tab-panel">
@@ -794,6 +858,19 @@
         <p style="color:var(--ink-muted);font-size:13px;">Yedekteki kayıtlar eklenir/güncellenir; yedekte olmayan mevcut kayıtlar silinmez.</p>
         <input type="file" id="yedekDosya" accept="application/json" onchange="yedektenGeriYukle(this.files[0])">
       </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h3>📡 Çevrimdışı Önbellek</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+          Uygulama internet olmadan çalışabilmek için dosyalarını cihazda önbellekte saklar.
+          Firestore verileri ayrıca IndexedDB'de tutulur.
+        </p>
+        <div id="swDurumBilgi" style="margin-bottom:12px;">Kontrol ediliyor…</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="swGuncelle()">🔄 Güncellemeyi Kontrol Et</button>
+          <button class="btn btn-ghost btn-sm" onclick="swOnbellekTemizle()" style="color:var(--color-error);">🗑️ Önbelleği Temizle</button>
+        </div>
+      </div>
     </section>
 
     </main>
@@ -843,6 +920,7 @@
 <script src="js/siniflar.js"></script>
 <script src="js/tasima.js"></script>
 <script src="js/dokumanlar.js"></script>
+<script src="js/formlar.js"></script>
 <script src="js/harita.js"></script>
 <script src="js/servis-oturma.js"></script>
 <script src="js/raporlama.js"></script>
