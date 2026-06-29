@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.getcapacitor.BridgeActivity;
+import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 public class MainActivity extends BridgeActivity {
 
@@ -13,21 +14,19 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetPlugin.class);
+        registerPlugin(PushNotificationsPlugin.class);
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
-
-        // Pull-to-refresh kur
         setupPullToRefresh();
     }
 
     private void setupPullToRefresh() {
-        // Capacitor'ın root view'ını SwipeRefreshLayout ile sar
         WebView webView = getBridge().getWebView();
         android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
         if (parent == null) return;
 
         swipeRefresh = new SwipeRefreshLayout(this);
-        swipeRefresh.setColorSchemeColors(0xFF0A6E6E, 0xFF1A9E9E); // Teal renk
+        swipeRefresh.setColorSchemeColors(0xFF0A6E6E, 0xFF1A9E9E);
 
         int index = parent.indexOfChild(webView);
         parent.removeView(webView);
