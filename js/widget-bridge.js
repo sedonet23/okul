@@ -74,8 +74,7 @@ async function widgetGuncelle() {
     if (_dersProgrami.length) {
       const bugunDersler = _dersProgrami
         .filter(d => d.gun === bugunGun)
-        .sort((a, b) => (a.saat || 0) - (b.saat || 0))
-        .slice(0, 5);
+        .sort((a, b) => (a.saat || 0) - (b.saat || 0));
       if (bugunDersler.length) {
         dersMetin = bugunDersler.map(d => `${d.saat}. ${d.sinif} → ${d.ders}`).join('\n');
       }
