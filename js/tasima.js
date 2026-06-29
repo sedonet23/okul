@@ -85,6 +85,9 @@ function servisDetayAc(id){
           <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="detayPanelKapat(); haritaSekmesiAc(); setTimeout(()=>{ document.getElementById('haritaServisSec').value='${s.id}'; haritaServisSecildiRender('${s.id}'); },200)">🗺️ Ölç</button>
         </div>`}
         ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
+        <div class="detay-row" style="margin-top:8px;">
+          <button class="btn-takip-cizelge" onclick="TasimaTakip.ac('${s.id}')">📋 Aylık Takip Çizelgesi</button>
+        </div>
       </div>
       <div class="detay-card">
         <h4 class="detay-card-header">
