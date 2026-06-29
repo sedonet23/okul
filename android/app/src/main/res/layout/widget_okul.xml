@@ -76,11 +76,12 @@
     <TextView
         android:id="@+id/widget_ders_icerik"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Ders program&#305; yok.\nUygulamay&#305; a&#231;&#305;n&#305;z."
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="Ders program&#305; yok.&#10;Uygulamay&#305; a&#231;&#305;n&#305;z."
         android:textColor="#FFFFFF"
         android:textSize="10sp"
-        android:maxLines="3"
+        android:maxLines="5"
         android:ellipsize="end"
         android:paddingBottom="4dp" />
 
