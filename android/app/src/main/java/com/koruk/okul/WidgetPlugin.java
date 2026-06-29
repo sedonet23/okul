@@ -9,10 +9,10 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * WidgetPlugin — JavaScript'ten native widget'a veri köprüsü.
- * Kullanım (JS tarafında):
+ * WidgetPlugin – JavaScript'ten native widget'a veri köprüsü.
+ * Kullanım (JS tarafı):
  *   import { WidgetPlugin } from './widget-plugin';
- *   WidgetPlugin.guncelle({ okul, tarih, nobet, ders, belge });
+ *   WidgetPlugin.guncelle({ okul, tarih, nobet, ders, belge, zil });
  */
 @CapacitorPlugin(name = "WidgetPlugin")
 public class WidgetPlugin extends Plugin {
@@ -24,8 +24,9 @@ public class WidgetPlugin extends Plugin {
         String nobet = call.getString("nobet", "");
         String ders  = call.getString("ders",  "");
         String belge = call.getString("belge", "");
+        String zil   = call.getString("zil",   "");
 
-        OkulWidget.veriGuncelle(getContext(), okul, tarih, nobet, ders, belge);
+        OkulWidget.veriGuncelle(getContext(), okul, tarih, nobet, ders, belge, zil);
         call.resolve();
     }
 
@@ -39,6 +40,7 @@ public class WidgetPlugin extends Plugin {
         ret.put("nobet", p.getString(OkulWidget.KEY_NOBET, ""));
         ret.put("ders",  p.getString(OkulWidget.KEY_DERS,  ""));
         ret.put("belge", p.getString(OkulWidget.KEY_BELGE, ""));
+        ret.put("zil",   p.getString(OkulWidget.KEY_ZIL,   ""));
         call.resolve(ret);
     }
 }
