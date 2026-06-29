@@ -905,10 +905,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('bildirimAcBtn')?.addEventListener('click', bildirimleriAc);
 
   // Widget "Not Ekle" butonundan gelen deep-link
+  // MainActivity, page="notlar" extra'sını JS'e iletir.
+  // NOT: sekmeAc() parametresi HTML'deki data-tab değeriyle eşleşmeli.
+  //      index.html'de Not sekmesinin data-tab değeri neyse onu kullan.
   window.addEventListener('widgetSayfaAc', (e) => {
     const page = e.detail?.page;
     if (page && typeof sekmeAc === 'function') {
-      sekmeAc(page); // page = 'notlar'
+      sekmeAc(page); // page = 'notlar' — index.html'deki data-tab ile eşleş
     }
   });
 
