@@ -859,10 +859,12 @@ function baglantilariKur(){
   db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(doc=>{
     dersSaatleriAyarlari = doc.exists ? doc.data() : null;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
+    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
   }, hataGoster);
   db.collection(COL.okulBilgileri).doc('ayarlar').onSnapshot(doc=>{
     okulBilgileriAyari = doc.exists ? doc.data() : null;
     renderOkulBilgileriSayfasi();
+    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
   }, hataGoster);
   db.collection(COL.dersListesi).onSnapshot(s=>{
     dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));

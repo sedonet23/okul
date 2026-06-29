@@ -1,6 +1,7 @@
 /**
  * widget-bridge.js
  * Uygulamada Firestore verisi yüklenince widget'ı günceller.
+ * index.html'de app.js'den SONRA yüklenmeli.
  */
 
 function _kapasitorVarMi() {
@@ -9,6 +10,20 @@ function _kapasitorVarMi() {
            typeof window.Capacitor !== 'undefined' &&
            window.Capacitor.isNativePlatform();
   } catch(e){ return false; }
+}
+
+function _widgetPlugin() {
+  if (!_kapasitorVarMi()) return null;
+  // Capacitor 6: window.Capacitor.Plugins veya registerPlugin ile erişim
+  if (window.Capacitor?.Plugins?.WidgetPlugin) {
+    return window.Capacitor.Plugins.WidgetPlugin;
+  }
+  // registerPlugin ile kaydet (henüz kayıtlı değilse)
+  try {
+    const p = window.Capacitor.registerPlugin('WidgetPlugin');
+    if (p) return p;
+  } catch(e) {}
+  return null;
 }
 
 function _bugunGunAdi() {
@@ -25,11 +40,9 @@ function _bugunTarihStr() {
 async function widgetGuncelle() {
   if (!_kapasitorVarMi()) return;
 
-  // Yöntem 1: Capacitor.Plugins üzerinden
-  // Yöntem 2: window.WidgetPlugin (MainActivity tarafından expose edilmiş olabilir)
-  const plugin = window.Capacitor?.Plugins?.WidgetPlugin || window.WidgetPlugin;
+  const plugin = _widgetPlugin();
   if (!plugin) {
-    console.warn('WidgetPlugin bulunamadı');
+    console.warn('[Widget] WidgetPlugin bulunamadı');
     return;
   }
 
@@ -88,9 +101,7 @@ async function widgetGuncelle() {
     try {
       if (typeof dersSaatleriSegmentleri === 'function') {
         const segmentler = dersSaatleriSegmentleri();
-        const simdi = new Date();
-        const simdiDk = simdi.getHours() * 60 + simdi.getMinutes();
-        // Tüm segment başlangıç saatlerini zil listesi olarak kullan
+        const simdiDk = new Date().getHours() * 60 + new Date().getMinutes();
         const zilSaatleri = segmentler.map(s => {
           const h = Math.floor(s.bas / 60);
           const m = s.bas % 60;
@@ -99,7 +110,6 @@ async function widgetGuncelle() {
         if (typeof hesaplaZilSayaci === 'function') {
           zilMetin = hesaplaZilSayaci(zilSaatleri);
         } else {
-          // Basit hesap: en yakın ileriki zil
           for (const saat of zilSaatleri) {
             const [h, m] = saat.split(':').map(Number);
             const fark = (h * 60 + m) - simdiDk;
@@ -114,7 +124,7 @@ async function widgetGuncelle() {
         }
       }
     } catch(ze) {
-      console.warn('Zil hesap hatası:', ze);
+      console.warn('[Widget] Zil hesap hatası:', ze);
     }
 
     await plugin.guncelle({
@@ -126,17 +136,16 @@ async function widgetGuncelle() {
       zil:   zilMetin
     });
 
+    console.log('[Widget] Güncellendi:', { nobet: nobetMetin, ders: dersMetin });
+
   } catch (e) {
-    console.warn('Widget güncellenemedi:', e);
+    console.warn('[Widget] Güncellenemedi:', e);
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(widgetGuncelle, 3000);
-});
-
+// Uygulama görünür olunca güncelle (arka plandan dönüşte de)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    setTimeout(widgetGuncelle, 1000);
+    setTimeout(widgetGuncelle, 1500);
   }
 });
