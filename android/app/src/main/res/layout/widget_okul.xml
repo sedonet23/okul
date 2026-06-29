@@ -5,22 +5,21 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="12dp">
 
-    <!-- Başlık satırı: Okul adı + Tarih -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingBottom="6dp">
+        android:paddingBottom="4dp">
 
         <TextView
             android:id="@+id/widget_okul_adi"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Okul Yönetim Paneli"
+            android:text="Okul Y&#246;netim Paneli"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -36,132 +35,79 @@
             android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- Ince ayraç -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#33FFFFFF"
-        android:layout_marginBottom="6dp" />
-
-    <!-- NÖBET -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="NOBET"
-            android:textColor="#ABDEDE"
-            android:textSize="8sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_nobet_icerik"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="&#8212;"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:paddingBottom="2dp" />
-    </LinearLayout>
-
-    <!-- ZİL SAYACI -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:background="#22FFFFFF"
-        android:paddingStart="6dp"
-        android:paddingEnd="6dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="4dp"
-        android:layout_marginBottom="6dp">
+        android:text="&#128737; BUG&#220;N N&#214;BET"
+        android:textColor="#ABDEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/widget_zil_icerik"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="&#8212;"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-    </LinearLayout>
-
-    <!-- DERSLER -->
-    <LinearLayout
+    <TextView
+        android:id="@+id/widget_nobet_icerik"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:text="N&#246;bet verisi yok.\nUygulamay&#305; a&#231;&#305;n&#305;z."
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:paddingBottom="4dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="DERSLER"
-            android:textColor="#ABDEDE"
-            android:textSize="8sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_ders_icerik"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="&#8212;"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:maxLines="3"
-            android:ellipsize="end"
-            android:paddingBottom="2dp" />
-    </LinearLayout>
-
-    <!-- YAKLAŞAN BELGELER -->
-    <LinearLayout
+    <TextView
+        android:id="@+id/widget_zil_icerik"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:text="&#128276; &#8212;"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:paddingBottom="4dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="BELGELER"
-            android:textColor="#ABDEDE"
-            android:textSize="8sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/widget_belge_icerik"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:text="&#8212;"
-            android:textColor="#FFFFFF"
-            android:textSize="10sp"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:paddingBottom="2dp" />
-    </LinearLayout>
-
-    <!-- Ince ayraç -->
-    <View
+    <TextView
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#33FFFFFF"
-        android:layout_marginTop="4dp"
-        android:layout_marginBottom="6dp" />
+        android:layout_height="wrap_content"
+        android:text="&#128197; BUG&#220;N DERSLER"
+        android:textColor="#ABDEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
 
-    <!-- NOT EKLE butonu -->
+    <TextView
+        android:id="@+id/widget_ders_icerik"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ders program&#305; yok.\nUygulamay&#305; a&#231;&#305;n&#305;z."
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:paddingBottom="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="&#128203; YAKLA&#350;AN BELGELER"
+        android:textColor="#ABDEDE"
+        android:textSize="8sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/widget_belge_icerik"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="&#8212;"
+        android:textColor="#FFFFFF"
+        android:textSize="10sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:paddingBottom="6dp" />
+
     <TextView
         android:id="@+id/widget_not_btn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Not Ekle"
+        android:text="&#9999;&#65039;  Not Ekle"
         android:textColor="#FFFFFF"
         android:textSize="10sp"
         android:textStyle="bold"
