@@ -20,4 +20,48 @@ for klasor, boyut in boyutlar.items():
     r.save(f"{klasor}/ic_launcher_round.png")
     print(f"{boyut}x{boyut} OK")
 
+# ── Adaptive icon (Android 8.0+, API 26) ──────────────────────────────────
+# 1. Foreground: mipmap klasörlerine kopyalanan ic_launcher.png'yi kullan
+# 2. Background: düz renk XML
+# 3. anydpi-v26 klasörüne adaptive icon tanımları
+
+ADAPTIVE_DIR = "android/app/src/main/res/mipmap-anydpi-v26"
+DRAWABLE_DIR = "android/app/src/main/res/drawable"
+
+os.makedirs(ADAPTIVE_DIR, exist_ok=True)
+os.makedirs(DRAWABLE_DIR, exist_ok=True)
+
+# Arka plan rengi (teal — uygulamanın ana rengi)
+bg_xml = """<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#006D6D"/>
+</shape>
+"""
+with open(f"{DRAWABLE_DIR}/ic_launcher_background.xml", "w") as f:
+    f.write(bg_xml)
+print("ic_launcher_background.xml OK")
+
+# Foreground: xxxhdpi boyutundaki ic_launcher.png'yi kullan
+# (mipmap referansı ile adaptive icon bunu kullanır)
+adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background"/>
+    <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
+</adaptive-icon>
+"""
+
+# Foreground: ikon PNG'sini foreground olarak da kaydet
+fg_dir = "android/app/src/main/res/mipmap-xxxhdpi"
+os.makedirs(fg_dir, exist_ok=True)
+fg = img.resize((192, 192), Image.LANCZOS)
+fg.save(f"{fg_dir}/ic_launcher_foreground.png")
+print("ic_launcher_foreground.png OK")
+
+with open(f"{ADAPTIVE_DIR}/ic_launcher.xml", "w") as f:
+    f.write(adaptive_xml)
+with open(f"{ADAPTIVE_DIR}/ic_launcher_round.xml", "w") as f:
+    f.write(adaptive_xml)
+print("mipmap-anydpi-v26 adaptive icon XML OK")
+
 print("Tamamlandi!")
