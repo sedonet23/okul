@@ -2,23 +2,53 @@ package com.koruk.okul;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.webkit.WebView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+    private SwipeRefreshLayout swipeRefresh;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Widget plugin'i kaydet
         registerPlugin(WidgetPlugin.class);
         super.onCreate(savedInstanceState);
-        // Uygulama kapalıyken widget'tan açıldıysa intent'i işle
         handleIntent(getIntent());
+
+        // Pull-to-refresh kur
+        setupPullToRefresh();
+    }
+
+    private void setupPullToRefresh() {
+        // Capacitor'ın root view'ını SwipeRefreshLayout ile sar
+        WebView webView = getBridge().getWebView();
+        android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
+        if (parent == null) return;
+
+        swipeRefresh = new SwipeRefreshLayout(this);
+        swipeRefresh.setColorSchemeColors(0xFF0A6E6E, 0xFF1A9E9E); // Teal renk
+
+        int index = parent.indexOfChild(webView);
+        parent.removeView(webView);
+
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        );
+        swipeRefresh.setLayoutParams(lp);
+        swipeRefresh.addView(webView);
+        parent.addView(swipeRefresh, index);
+
+        swipeRefresh.setOnRefreshListener(() -> {
+            webView.reload();
+            swipeRefresh.setRefreshing(false);
+        });
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        // Bildirimden deep link gelirse JS'e aktar
         String kategori = intent.getStringExtra("kategori");
         if (kategori != null) {
             getBridge().getWebView().evaluateJavascript(
@@ -27,20 +57,13 @@ public class MainActivity extends BridgeActivity {
                 null
             );
         }
-        // Widget "Not Ekle" butonundan gelirse JS'e aktar
         handleIntent(intent);
     }
 
-    /**
-     * Intent içindeki "page" extra'sını JS tarafına CustomEvent olarak iletir.
-     * Widget'taki not butonu → MainActivity'e page="notlar" gönderir.
-     * JS tarafında: window.addEventListener('widgetSayfaAc', e => navigate(e.detail.page))
-     */
     private void handleIntent(Intent intent) {
         if (intent == null) return;
         String page = intent.getStringExtra("page");
         if (page != null) {
-            // WebView hazır olmayabilir, kısa gecikmeyle gönder
             getBridge().getWebView().postDelayed(() ->
                 getBridge().getWebView().evaluateJavascript(
                     "window.dispatchEvent(new CustomEvent('widgetSayfaAc', " +
