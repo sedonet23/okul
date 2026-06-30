@@ -107,8 +107,17 @@
   <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
     <div class="topbar">
       <button class="hamburger-btn" id="topbarHamburger" title="Menüyü aç" aria-label="Menüyü aç"><span></span><span></span><span></span></button>
-      <div class="topbar-title" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">Koruk İlk-Ortaokulu</div>
-      <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:8px;white-space:nowrap;"></div>
+      <div class="topbar-brand" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">
+        <img class="topbar-logo" src="assets/icon-192.png" alt="Koruk İlk-Ortaokulu logosu">
+        <div class="topbar-title">Koruk İlk-Ortaokulu</div>
+      </div>
+      <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:2px;white-space:nowrap;"></div>
+      <!-- YENİ: Bildirim zili — takvim/hatırlatıcılar sekmesine götürür, rozet sayısı renderDashboard() tarafından dolduruluyor -->
+      <button class="topbar-bell" onclick="sekmeAc('takvim')" title="Hatırlatıcılar" aria-label="Hatırlatıcılar">
+        🔔<span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
+      </button>
+      <!-- YENİ: Avatar — gerçek bir profil fotoğrafı verisi uygulamada tutulmuyor; baş harf rozeti kullanılıyor -->
+      <button class="topbar-avatar" onclick="sekmeAc('ayarlar')" title="Ayarlar">SE</button>
       <button class="theme-toggle" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
 
@@ -117,11 +126,15 @@
     <section id="tab-panel" class="tab-panel active dash-modern">
       <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div></div>
 
-      <!-- 1. HERO KARTI: Karşılama + tarih (panelTarih, JS dolduruyor) + zil sayacı (ilerleme çubuklu), tek gradient blok -->
+      <!-- 1. HERO KARTI: Karşılama + tarih + kompakt hava durumu (üst satır) + zil sayacı (alt satır, ilerleme çubuklu) -->
       <div class="card dash-hero">
-        <div class="dash-hero-greet">
-          <div class="dash-hero-hi">Günaydın 👋</div>
-          <div class="page-sub" id="panelTarih"></div>
+        <div class="dash-hero-top">
+          <div class="dash-hero-greet">
+            <div class="dash-hero-hi">Günaydın, Sedat Bey 👋</div>
+            <div class="page-sub" id="panelTarih"></div>
+          </div>
+          <!-- YENİ: kompakt hava durumu özeti — js/hava-durumu.js içindeki topbarRenderEt() tarafından dolduruluyor -->
+          <div id="heroHava" class="dash-hero-weather-mini" style="display:none;"></div>
         </div>
         <!-- Zil sayacı: JS innerHTML'i aynen buraya basıyor (renderZilSayaci → #zilWidget) -->
         <div class="dash-hero-bell dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
@@ -138,22 +151,32 @@
         </div>
       </div>
 
-      <!-- 3. İstatistik kartları (Personel / Sınıf / Öğrenci / Açık Evrak vb.) — içerik dashStats id'si ile JS'ten geliyor -->
-      <div class="card dash-stats-card"><div class="dash-stat-strip" id="dashStats"></div></div>
+      <!-- 3. İstatistik kartları (Personel / Öğrenci / Servis / Bekleyen Evrak) — dashStats id'si ile JS'ten geliyor -->
+      <div class="dash-stat-strip" id="dashStats"></div>
 
-      <!-- 4. Hızlı İşlemler — 2x2 / 4'lü grid, M3 tarzı renkli ikon rozetleri -->
+      <!-- YENİ: Hızlı Bakış — ikincil özet rozetleri (Sınıf, Kadın/Erkek, Açık Görev, Hatırlatıcı) -->
+      <div class="card dash-hizlibakis-card">
+        <h3>👁️ Hızlı Bakış</h3>
+        <div class="dash-hizlibakis" id="dashHizliBakis"></div>
+      </div>
+
+      <!-- 4. Hızlı İşlemler — 2x4 grid, M3 tarzı renkli ikon rozetleri, gerçek sekmelere bağlı -->
       <div class="card">
         <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
-          <div class="qa-item" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-evrak">📄</div><div class="qa-label">Evrak Ekle</div></div>
+          <div class="qa-item" onclick="sekmeAc('personel');"><div class="qa-icon qa-personel">👥</div><div class="qa-label">Personel</div></div>
           <div class="qa-item" onclick="sekmeAc('nobet');"><div class="qa-icon qa-nobet">🛡️</div><div class="qa-label">Nöbet</div></div>
-          <div class="qa-item" onclick="notlarModalAc();"><div class="qa-icon qa-not">📝</div><div class="qa-label">Not Ekle</div></div>
-          <div class="qa-item" onclick="sekmeAc('gorevler'); gorevModalAc();"><div class="qa-icon qa-gorev">✅</div><div class="qa-label">Görev Ekle</div></div>
+          <div class="qa-item" onclick="sekmeAc('tasima');"><div class="qa-icon qa-evrak">🚌</div><div class="qa-label">Servis</div></div>
+          <div class="qa-item" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-gorev">📄</div><div class="qa-label">Evrak</div></div>
+          <div class="qa-item" onclick="sekmeAc('dokumanlar');"><div class="qa-icon qa-rapor">📊</div><div class="qa-label">Raporlar</div></div>
+          <div class="qa-item" onclick="sekmeAc('takvim');"><div class="qa-icon qa-takvim">📅</div><div class="qa-label">Takvim</div></div>
+          <div class="qa-item" onclick="notlarModalAc();"><div class="qa-icon qa-not">📝</div><div class="qa-label">Notlar</div></div>
+          <div class="qa-item" onclick="document.body.classList.toggle('nav-open');"><div class="qa-icon qa-daha">⋯</div><div class="qa-label">Daha Fazla</div></div>
         </div>
       </div>
 
-      <!-- 4. Günün Nöbetçileri -->
-      <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3>🛡️ Günün Nöbetçileri</h3><div id="dashBugunNobet"></div></div>
+      <!-- 5. Günün Nöbetçileri -->
+      <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3 class="dash-h3-row">🛡️ Günün Nöbetçileri <span class="dash-tumu-link">Tümü ›</span></h3><div id="dashBugunNobet"></div></div>
 
       <div class="dash-cols tatil-gizle">
         <div class="card dash-card-clickable" onclick="sekmeAc('dersProgrami')"><h3>📚 Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
@@ -161,7 +184,7 @@
       </div>
       <div class="dash-cols tatil-gizle">
         <div class="card dash-card-clickable" onclick="sekmeAc('nobet')"><h3>👮 Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
-        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')"><h3>⏰ Yaklaşan Etkinlikler &amp; Görevler</h3><div id="dashHatirlaticilar"></div></div>
+        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')"><h3 class="dash-h3-row">⏰ Yaklaşan Etkinlikler &amp; Görevler <span class="dash-tumu-link">Tümü ›</span></h3><div id="dashHatirlaticilar"></div></div>
       </div>
       <div class="dash-cols">
         <div class="card dash-card-clickable" onclick="sekmeAc('belirliGunler')"><h3>🎉 Yaklaşan Belirli Gün Ve Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
