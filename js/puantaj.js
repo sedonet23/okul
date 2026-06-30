@@ -32,6 +32,7 @@
   let _personelId = null;
   let _personel = null;
   let personelIzinler = [];  // tüm personellerin izin kayıtları (global, baglantilariKur ile dolar)
+  let _ptYazdirmaHandler = null; // aktif overlay'in yazdırma fonksiyonu (overlay her açıldığında yeniden atanır)
 
   // --- Yardımcılar ---
 
@@ -446,9 +447,9 @@
       document.body.classList.remove('pt-overlay-acik');
     };
     ov.querySelector('#ptPrintBtn').onclick = function(){
-      const fr = ov.querySelector('#ptFrame');
-      fr.contentWindow.focus();
-      fr.contentWindow.print();
+      if (typeof _ptYazdirmaHandler === 'function') {
+        _ptYazdirmaHandler();
+      }
     };
 
     return ov;
@@ -517,6 +518,33 @@
         frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
       };
     }
+
+    function _yazdir() {
+      const html = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
+
+      // Yeni pencere/sekmede aç — Android WebView/Chrome'da iframe.print()'ten
+      // çok daha güvenilir çalışır. Kullanıcı tıklamasıyla senkron çağrıldığı
+      // için pop-up engelleyiciye takılmaz.
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+        // Bazı mobil tarayıcılarda sayfa tam render olmadan print() çağrılırsa
+        // boş/eksik çıktı alınabiliyor; kısa bir gecikmeyle tetikliyoruz.
+        setTimeout(function(){
+          try { w.focus(); w.print(); } catch(e) {}
+        }, 300);
+      } else {
+        // Pop-up engellenmişse aynı sayfadaki iframe üzerinden dene (masaüstünde çalışır).
+        const fr = ov.querySelector('#ptFrame');
+        if (fr && fr.contentWindow) {
+          try { fr.contentWindow.focus(); fr.contentWindow.print(); }
+          catch(e) { alert('Yazdırma başlatılamadı. Tarayıcınızın pop-up izinlerini kontrol edin.'); }
+        }
+      }
+    }
+    _ptYazdirmaHandler = _yazdir;
 
     tabImza.onclick = function(){ state.aktifSekme = 'imza'; render(); };
     tabPuantaj.onclick = function(){ state.aktifSekme = 'puantaj'; render(); };
