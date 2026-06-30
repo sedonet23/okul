@@ -2165,112 +2165,101 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
   .asistan-fab{right:14px;bottom:14px;width:50px;height:50px;font-size:22px;}
 }
 
+
 /* =========================================================================
-   DASHBOARD (GENEL BAKIŞ) — MODERN YENİDEN TASARIM
-   Material Design 3 + Microsoft Fluent karışımı.
-   ÖNEMLİ: Bu blok sadece "#tab-panel" (Genel Bakış sekmesi) içini hedefler.
-   Diğer sekmelerin (#tab-nobet, #tab-takvim vb.) görünümü etkilenmez.
-   JS tarafında hiçbir id/fonksiyon değiştirilmedi; sadece CSS.
+   DASHBOARD (GENEL BAKIŞ) — MODERN YENİDEN TASARIM (v2)
+   Material Design 3 + Microsoft Fluent karışımı, kullanıcının yüklediği
+   mobil mockup'a sadık. Sadece "#tab-panel.dash-modern" içini hedefler;
+   diğer sekmeler (#tab-nobet, #tab-takvim vb.) etkilenmez. JS id/fonksiyon
+   isimleri değişmedi.
    ========================================================================= */
 
 #tab-panel.dash-modern{
   font-family:'Inter',var(--font-body);
   background:#F5F7FB;
-  margin:-20px -28px -40px;     /* .content padding'ini örtüp tam genişlikte gri zemin ver */
-  padding:20px 28px 100px;
-  border-radius:0;
+  margin:-20px -28px -40px;
+  padding:18px 16px 110px;
 }
-@media (max-width:1100px){
-  #tab-panel.dash-modern{ margin:-20px -16px -50px; padding:18px 16px 100px; }
-}
-
-/* Üst başlık */
+@media (max-width:1100px){ #tab-panel.dash-modern{ margin:-20px -16px -50px; padding:16px 14px 110px; } }
 #tab-panel.dash-modern .page-title{ font-family:'Inter',var(--font-display); font-weight:800; color:#0F172A; }
-#tab-panel.dash-modern .page-sub{ font-family:'Inter',var(--font-body); color:#64748B; }
 #tab-panel.dash-modern .page-title::before{ background:#2563EB; }
+#tab-panel.dash-modern .page-header{ margin-bottom:14px; }
 
-/* Genel kart sıfırlama: beyaz zemin, 20px radius, hafif gölge (Fluent depth) */
+/* Genel kart sıfırlama: beyaz zemin, 18-20px radius, hafif Fluent gölgesi */
 #tab-panel.dash-modern .card{
-  background:#FFFFFF;
-  border:1px solid #EEF1F6;
-  border-radius:20px;
+  background:#FFFFFF; border:1px solid #EEF1F6; border-radius:20px;
   box-shadow:0 1px 2px rgba(16,24,40,.04), 0 6px 20px -4px rgba(16,24,40,.07);
-  padding:20px;
+  padding:18px; margin-bottom:14px;
   transition:box-shadow .25s ease, transform .25s ease;
 }
 #tab-panel.dash-modern .card:hover{ box-shadow:0 8px 28px -6px rgba(16,24,40,.14); transform:translateY(-2px); }
-#tab-panel.dash-modern .card > h3{
-  font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:#0F172A;
-  padding-left:0; margin-bottom:14px;
-}
-#tab-panel.dash-modern .card > h3::before{ display:none; } /* eski neumorphic çentik çizgisini kaldır */
+#tab-panel.dash-modern .card > h3{ font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:#0F172A; padding-left:0; margin-bottom:12px; }
+#tab-panel.dash-modern .card > h3::before{ display:none; }
 #tab-panel.dash-modern .empty-state{ color:#94A3B8; }
 #tab-panel.dash-modern .dash-row{ border-bottom:1px solid #F1F4F9; font-size:13.5px; color:#1E293B; padding:10px 0; }
 #tab-panel.dash-modern .badge-blue{ background:#EFF4FF; color:#2563EB; }
 
-/* ---- 1. HERO satırı: Zil sayacı + Hava durumu ---- */
-.dash-hero-row{ display:grid; grid-template-columns: 1.6fr 1fr; gap:16px; margin-bottom:16px; }
-@media (max-width:760px){ .dash-hero-row{ grid-template-columns:1fr; } }
-
-#tab-panel.dash-modern .zil-widget{
+/* ---- 1. HERO: karşılama + tarih + zil sayacı (tek gradient blok) ---- */
+#tab-panel.dash-modern .dash-hero{
   background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%);
-  border:none; border-radius:20px;
-  padding:24px; min-height:148px;
+  border:none; padding:22px; box-shadow:0 12px 32px -8px rgba(37,99,235,.45);
+}
+#tab-panel.dash-modern .dash-hero-greet{ margin-bottom:18px; }
+#tab-panel.dash-modern .dash-hero-hi{ font-family:'Inter'; font-size:21px; font-weight:800; color:#fff; }
+#tab-panel.dash-modern .dash-hero-greet .page-sub{ font-family:'Inter'; color:rgba(255,255,255,.78); font-size:13px; padding-left:0; margin-top:2px; }
+
+/* zilWidget burada gradient zemine oturuyor; renderZilSayaci() içeriği aynen basıyor */
+#tab-panel.dash-modern .dash-hero-bell{
+  background:rgba(255,255,255,.12); border-radius:16px; padding:16px;
   display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-  box-shadow:0 10px 30px -8px rgba(37,99,235,.45);
+  border:1px solid rgba(255,255,255,.18); cursor:pointer;
 }
-#tab-panel.dash-modern .zil-etiket{ font-family:'Inter'; font-size:13px; color:rgba(255,255,255,.85); font-weight:600; }
-#tab-panel.dash-modern .zil-alt{ font-family:'Inter'; font-size:12.5px; color:rgba(255,255,255,.72); margin-top:2px; }
-#tab-panel.dash-modern .zil-sayac{ font-family:'Inter'; font-size:40px; font-weight:800; color:#fff; }
-#tab-panel.dash-modern .zil-sayac span{ font-size:15px; font-weight:600; color:rgba(255,255,255,.78); }
-#tab-panel.dash-modern .zil-durum{ font-family:'Inter'; font-size:15px; font-weight:700; color:#fff; }
+#tab-panel.dash-modern .zil-sol{ flex:1; min-width:140px; }
+#tab-panel.dash-modern .zil-etiket{ font-family:'Inter'; font-size:13px; color:rgba(255,255,255,.9); font-weight:700; }
+#tab-panel.dash-modern .zil-alt{ font-family:'Inter'; font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; }
+#tab-panel.dash-modern .zil-sayac{ font-family:'Inter'; font-size:36px; font-weight:800; color:#fff; line-height:1; white-space:nowrap; }
+#tab-panel.dash-modern .zil-sayac span{ font-size:14px; font-weight:600; color:rgba(255,255,255,.78); }
+#tab-panel.dash-modern .zil-durum{ font-family:'Inter'; font-size:14.5px; font-weight:700; color:#fff; }
+/* YENİ: ilerleme çubuğu (renderZilSayaci tarafından eklenen .zil-progress) */
+#tab-panel.dash-modern .zil-progress{ margin-top:10px; height:6px; border-radius:99px; background:rgba(255,255,255,.25); overflow:hidden; max-width:240px; }
+#tab-panel.dash-modern .zil-progress-fill{ height:100%; background:#fff; border-radius:99px; transition:width .6s ease; }
 
-#tab-panel.dash-modern .dash-weather-card{ display:flex; flex-direction:column; justify-content:center; }
+/* Not: Durum (ders/teneffüs/bitti/başlamadı) zaten ikon+metinle anlatılıyor;
+   renk varyasyonu için JS'e dokunmadan CSS-only ayrım sınırlı olduğundan eklenmedi. */
 
-/* ---- 2. İstatistik kartları (4'lü) ---- */
+/* ---- 2. Hava Durumu kartı — zengin içerik aynen kalıyor, sadece çerçeve modernleşti ---- */
+#tab-panel.dash-modern #havaDurumuKartWrap h3{ margin-bottom:10px; }
+
+/* ---- 3. İstatistik kartları (4'lü) ---- */
 #tab-panel.dash-modern .dash-stats-card{ padding:14px; }
-#tab-panel.dash-modern .dash-stat-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-@media (max-width:760px){ #tab-panel.dash-modern .dash-stat-strip{ grid-template-columns:repeat(2,1fr); } }
-#tab-panel.dash-modern .dash-stat-strip .stat-chip{
-  background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px;
-  padding:14px 12px; text-align:left;
-}
-#tab-panel.dash-modern .dash-stat-strip .stat-chip-num{
-  font-family:'Inter'; font-size:21px; font-weight:800; color:#0F172A; letter-spacing:-0.02em;
-}
-#tab-panel.dash-modern .dash-stat-strip .stat-chip-label{
-  font-family:'Inter'; font-size:11px; font-weight:600; color:#64748B; text-transform:none; letter-spacing:0; margin-top:4px;
-}
+#tab-panel.dash-modern .dash-stat-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+@media (max-width:600px){ #tab-panel.dash-modern .dash-stat-strip{ grid-template-columns:repeat(2,1fr); } }
+#tab-panel.dash-modern .dash-stat-strip .stat-chip{ background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px; padding:14px 10px; text-align:left; }
+#tab-panel.dash-modern .dash-stat-strip .stat-chip-num{ font-family:'Inter'; font-size:19px; font-weight:800; color:#0F172A; letter-spacing:-0.02em; }
+#tab-panel.dash-modern .dash-stat-strip .stat-chip-label{ font-family:'Inter'; font-size:10.5px; font-weight:600; color:#64748B; text-transform:none; letter-spacing:0; margin-top:4px; }
 #tab-panel.dash-modern .stat-chip-clickable:hover{ background:#EFF4FF; }
 
-/* ---- 3. Hızlı İşlemler — M3 tarzı renkli ikon rozetleri ---- */
-#tab-panel.dash-modern .qa-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-@media (max-width:540px){ #tab-panel.dash-modern .qa-grid{ grid-template-columns:repeat(2,1fr); } }
-#tab-panel.dash-modern .qa-item{
-  background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px;
-  padding:16px 10px; display:flex; flex-direction:column; align-items:center; gap:8px;
-  cursor:pointer; transition:transform .2s ease, box-shadow .2s ease;
-}
+/* ---- 4. Hızlı İşlemler — M3 tarzı renkli ikon rozetleri ---- */
+#tab-panel.dash-modern .qa-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+@media (max-width:480px){ #tab-panel.dash-modern .qa-grid{ grid-template-columns:repeat(2,1fr); } }
+#tab-panel.dash-modern .qa-item{ background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px; padding:14px 8px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
 #tab-panel.dash-modern .qa-item:active{ transform:scale(.96); }
 #tab-panel.dash-modern .qa-item:hover{ box-shadow:0 6px 18px -4px rgba(16,24,40,.12); transform:translateY(-2px); background:#fff; }
-#tab-panel.dash-modern .qa-icon{
-  width:44px; height:44px; border-radius:14px;
-  display:flex; align-items:center; justify-content:center; font-size:20px;
-}
+#tab-panel.dash-modern .qa-icon{ width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:19px; }
 #tab-panel.dash-modern .qa-icon.qa-evrak{ background:#EFF4FF; color:#2563EB; }
 #tab-panel.dash-modern .qa-icon.qa-nobet{ background:#FFF1E6; color:#F97316; }
 #tab-panel.dash-modern .qa-icon.qa-not{ background:#EAF7F0; color:#16A34A; }
 #tab-panel.dash-modern .qa-icon.qa-gorev{ background:#F3EEFE; color:#7C3AED; }
-#tab-panel.dash-modern .qa-label{ font-family:'Inter'; font-size:11.5px; font-weight:600; color:#334155; text-align:center; }
+#tab-panel.dash-modern .qa-label{ font-family:'Inter'; font-size:11px; font-weight:600; color:#334155; text-align:center; }
 
-/* ---- Diğer dashboard kartları (nöbetçi, takvim, notlar vb.) eşit yükseklik + boşluk düzeni ---- */
-#tab-panel.dash-modern .dash-cols{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; align-items:stretch; }
+/* ---- Diğer dashboard kartları: eşit yükseklik, düzenli boşluk ---- */
+#tab-panel.dash-modern .dash-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; align-items:stretch; }
 @media (max-width:760px){ #tab-panel.dash-modern .dash-cols{ grid-template-columns:1fr; } }
-#tab-panel.dash-modern .dash-cols .card{ height:100%; }
+#tab-panel.dash-modern .dash-cols .card{ height:100%; margin-bottom:0; }
 
-/* ---- AI Asistan FAB'ı (mevcut #asistanFab) — Glassmorphism, sadece burada ---- */
+/* ---- AI Asistan FAB'ı — dashboard'dayken glassmorphism, bottom-nav'ın üstünde dursun ---- */
 body:has(#tab-panel.dash-modern.active) #asistanFab{
-  width:60px; height:60px; font-size:26px;
+  width:58px; height:58px; font-size:25px;
   background:rgba(37,99,235,.78);
   backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
   border:1px solid rgba(255,255,255,.35);
@@ -2278,3 +2267,43 @@ body:has(#tab-panel.dash-modern.active) #asistanFab{
   color:#fff;
 }
 body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92); }
+@media (max-width:1100px){
+  #asistanFab{ bottom:84px; } /* alt nav barının üstünde kalsın */
+}
+
+/* =========================================================================
+   YENİ: MOBİL ALT NAVİGASYON (5 ikon) — sadece <1100px görünür.
+   Masaüstünde mevcut sol sidebar kullanılmaya devam eder; çakışma yok.
+   Tüm butonlar var olan sekmeAc() / evrakModalAc() fonksiyonlarını çağırır.
+   ========================================================================= */
+.bottom-nav{ display:none; }
+@media (max-width:1100px){
+  body{ padding-bottom:0; }
+  .bottom-nav{
+    display:flex; align-items:center; justify-content:space-around;
+    position:fixed; left:0; right:0; bottom:0; height:64px; z-index:7000;
+    background:rgba(255,255,255,.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    border-top:1px solid #EEF1F6; box-shadow:0 -4px 18px rgba(16,24,40,.07);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  [data-theme="dark"] .bottom-nav{ background:rgba(28,42,46,.92); border-top-color:rgba(255,255,255,.08); }
+}
+.bn-item{
+  background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
+  font-family:'Inter'; font-size:10.5px; font-weight:600; color:#94A3B8; cursor:pointer; padding:6px 8px; flex:1;
+}
+.bn-item .bn-ico{ font-size:20px; line-height:1; }
+.bn-item.active{ color:#2563EB; }
+.bn-plus{ flex:0 0 auto; }
+.bn-plus-ico{
+  width:46px; height:46px; border-radius:50%; background:#2563EB; color:#fff;
+  font-size:26px; font-weight:700; display:flex; align-items:center; justify-content:center;
+  margin-top:-26px; box-shadow:0 8px 18px -4px rgba(37,99,235,.6);
+}
+
+/* ---- YENİ: Zil sayacı durum renkleri (ders=yeşil, teneffüs=turuncu, bitti=gri, başlamadı=mavi, tatil=mor) ---- */
+#tab-panel.dash-modern .dash-hero.durum-ders{ background:linear-gradient(135deg,#16A34A 0%,#22C55E 60%,#4ADE80 100%); box-shadow:0 12px 32px -8px rgba(22,163,74,.45); }
+#tab-panel.dash-modern .dash-hero.durum-teneffus{ background:linear-gradient(135deg,#EA580C 0%,#F97316 60%,#FB923C 100%); box-shadow:0 12px 32px -8px rgba(234,88,12,.45); }
+#tab-panel.dash-modern .dash-hero.durum-bitti{ background:linear-gradient(135deg,#475569 0%,#64748B 60%,#94A3B8 100%); box-shadow:0 12px 32px -8px rgba(71,85,105,.40); }
+#tab-panel.dash-modern .dash-hero.durum-baslamadi{ background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%); box-shadow:0 12px 32px -8px rgba(37,99,235,.45); }
+#tab-panel.dash-modern .dash-hero.durum-tatil{ background:linear-gradient(135deg,#7C3AED 0%,#9333EA 55%,#C084FC 100%); box-shadow:0 12px 32px -8px rgba(124,58,237,.45); }
