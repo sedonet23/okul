@@ -2140,3 +2140,14 @@ body.tatil-aktif .tatil-gizle {
 
 /* Modal açıkken sayfa kaymasını engelle */
 body.modal-open { overflow: hidden; touch-action: none; }
+
+/* ===== AI Asistan ===== */
+.asistan-msg{display:flex;}
+.asistan-msg-user{justify-content:flex-end;}
+.asistan-msg-model{justify-content:flex-start;}
+.asistan-msg-bubble{
+  max-width:80%;padding:10px 14px;border-radius:14px;
+  background:var(--bg-card);box-shadow:var(--nm-out);font-size:14px;line-height:1.45;
+}
+.asistan-msg-user .asistan-msg-bubble{background:var(--accent,#E0A93A);color:#fff;box-shadow:var(--nm-sm);}
+.asistan-typing{opacity:.6;font-style:italic;}
