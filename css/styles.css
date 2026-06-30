@@ -808,13 +808,17 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 @keyframes detaySlideIn{ from{ transform: translateX(24px); opacity:0; } to{ transform:none; opacity:1; } }
 .detay-head{
-  display:flex; align-items:flex-start; justify-content:space-between; gap:10px; padding:20px 22px;
+  display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:10px; padding:20px 22px;
   background: linear-gradient(135deg, var(--brand-dark), var(--brand));
   color: #fff; position:sticky; top:0; z-index:2;
 }
-.detay-baslik{ font-family: var(--font-display); font-weight:700; font-size:19px; }
-.detay-alt{ font-size:12.5px; color: var(--ink-on-dark-muted); margin-top:3px; }
-.detay-head-actions{ display:flex; gap:6px; flex-shrink:0; }
+.detay-baslik{ font-family: var(--font-display); font-weight:700; font-size:19px; flex:1 1 100%; min-width:0; word-break:break-word; }
+.detay-alt{ font-size:12.5px; color: rgba(255,255,255,0.78); margin-top:3px; flex:1 1 100%; }
+.detay-head-actions{ display:flex; gap:6px; flex-wrap:wrap; flex-shrink:1; order:-1; width:100%; }
+@media (min-width:480px){
+  .detay-baslik, .detay-alt{ flex:1 1 auto; }
+  .detay-head-actions{ order:0; width:auto; flex-shrink:0; }
+}
 .detay-head .btn-ghost{ border-color: rgba(255,255,255,0.40); color: #FFFFFF; background: rgba(255,255,255,0.12); font-weight:700; }
 .detay-head .btn-ghost:hover{ background: rgba(255,255,255,0.22); color:#fff; }
 .detay-body{ padding:18px; display:flex; flex-direction:column; gap:14px; }
@@ -2002,6 +2006,9 @@ body.tatil-aktif .tatil-gizle {
 }
 .mini-hucre.bugun.has-event { background: var(--brand); color: #fff; }
 [data-theme="dark"] .mini-hucre { color: var(--ink, #eee); }
+[data-theme="dark"] .mini-hucre.has-event{ background: rgba(10,200,200,0.18); color: #8FE8E8; }
+[data-theme="dark"] .mini-hucre.bugun{ color:#fff; }
+[data-theme="dark"] .mini-hucre.bugun.has-event{ background: var(--brand); color:#fff; }
 
 /* ================================================================
    DASHBOARD — Yıllık Görünüm
@@ -2363,6 +2370,11 @@ body:has(#tab-panel.dash-modern.active) #asistanFab{
 }
 body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92); }
 @media (max-width:1100px){ #asistanFab{ bottom:84px; } }
+@media (max-width:400px){
+  .topbar{ gap:8px; padding:0 10px; }
+  #topbarHava{ display:none !important; }
+  .topbar-title{ font-size:13px; }
+}
 
 /* =========================================================================
    MOBİL ALT NAVİGASYON (5 ikon) — sadece <1100px görünür.
@@ -2512,3 +2524,100 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 /* Takvim / Yıllık Görünüm hücreleri, nöbet listesi vb. yer alan ".badge" tabanlı
    numara rozetleri için ekstra netlik (kontrast biraz artırıldı) */
 [data-theme="dark"] .badge-blue{ background:rgba(91,141,255,0.18); color:#9DBBFF; }
+
+/* =========================================================================
+   YENİ: TEMA PAKETLERİ (RENK + İKON ŞEKLİ)
+   <html data-accent="teal|mavi|yesil|mor|turuncu|kirmizi"> ile seçilir.
+   Açık/koyu mod (data-theme) ile TAMAMEN BAĞIMSIZ çalışır — her paket hem
+   açık hem koyu modda kullanılabilir. Her paket: (1) marka renklerini
+   (--brand/--brand-dark/--brand-mid/--brand-light), dashboard vurgu rengini
+   (--dm-accent/--dm-accent-wash) ve sidebar vurgu rengini (--sb-accent/
+   --sb-accent-wash) değiştirir, (2) ikon kapsayıcılarının (sidebar, hızlı
+   işlemler, istatistik kartları, zil ikonu vb.) şeklini farklılaştırır, böylece
+   her tema görsel olarak ayırt edilebilir bir "ikon yapısı" kazanır.
+   ========================================================================= */
+
+/* ---- Renk paketleri: Teal (varsayılan) ---- */
+html[data-accent="teal"]{ --brand:#0A7A7A; --brand-dark:#075E5E; --brand-mid:#2AABAB; --brand-light:#DFF2F2; }
+html[data-accent="teal"] #tab-panel.dash-modern{ --dm-accent:#0A7A7A; --dm-accent-wash:#E0F4F4; }
+[data-theme="dark"][data-accent="teal"] #tab-panel.dash-modern{ --dm-accent:#3FC6C6; --dm-accent-wash:#15302E; }
+html[data-accent="teal"] .sidebar{ --sb-accent:#0A7A7A; --sb-accent-wash:#E0F4F4; }
+[data-theme="dark"][data-accent="teal"] .sidebar{ --sb-accent:#3FC6C6; --sb-accent-wash:#173432; }
+
+/* ---- Mavi ---- */
+html[data-accent="mavi"]{ --brand:#2563EB; --brand-dark:#1D4ED8; --brand-mid:#60A5FA; --brand-light:#EFF4FF; }
+html[data-accent="mavi"] #tab-panel.dash-modern{ --dm-accent:#2563EB; --dm-accent-wash:#EFF4FF; }
+[data-theme="dark"][data-accent="mavi"] #tab-panel.dash-modern{ --dm-accent:#5B8DFF; --dm-accent-wash:#1B2A40; }
+html[data-accent="mavi"] .sidebar{ --sb-accent:#2563EB; --sb-accent-wash:#EFF4FF; }
+[data-theme="dark"][data-accent="mavi"] .sidebar{ --sb-accent:#5B8DFF; --sb-accent-wash:#1B2A40; }
+
+/* ---- Yeşil ---- */
+html[data-accent="yesil"]{ --brand:#16A34A; --brand-dark:#15803D; --brand-mid:#4ADE80; --brand-light:#EAF7F0; }
+html[data-accent="yesil"] #tab-panel.dash-modern{ --dm-accent:#16A34A; --dm-accent-wash:#EAF7F0; }
+[data-theme="dark"][data-accent="yesil"] #tab-panel.dash-modern{ --dm-accent:#4ADE80; --dm-accent-wash:#173A28; }
+html[data-accent="yesil"] .sidebar{ --sb-accent:#16A34A; --sb-accent-wash:#EAF7F0; }
+[data-theme="dark"][data-accent="yesil"] .sidebar{ --sb-accent:#4ADE80; --sb-accent-wash:#173A28; }
+
+/* ---- Mor ---- */
+html[data-accent="mor"]{ --brand:#7C3AED; --brand-dark:#6D28D9; --brand-mid:#A78BFA; --brand-light:#F3EEFE; }
+html[data-accent="mor"] #tab-panel.dash-modern{ --dm-accent:#7C3AED; --dm-accent-wash:#F3EEFE; }
+[data-theme="dark"][data-accent="mor"] #tab-panel.dash-modern{ --dm-accent:#C4A6FF; --dm-accent-wash:#2A2240; }
+html[data-accent="mor"] .sidebar{ --sb-accent:#7C3AED; --sb-accent-wash:#F3EEFE; }
+[data-theme="dark"][data-accent="mor"] .sidebar{ --sb-accent:#C4A6FF; --sb-accent-wash:#2A2240; }
+
+/* ---- Turuncu ---- */
+html[data-accent="turuncu"]{ --brand:#EA580C; --brand-dark:#C2410C; --brand-mid:#FB923C; --brand-light:#FFF1E6; }
+html[data-accent="turuncu"] #tab-panel.dash-modern{ --dm-accent:#EA580C; --dm-accent-wash:#FFF1E6; }
+[data-theme="dark"][data-accent="turuncu"] #tab-panel.dash-modern{ --dm-accent:#FDBA74; --dm-accent-wash:#3A2614; }
+html[data-accent="turuncu"] .sidebar{ --sb-accent:#EA580C; --sb-accent-wash:#FFF1E6; }
+[data-theme="dark"][data-accent="turuncu"] .sidebar{ --sb-accent:#FDBA74; --sb-accent-wash:#3A2614; }
+
+/* ---- Kırmızı ---- */
+html[data-accent="kirmizi"]{ --brand:#DC2626; --brand-dark:#B91C1C; --brand-mid:#F87171; --brand-light:#FEEAEA; }
+html[data-accent="kirmizi"] #tab-panel.dash-modern{ --dm-accent:#DC2626; --dm-accent-wash:#FEEAEA; }
+[data-theme="dark"][data-accent="kirmizi"] #tab-panel.dash-modern{ --dm-accent:#FCA5A5; --dm-accent-wash:#3A1A1A; }
+html[data-accent="kirmizi"] .sidebar{ --sb-accent:#DC2626; --sb-accent-wash:#FEEAEA; }
+[data-theme="dark"][data-accent="kirmizi"] .sidebar{ --sb-accent:#FCA5A5; --sb-accent-wash:#3A1A1A; }
+
+/* ---- YENİ: Her temaya özgü İKON ŞEKLİ ----
+   Sidebar (.nt-ico), Hızlı İşlemler (.qa-icon), İstatistik kartları
+   (.stat-card-ico), Zil ikonu (.zil-ikon-daire), üst bar zil/avatar ve
+   alt navigasyon "+" butonu — hepsi tema paketine göre farklı köşe/çerçeve
+   stiline bürünür. Renk/boyut değişmez, sadece şekil.                       */
+:root{ --icon-shape:12px; --icon-ring:none; }
+
+/* Teal → standart yuvarlak köşe kare (varsayılan) */
+html[data-accent="teal"]{ --icon-shape:12px; --icon-ring:none; }
+/* Mavi → tam daire */
+html[data-accent="mavi"]{ --icon-shape:50%; --icon-ring:none; }
+/* Yeşil → squircle (büyük radius, köşeli his) */
+html[data-accent="yesil"]{ --icon-shape:30%; --icon-ring:none; }
+/* Mor → ince halkalı (ring) daire */
+html[data-accent="mor"]{ --icon-shape:50%; --icon-ring:2px solid var(--brand-mid); }
+/* Turuncu → keskin köşeli kare (radius yok) */
+html[data-accent="turuncu"]{ --icon-shape:6px; --icon-ring:none; }
+/* Kırmızı → yuvarlak köşeli dikdörtgen + halka */
+html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--brand-light); }
+
+.nav-tab .nt-ico, .nav-group-toggle .nt-ico, .nav-group .nav-sub-tab .nt-ico,
+#tab-panel.dash-modern .qa-icon, #tab-panel.dash-modern .stat-card-ico,
+#tab-panel.dash-modern .zil-ikon-daire, .topbar-bell, .topbar-avatar, .topbar-logo,
+.bn-plus-ico{
+  border-radius: var(--icon-shape) !important;
+  outline: var(--icon-ring);
+  outline-offset: 2px;
+  transition: border-radius .25s ease;
+}
+
+/* ---- Ayarlar > Tema paketi seçim kartları ---- */
+.renk-paketi-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media (max-width:420px){ .renk-paketi-grid{ grid-template-columns:repeat(2,1fr); } }
+.renk-paketi-secenek{
+  display:flex; align-items:center; gap:8px; padding:10px 12px; border-radius:12px;
+  background:var(--bg-card); border:2px solid var(--border); cursor:pointer;
+  font-family: var(--font-body); font-size:13px; font-weight:600; color:var(--ink);
+  transition: border-color .15s ease, transform .15s ease;
+}
+.renk-paketi-secenek:hover{ transform:translateY(-1px); }
+.renk-paketi-secenek.aktif{ border-color:var(--brand); background:var(--brand-light); color:var(--brand-dark); }
+.renk-paketi-nokta{ width:18px; height:18px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 2px rgba(0,0,0,0.06); }
