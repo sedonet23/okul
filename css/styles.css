@@ -2735,3 +2735,14 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .dash-hero-hava-satir .hero-hava-sicaklik{ font-size:17px; font-weight:800; color:#fff; }
 .dash-hero-hava-satir .hero-hava-aciklama{ font-size:13px; color:rgba(255,255,255,.75); flex:1; }
 .dash-hero-hava-satir .hero-hava-detay-ok{ font-size:12px; color:rgba(255,255,255,.55); margin-left:auto; }
+
+/* =========================================================================
+   YENİ: ÖĞRENCİLER SAYFASI + GLOBAL ARAMA
+   ========================================================================= */
+.ogrenci-filtre-satiri{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.ogrenci-filtre-satiri input{ min-width:200px; }
+.ogrenci-filtre-satiri select{ width:auto; }
+.arama-kat.aktif{ background:var(--brand) !important; color:#fff !important; border-color:var(--brand) !important; }
+#globalAramaSonuclar .detay-row{ display:flex; align-items:center; gap:8px; cursor:default; }
+#globalAramaSonuclar .detay-row[onclick]{ cursor:pointer; }
+#globalAramaSonuclar .detay-row:hover[onclick]{ background:var(--nm-bg-dark,..) }
