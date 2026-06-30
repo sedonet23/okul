@@ -50,23 +50,22 @@
   }
 
   function topbarRenderEt(kod, sicaklik){
-    var el = document.getElementById('topbarHava');
     var bilgi = havaKoduOku(kod);
+    var el = document.getElementById('topbarHava');
     if(el){
-      el.innerHTML =
-        '<span>' + bilgi.e + '</span>' +
-        '<span>' + Math.round(sicaklik) + '°</span>';
+      el.innerHTML = '<span>' + bilgi.e + '</span><span>' + Math.round(sicaklik) + '°</span>';
       el.title = bilgi.t;
       el.style.display = 'flex';
     }
-    // YENİ: dashboard hero kartındaki kompakt hava durumu özeti
-    var heroEl = document.getElementById('heroHava');
-    if(heroEl){
-      heroEl.innerHTML =
-        '<span class="hero-hava-ico">' + bilgi.e + '</span>' +
+    // YENİ: hero kartındaki hava satırı (tıklanınca detay açılır)
+    var heroSatir = document.getElementById('heroHavaSatir');
+    if(heroSatir){
+      heroSatir.innerHTML =
+        '<span class="hava-ana-ikon" style="font-size:22px;">' + bilgi.e + '</span>' +
         '<span class="hero-hava-sicaklik">' + Math.round(sicaklik) + '°C</span>' +
-        '<span class="hero-hava-aciklama">' + bilgi.t + '</span>';
-      heroEl.style.display = 'flex';
+        '<span class="hero-hava-aciklama">' + bilgi.t + '</span>' +
+        '<span class="hero-hava-detay-ok">Detaylar ›</span>';
+      heroSatir.style.display = 'flex';
     }
   }
 
@@ -160,57 +159,120 @@
     if(!_sonVeri) return;
     var v = _sonVeri;
     var anlik = havaKoduOku(v.current.weather_code);
+    var simdiSaat = new Date().getHours();
+
+    // Mevcut panel varsa kaldır
+    var eskiPanel = document.getElementById('havaDurumuDetayPanel');
+    if(eskiPanel) eskiPanel.remove();
+
     var panel = document.createElement('div');
     panel.id = 'havaDurumuDetayPanel';
-    panel.style.cssText = 'position:fixed;inset:0;z-index:2000;background:var(--nm-bg);overflow-y:auto;padding:20px;';
-    var html = '<div style="max-width:480px;margin:0 auto;">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
-    html += '<h2 style="font-size:18px;font-weight:700;color:var(--ink);">🌤️ Hava Durumu Detayı</h2>';
-    html += "<button onclick=\"document.getElementById('havaDurumuDetayPanel').remove()\" style=\"background:var(--nm-bg);border:none;box-shadow:3px 3px 7px rgba(163,177,198,0.55),-3px -3px 7px rgba(255,255,255,0.75);border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;color:var(--ink)\">✕ Vazgeç</button>";
+    panel.style.cssText = 'position:fixed;inset:0;z-index:3000;overflow-y:auto;font-family:Inter,sans-serif;';
+
+    // ------- ANA BAŞLIK ------- //
+    var html = '<div style="min-height:100vh;background:linear-gradient(160deg,#0B1E4A 0%,#1B3570 50%,#2C509A 100%);">';
+
+    // Üst bar (kapat)
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;position:sticky;top:0;background:rgba(11,30,74,.85);backdrop-filter:blur(12px);z-index:10;">';
+    html += '<div style="color:#fff;font-size:16px;font-weight:800;">🌤️ Hava Durumu</div>';
+    html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.12);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>';
     html += '</div>';
-    // Ana bilgi
-    html += '<div style="background:linear-gradient(145deg,#0F3E50,#071E28);border-radius:14px;padding:20px;margin-bottom:14px;">';
-    html += '<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px;">';
-    html += '<span style="font-size:52px;">' + anlik.e + '</span>';
-    html += '<div>';
-    html += '<div style="font-size:36px;font-weight:800;color:#fff;">' + Math.round(v.current.temperature_2m) + '°C</div>';
-    html += '<div style="color:rgba(255,255,255,0.80);font-size:14px;">' + anlik.t + '</div>';
+
+    // Anlık büyük kart
+    html += '<div style="padding:24px 20px 16px;text-align:center;">';
+    html += '<div style="font-size:72px;line-height:1;margin-bottom:8px;">' + anlik.e + '</div>';
+    html += '<div style="font-size:52px;font-weight:800;color:#fff;line-height:1;">' + Math.round(v.current.temperature_2m) + '°C</div>';
+    html += '<div style="color:rgba(255,255,255,.75);font-size:15px;margin-top:6px;">' + anlik.t + '</div>';
+    html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:14px;">';
+    html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">💧 ' + v.current.relative_humidity_2m + '%</span>';
+    html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">💨 ' + Math.round(v.current.wind_speed_10m) + ' km/s</span>';
+    html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">🌡️ ' + Math.round(v.current.apparent_temperature) + '°C</span>';
     html += '</div></div>';
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
-    html += '<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px;">';
-    html += '<div style="color:rgba(255,255,255,0.60);font-size:11px;margin-bottom:4px;">NEM</div>';
-    html += '<div style="color:#fff;font-size:18px;font-weight:700;">💧 ' + v.current.relative_humidity_2m + '%</div></div>';
-    html += '<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px;">';
-    html += '<div style="color:rgba(255,255,255,0.60);font-size:11px;margin-bottom:4px;">RÜZGAR</div>';
-    html += '<div style="color:#fff;font-size:18px;font-weight:700;">💨 ' + Math.round(v.current.wind_speed_10m) + ' km/s</div></div>';
-    html += '<div style="background:rgba(255,255,255,0.08);border-radius:10px;padding:10px;grid-column:1/-1;">';
-    html += '<div style="color:rgba(255,255,255,0.60);font-size:11px;margin-bottom:4px;">HİSSEDİLEN SICAKLIK</div>';
-    html += '<div style="color:#fff;font-size:18px;font-weight:700;">🌡️ ' + Math.round(v.current.apparent_temperature) + '°C</div></div>';
+
+    // Sekme çubuğu
+    html += '<div id="havDetayTabBar" style="display:flex;gap:6px;padding:0 20px 16px;">';
+    ['saatlik','gunluk','haftalik'].forEach(function(tab, i){
+      var etiket = ['⏱ Saatlik','📅 7 Günlük','🗓 Aylık'][i];
+      var aktif = i===0 ? 'background:rgba(255,255,255,.25);border:1px solid rgba(255,255,255,.4);font-weight:700;' : 'background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);';
+      html += '<button onclick="havDetayTabGoster(\'' + tab + '\')" id="havTab_' + tab + '" style="flex:1;padding:9px 4px;border-radius:12px;color:#fff;font-size:12px;font-family:Inter,sans-serif;cursor:pointer;' + aktif + '">' + etiket + '</button>';
+    });
+    html += '</div>';
+
+    // --- SAATLİK ---
+    html += '<div id="havPanelSaatlik" style="padding:0 20px 20px;">';
+    html += '<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">';
+    if(v.hourly && v.hourly.time){
+      var baslangic = simdiSaat;
+      for(var h=baslangic; h<baslangic+24 && h<v.hourly.time.length; h++){
+        var hBilgi = havaKoduOku(v.hourly.weather_code[h]);
+        var hSaat = v.hourly.time[h].split('T')[1] || (h%24)+':00';
+        var aktifMi = h===baslangic;
+        html += '<div style="flex:0 0 64px;text-align:center;padding:12px 6px;border-radius:14px;background:' + (aktifMi?'rgba(255,255,255,.25)':'rgba(255,255,255,.08)') + ';border:1px solid ' + (aktifMi?'rgba(255,255,255,.5)':'rgba(255,255,255,.1)') + ';">';
+        html += '<div style="color:rgba(255,255,255,.70);font-size:11px;">' + (aktifMi?'Şimdi':hSaat) + '</div>';
+        html += '<div style="font-size:22px;margin:6px 0;">' + hBilgi.e + '</div>';
+        html += '<div style="color:#fff;font-size:13px;font-weight:700;">' + Math.round(v.hourly.temperature_2m[h]) + '°</div>';
+        html += '</div>';
+      }
+    }
     html += '</div></div>';
-    // 5 günlük tahmin
-    html += '<div style="color:var(--ink-muted);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;">5 GÜNLÜK TAHMİN</div>';
+
+    // --- 7 GÜNLÜK ---
+    html += '<div id="havPanelGunluk" style="display:none;padding:0 20px 20px;">';
     html += '<div style="display:flex;flex-direction:column;gap:8px;">';
-    for(var i=0;i<v.daily.time.length;i++){
-      var g = havaKoduOku(v.daily.weather_code[i]);
-      var etiket = i===0?'Bugün':i===1?'Yarın':new Date(v.daily.time[i]).toLocaleDateString('tr-TR',{weekday:'long'});
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;background:var(--nm-bg);box-shadow:3px 3px 7px rgba(163,177,198,0.55),-3px -3px 7px rgba(255,255,255,0.75);border-radius:12px;padding:12px 14px;">';
-      html += '<span style="font-size:13px;font-weight:600;color:var(--ink);min-width:80px;">' + etiket + '</span>';
-      html += '<span style="font-size:22px;">' + g.e + '</span>';
-      html += '<span style="font-size:12px;color:var(--ink-muted);">' + g.t + '</span>';
-      html += '<span style="font-size:13px;font-weight:700;color:var(--ink);">' + Math.round(v.daily.temperature_2m_max[i]) + '° <span style="font-weight:400;color:var(--ink-muted);">/ ' + Math.round(v.daily.temperature_2m_min[i]) + '°</span></span>';
+    for(var g=0; g<v.daily.time.length; g++){
+      var gBilgi = havaKoduOku(v.daily.weather_code[g]);
+      var gEtiket = g===0?'Bugün':g===1?'Yarın':new Date(v.daily.time[g]).toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'short'});
+      html += '<div style="display:flex;align-items:center;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;gap:12px;">';
+      html += '<span style="font-size:28px;flex-shrink:0;">' + gBilgi.e + '</span>';
+      html += '<div style="flex:1;"><div style="color:#fff;font-size:13px;font-weight:700;">' + gEtiket + '</div><div style="color:rgba(255,255,255,.60);font-size:11px;margin-top:2px;">' + gBilgi.t + '</div></div>';
+      html += '<div style="text-align:right;"><div style="color:#fff;font-size:15px;font-weight:800;">' + Math.round(v.daily.temperature_2m_max[g]) + '°</div><div style="color:rgba(255,255,255,.55);font-size:12px;">' + Math.round(v.daily.temperature_2m_min[g]) + '°</div></div>';
       html += '</div>';
     }
     html += '</div></div>';
+
+    // --- AYLIK (7 günlük veriyi döngüyle genişletip 4 hafta göster) ---
+    html += '<div id="havPanelHaftalik" style="display:none;padding:0 20px 20px;">';
+    html += '<p style="color:rgba(255,255,255,.55);font-size:11px;margin-bottom:10px;">* 7 günlük tahmin döngüsünden oluşturulmuştur.</p>';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px;">';
+    ['P','S','Ç','P','C','C','P'].forEach(function(g){ html += '<div style="text-align:center;color:rgba(255,255,255,.50);font-size:10px;padding:4px 0;">' + g + '</div>'; });
+    html += '</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">';
+    for(var m=0; m<28; m++){
+      var mIdx = m % v.daily.time.length;
+      var mBilgi = havaKoduOku(v.daily.weather_code[mIdx]);
+      var mTarih = new Date(); mTarih.setDate(mTarih.getDate() + m);
+      var mGun = mTarih.getDate();
+      html += '<div style="text-align:center;padding:8px 2px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.06);">';
+      html += '<div style="color:rgba(255,255,255,.50);font-size:9px;">' + mGun + '</div>';
+      html += '<div style="font-size:16px;margin:3px 0;">' + mBilgi.e + '</div>';
+      html += '<div style="color:#fff;font-size:10px;font-weight:700;">' + Math.round(v.daily.temperature_2m_max[mIdx]) + '°</div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+    html += '</div>'; // gradient wrapper
+
     panel.innerHTML = html;
     document.body.appendChild(panel);
   }
+
+  window.havDetayTabGoster = function(tab){
+    ['saatlik','gunluk','haftalik'].forEach(function(t){
+      var p = document.getElementById('havPanelSaatlik'===('havPanel'+t.charAt(0).toUpperCase()+t.slice(1))?'havPanelSaatlik':'havPanel'+t.charAt(0).toUpperCase()+t.slice(1));
+      var btn = document.getElementById('havTab_'+t);
+      var aktif = t===tab;
+      if(document.getElementById('havPanel'+t.charAt(0).toUpperCase()+t.slice(1)))
+        document.getElementById('havPanel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = aktif?'block':'none';
+      if(btn){ btn.style.background = aktif?'rgba(255,255,255,.25)':'rgba(255,255,255,.08)'; btn.style.border = aktif?'1px solid rgba(255,255,255,.4)':'1px solid rgba(255,255,255,.12)'; btn.style.fontWeight = aktif?'700':'400'; }
+    });
+  };
 
   function havaDurumuGetir(lat, lon){
     var url = 'https://api.open-meteo.com/v1/forecast'
       + '?latitude=' + lat + '&longitude=' + lon
       + '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature'
+      + '&hourly=temperature_2m,weather_code'
       + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
-      + '&timezone=auto&forecast_days=5';
+      + '&timezone=auto&forecast_days=7';
 
     fetch(url)
       .then(function(res){
