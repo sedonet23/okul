@@ -54,18 +54,30 @@
 
   // --- HTML üretimi ---
 
+  function _otomatikGovdeMetni(state) {
+    const sure = parseInt(state.sure, 10) || 0;
+    const sureYazi = sayiyiYaziyaCevir(sure);
+    return `Okulunuzda ${state.gorev || '...........................'} olarak görev yapmaktayım. ` +
+      `${state.baslamaTarihi || '....../....../............'} tarihinden itibaren ` +
+      `${sure || '......'} (${sureYazi || '..........'}) gün ` +
+      `${state.izinTuru || '...........................'} hakkımı kullanmak istiyorum.`;
+  }
+
   function _dilekceSayfaHtml(state) {
     const okul = _getOkulBilgisi();
     const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
     const il = (okul.il || '').toLocaleUpperCase('tr');
 
-    const sure = parseInt(state.sure, 10) || 0;
-    const sureYazi = sayiyiYaziyaCevir(sure);
+    const govdeMetni = (state.govdeManuel !== null && state.govdeManuel !== undefined)
+      ? state.govdeManuel
+      : _otomatikGovdeMetni(state);
 
-    const govdeMetni = `Okulunuzda ${escapeHtml(state.gorev || '...........................')} olarak görev yapmaktayım. ` +
-      `${escapeHtml(state.baslamaTarihi || '....../....../............')} tarihinden itibaren ` +
-      `${sure || '......'} (${sureYazi || '..........'}) gün ` +
-      `${escapeHtml(state.izinTuru || '...........................')} hakkımı kullanmak istiyorum.`;
+    const hizalama = state.hizalama || 'iki-yana';
+    const hizalamaCss = {
+      'iki-yana': 'text-align: justify; text-align-last: left;',
+      'sola':     'text-align: left;',
+      'ortala':   'text-align: center;'
+    }[hizalama] || 'text-align: justify; text-align-last: left;';
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -84,17 +96,21 @@
     background: #fff;
   }
 
+  [contenteditable="true"] { outline: none; cursor: text; }
+  [contenteditable="true"]:hover { background: rgba(46,125,50,0.05); }
+  [contenteditable="true"]:focus { background: rgba(46,125,50,0.08); }
+
   .dlk-ust-baslik {
     text-align: center;
     margin-bottom: 40mm;
   }
-  .dlk-okul-adi { font-weight: 700; text-transform: uppercase; }
+  .dlk-okul-adi { font-weight: 700; text-transform: uppercase; display: inline-block; min-width: 40mm; }
   .dlk-il { font-weight: 700; text-transform: uppercase; margin-top: 2px; }
 
   .dlk-govde {
-    text-align: justify;
-    text-align-last: left;
+    ${hizalamaCss}
     margin-bottom: 10mm;
+    min-height: 1.5em;
   }
 
   .dlk-kapanis {
@@ -114,16 +130,17 @@
 
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    [contenteditable="true"]:hover, [contenteditable="true"]:focus { background: transparent; }
   }
 </style>
 </head>
 <body>
   <div class="dlk-ust-baslik">
-    <div class="dlk-okul-adi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜNE</div>
+    <div class="dlk-okul-adi" contenteditable="true" id="dlkEditOkulAdi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜNE</div>
     <div class="dlk-il">${escapeHtml(il)}</div>
   </div>
 
-  <div class="dlk-govde">${govdeMetni}</div>
+  <div class="dlk-govde" contenteditable="true" id="dlkEditGovde">${escapeHtml(govdeMetni)}</div>
 
   <div class="dlk-kapanis">Gereğini olurlarınıza arz ederim.</div>
 
@@ -138,6 +155,17 @@
     <div>Cep No: ${escapeHtml(state.telefon||'')}</div>
     <div>Adres: ${escapeHtml(state.adres||'')}</div>
   </div>
+
+  <script>
+    // Düzenlemeleri üst pencereye bildir, böylece state senkron kalır
+    // (ay/personel değişip yeniden render edildiğinde kullanıcı düzenlemesi korunur).
+    document.getElementById('dlkEditOkulAdi').addEventListener('input', function(){
+      window.parent.postMessage({ tip: 'dlkOkulAdiDuzenlendi', deger: this.textContent }, '*');
+    });
+    document.getElementById('dlkEditGovde').addEventListener('input', function(){
+      window.parent.postMessage({ tip: 'dlkGovdeDuzenlendi', deger: this.textContent }, '*');
+    });
+  </script>
 </body>
 </html>`;
   }
@@ -233,6 +261,20 @@
         <input id="dlk_sure" type="number" min="1" max="365" value="${state.sure||''}" placeholder="örn: 2" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
       </div>
 
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Paragraf Hizalama</label>
+        <select id="dlk_hizalama" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+          <option value="iki-yana" ${state.hizalama==='iki-yana'?'selected':''}>İki Yana Yaslı (resmi)</option>
+          <option value="sola" ${state.hizalama==='sola'?'selected':''}>Sola Yaslı</option>
+          <option value="ortala" ${state.hizalama==='ortala'?'selected':''}>Ortala</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:16px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11.5px;color:#7a5c00;line-height:1.5;">
+        💡 Okul adı ve dilekçe metni, sağdaki A4 önizlemesi üzerine doğrudan tıklayıp yazarak da düzenlenebilir.
+        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Metni Otomatiğe Sıfırla</button>
+      </div>
+
       <div id="dlk_bilgiKutusu" style="background:#f0f7f0;border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.6;"></div>
     `;
   }
@@ -271,7 +313,9 @@
       baslamaTarihiIso: '',
       baslamaTarihi: '',
       sure: '',
-      okulAdiManuel: ''
+      okulAdiManuel: '',
+      govdeManuel: null,   // null => otomatik metin üretilir; kullanıcı düzenlerse buraya yazılır
+      hizalama: 'iki-yana' // 'iki-yana' | 'sola' | 'ortala'
     };
 
     const formPanel = ov.querySelector('#dlkFormPanel');
@@ -298,6 +342,8 @@
         } else {
           state.adSoyad = ''; state.tc = ''; state.telefon = ''; state.adres = ''; state.gorev = '';
         }
+        // Personel değişince elle yazılmış eski metin yeni personele uymayacağından otomatik metne dönülür.
+        state.govdeManuel = null;
         render();
       };
       formPanel.querySelector('#dlk_okulAdi').oninput = (e) => {
@@ -317,7 +363,37 @@
         state.sure = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
+      formPanel.querySelector('#dlk_hizalama').onchange = (e) => {
+        state.hizalama = e.target.value;
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
+      formPanel.querySelector('#dlk_govdeSifirla').onclick = () => {
+        state.govdeManuel = null;
+        state.okulAdiManuel = '';
+        const okulAdiInput = formPanel.querySelector('#dlk_okulAdi');
+        if (okulAdiInput) okulAdiInput.value = '';
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
     }
+
+    // İframe içindeki contenteditable alanlardan gelen düzenleme bildirimlerini dinle.
+    // Birden fazla DilekceSistemi.ac() çağrısında dinleyici tekrar tekrar eklenmesin diye
+    // window üzerinde tek bir handler tutuyoruz.
+    window.removeEventListener('message', window._dlkMessageHandler || (()=>{}));
+    window._dlkMessageHandler = (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.data.tip === 'dlkGovdeDuzenlendi') {
+        state.govdeManuel = e.data.deger;
+      } else if (e.data.tip === 'dlkOkulAdiDuzenlendi') {
+        // " MÜDÜRLÜĞÜNE" son ekini ayıkla, sadece okul adını state'e yaz
+        let deger = e.data.deger || '';
+        deger = deger.replace(/\s*MÜDÜRLÜĞÜNE\s*$/i, '').trim();
+        state.okulAdiManuel = deger;
+        const okulAdiInput = formPanel.querySelector('#dlk_okulAdi');
+        if (okulAdiInput) okulAdiInput.value = deger;
+      }
+    };
+    window.addEventListener('message', window._dlkMessageHandler);
 
     render();
   }
