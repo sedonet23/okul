@@ -26,22 +26,52 @@ function profilFotoGoster(ogretmenId) {
 
 /* Profil fotoğrafı yükleme: detay panelindeki "📷 Fotoğraf" butonuna bağlanır */
 function profilFotoYukle(ogretmenId) {
+  // Mobilde çalışması için input mutlaka DOM'a eklenmeli
   const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = 'image/*';
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+  document.body.appendChild(inp);
+
   inp.onchange = function() {
-    const file = inp.files[0]; if (!file) return;
-    if (file.size > 500 * 1024) { toast('Fotoğraf 500 KB\'dan küçük olmalı.'); return; }
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const base64 = e.target.result;
+    const file = inp.files[0];
+    document.body.removeChild(inp);
+    if (!file) return;
+
+    // Canvas ile yeniden boyutlandır ve sıkıştır → ~200KB'ın altında kalır
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = function() {
+      URL.revokeObjectURL(blobUrl);
+      const canvas = document.createElement('canvas');
+      const MAX = 300; // px
+      const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+      canvas.width  = Math.round(img.width  * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const base64 = canvas.toDataURL('image/jpeg', 0.75);
+
       if (typeof db !== 'undefined' && typeof COL !== 'undefined') {
-        db.collection(COL.ogretmenler).doc(ogretmenId).update({ profilFotoUrl: base64 })
-          .then(() => { toast('Profil fotoğrafı kaydedildi.'); ogretmenDetayAc(ogretmenId); })
+        toast('Fotoğraf yükleniyor…');
+        db.collection(COL.ogretmenler).doc(ogretmenId)
+          .update({ profilFotoUrl: base64 })
+          .then(() => {
+            // Yerel diziyi de güncelle — snapshot beklemeden anında göster
+            const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x => x.id === ogretmenId) : null;
+            if (o) o.profilFotoUrl = base64;
+            toast('Profil fotoğrafı kaydedildi ✓');
+            // Paneli yenile (avatar güncellensin)
+            const old = document.querySelector('.detay-profil-foto');
+            if (old) old.remove();
+            detayPanelineProfilFotoEkle(ogretmenId);
+          })
           .catch(err => toast('Hata: ' + err.message));
       }
     };
-    reader.readAsDataURL(file);
+    img.onerror = () => toast('Resim okunamadı.');
+    img.src = blobUrl;
   };
+
   inp.click();
 }
 
