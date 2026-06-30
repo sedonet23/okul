@@ -695,7 +695,7 @@ function renderDashboard(){
   const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
   document.getElementById('dashStats').innerHTML = `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-card-ico stat-card-ico-blue">👨‍🏫</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${ogretmenler.length}</div><div class="stat-card-label">Personel</div></div>
-    <div class="stat-card stat-card-clickable" onclick="sekmeAc('siniflar')"><div class="stat-card-ico stat-card-ico-green">🧑‍🎓</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${toplamOgrenci}</div><div class="stat-card-label">Öğrenciler</div></div>
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')"><div class="stat-card-ico stat-card-ico-green">🧑‍🎓</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${toplamOgrenci}</div><div class="stat-card-label">Öğrenciler</div></div>
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')"><div class="stat-card-ico stat-card-ico-purple">🚌</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${servisSayisi}</div><div class="stat-card-label">Servis Sayısı</div></div>
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('evrak')"><div class="stat-card-ico stat-card-ico-amber">📄</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${acikEvrakSayisi}</div><div class="stat-card-label">Bekleyen Evrak</div></div>
   `;
