@@ -405,4 +405,13 @@
     }
   };
 
+  // Global, hatalara karşı korumalı giriş noktası (HTML onclick="" attribute'lerinden çağrılır)
+  window.TasimaTakipAc = function(servisId) {
+    try {
+      window.TasimaTakip.ac(servisId);
+    } catch (err) {
+      alert('Takip Çizelgesi açılırken hata oluştu: ' + (err && err.message ? err.message : err));
+    }
+  };
+
 })();
