@@ -84,6 +84,7 @@ function asistanVeriOzeti() {
 }
 
 
+async function asistanGonder() {
   const input = document.getElementById('asistanInput');
   const metin = (input.value || '').trim();
   if (!metin || asistanYukleniyor) return;
