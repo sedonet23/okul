@@ -129,28 +129,23 @@
     <section id="tab-panel" class="tab-panel active dash-modern">
       <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div></div>
 
-      <!-- 1. HERO KARTI: Karşılama + tarih + kompakt hava durumu (üst satır) + zil sayacı (alt satır, ilerleme çubuklu) -->
+      <!-- 1. HERO KARTI: Karşılama + tarih + zil sayacı + hava özeti (birleşik, tıklanınca detay açılır) -->
       <div class="card dash-hero">
         <div class="dash-hero-top">
           <div class="dash-hero-greet">
-            <div class="dash-hero-hi">Günaydın, Sedat Bey 👋</div>
+            <div class="dash-hero-hi" id="heroSelamla">Günaydın, Sedat Bey 👋</div>
             <div class="page-sub" id="panelTarih"></div>
           </div>
-          <!-- YENİ: kompakt hava durumu özeti — js/hava-durumu.js içindeki topbarRenderEt() tarafından dolduruluyor -->
-          <div id="heroHava" class="dash-hero-weather-mini" style="display:none;"></div>
         </div>
-        <!-- Zil sayacı: JS innerHTML'i aynen buraya basıyor (renderZilSayaci → #zilWidget) -->
-        <div class="dash-hero-bell dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
+        <!-- Zil + Hava: renderZilSayaci hero-bell'i, topbarRenderEt ise hero-hava-satir'ı dolduruyor. Tıklayınca hava detay sayfası açılıyor. -->
+        <div class="dash-hero-bell" id="zilWidget" onclick="sekmeAc('dersProgrami')" style="cursor:pointer;"></div>
+        <div class="dash-hero-hava-satir" id="heroHavaSatir" onclick="havaDurumuDetayAc()" style="display:none; cursor:pointer;"></div>
       </div>
 
-      <!-- 2. Hava Durumu Kartı — orijinal id'ler ve zengin içerik (tahmin, detay paneli) aynen korunuyor -->
-      <div class="card" id="havaDurumuKartWrap">
-        <h3>🌤️ Hava Durumu</h3>
+      <!-- 2. Eski bağımsız hava durumu kartı gizlendi; detaylar artık havaDurumuDetayAc() ile full-screen açılıyor -->
+      <div id="havaDurumuKartWrap" style="display:none!important;">
         <div id="havaDurumuKart">
-          <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
-            <span style="font-size:22px;">📍</span>
-            <span>Hava durumu için konum izni bekleniyor…</span>
-          </div>
+          <div id="havaDurumuYukleniyor"></div>
         </div>
       </div>
 
