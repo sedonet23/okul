@@ -194,6 +194,7 @@ function ogretmenDetayAc(id){
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if (typeof detayPanelineProfilFotoEkle === 'function') setTimeout(() => detayPanelineProfilFotoEkle(id), 10);
 }
 
 /* ================================================================

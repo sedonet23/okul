@@ -64,7 +64,7 @@ function asistanVeriOzeti() {
       veri.hatirlaticilar = hatirlaticilar.map(h => ({ baslik: h.baslik||'', tarih: h.tarih||'', aciklama: h.aciklama||'', tamamlandi: !!h.tamamlandi }));
     }
     if (typeof notlar !== 'undefined') {
-      veri.notlar = notlar.map(n => ({ baslik: n.baslik||'', tip: n.tip||'', ozet: (n.tip==='metin' ? String(n.icerik||'').slice(0,300) : '') }));
+      veri.notlar = notlar.map(n => ({ baslik: n.baslik||'', tip: n.tip||'', icerik: n.tip==='metin' ? String(n.icerik||'').slice(0,800) : '' }));
     }
     if (typeof evrakTakibi !== 'undefined') {
       veri.evrakTakibi = evrakTakibi.map(e => ({ ...e, id: undefined }));
@@ -87,7 +87,12 @@ function asistanVeriOzeti() {
       veri.denemeSinavlari = denemeSinavlari.map(d => ({ ad: d.ad, tarih: d.tarih }));
     }
     if (typeof servisler !== 'undefined') {
-      veri.servisler = servisler.map(s => ({ servisAdi: s.servisAdi, soforAdi: s.soforAdi, soforTelefon: s.soforTelefon, ogrenciSayisi: s.ogrenciSayisi, durum: s.durum }));
+      veri.servisler = servisler.map(s => ({
+        servisAdi: s.servisAdi, soforAdi: s.soforAdi, soforTelefon: s.soforTelefon,
+        plaka: s.plaka || '', guzergah: s.guzergah || '', mesafe: s.mesafe || '',
+        ogrenciSayisi: s.ogrenciSayisi, durum: s.durum,
+        ogrenciler: (typeof veliler !== 'undefined') ? veliler.filter(v=>v.servisId===s.id).map(v=>v.ogrenciAdi) : []
+      }));
     }
     if (typeof personelListesi !== 'undefined') {
       veri.personel = personelListesi.map(p => ({ ad: p.ad, soyad: p.soyad, gorev: p.gorev || p.unvan }));
