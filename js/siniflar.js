@@ -455,9 +455,7 @@ function sinifListeOlusturModalAc(sinifId) {
 
   modalAc(`📋 Liste Oluştur — ${escapeHtml(s.ad)}`, body, () => {
     sinifListesiYazdir(sinifId);
-  }, null);
-  const kb = document.getElementById('modalKaydetBtn');
-  if (kb) kb.textContent = '🖨️ Listeyi Yazdır';
+  }, null, '🖨️ Listeyi Yazdır');
 }
 
 function listeOzelSutunEkle() {

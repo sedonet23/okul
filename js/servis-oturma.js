@@ -130,7 +130,7 @@ function servisOturmaModalAc(servisId) {
       <div class="so-koltuk-panel"></div>
     </div>`;
 
-  modalAc(`💺 Oturma Planı — ${escapeHtml(s.servisAdi)}`, icerik, () => soKaydet(servisId));
+  modalAc(`💺 Oturma Planı — ${escapeHtml(s.servisAdi)}`, icerik, () => soKaydet(servisId), null, '💾 Kaydet');
   setTimeout(() => _soRenderArac(servisId), 60);
 }
 
@@ -543,9 +543,7 @@ function soKoltukTikla(koltukNo, servisId, sablon) {
   const koltuk    = koltuklar.find(k => k.no === koltukNo) || {};
   const sb        = sablon || mevcut?.sablon || 'ducato';
 
-  const ogrs = veliler
-    .filter(v => v.servisId === servisId)
-    .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+  const ogrs = ogrencileriSinifSiralaSirala(veliler.filter(v => v.servisId === servisId));
 
   const secenekler = ogrs.map(v => {
     const atanmis = koltuklar.some(k => k.ogrenciId === v.id && k.no !== koltukNo);

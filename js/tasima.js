@@ -61,21 +61,23 @@ function servisDetayAc(id){
     };
   }
 
-  const servisOgrencileri = veliler.filter(v=>v.servisId===id)
-    .sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
+  const servisOgrencileri = ogrencileriSinifSiralaSirala(veliler.filter(v=>v.servisId===id));
+  const baskanIdSeti = new Set(Array.isArray(s.baskanlar) ? s.baskanlar : []);
 
   const ogrenciListeHtml = servisOgrencileri.length
     ? servisOgrencileri.map(v=>{
         const sinifObj = siniflar.find(s=>s.id===v.sinifId);
         const sinifAdi = sinifObj ? sinifObj.ad : (v.sinifId||'—');
         const telefonlar = [v.telefon1||v.telefon, v.telefon2, v.telefon3].filter(Boolean).map(t=>telefonEtiketle(v,t)).join(' · ');
+        const baskanMi = baskanIdSeti.has(v.id);
         return `
         <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span>
-            <strong>${escapeHtml(v.ogrenciAdi)}</strong>
+            <strong>${baskanMi?'👑 ':''}${escapeHtml(v.ogrenciAdi)}</strong>
             ${v.ogrenciNo ? ` <span class="detay-row-muted">No: ${escapeHtml(v.ogrenciNo)}</span>` : ''}
             <span class="badge badge-blue">${escapeHtml(sinifAdi)}</span>
             ${v.cinsiyet ? ` <span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>` : ''}
+            ${baskanMi ? ` <span class="badge badge-amber">Servis Başkanı</span>` : ''}
             <br>👤 ${escapeHtml(v.veliAdi||'—')}
             ${telefonlar ? `<br><span class="detay-row-muted">📞 ${telefonlar}</span>` : ''}
           </span>
@@ -91,6 +93,16 @@ function servisDetayAc(id){
         ${s.plaka ? `<div class="detay-row">🚘 Plaka: <strong>${escapeHtml(s.plaka)}</strong></div>` : ''}
         <div class="detay-row">🗺️ Güzergah: ${escapeHtml(s.guzergah||'—')}</div>
         <div class="detay-row">Durum: <span class="badge badge-${servisDurumRengi(s.durum)}">${escapeHtml(s.durum||'Aktif')}</span></div>
+        ${(()=>{
+          const baskanIdleri = Array.isArray(s.baskanlar) ? s.baskanlar : [];
+          if (!baskanIdleri.length) return '';
+          const baskanAdlari = baskanIdleri
+            .map(bid => veliler.find(v=>v.id===bid))
+            .filter(Boolean)
+            .map(v=>escapeHtml(v.ogrenciAdi||''));
+          if (!baskanAdlari.length) return '';
+          return `<div class="detay-row">👑 Servis Başkanı${baskanAdlari.length>1?'ları':''}: <strong>${baskanAdlari.join(', ')}</strong></div>`;
+        })()}
         ${s.guzergahMesafe ? `<div class="detay-row">📏 Güzergah Mesafesi: <strong>${s.guzergahMesafe} km</strong>
           <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="detayPanelKapat(); haritaSekmesiAc(); setTimeout(()=>haritaGuzergahiYukle('${s.id}'),200)">🗺️ Haritada Gör</button>
         </div>` : `<div class="detay-row" style="color:var(--ink-muted);font-size:12px;">📏 Güzergah mesafesi henüz ölçülmedi.
@@ -240,6 +252,22 @@ function servisOgrenciExcelIceAktarModalAc(servisId){
 /* ---------- modal ---------- */
 function servisModalAc(id){
   const s = id ? servisler.find(x=>x.id===id) : null;
+
+  // Servisteki öğrenciler (Servis Başkanı seçimi için) — sadece düzenleme modunda, servis zaten kayıtlıysa
+  const servisOgrencileri = s ? ogrencileriSinifSiralaSirala(veliler.filter(v=>v.servisId===s.id)) : [];
+  const baskanlar = (s && Array.isArray(s.baskanlar)) ? s.baskanlar : [];
+  const baskanHtml = servisOgrencileri.length
+    ? `<div id="f_svBaskanListesi" style="max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px;">
+        ${servisOgrencileri.map(v=>{
+          const sn = siniflar.find(x=>x.id===v.sinifId);
+          return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);cursor:pointer;">
+            <input type="checkbox" value="${v.id}" ${baskanlar.includes(v.id)?'checked':''}>
+            <span>${escapeHtml(v.ogrenciAdi||'')}${sn?' — '+escapeHtml(sn.ad):''}</span>
+          </label>`;
+        }).join('')}
+      </div>`
+    : `<p class="empty-state" style="padding:8px 0;font-size:12px;">${s ? 'Bu serviste henüz kayıtlı öğrenci yok.' : 'Servis başkanı seçimi, servis kaydedildikten ve öğrenciler eklendikten sonra yapılabilir.'}</p>`;
+
   const body = `
     <div class="form-group"><label>Servis Adı</label><input id="f_svAd" value="${s?escapeHtml(s.servisAdi||''):''}" placeholder="örn: 1. Servis — Mavi Güzergah"></div>
     <div class="form-group"><label>Güzergah</label><input id="f_svGuzergah" value="${s?escapeHtml(s.guzergah||''):''}" placeholder="örn: Merkez · Yeşilköy · Okul"></div>
@@ -257,11 +285,17 @@ function servisModalAc(id){
       </div>
     </div>
     <div class="form-group"><label>Öğrenci Sayısı</label><input id="f_svOgrenci" type="number" min="0" value="${s&&s.ogrenciSayisi!=null?s.ogrenciSayisi:0}"></div>
+    <div class="form-group">
+      <label>👑 Servis Başkanı / Başkanları</label>
+      ${baskanHtml}
+    </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_svNotlar" rows="2">${s?escapeHtml(s.notlar||''):''}</textarea></div>
   `;
   modalAc(s?'Servis Düzenle':'Yeni Servis', body, ()=>{
     const servisAdi = document.getElementById('f_svAd').value.trim();
     if(!servisAdi){ toast('Servis adı zorunludur.'); return; }
+    const baskanCheckboxlar = document.querySelectorAll('#f_svBaskanListesi input[type=checkbox]:checked');
+    const seciliBaskanlar = Array.from(baskanCheckboxlar).map(cb=>cb.value);
     kaydet(COL.servisler, s?s.id:null, {
       servisAdi,
       guzergah: document.getElementById('f_svGuzergah').value.trim(),
@@ -270,6 +304,7 @@ function servisModalAc(id){
       plaka: document.getElementById('f_svPlaka').value.trim().toUpperCase(),
       ogrenciSayisi: parseInt(document.getElementById('f_svOgrenci').value)||0,
       durum: document.getElementById('f_svDurum').value,
+      baskanlar: seciliBaskanlar,
       notlar: document.getElementById('f_svNotlar').value.trim(),
     });
     modalKapat();
@@ -296,6 +331,7 @@ const SERVIS_LISTE_SUTUNLAR = [
   { key: 'ogrenciNo',  label: 'Öğrenci No', fn: v => v.ogrenciNo  || '' },
   { key: 'sinif',      label: 'Sınıf',      fn: v => { const sn = siniflar.find(s=>s.id===v.sinifId); return sn ? sn.ad : (v.sinifId||''); } },
   { key: 'cinsiyet',   label: 'Cinsiyet',   fn: v => v.cinsiyet   || '' },
+  { key: 'baskan',     label: 'Servis Başkanı', fn: (v, i, servis) => (servis && Array.isArray(servis.baskanlar) && servis.baskanlar.includes(v.id)) ? '👑 Evet' : '' },
   { key: 'veliAdi',    label: 'Veli Adı',   fn: v => v.veliAdi    || '' },
   { key: 'yakinlik',   label: 'Yakınlık',   fn: v => v.yakinlik1 || v.yakinlik || '' },
   { key: 'telefon1',   label: 'Telefon 1',  fn: v => v.telefon1 || v.telefon || '' },
@@ -378,9 +414,7 @@ function servisListeOlusturModalAc(servisId) {
 
   modalAc(`📋 Liste Oluştur — ${escapeHtml(s.servisAdi||'Servis')}`, body, () => {
     servisListesiYazdir(servisId);
-  }, null);
-  const kb = document.getElementById('modalKaydetBtn');
-  if (kb) kb.textContent = '🖨️ Listeyi Yazdır';
+  }, null, '🖨️ Listeyi Yazdır');
 }
 
 function servisListeOzelSutunEkle() {
@@ -433,13 +467,11 @@ function servisListesiYazdir(servisId) {
   const gosterSofor    = gc('sv_lb_soforGoster');
   const gosterMudur    = gc('sv_lb_mudurGoster');
 
-  const ogrenciler = veliler
-    .filter(v => v.servisId === servisId)
-    .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+  const ogrenciler = ogrencileriSinifSiralaSirala(veliler.filter(v => v.servisId === servisId));
 
   const thHTML = tumSutunlar.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
   const trHTML = ogrenciler.map((v, i) =>
-    `<tr>${tumSutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
+    `<tr>${tumSutunlar.map(c => `<td>${escapeHtml(c.fn(v, i, s))}</td>`).join('')}</tr>`
   ).join('');
 
   const metaParcalar = [];

@@ -56,6 +56,32 @@ function escapeHtml(str){
   if(str===null||str===undefined) return '';
   return String(str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+/* Bir sınıf adından ("7-A", "10/B", "Anasınıfı" vb.) sayısal seviyeyi çıkarır.
+   Sayı bulunamazsa çok büyük bir değer döndürerek sona atar. */
+function sinifSeviyesiCikar(sinifAdi){
+  if(!sinifAdi) return 999;
+  const m = String(sinifAdi).match(/\d+/);
+  return m ? parseInt(m[0], 10) : 999;
+}
+/* Öğrenci/veli kayıtlarını önce sınıf seviyesine (1->8), sonra şube/isim alfabetik sırasına göre
+   sıralar. v.sinifId üzerinden siniflar dizisinde ada erişilir; sinifAdiAlani parametresi farklı
+   alan adı kullanan kayıtlar için override sağlar (ör. servis-oturma.js içindeki koltuk verisi). */
+function ogrencileriSinifSiralaSirala(liste, opts){
+  opts = opts || {};
+  const sinifIdAlani = opts.sinifIdAlani || 'sinifId';
+  const sinifAdiAlani = opts.sinifAdiAlani || null;
+  const adAlani = opts.adAlani || 'ogrenciAdi';
+  return [...liste].sort((a,b)=>{
+    const sinifAdA = sinifAdiAlani ? (a[sinifAdiAlani]||'') : ((typeof siniflar!=='undefined' && siniflar.find(s=>s.id===a[sinifIdAlani]))?.ad || '');
+    const sinifAdB = sinifAdiAlani ? (b[sinifAdiAlani]||'') : ((typeof siniflar!=='undefined' && siniflar.find(s=>s.id===b[sinifIdAlani]))?.ad || '');
+    const seviyeA = sinifSeviyesiCikar(sinifAdA);
+    const seviyeB = sinifSeviyesiCikar(sinifAdB);
+    if (seviyeA !== seviyeB) return seviyeA - seviyeB;
+    const subeCmp = sinifAdA.localeCompare(sinifAdB, 'tr');
+    if (subeCmp !== 0) return subeCmp;
+    return (a[adAlani]||'').localeCompare(b[adAlani]||'', 'tr');
+  });
+}
 /* Bir telefon numarasını, varsa velinin yakınlık derecesiyle ("Anne: 0532...") birlikte biçimlendirir. */
 function telefonEtiketle(v, telefon){
   if(!telefon) return '';
@@ -268,7 +294,7 @@ function kaydet(koleksiyon, id, veri){
 function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message); }
 
 /* ---------- modal ---------- */
-function modalAc(title, bodyHtml, kaydetFn, silFn){
+function modalAc(title, bodyHtml, kaydetFn, silFn, kaydetBtnMetni){
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = bodyHtml;
   const silBtn = document.getElementById('modalSilBtn');
@@ -276,6 +302,7 @@ function modalAc(title, bodyHtml, kaydetFn, silFn){
   else { silBtn.style.display='none'; silBtn.onclick=null; }
   const kaydetBtn = document.getElementById('modalKaydetBtn');
   kaydetBtn.style.display = 'inline-flex';
+  kaydetBtn.textContent = kaydetBtnMetni || 'Kaydet';
   kaydetBtn.onclick = kaydetFn ? () => {
     try { kaydetFn(); }
     catch(e) { console.error('Kaydet hatası:', e); toast('Hata: ' + e.message); }

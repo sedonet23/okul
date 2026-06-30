@@ -47,15 +47,20 @@
   // aynı sorgu) -> sınıf adı eksikse oturma planından tamamla -> hedef boyuta göre boş satır ekle
   async function _getOgrenciler(servisId) {
     let liste = [];
+    const baskanIdSeti = new Set(
+      (_servis && Array.isArray(_servis.baskanlar)) ? _servis.baskanlar : []
+    );
 
     // 1. oy_veliler koleksiyonu (ana kaynak — tasima.js servisDetayAc ile aynı filtre)
     if (typeof veliler !== 'undefined') {
-      const svVeliler = veliler.filter(v => v.servisId === servisId)
-        .sort((a,b) => (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
+      const svVeliler = (typeof ogrencileriSinifSiralaSirala === 'function')
+        ? ogrencileriSinifSiralaSirala(veliler.filter(v => v.servisId === servisId))
+        : veliler.filter(v => v.servisId === servisId)
+            .sort((a,b) => (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
       liste = svVeliler.map(v => {
         const sinifObj = (typeof siniflar !== 'undefined')
           ? siniflar.find(s => s.id === v.sinifId) : null;
-        return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : (v.sinifId || '') };
+        return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : (v.sinifId || ''), baskan: baskanIdSeti.has(v.id) };
       });
     }
 
@@ -74,7 +79,7 @@
                   const sObj = siniflar.find(s => s.id === k.sinifId);
                   if (sObj) sinifAdi = sObj.ad;
                 }
-                liste.push({ ad: k.ogrenciAdi, sinif: sinifAdi });
+                liste.push({ ad: k.ogrenciAdi, sinif: sinifAdi, baskan: k.ogrenciId ? baskanIdSeti.has(k.ogrenciId) : false });
               }
             });
           });
@@ -136,7 +141,7 @@
         ${liste.map((o,i) => `
         <tr>
           <td class="tt-ogr-sira">${baslangic+i+1}</td>
-          <td class="tt-ogr-ad">${escapeHtml(o.ad||'')}</td>
+          <td class="tt-ogr-ad">${o.baskan ? '👑 ' : ''}${escapeHtml(o.ad||'')}</td>
           <td class="tt-ogr-sinif">${escapeHtml(o.sinif||'')}</td>
         </tr>`).join('')}
         </tbody>
