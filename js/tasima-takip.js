@@ -1,6 +1,6 @@
 /* =============================================
    js/tasima-takip.js
-   TAŞIMA TAKİP ÇİZELGESİ MODÜLÜ
+   TAŞIMA TAKİP ÇİZELGESİ MODÜLÜ (salt görüntü / yazdırma)
    Bağımlılıklar: firebase-init.js, tasima.js, nobet.js, app.js
    ============================================= */
 
@@ -21,16 +21,10 @@
   let _servis     = null;
   let _yil        = new Date().getFullYear();
   let _ay         = new Date().getMonth();
-  let _veri       = {};
   let _ogrenciler = [];
   let _listeBoyu  = 30;
-  let _autoSaveTimer = null;
 
   // --- Yardımcı fonksiyonlar ---
-
-  function _lsKey() {
-    return `tasima_takip_${_servisId}_${_yil}_${String(_ay+1).padStart(2,'0')}`;
-  }
 
   function _isoTarih(d) {
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -49,62 +43,46 @@
     return null;
   }
 
-  function _yukle() {
-    try { _veri = JSON.parse(localStorage.getItem(_lsKey()) || '{}'); }
-    catch(e) { _veri = {}; }
-  }
-
-  function _veriTopla() {
-    const tbody = document.getElementById('ttTbody');
-    if (!tbody) return;
-    tbody.querySelectorAll('tr[data-tarih]').forEach(tr => {
-      const t = tr.dataset.tarih;
-      const ins = tr.querySelectorAll('input[type="text"], input[type="number"]');
-      if (ins.length >= 4) {
-        const e = { gSaat: ins[0].value, gSayi: ins[1].value,
-                    aSaat: ins[2].value, aSayi: ins[3].value };
-        if (Object.values(e).some(v => v !== '' && v !== '0')) _veri[t] = e;
-      }
-    });
-  }
-
-  // Öğrenci listesi: oturma planı -> veliler koleksiyonu -> servis.ogrenciSayisi'ne göre boş satır
+  // Öğrenci listesi: veliler koleksiyonu (asıl kaynak, tasima.js'deki servisDetayAc ile birebir
+  // aynı sorgu) -> sınıf adı eksikse oturma planından tamamla -> hedef boyuta göre boş satır ekle
   async function _getOgrenciler(servisId) {
     let liste = [];
 
-    // 1. oy_servisOturma koleksiyonu (servis-oturma.js)
-    try {
-      const snap = await db.collection(COL.servisOturma)
-        .where('servisId','==', servisId).get();
-      if (!snap.empty) {
-        snap.docs.forEach(doc => {
-          const koltuklar = doc.data().koltuklar || {};
-          Object.values(koltuklar).forEach(k => {
-            if (k && k.ogrenciAdi) {
-              let sinifAdi = k.sinifAdi || '';
-              if (!sinifAdi && k.sinifId && typeof siniflar !== 'undefined') {
-                const sObj = siniflar.find(s => s.id === k.sinifId);
-                if (sObj) sinifAdi = sObj.ad;
-              }
-              liste.push({ ad: k.ogrenciAdi, sinif: sinifAdi });
-            }
-          });
-        });
-      }
-    } catch(e) {}
-
-    // 2. oy_veliler koleksiyonu (tasima.js - veliler global) — daha güvenilir, sınıf bilgisi her zaman var
-    if (!liste.length && typeof veliler !== 'undefined') {
+    // 1. oy_veliler koleksiyonu (ana kaynak — tasima.js servisDetayAc ile aynı filtre)
+    if (typeof veliler !== 'undefined') {
       const svVeliler = veliler.filter(v => v.servisId === servisId)
         .sort((a,b) => (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
       liste = svVeliler.map(v => {
         const sinifObj = (typeof siniflar !== 'undefined')
           ? siniflar.find(s => s.id === v.sinifId) : null;
-        return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : '' };
+        return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : (v.sinifId || '') };
       });
     }
 
-    // Sınıf adı eksik kalanları doldurmaya çalış (oturma planından gelen kayıtlar için)
+    // 2. veliler boşsa, yedek kaynak olarak oy_servisOturma koleksiyonuna bak
+    if (!liste.length) {
+      try {
+        const snap = await db.collection(COL.servisOturma)
+          .where('servisId','==', servisId).get();
+        if (!snap.empty) {
+          snap.docs.forEach(doc => {
+            const koltuklar = doc.data().koltuklar || {};
+            Object.values(koltuklar).forEach(k => {
+              if (k && k.ogrenciAdi) {
+                let sinifAdi = k.sinifAdi || '';
+                if (!sinifAdi && k.sinifId && typeof siniflar !== 'undefined') {
+                  const sObj = siniflar.find(s => s.id === k.sinifId);
+                  if (sObj) sinifAdi = sObj.ad;
+                }
+                liste.push({ ad: k.ogrenciAdi, sinif: sinifAdi });
+              }
+            });
+          });
+        }
+      } catch(e) {}
+    }
+
+    // Sınıf adı eksik kalanları doldurmaya çalış (isimle eşleştirerek)
     if (typeof veliler !== 'undefined' && typeof siniflar !== 'undefined') {
       liste = liste.map(o => {
         if (o.sinif) return o;
@@ -144,124 +122,9 @@
     return { mudurAd, mudurYrdAd };
   }
 
-  // --- Modal HTML ---
+  // --- HTML üretimi (önizleme penceresinde kullanılacak tam sayfa) ---
 
-  function _createModal() {
-    if (document.getElementById('ttModal')) return;
-    document.body.insertAdjacentHTML('beforeend', `
-    <div id="ttModal" onclick="if(event.target===this)TasimaTakip.kapat()">
-      <div class="tt-container" onclick="event.stopPropagation()">
-
-        <!-- Header -->
-        <div class="tt-header">
-          <div class="tt-header-left">
-            <button class="tt-btn-icon" onclick="TasimaTakip.ayDegistir(-1)" title="Önceki Ay">◀</button>
-            <span class="tt-ay-label" id="ttAyLabel"></span>
-            <button class="tt-btn-icon" onclick="TasimaTakip.ayDegistir(1)" title="Sonraki Ay">▶</button>
-          </div>
-          <div class="tt-header-center">
-            <span id="ttHeaderBaslik">TAŞIMA TAKİP ÇİZELGESİ</span>
-          </div>
-          <div class="tt-header-right">
-            <button class="tt-btn-action" onclick="TasimaTakip.kaydet()">💾 Kaydet</button>
-            <button class="tt-btn-action" onclick="TasimaTakip.yazdir()">🖨️ Yazdır</button>
-            <button class="tt-btn-action" onclick="TasimaTakip.excelIndir()">📊 Excel</button>
-            <button class="tt-btn-kapat" onclick="TasimaTakip.kapat()">✕</button>
-          </div>
-        </div>
-
-        <!-- Yazdırılacak Alan -->
-        <div class="tt-print-area" id="ttPrintArea">
-          <!-- Sayfa Başlığı -->
-          <div class="tt-sayfa-baslik">
-            <div class="tt-baslik-1" id="ttBaslik1"></div>
-            <div class="tt-baslik-2" id="ttBaslik2"></div>
-          </div>
-
-          <!-- Üst Bilgi Tablosu -->
-          <table class="tt-info-tablo">
-            <tr>
-              <td class="tt-lbl">SERVİS ADI</td>
-              <td id="ttGuzergah" colspan="3"></td>
-              <td class="tt-lbl">CEP NO</td>
-              <td id="ttCep"></td>
-              <td class="tt-lbl">AİT OLDUĞU AY</td>
-              <td id="ttAy"></td>
-            </tr>
-            <tr>
-              <td class="tt-lbl">SÜRÜCÜ</td>
-              <td id="ttSofor" colspan="3"></td>
-              <td class="tt-lbl">PLAKA</td>
-              <td id="ttPlaka" colspan="3"></td>
-            </tr>
-          </table>
-
-          <!-- Öğrenci Listesi -->
-          <div class="tt-ogrenci-grid" id="ttOgrenciGrid"></div>
-
-          <!-- Ana Tablo -->
-          <div class="tt-tablo-wrap">
-            <table class="tt-ana-tablo" id="ttAnaTablo">
-              <thead>
-                <tr>
-                  <th class="tt-th-tarih" rowspan="2">TARİH</th>
-                  <th class="tt-th-sabah" colspan="4">ÖĞLE</th>
-                  <th class="tt-th-aksam" colspan="4">AKŞAM</th>
-                </tr>
-                <tr>
-                  <th class="tt-th-sub">GELİŞ<br>SAATİ</th>
-                  <th class="tt-th-sub">GELEN<br>SAYI</th>
-                  <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
-                  <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
-                  <th class="tt-th-sub">ÇIKIŞ<br>SAATİ</th>
-                  <th class="tt-th-sub">GİDEN<br>SAYI</th>
-                  <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
-                  <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
-                </tr>
-              </thead>
-              <tbody id="ttTbody"></tbody>
-            </table>
-          </div>
-
-          <!-- İmza Alanı -->
-          <div class="tt-imza-satir">
-            <div class="tt-imza-kutu">
-              <div class="tt-imza-unvan">Müdür Yardımcısı</div>
-              <div class="tt-imza-ad" id="ttMudurYrdAd"></div>
-            </div>
-            <div class="tt-imza-kutu">
-              <div class="tt-imza-unvan">Okul Müdürü</div>
-              <div class="tt-imza-ad" id="ttMudurAd"></div>
-            </div>
-          </div>
-        </div><!-- /tt-print-area -->
-
-      </div>
-    </div>`);
-  }
-
-  // --- Render fonksiyonları ---
-
-  function _renderBaslik() {
-    const ayAdi = `${AY_ISIMLERI[_ay]} - ${_yil}`;
-    const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v||''; };
-    set('ttAyLabel', ayAdi);
-    set('ttBaslik1', 'KORUK İLK-ORTAOKULU');
-    set('ttBaslik2', `${ayAdi} TAŞIMA TAKİP ÇİZELGESİ`);
-    if (!_servis) return;
-    set('ttGuzergah', _servis.servisAdi || '');
-    set('ttCep',      _servis.soforTelefon || '');
-    set('ttAy',       ayAdi);
-    set('ttSofor',    _servis.soforAdi || '');
-    set('ttPlaka',    _servis.plaka || '');
-    const { mudurAd, mudurYrdAd } = _getMudurBilgileri();
-    set('ttMudurAd',    mudurAd);
-    set('ttMudurYrdAd', mudurYrdAd);
-  }
-
-  function _renderOgrenciler() {
-    const grid = document.getElementById('ttOgrenciGrid');
-    if (!grid) return;
+  function _ogrenciGridHtml() {
     const yarisi = Math.ceil(_listeBoyu / 2);
     const sol    = _ogrenciler.slice(0, yarisi);
     const sag    = _ogrenciler.slice(yarisi, _listeBoyu);
@@ -279,12 +142,10 @@
         </div>`).join('')}
       </div>`;
     }
-    grid.innerHTML = kolHtml(sol, 0) + kolHtml(sag, yarisi);
+    return `<div class="tt-ogrenci-grid">${kolHtml(sol, 0)}${kolHtml(sag, yarisi)}</div>`;
   }
 
-  function _renderTablo() {
-    const tbody = document.getElementById('ttTbody');
-    if (!tbody) return;
+  function _tabloSatirlariHtml() {
     const sonGun = new Date(_yil, _ay+1, 0).getDate();
     let html = '';
     for (let g = 1; g <= sonGun; g++) {
@@ -295,120 +156,230 @@
       const tatil = !hs ? _isResmiTatil(iso) : null;
       // İstenen format: "1 Haziran 2026 Pazartesi"
       const tarihStr = `${g} ${AY_ISIMLERI[_ay]} ${_yil} ${GUNLER[gn]}`;
-      const vd  = _veri[iso] || {};
 
       if (hs) {
-        html += `<tr class="tt-hs" data-tarih="${iso}">
+        html += `<tr class="tt-hs">
           <td class="tt-tarih-hucre">${tarihStr}</td>
           ${'<td class="tt-hs-cell">Hafta Sonu</td>'.repeat(8)}
         </tr>`;
       } else if (tatil) {
-        html += `<tr class="tt-tatil" data-tarih="${iso}" title="${escapeHtml(tatil)}">
+        html += `<tr class="tt-tatil" title="${escapeHtml(tatil)}">
           <td class="tt-tarih-hucre">${tarihStr}</td>
           ${'<td class="tt-tatil-cell">Resmi Tatil</td>'.repeat(8)}
         </tr>`;
       } else {
-        html += `<tr class="tt-gun" data-tarih="${iso}">
+        html += `<tr class="tt-gun">
           <td class="tt-tarih-hucre">${tarihStr}</td>
-          <td><input type="text" inputmode="numeric" maxlength="5" placeholder="" value="${vd.gSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
-          <td><input type="number" min="0" max="999" value="${vd.gSayi||''}" placeholder="0" oninput="TasimaTakip._otoKaydet()"></td>
-          <td class="tt-imza-hucre"></td>
-          <td class="tt-imza-hucre"></td>
-          <td><input type="text" inputmode="numeric" maxlength="5" placeholder="" value="${vd.aSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
-          <td><input type="number" min="0" max="999" value="${vd.aSayi||''}" placeholder="0" oninput="TasimaTakip._otoKaydet()"></td>
-          <td class="tt-imza-hucre"></td>
-          <td class="tt-imza-hucre"></td>
+          ${'<td class="tt-bos-hucre"></td>'.repeat(8)}
         </tr>`;
       }
     }
-    tbody.innerHTML = html;
+    return html;
   }
+
+  function _sayfaHtml() {
+    const ayAdi = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+    const { mudurAd, mudurYrdAd } = _getMudurBilgileri();
+    const s = _servis || {};
+
+    return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(s.servisAdi||'Servis')} — ${escapeHtml(ayAdi)} Taşıma Takip Çizelgesi</title>
+<style>
+  @page { size: A4 portrait; margin: 7mm 6mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background:#fff; }
+
+  .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; }
+  .tt-baslik-1 { font-size: 14pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+  .tt-baslik-2 { font-size: 10.5pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
+
+  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8.5pt; }
+  .tt-info-tablo td { border: 1px solid #888; padding: 3px 6px; }
+  .tt-info-tablo .tt-lbl { background: #c8e6c9; font-weight: 700; white-space: nowrap; color:#1b5e20; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  .tt-ogrenci-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; margin-bottom: 8px; }
+  .tt-ogr-col { border-right: 1px solid #888; }
+  .tt-ogr-col:last-child { border-right: none; }
+  .tt-ogr-head { display: grid; grid-template-columns: 24px 1fr 42px; background: #a5d6a7; font-size: 7pt; font-weight: 700; text-align: center; border-bottom: 1px solid #888; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-ogr-head span { padding: 2px 1px; border-right: 1px solid #bbb; }
+  .tt-ogr-head span:last-child { border-right: none; }
+  .tt-ogr-row { display: grid; grid-template-columns: 24px 1fr 42px; font-size: 7pt; border-bottom: 1px solid #ddd; line-height: 1.35; }
+  .tt-ogr-row:last-child { border-bottom: none; }
+  .tt-ogr-row:nth-child(even) { background: #f6f6f6; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-ogr-row span { padding: 1.5px 1px; text-align: center; border-right: 1px solid #e3e3e3; }
+  .tt-ogr-row span:last-child { border-right: none; }
+  .tt-ogr-row .tt-ogr-ad { text-align: left; padding-left: 4px; }
+
+  .tt-ana-tablo { width: 100%; border-collapse: collapse; font-size: 6.6pt; }
+  .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: 1.5px 2px; text-align: center; vertical-align: middle; }
+  .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left; padding-left: 6px; width: 110px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-th-sub { background: #c8e6c9; font-weight: 600; font-size: 6.2pt; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  .tt-tarih-hucre { text-align: left; padding-left: 6px; }
+  .tt-bos-hucre { min-width: 30px; }
+
+  tr.tt-hs td, tr.tt-tatil td { background: #e3e3e3; color: #777; font-style: italic; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+
+  .tt-imza-satir { display: flex; justify-content: space-between; padding: 12px 10px 0; }
+  .tt-imza-kutu { text-align: center; min-width: 130px; }
+  .tt-imza-unvan { font-size: 8pt; font-weight: 700; }
+  .tt-imza-ad { font-size: 7.5pt; color: #444; margin-top: 3px; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+  <div class="tt-sayfa-baslik">
+    <div class="tt-baslik-1">KORUK İLK-ORTAOKULU</div>
+    <div class="tt-baslik-2">${escapeHtml(ayAdi)} TAŞIMA TAKİP ÇİZELGESİ</div>
+  </div>
+
+  <table class="tt-info-tablo">
+    <tr>
+      <td class="tt-lbl">SERVİS ADI</td><td colspan="3">${escapeHtml(s.servisAdi||'')}</td>
+      <td class="tt-lbl">CEP NO</td><td>${escapeHtml(s.soforTelefon||'')}</td>
+      <td class="tt-lbl">AİT OLDUĞU AY</td><td>${escapeHtml(ayAdi)}</td>
+    </tr>
+    <tr>
+      <td class="tt-lbl">SÜRÜCÜ</td><td colspan="3">${escapeHtml(s.soforAdi||'')}</td>
+      <td class="tt-lbl">PLAKA</td><td colspan="3">${escapeHtml(s.plaka||'')}</td>
+    </tr>
+  </table>
+
+  ${_ogrenciGridHtml()}
+
+  <table class="tt-ana-tablo">
+    <thead>
+      <tr>
+        <th class="tt-th-tarih" rowspan="2">TARİH</th>
+        <th class="tt-th-sabah" colspan="4">ÖĞLE</th>
+        <th class="tt-th-aksam" colspan="4">AKŞAM</th>
+      </tr>
+      <tr>
+        <th class="tt-th-sub">GELİŞ<br>SAATİ</th>
+        <th class="tt-th-sub">GELEN<br>SAYI</th>
+        <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
+        <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
+        <th class="tt-th-sub">ÇIKIŞ<br>SAATİ</th>
+        <th class="tt-th-sub">GİDEN<br>SAYI</th>
+        <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
+        <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
+      </tr>
+    </thead>
+    <tbody>${_tabloSatirlariHtml()}</tbody>
+  </table>
+
+  <div class="tt-imza-satir">
+    <div class="tt-imza-kutu">
+      <div class="tt-imza-unvan">Müdür Yardımcısı</div>
+      <div class="tt-imza-ad">${escapeHtml(mudurYrdAd)}</div>
+    </div>
+    <div class="tt-imza-kutu">
+      <div class="tt-imza-unvan">Okul Müdürü</div>
+      <div class="tt-imza-ad">${escapeHtml(mudurAd)}</div>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  // --- Üst kontrol çubuğu (ay gezinme + yazdır) ile birlikte önizleme penceresi açar ---
+
+  function _pencereAc() {
+    const w = window.open('', '_blank', 'width=900,height=900');
+    if (!w) { if (typeof toast === 'function') toast('Pop-up engellendi, lütfen izin verin.'); return; }
+
+    const ayAdi = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+
+    w.document.write(`<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Taşıma Takip Çizelgesi</title>
+<style>
+  body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#525659; }
+  .tt-toolbar {
+    position: sticky; top:0; z-index:10;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background: linear-gradient(135deg,#1b5e20,#2e7d32);
+    color:#fff; padding:10px 14px; flex-wrap:wrap;
+  }
+  .tt-toolbar button {
+    background: rgba(255,255,255,0.2); border:none; color:#fff;
+    border-radius:7px; padding:6px 14px; font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .tt-toolbar button:hover { background: rgba(255,255,255,0.35); }
+  .tt-toolbar span { font-weight:700; min-width:140px; text-align:center; font-size:13px; }
+  .tt-sayfa-kapsayici { padding: 16px 0 40px; display:flex; justify-content:center; }
+  iframe { width: 210mm; min-height: 297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,0.4); }
+  @media print {
+    .tt-toolbar { display:none !important; }
+    .tt-sayfa-kapsayici { padding:0; }
+    iframe { box-shadow:none; width:100%; min-height:0; }
+  }
+</style>
+</head>
+<body>
+  <div class="tt-toolbar">
+    <button id="ttPrevBtn">◀ Önceki Ay</button>
+    <span id="ttAyEtiket">${escapeHtml(ayAdi)}</span>
+    <button id="ttNextBtn">Sonraki Ay ▶</button>
+    <button id="ttPrintBtn">🖨️ Yazdır / PDF</button>
+  </div>
+  <div class="tt-sayfa-kapsayici">
+    <iframe id="ttFrame"></iframe>
+  </div>
+</body>
+</html>`);
+    w.document.close();
+
+    _ttWin = w;
+
+    const yazFrame = () => {
+      const frame = w.document.getElementById('ttFrame');
+      frame.srcdoc = _sayfaHtml();
+      w.document.getElementById('ttAyEtiket').textContent = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+    };
+    yazFrame();
+
+    w.document.getElementById('ttPrevBtn').onclick = async () => {
+      _ay--; if (_ay < 0) { _ay = 11; _yil--; }
+      yazFrame();
+    };
+    w.document.getElementById('ttNextBtn').onclick = async () => {
+      _ay++; if (_ay > 11) { _ay = 0; _yil++; }
+      yazFrame();
+    };
+    w.document.getElementById('ttPrintBtn').onclick = () => {
+      const frame = w.document.getElementById('ttFrame');
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    };
+  }
+
+  let _ttWin = null;
 
   // --- Public API ---
   window.TasimaTakip = {
-
-    _otoKaydet() {
-      clearTimeout(_autoSaveTimer);
-      _autoSaveTimer = setTimeout(() => this.kaydet(true), 2000);
-    },
 
     async ac(servisId) {
       _servisId = servisId;
       _yil = new Date().getFullYear();
       _ay  = new Date().getMonth();
 
-      _createModal();
-
       _servis = (typeof servisler !== 'undefined')
         ? servisler.find(s => s.id === servisId) || null
         : null;
 
       _ogrenciler = await _getOgrenciler(servisId);
-      _yukle();
 
-      _renderBaslik();
-      _renderOgrenciler();
-      _renderTablo();
-
-      document.getElementById('ttModal').style.display = 'flex';
-      document.body.classList.add('modal-open');
-    },
-
-    ayDegistir(delta) {
-      this.kaydet(true);
-      _ay += delta;
-      if (_ay < 0)  { _ay = 11; _yil--; }
-      if (_ay > 11) { _ay = 0;  _yil++; }
-      _yukle();
-      _renderBaslik();
-      _renderTablo();
-    },
-
-    kaydet(sessiz = false) {
-      _veriTopla();
-      localStorage.setItem(_lsKey(), JSON.stringify(_veri));
-      if (!sessiz && typeof toast === 'function') toast('Çizelge kaydedildi ✓');
-    },
-
-    kapat() {
-      this.kaydet(true);
-      const m = document.getElementById('ttModal');
-      if (m) m.style.display = 'none';
-      document.body.classList.remove('modal-open');
-    },
-
-    yazdir() {
-      this.kaydet(true);
-      window.print();
-    },
-
-    excelIndir() {
-      this.kaydet(true);
-      const ayAdi  = `${AY_ISIMLERI[_ay]}_${_yil}`;
-      const plaka  = _servis ? (_servis.plaka || 'arac') : 'arac';
-      const sonGun = new Date(_yil, _ay+1, 0).getDate();
-      let csv = `\uFEFFKORUK İLK-ORTAOKULU ${AY_ISIMLERI[_ay]} ${_yil} TAŞIMA TAKİP ÇİZELGESİ\n`;
-      csv += `Servis Adı:;${_servis?.servisAdi||''};Şoför:;${_servis?.soforAdi||''};Plaka:;${_servis?.plaka||''}\n\n`;
-      csv += `TARİH;GELİŞ SAATİ;GELEN SAYI;ÇIKIŞ SAATİ;GİDEN SAYI\n`;
-      for (let g = 1; g <= sonGun; g++) {
-        const dt  = new Date(_yil, _ay, g);
-        const iso = _isoTarih(dt);
-        const hs  = dt.getDay()===0||dt.getDay()===6;
-        const tatil = !hs ? _isResmiTatil(iso) : null;
-        const tar = `${g} ${AY_ISIMLERI[_ay]} ${_yil} ${GUNLER[dt.getDay()]}`;
-        if (hs) { csv += `${tar};Hafta Sonu;Hafta Sonu;Hafta Sonu;Hafta Sonu\n`; }
-        else if (tatil) { csv += `${tar};Resmi Tatil;Resmi Tatil;Resmi Tatil;Resmi Tatil\n`; }
-        else {
-          const vd = _veri[iso] || {};
-          csv += `${tar};${vd.gSaat||''};${vd.gSayi||''};${vd.aSaat||''};${vd.aSayi||''}\n`;
-        }
-      }
-      const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = `tasima_takip_${plaka}_${ayAdi}.csv`;
-      a.click(); URL.revokeObjectURL(url);
-      if (typeof toast === 'function') toast('Excel indiriliyor...');
+      _pencereAc();
     }
   };
 
