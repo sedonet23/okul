@@ -65,6 +65,25 @@ document.addEventListener('DOMContentLoaded', ()=>{
   temaUygula(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
   renkPaketiBaslat();
 
+  // YENİ: Karşılamayı sayfa yüklenince hemen güncelle (Firestore bekleme)
+  (function selamGuncelle(){
+    const el = document.getElementById('heroSelamla') || document.querySelector('.dash-hero-hi');
+    if(!el) return;
+    const s = new Date().getHours();
+    const selam = s < 6 ? 'İyi geceler' : s < 11 ? 'Günaydın' : s < 18 ? 'Tünaydın' : s < 22 ? 'İyi akşamlar' : 'İyi geceler';
+    // YENİ: localStorage'daki aktif kullanıcıyı oku (ogretmenler henüz yüklenmemiş olabilir, sadece id var)
+    const kullaniciAdi = (function(){
+      const id = localStorage.getItem('oyAktifKullaniciId');
+      if(!id) return 'Sedat Bey';
+      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
+      if(o) return (o.ad||'').split(' ')[0] + ' Bey';
+      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
+      if(p) return ((p.ad||p.adSoyad||'').split(' ')[0]) + ' Bey';
+      return 'Sedat Bey';
+    })();
+    el.textContent = selam + ', ' + kullaniciAdi + ' 👋';
+  })();
+
   const temaBtn1 = document.getElementById('temaDugmesi');
   const temaBtn2 = document.getElementById('temaDugmesiTopbar');
   if(temaBtn1) temaBtn1.addEventListener('click', temaDegistir);

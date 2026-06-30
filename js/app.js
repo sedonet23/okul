@@ -675,7 +675,17 @@ function renderDashboard(){
   if(heroSelamlaEl){
     const saat = new Date().getHours();
     const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    heroSelamlaEl.textContent = `${selam}, Sedat Bey 👋`;
+    // YENİ: Aktif kullanıcı adını al
+    const kullaniciAdi = (function(){
+      const id = localStorage.getItem('oyAktifKullaniciId');
+      if(!id) return 'Sedat Bey';
+      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
+      if(o) return (o.ad||'').split(' ')[0] + ' Bey';
+      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
+      if(p) return ((p.ad||p.adSoyad||'').split(' ')[0]) + ' Bey';
+      return 'Sedat Bey';
+    })();
+    heroSelamlaEl.textContent = `${selam}, ${kullaniciAdi} 👋`;
   }
   const bugunGun = GUNADI[new Date().getDay()];
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);

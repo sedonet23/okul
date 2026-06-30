@@ -551,6 +551,9 @@ function kullaniciyiSec(id) {
   kullaniciSecModalKapat();
   aktifKullaniciyiGuncelle();
 
+  // Karşılama metnini anında güncelle
+  if (typeof renderDashboard === 'function') renderDashboard();
+
   // Kişi detay panelini aç
   const ogr = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(o => o.id === id) : null;
   if (ogr) { ogretmenDetayAc(id); return; }
