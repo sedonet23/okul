@@ -26,57 +26,97 @@ function asistanPanelRender() {
   kutu.scrollTop = kutu.scrollHeight;
 }
 
-/* ---------- Uygulama verisinden AI için kısa özet üret ---------- */
+/* ---------- Uygulama verisinden AI için tam özet üret ---------- */
 function asistanVeriOzeti() {
   try {
-    const bugun = _isoToday ? _isoToday() : new Date().toISOString().slice(0,10);
-    const parcalar = [];
-    parcalar.push(`Bugünün tarihi: ${bugun}`);
+    const bugun = (typeof _isoToday === 'function') ? _isoToday() : new Date().toISOString().slice(0,10);
+    const sinifAdi = id => {
+      if (typeof siniflar === 'undefined') return '?';
+      const s = siniflar.find(x => x.id === id);
+      return s ? `${s.seviye || ''}-${s.sube || ''}` : '?';
+    };
+    const ogretmenAdiX = id => {
+      if (typeof ogretmenler === 'undefined') return '?';
+      const o = ogretmenler.find(x => x.id === id);
+      return o ? `${o.ad || ''} ${o.soyad || ''}`.trim() : '?';
+    };
 
-    if (typeof ogretmenler !== 'undefined' && ogretmenler.length) {
-      parcalar.push(`Öğretmenler (${ogretmenler.length}): ` + ogretmenler
-        .map(o => `${o.ad || ''} ${o.soyad || ''}${o.brans ? ' ('+o.brans+')' : ''}`.trim())
-        .join(', '));
+    const veri = { bugun };
+
+    if (typeof ogretmenler !== 'undefined') {
+      veri.ogretmenler = ogretmenler.map(o => ({ ad: `${o.ad||''} ${o.soyad||''}`.trim(), brans: o.brans || '', unvan: o.unvan || '', telefon: o.telefon || '' }));
+    }
+    if (typeof siniflar !== 'undefined') {
+      veri.siniflar = siniflar.map(s => ({
+        sinif: `${s.seviye||''}-${s.sube||''}`,
+        ogrenciSayisi: (typeof veliler !== 'undefined') ? veliler.filter(v=>v.sinifId===s.id).length : (s.ogrenciSayisi||0),
+        sinifOgretmeni: ogretmenAdiX(s.sinifOgretmeniId),
+        derslik: s.derslik || ''
+      }));
+    }
+    if (typeof veliler !== 'undefined') {
+      veri.ogrenciler = veliler.map(v => ({ ad: v.ogrenciAdi || '', sinif: sinifAdi(v.sinifId), veliAdi: v.veliAdi || '', telefon: v.telefon || '' }));
+    }
+    if (typeof gorevler !== 'undefined') {
+      veri.gorevler = gorevler.map(g => ({ baslik: g.baslik||'', tarih: g.tarih||'', tamamlandi: !!(g.tamamlandi===true||g.durum==='tamamlandi'), aciklama: g.aciklama||'' }));
+    }
+    if (typeof hatirlaticilar !== 'undefined') {
+      veri.hatirlaticilar = hatirlaticilar.map(h => ({ baslik: h.baslik||'', tarih: h.tarih||'', aciklama: h.aciklama||'', tamamlandi: !!h.tamamlandi }));
+    }
+    if (typeof notlar !== 'undefined') {
+      veri.notlar = notlar.map(n => ({ baslik: n.baslik||'', tip: n.tip||'', ozet: (n.tip==='metin' ? String(n.icerik||'').slice(0,300) : '') }));
+    }
+    if (typeof evrakTakibi !== 'undefined') {
+      veri.evrakTakibi = evrakTakibi.map(e => ({ ...e, id: undefined }));
+    }
+    if (typeof nobetYerleri !== 'undefined') veri.nobetYerleri = nobetYerleri.map(y => y.ad);
+    if (typeof nobetAtamalari !== 'undefined') {
+      veri.nobetAtamalari = nobetAtamalari.map(n => ({ tarih: n.tarih, yer: n.yerId, ogretmen: n.ogretmenAdi }));
+    }
+    if (typeof nobetciAmirleri !== 'undefined') {
+      veri.nobetciAmirleri = nobetciAmirleri.map(n => ({ tarih: n.tarih, ad: n.ad }));
+    }
+    if (typeof resmiTatiller !== 'undefined') veri.resmiTatiller = resmiTatiller.map(r => ({ tarih: r.tarih, aciklama: r.aciklama }));
+    if (typeof periyodikIsler !== 'undefined') {
+      veri.periyodikIsler = periyodikIsler.map(p => ({ isAdi: p.isAdi, baslangic: p.baslangic, bitis: p.bitis, tamamlandi: !!p.tamamlandi }));
+    }
+    if (typeof sinavlar !== 'undefined') {
+      veri.sinavlar = sinavlar.map(s => ({ sinif: s.sinif, ders: s.ders, ogretmen: ogretmenAdiX(s.ogretmenId), tarih: s.tarih, saat: s.saat, tur: s.tur }));
+    }
+    if (typeof denemeSinavlari !== 'undefined') {
+      veri.denemeSinavlari = denemeSinavlari.map(d => ({ ad: d.ad, tarih: d.tarih }));
+    }
+    if (typeof servisler !== 'undefined') {
+      veri.servisler = servisler.map(s => ({ servisAdi: s.servisAdi, soforAdi: s.soforAdi, soforTelefon: s.soforTelefon, ogrenciSayisi: s.ogrenciSayisi, durum: s.durum }));
+    }
+    if (typeof personelListesi !== 'undefined') {
+      veri.personel = personelListesi.map(p => ({ ad: p.ad, soyad: p.soyad, gorev: p.gorev || p.unvan }));
+    }
+    if (typeof dokumanlarListesi !== 'undefined') {
+      veri.dokumanlar = dokumanlarListesi.map(d => ({ ad: d.ad || d.dosyaAdi }));
+    }
+    if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari) {
+      veri.okulBilgileri = { okulAdi: okulBilgileriAyari.okulAdi || '', mudur: ogretmenAdiX(okulBilgileriAyari.mudurId) };
+    }
+    if (typeof cizelgeVerileri !== 'undefined') {
+      veri.cizelgeler = {};
+      Object.keys(cizelgeVerileri).forEach(tip => {
+        veri.cizelgeler[tip] = (cizelgeVerileri[tip]||[]).map(c => ({ baslik: c.baslik || c.ad || '', tamamlandi: !!c.tamamlandi }));
+      });
+    }
+    if (typeof belirliGunlerListesi !== 'undefined') {
+      veri.belirliGunler = belirliGunlerListesi.map(b => ({ ad: b.ad, baslangic: b.baslangic, bitis: b.bitis }));
+    }
+    if (typeof digerEvrakListesi !== 'undefined') {
+      veri.digerEvrak = digerEvrakListesi.map(d => ({ baslik: d.baslik, tamamlandi: !!d.tamamlandi }));
     }
 
-    if (typeof siniflar !== 'undefined' && siniflar.length) {
-      parcalar.push(`Sınıflar (${siniflar.length}): ` + siniflar
-        .map(s => {
-          const ogr = (typeof veliler !== 'undefined') ? veliler.filter(v => v.sinifId === s.id).length : (s.ogrenciSayisi || 0);
-          return `${s.seviye || ''}-${s.sube || ''} (${ogr} öğrenci)`;
-        })
-        .join(', '));
+    let json = JSON.stringify(veri);
+    const LIMIT = 180000; // çok büyürse Gemini isteği reddedebilir, güvenli sınır
+    if (json.length > LIMIT) {
+      json = json.slice(0, LIMIT) + ' …(veri çok büyük olduğu için kısaltıldı)';
     }
-
-    if (typeof gorevler !== 'undefined' && gorevler.length) {
-      const acik = gorevler.filter(g => !(g.tamamlandi === true || g.durum === 'tamamlandi'));
-      parcalar.push(`Açık görevler (${acik.length}): ` + acik.slice(0, 15)
-        .map(g => `${g.baslik || ''}${g.tarih ? ' ('+g.tarih+')' : ''}`)
-        .join(', '));
-    }
-
-    if (typeof hatirlaticilar !== 'undefined' && hatirlaticilar.length) {
-      parcalar.push(`Hatırlatıcılar (${hatirlaticilar.length}): ` + hatirlaticilar.slice(0, 15)
-        .map(h => `${h.baslik || ''}${h.tarih ? ' ('+h.tarih+')' : ''}`)
-        .join(', '));
-    }
-
-    if (typeof notlar !== 'undefined' && notlar.length) {
-      parcalar.push(`Not sayısı: ${notlar.length}`);
-    }
-
-    if (typeof nobetAtamalari !== 'undefined' && nobetAtamalari.length) {
-      const yakin = nobetAtamalari.filter(n => n.tarih >= bugun).sort((a,b)=> a.tarih.localeCompare(b.tarih)).slice(0, 20);
-      parcalar.push(`Yaklaşan nöbet atamaları: ` + yakin
-        .map(n => `${n.tarih} - ${n.ogretmenAdi || ''}`)
-        .join(', '));
-    }
-
-    if (typeof evrakTakibi !== 'undefined' && evrakTakibi.length) {
-      parcalar.push(`Evrak takibi kayıt sayısı: ${evrakTakibi.length}`);
-    }
-
-    return parcalar.join('\n');
+    return json;
   } catch (e) {
     console.warn('asistanVeriOzeti hata:', e);
     return '';
