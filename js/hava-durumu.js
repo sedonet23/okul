@@ -70,11 +70,10 @@
   }
 
   function kartRenderEt(veri){
-    var wrap = document.getElementById('havaDurumuKartWrap');
-    var kart = document.getElementById('havaDurumuKart');
-    if(!wrap || !kart) return;
+    // Bağımsız hava durumu kartı kaldırıldı; sadece hero satırını güncelle
     var yukleniyor = document.getElementById('havaDurumuYukleniyor');
-    if(yukleniyor) yukleniyor.remove();
+    if(yukleniyor) yukleniyor.style.display = 'none';
+    // topbarRenderEt heroHavaSatir'ı zaten güncelliyor; burada ek bir şey yapmıyoruz
 
     var anlikBilgi = havaKoduOku(veri.current.weather_code);
 
@@ -132,7 +131,8 @@
     konumHTML += '</div></div>';
 
     kart.innerHTML = konumHTML + html;
-    wrap.style.display = 'block';
+    // Kart artık ana sayfada gösterilmiyor — hero içindeki heroHavaSatir kullanılıyor
+    // wrap.style.display = 'block'; // KAPATILDI
 
     // Ters geocoding ile konum adını al
     try {
