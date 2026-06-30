@@ -8,7 +8,7 @@
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <meta name="theme-color" content="#053827">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/tasima-takip.css">
   <link rel="stylesheet" href="css/dilekce.css">
@@ -114,27 +114,28 @@
 
     <main class="content">
 
-    <section id="tab-panel" class="tab-panel active">
+    <section id="tab-panel" class="tab-panel active dash-modern">
       <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
 
-      <!-- 1. Hero: zile kaç dk kaldığı + şu an kaçıncı ders -->
-      <div class="card zil-widget dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
+      <!-- 1. Hero satırı: Zil sayacı (büyük) + Hava Durumu (yan kart). İkisi de eski id'leriyle JS tarafından dolduruluyor. -->
+      <div class="dash-hero-row">
+        <div class="card zil-widget dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
 
-      <!-- 2. Hava Durumu Kartı -->
-      <div class="card" id="havaDurumuKartWrap">
-        <h3>🌤️ Hava Durumu</h3>
-        <div id="havaDurumuKart">
-          <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
-            <span style="font-size:22px;">📍</span>
-            <span>Hava durumu için konum izni bekleniyor…</span>
+        <div class="card dash-weather-card" id="havaDurumuKartWrap">
+          <h3>🌤️ Hava Durumu</h3>
+          <div id="havaDurumuKart">
+            <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
+              <span style="font-size:22px;">📍</span>
+              <span>Hava durumu için konum izni bekleniyor…</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 3. Günün Nöbetçileri -->
-      <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3>🛡️ Günün Nöbetçileri</h3><div id="dashBugunNobet"></div></div>
+      <!-- 2. İstatistik kartları (Personel / Sınıf / Öğrenci / Açık Evrak vb.) — içerik dashStats id'si ile JS'ten geliyor -->
+      <div class="card dash-stats-card"><div class="dash-stat-strip" id="dashStats"></div></div>
 
-      <!-- 4. Hızlı İşlemler -->
+      <!-- 3. Hızlı İşlemler — 2x2 / 4'lü grid, M3 tarzı renkli ikon rozetleri -->
       <div class="card">
         <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
@@ -144,6 +145,9 @@
           <div class="qa-item" onclick="sekmeAc('gorevler'); gorevModalAc();"><div class="qa-icon qa-gorev">✅</div><div class="qa-label">Görev Ekle</div></div>
         </div>
       </div>
+
+      <!-- 4. Günün Nöbetçileri -->
+      <div class="card dash-card-clickable tatil-gizle" onclick="sekmeAc('nobet')"><h3>🛡️ Günün Nöbetçileri</h3><div id="dashBugunNobet"></div></div>
 
       <div class="dash-cols tatil-gizle">
         <div class="card dash-card-clickable" onclick="sekmeAc('dersProgrami')"><h3>📚 Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
@@ -173,9 +177,6 @@
           <div id="dashNotlar"></div>
         </div>
       </div>
-
-      <!-- İstatistikler en altta -->
-      <div class="card"><h3>📊 Okul Özeti</h3><div class="dash-stat-strip" id="dashStats"></div></div>
     </section>
 
     <section id="tab-ogretmenler" class="tab-panel">
