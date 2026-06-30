@@ -1,11 +1,11 @@
 /* ====================================================================
-   Okul Yönetim Paneli — Service Worker  v3
+   Okul Yönetim Paneli — Service Worker  v4
    · Uygulama kabuğu (app shell) tam önbelleklenir → internet olmadan açılır
    · Firestore verisi: firebase-init.js'deki enablePersistence() → IndexedDB
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v3';
+const CACHE_ADI = 'oy-cache-v4';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -36,6 +36,7 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/excel-import.js',
   './js/yedekleme.js',
   './js/hava-durumu.js',
+  './js/asistan.js',
   /* Varlıklar */
   './assets/icon-192.png',
   './assets/icon-512.png',
