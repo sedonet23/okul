@@ -63,28 +63,8 @@
       `${state.izinTuru || '...........................'} hakkımı kullanmak istiyorum.`;
   }
 
-  function _dilekceSayfaHtml(state) {
-    const okul = _getOkulBilgisi();
-    const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
-    const il = (okul.il || '').toLocaleUpperCase('tr');
-
-    const govdeMetni = (state.govdeManuel !== null && state.govdeManuel !== undefined)
-      ? state.govdeManuel
-      : _otomatikGovdeMetni(state);
-
-    const hizalama = state.hizalama || 'iki-yana';
-    const hizalamaCss = {
-      'iki-yana': 'text-align: justify; text-align-last: left;',
-      'sola':     'text-align: left;',
-      'ortala':   'text-align: center;'
-    }[hizalama] || 'text-align: justify; text-align-last: left;';
-
-    return `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<title>${escapeHtml(state.adSoyad||'Personel')} — Dilekçe</title>
-<style>
+  function _dilekceStilBlogu(hizalamaCss) {
+    return `
   @page { size: A4 portrait; margin: 25mm 25mm 20mm 30mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -97,20 +77,19 @@
   }
 
   [contenteditable="true"] { outline: none; cursor: text; }
-  [contenteditable="true"]:hover { background: rgba(46,125,50,0.05); }
-  [contenteditable="true"]:focus { background: rgba(46,125,50,0.08); }
+  #dlkSayfaIcerik:hover { background: rgba(46,125,50,0.03); }
+  #dlkSayfaIcerik:focus { background: rgba(46,125,50,0.05); }
 
   .dlk-ust-baslik {
     text-align: center;
     margin-bottom: 40mm;
   }
-  .dlk-okul-adi { font-weight: 700; text-transform: uppercase; display: inline-block; min-width: 40mm; }
+  .dlk-okul-adi { font-weight: 700; text-transform: uppercase; }
   .dlk-il { font-weight: 700; text-transform: uppercase; margin-top: 2px; }
 
   .dlk-govde {
     ${hizalamaCss}
     margin-bottom: 10mm;
-    min-height: 1.5em;
   }
 
   .dlk-kapanis {
@@ -130,42 +109,100 @@
 
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    [contenteditable="true"]:hover, [contenteditable="true"]:focus { background: transparent; }
+    #dlkSayfaIcerik:hover, #dlkSayfaIcerik:focus { background: transparent; }
   }
-</style>
+`;
+  }
+
+  function _dlkScriptBlogu() {
+    return `
+    document.getElementById('dlkSayfaIcerik').addEventListener('input', function(){
+      window.parent.postMessage({ tip: 'dlkIcerikDuzenlendi', deger: this.innerHTML }, '*');
+    });
+`;
+  }
+
+  // Kullanıcının tamamen elle düzenlediği içeriği (innerHTML) aynı stil/script sarmalayıcısına koyup
+  // tam bir HTML belgesi üretir.
+  function _sablonSar(icerikHtml, hizalama) {
+    const hizalamaCss = {
+      'iki-yana': 'text-align: justify; text-align-last: left;',
+      'sola':     'text-align: left;',
+      'ortala':   'text-align: center;'
+    }[hizalama] || 'text-align: justify; text-align-last: left;';
+
+    return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Dilekçe</title>
+<style>${_dilekceStilBlogu(hizalamaCss)}</style>
 </head>
 <body>
-  <div class="dlk-ust-baslik">
-    <div class="dlk-okul-adi" contenteditable="true" id="dlkEditOkulAdi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜNE</div>
-    <div class="dlk-il">${escapeHtml(il)}</div>
-  </div>
+  <div id="dlkSayfaIcerik" contenteditable="true">${icerikHtml}</div>
+  <script>${_dlkScriptBlogu()}</script>
+</body>
+</html>`;
+  }
 
-  <div class="dlk-govde" contenteditable="true" id="dlkEditGovde">${escapeHtml(govdeMetni)}</div>
+  function _dilekceSayfaHtml(state) {
+    // Kullanıcı sayfanın tamamını elle düzenlediyse, o HTML'i aynen geri bas —
+    // değişken alanlar artık üretilmiyor, tamamen kullanıcının kontrolünde.
+    if (state.tamIcerikManuel !== null && state.tamIcerikManuel !== undefined) {
+      return _sablonSar(state.tamIcerikManuel, state.hizalama || 'iki-yana');
+    }
 
-  <div class="dlk-kapanis">Gereğini olurlarınıza arz ederim.</div>
+    const okul = _getOkulBilgisi();
+    const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
+    const il = (okul.il || '').toLocaleUpperCase('tr');
 
-  <div class="dlk-imza-blok">
-    <div class="dlk-tarih">....../....../............</div>
-    <div class="dlk-imza-bosluk"></div>
-    <div class="dlk-ad-soyad">${escapeHtml(state.adSoyad||'')}</div>
-  </div>
+    const govdeMetni = (state.govdeManuel !== null && state.govdeManuel !== undefined)
+      ? state.govdeManuel
+      : _otomatikGovdeMetni(state);
 
-  <div class="dlk-alt-bilgi">
-    <div>TC: ${escapeHtml(state.tc||'')}</div>
-    <div>Cep No: ${escapeHtml(state.telefon||'')}</div>
-    <div>Adres: ${escapeHtml(state.adres||'')}</div>
-  </div>
+    const kapanisMetni = 'Gereğini olurlarınıza arz ederim.';
+    const tarihMetni = '....../....../............';
 
-  <script>
-    // Düzenlemeleri üst pencereye bildir, böylece state senkron kalır
-    // (ay/personel değişip yeniden render edildiğinde kullanıcı düzenlemesi korunur).
-    document.getElementById('dlkEditOkulAdi').addEventListener('input', function(){
-      window.parent.postMessage({ tip: 'dlkOkulAdiDuzenlendi', deger: this.textContent }, '*');
-    });
-    document.getElementById('dlkEditGovde').addEventListener('input', function(){
-      window.parent.postMessage({ tip: 'dlkGovdeDuzenlendi', deger: this.textContent }, '*');
-    });
-  </script>
+    const hizalama = state.hizalama || 'iki-yana';
+    const hizalamaCss = {
+      'iki-yana': 'text-align: justify; text-align-last: left;',
+      'sola':     'text-align: left;',
+      'ortala':   'text-align: center;'
+    }[hizalama] || 'text-align: justify; text-align-last: left;';
+
+    const icerikHtml = `
+    <div class="dlk-ust-baslik">
+      <div class="dlk-okul-adi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜNE</div>
+      <div class="dlk-il">${escapeHtml(il)}</div>
+    </div>
+
+    <div class="dlk-govde">${escapeHtml(govdeMetni)}</div>
+
+    <div class="dlk-kapanis">${escapeHtml(kapanisMetni)}</div>
+
+    <div class="dlk-imza-blok">
+      <div class="dlk-tarih">${escapeHtml(tarihMetni)}</div>
+      <div class="dlk-imza-bosluk">&nbsp;</div>
+      <div class="dlk-ad-soyad">${escapeHtml(state.adSoyad||'')}</div>
+    </div>
+
+    <div class="dlk-alt-bilgi">
+      <div>TC: ${escapeHtml(state.tc||'')}</div>
+      <div>Cep No: ${escapeHtml(state.telefon||'')}</div>
+      <div>Adres: ${escapeHtml(state.adres||'')}</div>
+    </div>
+`;
+
+    return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(state.adSoyad||'Personel')} — Dilekçe</title>
+<style>${_dilekceStilBlogu(hizalamaCss)}</style>
+</head>
+<body>
+  <div id="dlkSayfaIcerik" contenteditable="true">${icerikHtml}</div>
+  <script>${_dlkScriptBlogu()}</script>
 </body>
 </html>`;
   }
@@ -271,8 +308,8 @@
       </div>
 
       <div style="margin-bottom:16px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11.5px;color:#7a5c00;line-height:1.5;">
-        💡 Okul adı ve dilekçe metni, sağdaki A4 önizlemesi üzerine doğrudan tıklayıp yazarak da düzenlenebilir.
-        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Metni Otomatiğe Sıfırla</button>
+        💡 Sağdaki A4 sayfasının tamamı (okul adı, metin, tarih, imza alanı, alt bilgiler) üzerine doğrudan tıklayıp serbestçe düzenlenebilir.
+        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Tüm Sayfayı Şablona Sıfırla</button>
       </div>
 
       <div id="dlk_bilgiKutusu" style="background:#f0f7f0;border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.6;"></div>
@@ -315,7 +352,8 @@
       sure: '',
       okulAdiManuel: '',
       govdeManuel: null,   // null => otomatik metin üretilir; kullanıcı düzenlerse buraya yazılır
-      hizalama: 'iki-yana' // 'iki-yana' | 'sola' | 'ortala'
+      hizalama: 'iki-yana', // 'iki-yana' | 'sola' | 'ortala'
+      tamIcerikManuel: null // dolu olduğunda tüm sayfa kullanıcının elle yazdığı haliyle gösterilir
     };
 
     const formPanel = ov.querySelector('#dlkFormPanel');
@@ -328,8 +366,20 @@
       _bagla();
     }
 
+    function _serbestDuzenlemeKorumasi() {
+      // Kullanıcı tüm sayfayı elle değiştirdiyse, form alanlarından yapılacak bir
+      // değişiklik bu düzenlemeyi sileceği için önce onay isteriz.
+      if (state.tamIcerikManuel !== null && state.tamIcerikManuel !== undefined) {
+        const devamEt = confirm('Dilekçe metnini elle düzenlediniz. Form alanından değişiklik yaparsanız bu serbest düzenleme silinip şablona dönülecek. Devam edilsin mi?');
+        if (!devamEt) return false;
+        state.tamIcerikManuel = null;
+      }
+      return true;
+    }
+
     function _bagla() {
       formPanel.querySelector('#dlk_personel').onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.personelId || ''; return; }
         const pid = e.target.value;
         state.personelId = pid;
         const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===pid) : null;
@@ -347,50 +397,49 @@
         render();
       };
       formPanel.querySelector('#dlk_okulAdi').oninput = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) return;
         state.okulAdiManuel = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
       formPanel.querySelector('#dlk_izinTuru').onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.izinTuru; return; }
         state.izinTuru = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
       formPanel.querySelector('#dlk_baslamaTarihi').onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.baslamaTarihiIso || ''; return; }
         state.baslamaTarihiIso = e.target.value;
         state.baslamaTarihi = _tarihIsoToTr(e.target.value);
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
       formPanel.querySelector('#dlk_sure').oninput = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) return;
         state.sure = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
       formPanel.querySelector('#dlk_hizalama').onchange = (e) => {
         state.hizalama = e.target.value;
+        // Hizalama, serbest düzenlenmiş içerikte de uygulanabilir (içeriği bozmaz).
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
       formPanel.querySelector('#dlk_govdeSifirla').onclick = () => {
         state.govdeManuel = null;
         state.okulAdiManuel = '';
+        state.tamIcerikManuel = null;
         const okulAdiInput = formPanel.querySelector('#dlk_okulAdi');
         if (okulAdiInput) okulAdiInput.value = '';
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
     }
 
-    // İframe içindeki contenteditable alanlardan gelen düzenleme bildirimlerini dinle.
+    // İframe içindeki contenteditable alandan gelen düzenleme bildirimlerini dinle.
     // Birden fazla DilekceSistemi.ac() çağrısında dinleyici tekrar tekrar eklenmesin diye
     // window üzerinde tek bir handler tutuyoruz.
     window.removeEventListener('message', window._dlkMessageHandler || (()=>{}));
     window._dlkMessageHandler = (e) => {
       if (!e.data || typeof e.data !== 'object') return;
-      if (e.data.tip === 'dlkGovdeDuzenlendi') {
-        state.govdeManuel = e.data.deger;
-      } else if (e.data.tip === 'dlkOkulAdiDuzenlendi') {
-        // " MÜDÜRLÜĞÜNE" son ekini ayıkla, sadece okul adını state'e yaz
-        let deger = e.data.deger || '';
-        deger = deger.replace(/\s*MÜDÜRLÜĞÜNE\s*$/i, '').trim();
-        state.okulAdiManuel = deger;
-        const okulAdiInput = formPanel.querySelector('#dlk_okulAdi');
-        if (okulAdiInput) okulAdiInput.value = deger;
+      if (e.data.tip === 'dlkIcerikDuzenlendi') {
+        state.tamIcerikManuel = e.data.deger;
       }
     };
     window.addEventListener('message', window._dlkMessageHandler);
