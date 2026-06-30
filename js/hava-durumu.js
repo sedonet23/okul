@@ -94,7 +94,7 @@
     var html = '<div style="background:linear-gradient(145deg,#0F3E50,#071E28);border-radius:14px;padding:16px 14px;margin-bottom:12px;cursor:pointer;" onclick="havaDurumuDetayAc()">';
     html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
     html += '<div style="display:flex;align-items:center;gap:14px;">';
-    html += '<div style="font-size:44px;line-height:1;">' + anlikBilgi.e + '</div>';
+    html += '<div class="hava-ana-ikon" style="font-size:44px;line-height:1;">' + anlikBilgi.e + '</div>';
     html += '<div>';
     html += '<div style="font-size:28px;font-weight:800;color:#ffffff;">' + Math.round(veri.current.temperature_2m) + '°C</div>';
     html += '<div style="color:rgba(255,255,255,0.80);font-size:13px;margin-top:2px;">' + anlikBilgi.t + '</div>';

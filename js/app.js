@@ -542,7 +542,7 @@ function hatirlaticiModalAc(id){
     <div class="form-group"><label>Saat (opsiyonel)</label><input type="time" id="f_saat" value="${h&&h.saat?h.saat:''}"></div>
     <div class="form-group"><label>Öncelik</label><select id="f_oncelik">${ONCELIKLER.map(o=>`<option ${o===(h?h.oncelik:'Orta')?'selected':''}>${o}</option>`).join('')}</select></div>
     <div class="form-group"><label>Açıklama</label><textarea id="f_aciklama" rows="2">${h?escapeHtml(h.aciklama||''):''}</textarea></div>
-    ${h?'<p style="font-size:11.8px;color:var(--text-muted);">Tarih/saat değiştirirseniz push bildirimi tekrar gönderim için sıfırlanır.</p>':''}
+    ${h?'<p style="font-size:11.8px;color:var(--ink-muted);">Tarih/saat değiştirirseniz push bildirimi tekrar gönderim için sıfırlanır.</p>':''}
   `;
   modalAc(h?'Hatırlatıcı Düzenle':'Hatırlatıcı Ekle', body, ()=>{
     const baslik = document.getElementById('f_baslik').value.trim();
@@ -670,6 +670,13 @@ function evrakModalAc(id){
 /* ============== GENEL BAKIŞ (DASHBOARD) ============== */
 function renderDashboard(){
   document.getElementById('panelTarih').textContent = bugunMetni();
+  // YENİ: saate göre dinamik karşılama
+  const heroSelamlaEl = document.getElementById('heroSelamla');
+  if(heroSelamlaEl){
+    const saat = new Date().getHours();
+    const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
+    heroSelamlaEl.textContent = `${selam}, Sedat Bey 👋`;
+  }
   const bugunGun = GUNADI[new Date().getDay()];
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
@@ -702,7 +709,7 @@ function renderDashboard(){
 
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
   document.getElementById('dashBugunDersler').innerHTML = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu) ? '<p class="empty-state">🏖️ Tatil modu aktif.</p>' : !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
-    (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--text-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
+    (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--ink-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
 
   /* "Bugün Nöbetçi Öğretmenler" kartı artık js/nobet.js > renderNobetBugunVeHafta() tarafından dolduruluyor. */
 
@@ -750,6 +757,18 @@ function renderZilSayaci(bugunGun){
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
   // YENİ: durum bazlı renklendirme (ders=yeşil, teneffüs/öğle=turuncu, bitti=gri, başlamadı=mavi, tatil=mor)
+  // YENİ: hero kartına saate göre sahne (gün doğumu/öğle/gün batımı/gece) uygula
+  const heroEl = document.querySelector('.dash-hero');
+  if(heroEl){
+    const saat2 = new Date().getHours();
+    const sahne = (saat2>=5 && saat2<8) ? 'sahne-gundogumu'
+      : (saat2>=8 && saat2<17) ? 'sahne-ogle'
+      : (saat2>=17 && saat2<20) ? 'sahne-gunbatimi'
+      : 'sahne-gece';
+    heroEl.classList.remove('sahne-gundogumu','sahne-ogle','sahne-gunbatimi','sahne-gece');
+    heroEl.classList.add(sahne);
+  }
+
   function zilDurumSinifAyarla(durumAdi){
     zilEl.classList.remove('durum-ders','durum-teneffus','durum-ogle','durum-bitti','durum-baslamadi','durum-tatil');
     if(durumAdi) zilEl.classList.add('durum-'+durumAdi);
