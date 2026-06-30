@@ -115,27 +115,33 @@
     <main class="content">
 
     <section id="tab-panel" class="tab-panel active dash-modern">
-      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div><div class="page-sub" id="panelTarih"></div></div></div>
+      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div></div>
 
-      <!-- 1. Hero satırı: Zil sayacı (büyük) + Hava Durumu (yan kart). İkisi de eski id'leriyle JS tarafından dolduruluyor. -->
-      <div class="dash-hero-row">
-        <div class="card zil-widget dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
+      <!-- 1. HERO KARTI: Karşılama + tarih (panelTarih, JS dolduruyor) + zil sayacı (ilerleme çubuklu), tek gradient blok -->
+      <div class="card dash-hero">
+        <div class="dash-hero-greet">
+          <div class="dash-hero-hi">Günaydın 👋</div>
+          <div class="page-sub" id="panelTarih"></div>
+        </div>
+        <!-- Zil sayacı: JS innerHTML'i aynen buraya basıyor (renderZilSayaci → #zilWidget) -->
+        <div class="dash-hero-bell dash-card-clickable" id="zilWidget" onclick="sekmeAc('dersProgrami')"></div>
+      </div>
 
-        <div class="card dash-weather-card" id="havaDurumuKartWrap">
-          <h3>🌤️ Hava Durumu</h3>
-          <div id="havaDurumuKart">
-            <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
-              <span style="font-size:22px;">📍</span>
-              <span>Hava durumu için konum izni bekleniyor…</span>
-            </div>
+      <!-- 2. Hava Durumu Kartı — orijinal id'ler ve zengin içerik (tahmin, detay paneli) aynen korunuyor -->
+      <div class="card" id="havaDurumuKartWrap">
+        <h3>🌤️ Hava Durumu</h3>
+        <div id="havaDurumuKart">
+          <div id="havaDurumuYukleniyor" style="display:flex;align-items:center;gap:10px;color:var(--ink-muted);font-size:13px;padding:8px 0;">
+            <span style="font-size:22px;">📍</span>
+            <span>Hava durumu için konum izni bekleniyor…</span>
           </div>
         </div>
       </div>
 
-      <!-- 2. İstatistik kartları (Personel / Sınıf / Öğrenci / Açık Evrak vb.) — içerik dashStats id'si ile JS'ten geliyor -->
+      <!-- 3. İstatistik kartları (Personel / Sınıf / Öğrenci / Açık Evrak vb.) — içerik dashStats id'si ile JS'ten geliyor -->
       <div class="card dash-stats-card"><div class="dash-stat-strip" id="dashStats"></div></div>
 
-      <!-- 3. Hızlı İşlemler — 2x2 / 4'lü grid, M3 tarzı renkli ikon rozetleri -->
+      <!-- 4. Hızlı İşlemler — 2x2 / 4'lü grid, M3 tarzı renkli ikon rozetleri -->
       <div class="card">
         <h3>⚡ Hızlı İşlemler</h3>
         <div class="qa-grid">
@@ -839,6 +845,22 @@
     </main>
 
     <button id="asistanFab" class="asistan-fab" onclick="sekmeAc('asistan')" title="AI Asistan" aria-label="AI Asistan">🤖</button>
+
+    <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bn-item active" onclick="sekmeAc('panel'); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
+      <button class="bn-item bn-plus" onclick="sekmeAc('evrak'); evrakModalAc(); bottomNavAktifYap(this);" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
+      <button class="bn-item" onclick="sekmeAc('ogretmenler'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
+      <button class="bn-item" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
+    </nav>
+    <script>
+      // YENİ: Alt navigasyonda tıklanan ikonu aktif göster. Mevcut sekmeAc() fonksiyonuna dokunmaz.
+      function bottomNavAktifYap(el){
+        document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+        el.classList.add('active');
+      }
+    </script>
 
   </div>
 </div>
