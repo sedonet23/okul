@@ -178,7 +178,7 @@
   }
 
   function _sayfaHtml() {
-    const ayAdi = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+    const ayAdi = `${AY_ISIMLERI[_ay].toLocaleUpperCase('tr')} - ${_yil}`;
     const { mudurAd, mudurYrdAd } = _getMudurBilgileri();
     const s = _servis || {};
 
@@ -215,19 +215,19 @@
 
   .tt-ana-tablo { width: 100%; border-collapse: collapse; font-size: 6.6pt; }
   .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: 1.5px 2px; text-align: center; vertical-align: middle; }
-  .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left; padding-left: 6px; width: 110px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left !important; padding-left: 6px; width: 125px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sub { background: #c8e6c9; font-weight: 600; font-size: 6.2pt; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-  .tt-tarih-hucre { text-align: left; padding-left: 6px; }
+  .tt-tarih-hucre { text-align: left !important; padding-left: 6px; white-space: nowrap; }
   .tt-bos-hucre { min-width: 30px; }
 
   tr.tt-hs td, tr.tt-tatil td { background: #e3e3e3; color: #777; font-style: italic; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
   .tt-imza-satir { display: flex; justify-content: space-between; padding: 12px 10px 0; }
   .tt-imza-kutu { text-align: center; min-width: 130px; }
-  .tt-imza-unvan { font-size: 8pt; font-weight: 700; }
-  .tt-imza-ad { font-size: 7.5pt; color: #444; margin-top: 3px; }
+  .tt-imza-ad { font-size: 8.5pt; font-weight: 700; color: #111; }
+  .tt-imza-unvan { font-size: 7.5pt; color: #444; margin-top: 3px; }
 
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -277,12 +277,12 @@
 
   <div class="tt-imza-satir">
     <div class="tt-imza-kutu">
-      <div class="tt-imza-unvan">Müdür Yardımcısı</div>
       <div class="tt-imza-ad">${escapeHtml(mudurYrdAd)}</div>
+      <div class="tt-imza-unvan">Müdür Yardımcısı</div>
     </div>
     <div class="tt-imza-kutu">
-      <div class="tt-imza-unvan">Okul Müdürü</div>
       <div class="tt-imza-ad">${escapeHtml(mudurAd)}</div>
+      <div class="tt-imza-unvan">Okul Müdürü</div>
     </div>
   </div>
 </body>
@@ -293,9 +293,7 @@
 
   function _pencereAc() {
     const w = window.open('', '_blank', 'width=900,height=900');
-    if (!w) { if (typeof toast === 'function') toast('Pop-up engellendi, lütfen izin verin.'); return; }
-
-    const ayAdi = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+    if (!w) { if (typeof toast === 'function') toast('Pop-up engellendi. Tarayıcı ayarlarından bu site için pop-up izni verin.'); return null; }
 
     w.document.write(`<!DOCTYPE html>
 <html lang="tr">
@@ -318,6 +316,7 @@
   .tt-toolbar span { font-weight:700; min-width:140px; text-align:center; font-size:13px; }
   .tt-sayfa-kapsayici { padding: 16px 0 40px; display:flex; justify-content:center; }
   iframe { width: 210mm; min-height: 297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,0.4); }
+  .tt-yukleniyor { color:#fff; text-align:center; padding:60px 20px; font-size:14px; }
   @media print {
     .tt-toolbar { display:none !important; }
     .tt-sayfa-kapsayici { padding:0; }
@@ -327,43 +326,48 @@
 </head>
 <body>
   <div class="tt-toolbar">
-    <button id="ttPrevBtn">◀ Önceki Ay</button>
-    <span id="ttAyEtiket">${escapeHtml(ayAdi)}</span>
-    <button id="ttNextBtn">Sonraki Ay ▶</button>
-    <button id="ttPrintBtn">🖨️ Yazdır / PDF</button>
+    <button id="ttPrevBtn" disabled>◀ Önceki Ay</button>
+    <span id="ttAyEtiket">Yükleniyor...</span>
+    <button id="ttNextBtn" disabled>Sonraki Ay ▶</button>
+    <button id="ttPrintBtn" disabled>🖨️ Yazdır / PDF</button>
   </div>
   <div class="tt-sayfa-kapsayici">
-    <iframe id="ttFrame"></iframe>
+    <div class="tt-yukleniyor" id="ttYukleniyor">Çizelge hazırlanıyor, lütfen bekleyin…</div>
+    <iframe id="ttFrame" style="display:none;"></iframe>
   </div>
 </body>
 </html>`);
     w.document.close();
+    return w;
+  }
 
-    _ttWin = w;
+  function _pencereDoldur(w) {
+    if (!w || w.closed) return;
+
+    const yukDiv = w.document.getElementById('ttYukleniyor');
+    const frame  = w.document.getElementById('ttFrame');
+    if (yukDiv) yukDiv.style.display = 'none';
+    if (frame)  frame.style.display = 'block';
 
     const yazFrame = () => {
-      const frame = w.document.getElementById('ttFrame');
       frame.srcdoc = _sayfaHtml();
-      w.document.getElementById('ttAyEtiket').textContent = `${AY_ISIMLERI[_ay]} - ${_yil}`;
+      w.document.getElementById('ttAyEtiket').textContent = `${AY_ISIMLERI[_ay].toLocaleUpperCase('tr')} - ${_yil}`;
     };
     yazFrame();
 
-    w.document.getElementById('ttPrevBtn').onclick = async () => {
-      _ay--; if (_ay < 0) { _ay = 11; _yil--; }
-      yazFrame();
-    };
-    w.document.getElementById('ttNextBtn').onclick = async () => {
-      _ay++; if (_ay > 11) { _ay = 0; _yil++; }
-      yazFrame();
-    };
-    w.document.getElementById('ttPrintBtn').onclick = () => {
-      const frame = w.document.getElementById('ttFrame');
-      frame.contentWindow.focus();
-      frame.contentWindow.print();
+    const prevBtn = w.document.getElementById('ttPrevBtn');
+    const nextBtn = w.document.getElementById('ttNextBtn');
+    const printBtn = w.document.getElementById('ttPrintBtn');
+    prevBtn.disabled = false; nextBtn.disabled = false; printBtn.disabled = false;
+
+    prevBtn.onclick = () => { _ay--; if (_ay < 0) { _ay = 11; _yil--; } yazFrame(); };
+    nextBtn.onclick = () => { _ay++; if (_ay > 11) { _ay = 0; _yil++; } yazFrame(); };
+    printBtn.onclick = () => {
+      const fr = w.document.getElementById('ttFrame');
+      fr.contentWindow.focus();
+      fr.contentWindow.print();
     };
   }
-
-  let _ttWin = null;
 
   // --- Public API ---
   window.TasimaTakip = {
@@ -373,13 +377,22 @@
       _yil = new Date().getFullYear();
       _ay  = new Date().getMonth();
 
+      // Pencereyi HEMEN (kullanıcı tıklamasıyla senkron) aç — aksi halde
+      // await sonrası açılan pencereler mobil tarayıcılarda engellenir.
+      const w = _pencereAc();
+      if (!w) return;
+
       _servis = (typeof servisler !== 'undefined')
         ? servisler.find(s => s.id === servisId) || null
         : null;
 
-      _ogrenciler = await _getOgrenciler(servisId);
+      try {
+        _ogrenciler = await _getOgrenciler(servisId);
+      } catch(e) {
+        _ogrenciler = [];
+      }
 
-      _pencereAc();
+      _pencereDoldur(w);
     }
   };
 
