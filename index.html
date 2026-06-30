@@ -69,6 +69,8 @@
       <button class="nav-tab active" data-tab="panel"><span class="nt-ico ni-panel">🏠</span><span class="nt-label">Genel Bakış</span></button>
       <button class="nav-tab" data-tab="ogretmenler"><span class="nt-ico ni-ogretmen">👩‍🏫</span><span class="nt-label">Öğretmenler</span></button>
       <button class="nav-tab" data-tab="siniflar"><span class="nt-ico ni-sinif">🏫</span><span class="nt-label">Sınıflar</span></button>
+      <button class="nav-tab" data-tab="ogrenciler"><span class="nt-ico">👨‍🎓</span><span class="nt-label">Öğrenciler</span></button>
+      <button class="nav-tab" data-tab="arama"><span class="nt-ico">🔍</span><span class="nt-label">Arama</span></button>
       <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico ni-ders">📚</span><span class="nt-label">Ders Programı</span></button>
       <button class="nav-tab" data-tab="nobet"><span class="nt-ico ni-nobet">🛡️</span><span class="nt-label">Nöbet Programı</span></button>
       <button class="nav-tab" data-tab="takvim"><span class="nt-ico ni-takvim">📅</span><span class="nt-label">Takvim</span></button>
@@ -119,9 +121,7 @@
       <button class="topbar-bell" onclick="sekmeAc('takvim')" title="Hatırlatıcılar" aria-label="Hatırlatıcılar">
         🔔<span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
       </button>
-      <!-- YENİ: Avatar — gerçek bir profil fotoğrafı verisi uygulamada tutulmuyor; baş harf rozeti kullanılıyor -->
       <button class="topbar-avatar" onclick="sekmeAc('ayarlar')" title="Ayarlar">SE</button>
-      <button class="theme-toggle" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
 
     <main class="content">
@@ -169,7 +169,7 @@
           <div class="qa-item" onclick="sekmeAc('dokumanlar');"><div class="qa-icon qa-rapor">📊</div><div class="qa-label">Raporlar</div></div>
           <div class="qa-item" onclick="sekmeAc('takvim');"><div class="qa-icon qa-takvim">📅</div><div class="qa-label">Takvim</div></div>
           <div class="qa-item" onclick="notlarModalAc();"><div class="qa-icon qa-not">📝</div><div class="qa-label">Notlar</div></div>
-          <div class="qa-item" onclick="document.body.classList.toggle('nav-open');"><div class="qa-icon qa-daha">⋯</div><div class="qa-label">Daha Fazla</div></div>
+          <div class="qa-item" onclick="sekmeAc('sosyalKulupler');"><div class="qa-icon qa-daha">⋯</div><div class="qa-label">Çizelgeler</div></div>
         </div>
       </div>
 
@@ -248,6 +248,33 @@
           </table>
         </div>
       </div>
+    </section>
+
+    </section>
+
+    <!-- YENİ: Öğrenciler Sekmesi — veliler[] (oy_veliler koleksiyonu) dizisinden beslenir -->
+    <section id="tab-ogrenciler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">👨‍🎓 Öğrenciler</div><div class="page-sub" id="ogrencilerOzet"></div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput2').click()">📥 Excel İçe Aktar</button>
+          <input type="file" id="ogrenciExcelInput2" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="ogrenci-filtre-satiri">
+          <input type="text" id="ogrenciArama" placeholder="🔍  Öğrenci, veli, sınıf adı ara…" oninput="renderOgrenciler()" style="flex:1;">
+          <select id="ogrenciSinifFiltre" onchange="renderOgrenciler()">
+            <option value="">Tüm Sınıflar</option>
+          </select>
+          <select id="ogrenciCinsiyetFiltre" onchange="renderOgrenciler()">
+            <option value="">Tüm</option>
+            <option value="K">Kız</option>
+            <option value="E">Erkek</option>
+          </select>
+        </div>
+      </div>
+      <div id="ogrencilerListe"></div>
     </section>
 
     <section id="tab-dersProgrami" class="tab-panel">
@@ -677,6 +704,26 @@
       </div>
     </section>
 
+    </section>
+
+    <!-- YENİ: Global Arama Sekmesi -->
+    <section id="tab-arama" class="tab-panel">
+      <div class="page-header"><div><div class="page-title">🔍 Arama</div><div class="page-sub">Tüm kayıtlarda ara</div></div></div>
+      <div class="card" style="margin-bottom:14px;">
+        <input type="text" id="globalAramaInput" placeholder="Öğretmen, öğrenci, veli, şoför, servis, evrak, not…" oninput="globalAramaYap()" style="font-size:16px;padding:14px 16px;" autofocus>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;" id="aramaKategoriButonlar">
+          <button class="btn btn-ghost btn-sm arama-kat aktif" data-kat="hepsi" onclick="aramaKatSec(this)">Tümü</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogretmen" onclick="aramaKatSec(this)">👩‍🏫 Öğretmen</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogrenci" onclick="aramaKatSec(this)">👨‍🎓 Öğrenci</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="personel" onclick="aramaKatSec(this)">🧑‍💼 Personel</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="servis" onclick="aramaKatSec(this)">🚌 Servis/Şoför</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="evrak" onclick="aramaKatSec(this)">📄 Evrak</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="not" onclick="aramaKatSec(this)">📝 Not</button>
+        </div>
+      </div>
+      <div id="globalAramaSonuclar"><p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın…</p></div>
+    </section>
+
     <section id="tab-veri" class="tab-panel">
   <div class="page-header"><div><div class="page-title">📊 Veri</div><div class="page-sub">Tüm verileri Excel ile toplu olarak içe aktarın</div></div>
   <button class="btn btn-ghost btn-sm" onclick="tumSablonlariIndir()">📦 Tüm Şablonları İndir</button></div>
@@ -892,7 +939,7 @@
       <button class="bn-item active" onclick="sekmeAc('panel'); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
       <button class="bn-item" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
       <button class="bn-item bn-plus" onclick="sekmeAc('evrak'); evrakModalAc(); bottomNavAktifYap(this);" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
-      <button class="bn-item" onclick="sekmeAc('ogretmenler'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
+      <button class="bn-item" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
       <button class="bn-item" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
     </nav>
     <script>
@@ -961,6 +1008,7 @@
 <script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
 <script src="js/asistan.js"></script>
+<script src="js/ogrenciler-arama.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/hava-durumu.js"></script>
