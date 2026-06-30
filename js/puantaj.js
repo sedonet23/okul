@@ -33,6 +33,7 @@
   let _personel = null;
   let personelIzinler = [];  // tüm personellerin izin kayıtları (global, baglantilariKur ile dolar)
   let _ptYazdirmaHandler = null; // aktif overlay'in yazdırma fonksiyonu (overlay her açıldığında yeniden atanır)
+  let _ptIndirmeHandler = null;  // aktif overlay'in HTML indirme fonksiyonu
 
   // --- Yardımcılar ---
 
@@ -431,7 +432,8 @@
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
           '<button id="ptTabImza" style="background:rgba(255,255,255,.35);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">📋 İmza Sirküsü</button>' +
           '<button id="ptTabPuantaj" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">📊 Puantaj</button>' +
-          '<button id="ptPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır / PDF</button>' +
+          '<button id="ptPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır</button>' +
+          '<button id="ptIndirBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">💾 HTML İndir</button>' +
           '<button id="ptCloseBtn" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">✕ Kapat</button>' +
         '</div>' +
       '</div>' +
@@ -449,6 +451,11 @@
     ov.querySelector('#ptPrintBtn').onclick = function(){
       if (typeof _ptYazdirmaHandler === 'function') {
         _ptYazdirmaHandler();
+      }
+    };
+    ov.querySelector('#ptIndirBtn').onclick = function(){
+      if (typeof _ptIndirmeHandler === 'function') {
+        _ptIndirmeHandler();
       }
     };
 
@@ -522,29 +529,61 @@
     function _yazdir() {
       const html = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
 
-      // Yeni pencere/sekmede aç — Android WebView/Chrome'da iframe.print()'ten
-      // çok daha güvenilir çalışır. Kullanıcı tıklamasıyla senkron çağrıldığı
-      // için pop-up engelleyiciye takılmaz.
-      const w = window.open('', '_blank');
-      if (w) {
-        w.document.open();
-        w.document.write(html);
-        w.document.close();
-        // Bazı mobil tarayıcılarda sayfa tam render olmadan print() çağrılırsa
-        // boş/eksik çıktı alınabiliyor; kısa bir gecikmeyle tetikliyoruz.
+      // Bu uygulama bir native WebView kabuğu (Capacitor) içinde çalışıyor.
+      // window.open() burada yeni bir sekme açmaz, işletim sistemine harici
+      // bir "Şununla Aç" intent'i fırlatır ve geri tuşu uygulamayı kapatır —
+      // bu yüzden YENİ PENCERE AÇMIYORUZ. Aynı sayfa içinde gizli bir katmana
+      // basıp window.print() çağırıyoruz; bu WebView sürümüne göre değişebilir.
+      const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+      const bodyMatch  = html.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+      const stilIcerik = styleMatch ? styleMatch[1] : '';
+      const govdeIcerik = bodyMatch ? bodyMatch[1] : html;
+
+      let katman = document.getElementById('ptYazdirKatmani');
+      if (katman) katman.remove();
+
+      katman = document.createElement('div');
+      katman.id = 'ptYazdirKatmani';
+      katman.innerHTML = '<style id="ptYazdirStil">' + stilIcerik +
+        '\n  @media screen { #ptYazdirKatmani { display:none !important; } }' +
+        '\n  @media print {' +
+        '    body.pt-yazdiriliyor > *:not(#ptYazdirKatmani) { display:none !important; }' +
+        '    #ptYazdirKatmani { display:block !important; }' +
+        '  }' +
+      '</style>' + govdeIcerik;
+      document.body.appendChild(katman);
+      document.body.classList.add('pt-yazdiriliyor');
+
+      setTimeout(function(){
+        try { window.print(); } catch(e) {}
         setTimeout(function(){
-          try { w.focus(); w.print(); } catch(e) {}
-        }, 300);
-      } else {
-        // Pop-up engellenmişse aynı sayfadaki iframe üzerinden dene (masaüstünde çalışır).
-        const fr = ov.querySelector('#ptFrame');
-        if (fr && fr.contentWindow) {
-          try { fr.contentWindow.focus(); fr.contentWindow.print(); }
-          catch(e) { alert('Yazdırma başlatılamadı. Tarayıcınızın pop-up izinlerini kontrol edin.'); }
-        }
+          document.body.classList.remove('pt-yazdiriliyor');
+          const k = document.getElementById('ptYazdirKatmani');
+          if (k) k.remove();
+        }, 600);
+      }, 150);
+    }
+
+    function _htmlIndir() {
+      const html = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
+      const dosyaAdi = (state.aktifSekme === 'imza' ? 'imza_sirkusu_' : 'puantaj_') +
+        (state.adSoyad || 'personel').replace(/\s+/g, '_') + '.html';
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = dosyaAdi;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      if (typeof toast === 'function') {
+        toast('Dosya indirildi. İndirilenler klasöründen açıp Chrome\'da Yazdır / PDF olarak kaydet diyebilirsiniz.');
       }
     }
+
     _ptYazdirmaHandler = _yazdir;
+    _ptIndirmeHandler = _htmlIndir;
 
     tabImza.onclick = function(){ state.aktifSekme = 'imza'; render(); };
     tabPuantaj.onclick = function(){ state.aktifSekme = 'puantaj'; render(); };
