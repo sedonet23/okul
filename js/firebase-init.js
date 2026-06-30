@@ -71,6 +71,8 @@ const COL = {
   // --- YENİ: Personel İşleri + Dilekçe Sistemi (v6.0) ---
   personel:'oy_personel',               // {adSoyad, tc, telefon, adres, gorev, notlar}
   dilekceler:'oy_dilekceler',           // {personelId, izinTuru, baslangicTarihi, sure, olusturmaTarihi}
+  // --- YENİ: Personel Puantaj / İzin Kayıtları (v7.0) ---
+  personelIzinler:'oy_personelIzinler', // {personelId, baslangic:'YYYY-MM-DD', bitis:'YYYY-MM-DD', tur:'YILLIK İZİNLİ'|'RAPORLU'|'ÜCRETSİZ MAZERET İZİNİ'|'CUMARTESİ ÇALIŞMASI'|'PAZAR TAM ÇALIŞMASI'|'UBGT TAM ÇALIŞMASI', aciklama, dilekceId?}
 };
 
 let db = null;

@@ -79,12 +79,23 @@ function personelDetayAc(id){
         <div class="detay-row">📞 Telefon: ${escapeHtml(p.telefon||'—')}</div>
         <div class="detay-row">🏠 Adres: ${escapeHtml(p.adres||'—')}</div>
         ${p.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(p.notlar)}</div>` : ''}
-        <div class="detay-row" style="margin-top:8px;">
+        <div class="detay-row" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn-takip-cizelge" onclick="detayPanelKapat(); if(typeof DilekceSistemi!=='undefined') DilekceSistemi.ac('${p.id}'); else alert('Dilekçe modülü yüklenemedi.');">📄 Dilekçe Oluştur</button>
+          <button class="btn-takip-cizelge" onclick="detayPanelKapat(); if(typeof PuantajSistemi!=='undefined') PuantajSistemi.ac('${p.id}'); else alert('Puantaj modülü yüklenemedi.');">🗓️ Puantaj / İmza Sirküsü</button>
         </div>
+      </div>
+      <div class="detay-card">
+        <h4 class="detay-card-header">
+          <span class="detay-card-title">📅 İzin / Rapor Kayıtları</span>
+          <span class="detay-card-actions">
+            <button class="btn btn-amber btn-sm" onclick="personelIzinModalAc('${p.id}')">➕ Kayıt Ekle</button>
+          </span>
+        </h4>
+        <div id="pIzinListesi"></div>
       </div>
     </div>
   `;
+  if (typeof renderPersonelIzinListesi === 'function') renderPersonelIzinListesi(id);
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
 }

@@ -913,6 +913,7 @@ function baglantilariKur(){
     renderBransListesiYonetim();
   }, hataGoster);
   if(typeof personelBaglantilariKur === 'function') personelBaglantilariKur();
+  if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur();
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
