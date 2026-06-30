@@ -215,12 +215,12 @@
 '  .pz-isim-satir { font-size: 10pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 4px; border-bottom: 1.5px solid #000 !important; }' +
 '  .pz-tarih-baslik { background: #ECE9D8; text-align: center; font-weight: 700; border-right: 1.5px solid #000 !important; }' +
 '  .pz-tc-satir { font-size: 9.5pt; font-weight: 700; text-align: center; padding: 4px; background: #ECE9D8; }' +
-'  .pz-bos-bej { background: #ECE9D8; }' +
+'  .pz-bos-bej { background: #ECE9D8; border-left: 1.5px solid #000 !important; }' +
 '  .pz-ana-tablo th { font-size: 7.5pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 3px 2px; }' +
 '  .pz-ana-tablo td { font-size: 7pt; vertical-align: middle; }' +
-'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; width: 26%; border-right: 1.5px solid #000 !important; padding-left: 6px; }' +
-'  .pz-durum { text-align: center; font-weight: 700; width: 11%; }' +
-'  .pz-imza { width: 12.5%; }' +
+'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; width: 24%; border-right: 1.5px solid #000 !important; padding-left: 6px; }' +
+'  .pz-durum { text-align: center; font-weight: 700; width: 17%; }' +
+'  .pz-imza { width: 9.5%; }' +
 '  tr.pz-hs td.pz-durum { background: #f5f5f5; }' +
 '  .pz-ana-tablo tr td { border-bottom: 1px solid #999; }' +
 '  .pz-onay-blok { margin-top: 8px; text-align: right; }' +
@@ -338,10 +338,12 @@
 '<body>' +
 '  <table class="pt-ust-tablo">' +
 '    <tr>' +
-'      <td rowspan="2" colspan="3" class="pt-okul-adi" style="width:220px;">' + escapeHtml(okul.okulAdi.toLocaleUpperCase('tr')) + '</td>' +
-'      <td class="pt-cetvel-baslik">PUANTAJ CETVELİ</td>' +
+'      <td colspan="6" class="pt-okul-adi">' + escapeHtml(okul.okulAdi.toLocaleUpperCase('tr')) + '</td>' +
+'    </tr>' +
+'    <tr>' +
+'      <td class="pt-cetvel-baslik" colspan="3">PUANTAJ CETVELİ</td>' +
 '      <td class="pt-ay-yil">AY: ' + escapeHtml(ayKisaBaslik) + '</td>' +
-'      <td class="pt-ay-yil">YIL: ' + yil + '</td>' +
+'      <td class="pt-ay-yil" colspan="2">YIL: ' + yil + '</td>' +
 '    </tr>' +
 '  </table>' +
 '  <table class="pt-ana-tablo">' +
