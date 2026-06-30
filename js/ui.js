@@ -22,6 +22,21 @@ function temaDegistir(){
   temaUygula(guncelTema);
 }
 
+/* ---------- YENİ: Tema paketi (vurgu rengi) seçimi ---------- */
+const RENK_PAKETLERI = ['teal','mavi','yesil','mor','turuncu','kirmizi'];
+function renkUygula(paket){
+  if(!RENK_PAKETLERI.includes(paket)) paket = 'teal';
+  document.documentElement.setAttribute('data-accent', paket);
+  localStorage.setItem('oyRenkPaketi', paket);
+  document.querySelectorAll('.renk-paketi-secenek').forEach(el=>{
+    el.classList.toggle('aktif', el.dataset.paket === paket);
+  });
+}
+function renkPaketiBaslat(){
+  const kayitli = localStorage.getItem('oyRenkPaketi') || 'teal';
+  renkUygula(kayitli);
+}
+
 function menuDaralt(){ document.body.classList.toggle('nav-collapsed'); }
 function menuAcKapat(){ document.body.classList.toggle('nav-open'); }
 function menuKapat(){ document.body.classList.remove('nav-open'); }
@@ -48,6 +63,7 @@ function uygulamadanCik(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   temaUygula(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
+  renkPaketiBaslat();
 
   const temaBtn1 = document.getElementById('temaDugmesi');
   const temaBtn2 = document.getElementById('temaDugmesiTopbar');
