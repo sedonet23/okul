@@ -1,0 +1,13 @@
+/* =============================================
+   css/dilekce.css
+   PERSONEL DİLEKÇE SİSTEMİ — Tetikleyici buton ve
+   yazdırma izolasyonu. Dilekçenin kendisi sayfa
+   içi overlay'de açılır ve A4 stilleri js/dilekce.js
+   içinde iframe srcdoc olarak üretilir.
+   ============================================= */
+
+@media print {
+  body.dlk-overlay-acik > *:not(#dlkOverlay) { display: none !important; }
+  #dlkOverlay #dlkToolbar { display: none !important; }
+  #dlkOverlay #dlkFormPanel { display: none !important; }
+}
