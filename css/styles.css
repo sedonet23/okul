@@ -112,10 +112,10 @@
   --nm-bg-light: #223035;
   --nm-bg-dark:  #141F22;
 
-  --nm-out: 5px 5px 12px rgba(0,0,0,0.50), -5px -5px 12px rgba(42,60,68,0.35);
-  --nm-in:  inset 4px 4px 10px rgba(0,0,0,0.45), inset -4px -4px 10px rgba(42,60,68,0.30);
-  --nm-sm:  3px 3px 7px rgba(0,0,0,0.42), -3px -3px 7px rgba(42,60,68,0.28);
-  --nm-lg:  8px 8px 20px rgba(0,0,0,0.55), -8px -8px 20px rgba(42,60,68,0.38);
+  --nm-out: 4px 4px 9px rgba(0,0,0,0.32), -4px -4px 9px rgba(42,60,68,0.18);
+  --nm-in:  inset 3px 3px 7px rgba(0,0,0,0.30), inset -3px -3px 7px rgba(42,60,68,0.16);
+  --nm-sm:  2px 2px 5px rgba(0,0,0,0.28), -2px -2px 5px rgba(42,60,68,0.14);
+  --nm-lg:  5px 5px 13px rgba(0,0,0,0.36), -5px -5px 13px rgba(42,60,68,0.20);
 
   --bg-app:      var(--nm-bg);
   --bg-app-soft: var(--nm-bg-dark);
@@ -2482,3 +2482,33 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 .bn-item .bn-ico{ font-size:24px; }
 .bn-plus-ico{ width:50px; height:50px; font-size:29px; margin-top:-28px; }
 .asistan-fab{ font-size:28px; }
+
+/* =========================================================================
+   YENİ: KARANLIK MOD — GÖLGE AZALTMA
+   Aşağıdaki bileşenler (input, .toast, .topbar, .badge, .modal, .config-box,
+   .detay-card, .cz-check, .accordion-content, .form-actions) gölgelerini
+   açık temaya özel sabit (hardcoded) rgba(163,177,198/255,255,255) değerleriyle
+   tanımlamıştı. Karanlık temada bu beyaz parlama/glow efekti rahatsız edici
+   görünüyordu; burada her biri için daha sade, düşük kontrastlı bir karanlık
+   mod gölgesi tanımlandı. Renkler/yapı/JS hiç değişmedi.
+   ========================================================================= */
+[data-theme="dark"] input[type=text], [data-theme="dark"] input[type=date], [data-theme="dark"] input[type=tel],
+[data-theme="dark"] input[type=email], [data-theme="dark"] input[type=url], [data-theme="dark"] input[type=password],
+[data-theme="dark"] input[type=time], [data-theme="dark"] input[type=number], [data-theme="dark"] input[type=file],
+[data-theme="dark"] select, [data-theme="dark"] textarea{
+  box-shadow: inset 2px 2px 6px rgba(0,0,0,0.35), inset -2px -2px 6px rgba(42,60,68,0.18);
+  border:1px solid rgba(255,255,255,0.06);
+}
+[data-theme="dark"] .toast{ box-shadow:0 6px 18px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); }
+[data-theme="dark"] .topbar{ box-shadow:0 2px 8px rgba(0,0,0,0.35); border-bottom:1px solid rgba(255,255,255,0.06); }
+[data-theme="dark"] .badge{ box-shadow:none; border:1px solid rgba(255,255,255,0.10); }
+[data-theme="dark"] .modal{ box-shadow:0 18px 44px rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.07); }
+[data-theme="dark"] .config-box{ box-shadow:0 18px 44px rgba(0,0,0,0.55); }
+[data-theme="dark"] .detay-card{ box-shadow: inset 2px 2px 6px rgba(0,0,0,0.30), inset -2px -2px 6px rgba(42,60,68,0.16); }
+[data-theme="dark"] .cz-check{ box-shadow: inset 2px 2px 5px rgba(0,0,0,0.32), inset -2px -2px 5px rgba(42,60,68,0.16); }
+[data-theme="dark"] .accordion-content.open{ box-shadow: inset 2px 2px 5px rgba(0,0,0,0.22); }
+[data-theme="dark"] .form-actions{ box-shadow:0 -3px 10px rgba(0,0,0,0.30); }
+
+/* Takvim / Yıllık Görünüm hücreleri, nöbet listesi vb. yer alan ".badge" tabanlı
+   numara rozetleri için ekstra netlik (kontrast biraz artırıldı) */
+[data-theme="dark"] .badge-blue{ background:rgba(91,141,255,0.18); color:#9DBBFF; }
