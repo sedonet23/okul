@@ -201,10 +201,12 @@
   font-size: 0.62rem;
 }
 
-/* Resmi tatil */
+/* Resmi tatil (gri dolgu) */
 .tt-ana-tablo tr.tt-tatil td {
-  background: #fff8e1;
-  color: #e65100;
+  background: #e0e0e0;
+  color: #777;
+  font-style: italic;
+  font-size: 0.62rem;
 }
 
 /* İmza hücresi (boş) */
@@ -230,17 +232,18 @@
 .tt-imza-satir {
   display: flex;
   justify-content: space-between;
-  padding: 20px 24px 6px;
+  padding: 24px 24px 6px;
 }
 .tt-imza-kutu { text-align: center; min-width: 140px; }
-.tt-imza-ad   { font-size: 0.72rem; color: var(--ink-muted, #555); min-height: 14px; }
 .tt-imza-unvan {
   font-size: 0.73rem;
   font-weight: 700;
   color: var(--ink, #333);
-  border-top: 1px solid #555;
-  padding-top: 4px;
-  margin-top: 26px;
+}
+.tt-imza-ad {
+  font-size: 0.72rem;
+  color: var(--ink-muted, #555);
+  margin-top: 4px;
 }
 
 /* ── Servis Kartındaki Buton ── */
@@ -284,7 +287,7 @@
 [data-theme="dark"] .tt-th-tarih,
 [data-theme="dark"] .tt-th-sub   { background: #1e2e1e; color: #a5d6a7; }
 [data-theme="dark"] .tt-ana-tablo tr.tt-hs td { background: #22272e; color: #555; }
-[data-theme="dark"] .tt-ana-tablo tr.tt-tatil td { background: #2a2010; color: #ffb74d; }
+[data-theme="dark"] .tt-ana-tablo tr.tt-tatil td { background: #2a2e34; color: #666; }
 [data-theme="dark"] .tt-ana-tablo td input { color: #cdd6f4; }
 [data-theme="dark"] .tt-ana-tablo td input:focus { background: #1a3a1a; }
 [data-theme="dark"] .tt-baslik-1 { color: #a5d6a7; }
@@ -362,16 +365,16 @@
     color: #777 !important;
   }
   .tt-ana-tablo tr.tt-tatil td {
-    background: #fff8e1 !important;
+    background: #e0e0e0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color: #b35000 !important;
+    color: #777 !important;
   }
   .tt-ana-tablo td input { font-size: 6pt !important; color: #000 !important; }
 
-  .tt-imza-satir { margin-top: 10px !important; padding: 0 8px !important; }
-  .tt-imza-unvan { font-size: 7.5pt !important; color: #000 !important; border-color: #000 !important; }
-  .tt-imza-ad    { font-size: 7pt !important; color: #000 !important; }
+  .tt-imza-satir { margin-top: 14px !important; padding: 0 8px !important; }
+  .tt-imza-unvan { font-size: 7.5pt !important; color: #000 !important; font-weight: 700 !important; }
+  .tt-imza-ad    { font-size: 7pt !important; color: #000 !important; margin-top: 3px !important; }
 
   @page { size: A4 portrait; margin: 8mm; }
 }
