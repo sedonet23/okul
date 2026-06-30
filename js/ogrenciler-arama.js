@@ -459,3 +459,101 @@ function _ogrenciSatirHtml(v, sinifAdi) {
     <span style="color:var(--ink-muted);font-size:18px;margin-left:6px;">›</span>
   </div>`;
 }
+
+/* ================================================================
+   AKTİF KULLANICI (Topbar Avatar)
+   localStorage'da 'oyAktifKullaniciId' olarak saklanır.
+   Öğretmenler ve personel arasından seçilebilir.
+   ================================================================ */
+
+function aktifKullaniciyiGuncelle() {
+  const id = localStorage.getItem('oyAktifKullaniciId');
+  const btn = document.getElementById('topbarAvatar');
+  if (!btn) return;
+
+  let kisi = null;
+  if (id) {
+    kisi = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(o => o.id === id) : null;
+    if (!kisi && typeof personelListesi !== 'undefined') {
+      kisi = personelListesi.find(p => p.id === id);
+    }
+  }
+
+  if (kisi && kisi.profilFotoUrl) {
+    // Profil fotoğrafı varsa img olarak göster
+    btn.innerHTML = `<img src="${escapeHtml(kisi.profilFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Profil">`;
+    btn.style.padding = '0';
+    btn.style.overflow = 'hidden';
+  } else if (kisi) {
+    // Baş harf rozeti
+    const ad = kisi.ad || kisi.adSoyad || '';
+    const soyad = kisi.soyad || '';
+    const harf = (ad[0] || '') + (soyad[0] || '');
+    btn.textContent = harf.toUpperCase() || 'SE';
+    btn.style.padding = '';
+  } else {
+    btn.textContent = 'SE';
+    btn.style.padding = '';
+  }
+}
+
+function kullaniciSecModalAc() {
+  const modal = document.getElementById('kullaniciSecModal');
+  const liste = document.getElementById('kullaniciSecListe');
+  if (!modal || !liste) return;
+
+  const aktifId = localStorage.getItem('oyAktifKullaniciId');
+
+  // Öğretmenler + Personel listesi
+  const kisiler = [
+    ...(typeof ogretmenler !== 'undefined' ? ogretmenler.map(o => ({
+      id: o.id, tip: 'ogretmen',
+      ad: `${o.ad || ''} ${o.soyad || ''}`.trim(),
+      alt: o.brans || o.unvan || 'Öğretmen',
+      foto: o.profilFotoUrl || null
+    })) : []),
+    ...(typeof personelListesi !== 'undefined' ? personelListesi.map(p => ({
+      id: p.id, tip: 'personel',
+      ad: p.adSoyad || `${p.ad || ''} ${p.soyad || ''}`.trim(),
+      alt: p.gorev || p.unvan || 'Personel',
+      foto: null
+    })) : [])
+  ].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+
+  liste.innerHTML = kisiler.map(k => {
+    const harf = (k.ad[0] || 'K').toUpperCase();
+    const aktifMi = k.id === aktifId;
+    const avatarHtml = k.foto
+      ? `<img src="${escapeHtml(k.foto)}" style="width:44px;height:44px;border-radius:var(--icon-shape,50%);object-fit:cover;flex-shrink:0;" alt="">`
+      : `<div style="width:44px;height:44px;border-radius:var(--icon-shape,50%);background:${aktifMi?'var(--brand)':'var(--brand-light)'};color:${aktifMi?'#fff':'var(--brand)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;">${harf}</div>`;
+    return `<div onclick="kullaniciyiSec('${k.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;background:${aktifMi?'var(--brand-light)':'var(--nm-bg)'};border:${aktifMi?'2px solid var(--brand)':'1px solid var(--border)'};">
+      ${avatarHtml}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:14px;color:${aktifMi?'var(--brand)':'var(--ink)'};">${escapeHtml(k.ad)}</div>
+        <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.alt)}</div>
+      </div>
+      ${aktifMi ? '<span style="color:var(--brand);font-size:18px;">✓</span>' : ''}
+    </div>`;
+  }).join('');
+
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+}
+
+function kullaniciSecModalKapat() {
+  const modal = document.getElementById('kullaniciSecModal');
+  if (modal) modal.style.display = 'none';
+  document.body.classList.remove('modal-open');
+}
+
+function kullaniciyiSec(id) {
+  localStorage.setItem('oyAktifKullaniciId', id);
+  kullaniciSecModalKapat();
+  aktifKullaniciyiGuncelle();
+
+  // Kişi detay panelini aç
+  const ogr = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(o => o.id === id) : null;
+  if (ogr) { ogretmenDetayAc(id); return; }
+  const per = (typeof personelListesi !== 'undefined') ? personelListesi.find(p => p.id === id) : null;
+  if (per) { personelDetayAc(id); return; }
+}
