@@ -120,16 +120,7 @@ function renderOgrenciler() {
       <h3 style="margin-bottom:10px;">🏫 ${escapeHtml(sinifAdi)} <span style="font-weight:400;font-size:12px;color:var(--ink-muted);">(${gruplar[sinifAdi].length} öğrenci)</span></h3>
       <div style="display:flex;flex-direction:column;gap:0;">`;
     gruplar[sinifAdi].forEach(v => {
-      const harf = (v.ogrenciAdi||'?')[0].toUpperCase();
-      const tel  = v.telefon ? `<a href="tel:${escapeHtml(v.telefon)}" style="color:var(--brand);font-size:12px;">📞 ${escapeHtml(v.telefon)}</a>` : '';
-      html += `<div class="detay-row" style="display:flex;align-items:center;gap:12px;padding:10px 0;">
-        <div style="width:36px;height:36px;border-radius:var(--icon-shape,50%);background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${harf}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;color:var(--ink);font-size:14px;">${escapeHtml(v.ogrenciAdi||'—')}</div>
-          <div style="font-size:12px;color:var(--ink-muted);">Veli: ${escapeHtml(v.veliAdi||'—')}${v.yakinlik?' ('+escapeHtml(v.yakinlik)+')':''}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;">${tel}</div>
-      </div>`;
+      html += _ogrenciSatirHtml(v, sinifAdi);
     });
     html += '</div></div>';
   });
@@ -164,7 +155,7 @@ function globalAramaYap() {
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>👩‍🏫 Öğretmenler (${hits.length})</h3>`;
       hits.forEach(o => {
-        html += `<div class="detay-row" style="cursor:pointer;" onclick="ogretmenDetayAc('${o.id}'); sekmeAc('ogretmenler');">
+        html += `<div class="detay-row" style="cursor:pointer;" onclick="ogretmenDetayAc('${o.id}')">
           ${profilFotoGoster(o.id).replace('width:70px;height:70px','width:36px;height:36px').replace('font-size:22px','font-size:13px')}
           <div style="flex:1;padding:6px 0 6px 10px;">
             <div style="font-weight:700;color:var(--ink);">${escapeHtml((o.ad||'')+' '+(o.soyad||''))}</div>
@@ -187,14 +178,7 @@ function globalAramaYap() {
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>👨‍🎓 Öğrenciler / Veliler (${hits.length})</h3>`;
       hits.slice(0, 30).forEach(v => {
-        const sAdi = (typeof siniflar !== 'undefined' ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad : '') || '?';
-        html += `<div class="detay-row">
-          <div style="flex:1;">
-            <div style="font-weight:700;color:var(--ink);">${escapeHtml(v.ogrenciAdi||'—')}</div>
-            <div style="font-size:12px;color:var(--ink-muted);">Sınıf: ${escapeHtml(sAdi)} · Veli: ${escapeHtml(v.veliAdi||'—')}</div>
-          </div>
-          ${v.telefon ? `<a href="tel:${escapeHtml(v.telefon)}" style="color:var(--brand);font-size:12px;">📞 ${escapeHtml(v.telefon)}</a>` : ''}
-        </div>`;
+        html += _ogrenciSatirHtml(v, (typeof siniflar !== 'undefined' ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad : '') || '?');
       });
       if (hits.length > 30) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-30} daha — aramayı daraltın.</p>`;
       html += '</div>';
@@ -208,11 +192,14 @@ function globalAramaYap() {
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>🧑‍💼 Personel (${hits.length})</h3>`;
       hits.forEach(p => {
-        html += `<div class="detay-row"><div style="flex:1;">
-          <div style="font-weight:700;color:var(--ink);">${escapeHtml((p.ad||'')+' '+(p.soyad||''))}</div>
-          <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(p.gorev||p.unvan||'')}</div>
-        </div>
-        ${p.telefon?`<a href="tel:${escapeHtml(p.telefon)}" style="color:var(--brand);font-size:12px;">📞 ${escapeHtml(p.telefon)}</a>`:''}
+        html += `<div class="detay-row" style="cursor:pointer;" onclick="personelDetayAc('${p.id}')">
+          <div style="width:36px;height:36px;border-radius:var(--icon-shape,50%);background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${((p.ad||'?')[0]).toUpperCase()}</div>
+          <div style="flex:1;padding-left:10px;">
+            <div style="font-weight:700;color:var(--ink);">${escapeHtml((p.ad||'')+' '+(p.soyad||''))}</div>
+            <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(p.gorev||p.unvan||'')}</div>
+          </div>
+          ${p.telefon?`<a href="tel:${escapeHtml(p.telefon)}" onclick="event.stopPropagation()" style="color:var(--brand);font-size:12px;">📞</a>`:''}
+          <span style="color:var(--ink-muted);font-size:18px;margin-left:6px;">›</span>
         </div>`;
       });
       html += '</div>';
@@ -274,4 +261,115 @@ function globalAramaYap() {
 
   if (!html) html = '<p class="empty-state" style="margin-top:24px;">Sonuç bulunamadı.</p>';
   out.innerHTML = html;
+}
+
+/* ================================================================
+   ÖĞRENCİ DETAY MODALI
+   Mevcut .detay-overlay / .detay-panel (öğretmen için kullanılan)
+   yapısını yeniden kullanır. ogretmenDetayAc() ile aynı HTML
+   kabuğuna yazılır, böylece ekstra HTML eklemeye gerek kalmaz.
+   ================================================================ */
+function ogrenciDetayAc(vId) {
+  const v = (typeof veliler !== 'undefined') ? veliler.find(x => x.id === vId) : null;
+  if (!v) return;
+
+  const sinifAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s => s.id === v.sinifId) || {}).ad || '—' : '—';
+  const servisAdi = (typeof servisler !== 'undefined' && v.servisId) ? (servisler.find(s => s.id === v.servisId) || {}).servisAdi || '—' : '—';
+
+  // Öğretmen detay panelini yeniden kullan (aynı overlay)
+  const overlay = document.getElementById('detayOverlay');
+  if (!overlay) return;
+
+  document.getElementById('detayBaslik').textContent = v.ogrenciAdi || '—';
+  document.getElementById('detayAltBaslik').textContent = `${sinifAdi} · ${v.cinsiyet || ''}`;
+
+  const duzenleBtn = document.getElementById('detayDuzenleBtn');
+  if (duzenleBtn) {
+    duzenleBtn.textContent = '✏️ Düzenle';
+    duzenleBtn.onclick = () => { detayPanelKapat(); veliModalAc(vId); };
+  }
+  const raporBtn = document.getElementById('detayRaporBtn');
+  if (raporBtn) raporBtn.style.display = 'none';
+
+  // Telefon satırı yardımcı
+  const telSatir = (tel, yak) => tel
+    ? `<a href="tel:${escapeHtml(tel)}" style="display:flex;align-items:center;gap:8px;color:var(--brand);font-size:13px;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+        <span style="min-width:56px;font-weight:600;color:var(--ink-muted);font-size:11px;">${escapeHtml(yak||'Telefon')}</span>
+        <span>${escapeHtml(tel)}</span>
+        <span style="margin-left:auto;font-size:16px;">📞</span>
+       </a>` : '';
+
+  const tel1 = v.telefon1 || v.telefon || '';
+  const yak1 = v.yakinlik1 || v.yakinlik || 'Veli';
+  const tel2 = v.telefon2 || '';
+  const yak2 = v.yakinlik2 || 'Veli 2';
+  const tel3 = v.telefon3 || '';
+  const yak3 = v.yakinlik3 || 'Veli 3';
+
+  document.getElementById('detayBody').innerHTML = `
+    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Kişisel Bilgiler -->
+      <div class="detay-card">
+        <h4>👤 Öğrenci Bilgileri</h4>
+        ${v.ogrenciNo ? `<div class="detay-row"><span class="detay-row-muted">Öğrenci No</span><strong>${escapeHtml(v.ogrenciNo)}</strong></div>` : ''}
+        <div class="detay-row"><span class="detay-row-muted">Sınıf</span><strong>${escapeHtml(sinifAdi)}</strong></div>
+        ${v.cinsiyet ? `<div class="detay-row"><span class="detay-row-muted">Cinsiyet</span><span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span></div>` : ''}
+        ${servisAdi !== '—' ? `<div class="detay-row"><span class="detay-row-muted">Servis</span>${escapeHtml(servisAdi)}</div>` : ''}
+        ${v.adres ? `<div class="detay-row"><span class="detay-row-muted">Adres</span>${escapeHtml(v.adres)}</div>` : ''}
+      </div>
+
+      <!-- Veli İletişim -->
+      <div class="detay-card">
+        <h4>📞 Veli İletişim</h4>
+        <div style="margin-bottom:4px;font-weight:700;color:var(--ink);">${escapeHtml(v.veliAdi || '—')}</div>
+        ${telSatir(tel1, yak1)}
+        ${telSatir(tel2, yak2)}
+        ${telSatir(tel3, yak3)}
+        ${v.eposta ? `<div class="detay-row"><a href="mailto:${escapeHtml(v.eposta)}" style="color:var(--brand);">✉️ ${escapeHtml(v.eposta)}</a></div>` : ''}
+      </div>
+
+      <!-- WhatsApp hızlı buton -->
+      ${tel1 ? `<a href="https://wa.me/9${tel1.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener"
+          style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;border-radius:12px;padding:12px;font-weight:700;font-size:14px;text-decoration:none;">
+          <span style="font-size:20px;">💬</span> WhatsApp ile İletişim
+        </a>` : ''}
+    </div>`;
+
+  // Profil avatar
+  setTimeout(() => {
+    const head = document.querySelector('.detay-head');
+    if (head) {
+      const old = head.querySelector('.detay-profil-foto');
+      if (old) old.remove();
+      const wrap = document.createElement('div');
+      wrap.className = 'detay-profil-foto';
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;';
+      const harf = (v.ogrenciAdi || '?')[0].toUpperCase();
+      wrap.innerHTML = `<div style="width:60px;height:60px;border-radius:var(--icon-shape,50%);background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;">${harf}</div>`;
+      head.insertBefore(wrap, head.firstChild);
+    }
+  }, 10);
+
+  overlay.classList.add('active');
+  document.body.classList.add('modal-open');
+}
+
+/* ================================================================
+   GLOBAL ARAMA — tıklanabilir detay yönlendirme (fonksiyon güncellendi)
+   ================================================================ */
+
+// renderOgrenciler içindeki satırları tıklanabilir hale getir
+function _ogrenciSatirHtml(v, sinifAdi) {
+  const harf  = (v.ogrenciAdi || '?')[0].toUpperCase();
+  const tel   = v.telefon1 || v.telefon || '';
+  return `<div class="detay-row" style="cursor:pointer;" onclick="ogrenciDetayAc('${v.id}')">
+    <div style="width:36px;height:36px;border-radius:var(--icon-shape,50%);background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${harf}</div>
+    <div style="flex:1;min-width:0;padding-left:10px;">
+      <div style="font-weight:700;color:var(--ink);font-size:14px;">${escapeHtml(v.ogrenciAdi || '—')}</div>
+      <div style="font-size:12px;color:var(--ink-muted);">Veli: ${escapeHtml(v.veliAdi || '—')}${v.yakinlik ? ' ('+escapeHtml(v.yakinlik)+')' : ''}</div>
+    </div>
+    ${tel ? `<a href="tel:${escapeHtml(tel)}" onclick="event.stopPropagation()" style="color:var(--brand);font-size:12px;flex-shrink:0;">📞</a>` : ''}
+    <span style="color:var(--ink-muted);font-size:18px;margin-left:6px;">›</span>
+  </div>`;
 }
