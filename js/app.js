@@ -732,6 +732,11 @@ function renderZilSayaci(bugunGun){
   const zilEl = document.getElementById('zilWidget');
   const suankiEl = document.getElementById('dashSuankiDers');
   if(!zilEl) return;
+  // YENİ: durum bazlı renklendirme (ders=yeşil, teneffüs/öğle=turuncu, bitti=gri, başlamadı=mavi, tatil=mor)
+  function zilDurumSinifAyarla(durumAdi){
+    zilEl.classList.remove('durum-ders','durum-teneffus','durum-ogle','durum-bitti','durum-baslamadi','durum-tatil');
+    if(durumAdi) zilEl.classList.add('durum-'+durumAdi);
+  }
   // Kart görünürlüğü tatilModuKartlariniUygula() tarafından yönetilir
   const ayar = dersSaatleriAyarlari;
   if(ayar && ayar.tatilModu){
@@ -757,21 +762,25 @@ function renderZilSayaci(bugunGun){
     } else {
       sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${ayar.tatilModuNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(ayar.tatilModuNotu)+'</div>':''}</div>`;
     }
+    zilDurumSinifAyarla('tatil');
     zilEl.innerHTML = sayacHTML;
     return;
   }
   if(!GUNLER.includes(bugunGun)){
+    zilDurumSinifAyarla('bitti');
     zilEl.innerHTML = `<div class="zil-durum">🌤️ Bugün hafta sonu — okul saatleri geçerli değil.</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Bugün hafta sonu.</p>';
     return;
   }
   const durum = suankiDersDurumu();
   if(durum.durum==='yok'){
+    zilDurumSinifAyarla(null);
     zilEl.innerHTML = `<div class="zil-durum">Ders saatleri henüz Ayarlar sayfasından girilmedi.</div>`;
     if(suankiEl) suankiEl.innerHTML = '<p class="empty-state">Ders saatleri girilmeden gösterilemiyor.</p>';
     return;
   }
   const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
+  zilDurumSinifAyarla(durum.durum==='ogle' ? 'teneffus' : durum.durum);
   if(durum.durum==='bitti'){
     zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
   } else {
@@ -779,8 +788,15 @@ function renderZilSayaci(bugunGun){
       : durum.durum==='ogle' ? 'Öğle arası bitimine kalan süre'
       : durum.durum==='baslamadi' ? 'Okulun başlamasına kalan süre'
       : `${durum.etiket} başlamasına kalan süre`;
+    // YENİ: ilerleme yüzdesi (progBaslangic/progToplamDk varsa hesaplanır, yoksa bar gösterilmez)
+    let barHTML = '';
+    if(durum.progToplamDk>0){
+      const gecenDk = durum.progToplamDk - durum.kalanDk;
+      const yuzde = Math.max(0, Math.min(100, Math.round((gecenDk/durum.progToplamDk)*100)));
+      barHTML = `<div class="zil-progress"><div class="zil-progress-fill" style="width:${yuzde}%"></div></div>`;
+    }
     zilEl.innerHTML = `
-      <div><div class="zil-etiket">${etiketler[durum.durum]}</div><div class="zil-alt">${altMetin}</div></div>
+      <div class="zil-sol"><div class="zil-etiket">${etiketler[durum.durum]}</div><div class="zil-alt">${altMetin}</div>${barHTML}</div>
       <div class="zil-sayac">${durum.kalanDk} <span>dk</span></div>
     `;
   }

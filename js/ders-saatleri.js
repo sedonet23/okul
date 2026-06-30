@@ -76,11 +76,12 @@ function suankiDersDurumu(){
   for(let i=0;i<segs.length;i++){
     const s = segs[i];
     if(simdiDk>=s.bas && simdiDk<s.bit){
-      return { durum: s.tip==='ogle'?'ogle':'ders', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bit-simdiDk };
+      return { durum: s.tip==='ogle'?'ogle':'ders', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bit-simdiDk, progBaslangic:s.bas, progToplamDk:(s.bit-s.bas) };
     }
     if(simdiDk < s.bas){
       const ilkDersmi = i===0;
-      return { durum: ilkDersmi?'baslamadi':'teneffus', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bas-simdiDk };
+      const oncekiBit = i===0 ? s.bas-30 : segs[i-1].bit; // teneffüs/okul-öncesi süresinin başlangıç referansı
+      return { durum: ilkDersmi?'baslamadi':'teneffus', etiket:s.etiket, saat:s.saat||null, kalanDk: s.bas-simdiDk, progBaslangic:oncekiBit, progToplamDk:(s.bas-oncekiBit) };
     }
   }
   return { durum:'bitti' };
