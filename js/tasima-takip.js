@@ -1,26 +1,20 @@
 /* =============================================
    js/tasima-takip.js
    TAŞIMA TAKİP ÇİZELGESİ MODÜLÜ
-   Bağımlılıklar: firebase-init.js, tasima.js, app.js
+   Bağımlılıklar: firebase-init.js, tasima.js, nobet.js, app.js
    ============================================= */
 
 (function() {
   'use strict';
 
   const AY_ISIMLERI = [
-    'OCAK','ŞUBAT','MART','NİSAN','MAYIS','HAZİRAN',
-    'TEMMUZ','AĞUSTOS','EYLÜL','EKİM','KASIM','ARALIK'
+    'Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+    'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'
   ];
 
   const GUNLER = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 
-  // Sabit resmi tatiller (gün-ay)
-  const RESMI_TATILLER = {
-    '1-1':'Yılbaşı', '23-4':'Ulusal Egemenlik ve Çocuk Bayramı',
-    '1-5':'Emek ve Dayanışma Günü', '19-5':'Atatürk\'ü Anma, Gençlik ve Spor Bayramı',
-    '15-7':'Demokrasi ve Millî Birlik Günü', '30-8':'Zafer Bayramı',
-    '29-10':'Cumhuriyet Bayramı'
-  };
+  const SABIT_LISTE_BOYU = 30; // en az 30 kişilik sabit liste
 
   // Durum değişkenleri
   let _servisId   = null;
@@ -29,6 +23,7 @@
   let _ay         = new Date().getMonth();
   let _veri       = {};
   let _ogrenciler = [];
+  let _listeBoyu  = 30;
   let _autoSaveTimer = null;
 
   // --- Yardımcı fonksiyonlar ---
@@ -41,8 +36,17 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
-  function _isResmiTatil(d) {
-    return RESMI_TATILLER[`${d.getDate()}-${d.getMonth()+1}`] || null;
+  // Nöbet sayfasındaki resmi tatil listesini kullan (global resmiTatiller + nobetTatilMi)
+  function _isResmiTatil(iso) {
+    if (typeof nobetTatilMi === 'function') {
+      const t = nobetTatilMi(iso);
+      return t ? (t.aciklama || 'Resmi Tatil') : null;
+    }
+    if (typeof resmiTatiller !== 'undefined' && Array.isArray(resmiTatiller)) {
+      const t = resmiTatiller.find(x => x.tarih === iso);
+      return t ? (t.aciklama || 'Resmi Tatil') : null;
+    }
+    return null;
   }
 
   function _yukle() {
@@ -55,7 +59,7 @@
     if (!tbody) return;
     tbody.querySelectorAll('tr[data-tarih]').forEach(tr => {
       const t = tr.dataset.tarih;
-      const ins = tr.querySelectorAll('input[type="time"], input[type="number"]');
+      const ins = tr.querySelectorAll('input[type="text"], input[type="number"]');
       if (ins.length >= 4) {
         const e = { gSaat: ins[0].value, gSayi: ins[1].value,
                     aSaat: ins[2].value, aSayi: ins[3].value };
@@ -64,48 +68,75 @@
     });
   }
 
-  // Oturma planından veya veliler koleksiyonundan öğrenci listesi
+  // Öğrenci listesi: oturma planı -> veliler koleksiyonu -> servis.ogrenciSayisi'ne göre boş satır
   async function _getOgrenciler(servisId) {
+    let liste = [];
+
     // 1. oy_servisOturma koleksiyonu (servis-oturma.js)
     try {
       const snap = await db.collection(COL.servisOturma)
         .where('servisId','==', servisId).get();
       if (!snap.empty) {
-        const liste = [];
         snap.docs.forEach(doc => {
           const koltuklar = doc.data().koltuklar || {};
           Object.values(koltuklar).forEach(k => {
-            if (k && k.ogrenciAdi) liste.push({ ad: k.ogrenciAdi, sinif: k.sinifAdi || '' });
+            if (k && k.ogrenciAdi) {
+              let sinifAdi = k.sinifAdi || '';
+              if (!sinifAdi && k.sinifId && typeof siniflar !== 'undefined') {
+                const sObj = siniflar.find(s => s.id === k.sinifId);
+                if (sObj) sinifAdi = sObj.ad;
+              }
+              liste.push({ ad: k.ogrenciAdi, sinif: sinifAdi });
+            }
           });
         });
-        if (liste.length) return liste;
       }
     } catch(e) {}
 
-    // 2. oy_veliler koleksiyonu (tasima.js - veliler global)
-    if (typeof veliler !== 'undefined') {
+    // 2. oy_veliler koleksiyonu (tasima.js - veliler global) — daha güvenilir, sınıf bilgisi her zaman var
+    if (!liste.length && typeof veliler !== 'undefined') {
       const svVeliler = veliler.filter(v => v.servisId === servisId)
         .sort((a,b) => (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
-      if (svVeliler.length) {
-        return svVeliler.map(v => {
-          const sinifObj = (typeof siniflar !== 'undefined')
-            ? siniflar.find(s => s.id === v.sinifId) : null;
-          return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : (v.sinifId||'') };
-        });
-      }
+      liste = svVeliler.map(v => {
+        const sinifObj = (typeof siniflar !== 'undefined')
+          ? siniflar.find(s => s.id === v.sinifId) : null;
+        return { ad: v.ogrenciAdi || '', sinif: sinifObj ? sinifObj.ad : '' };
+      });
     }
-    return [];
+
+    // Sınıf adı eksik kalanları doldurmaya çalış (oturma planından gelen kayıtlar için)
+    if (typeof veliler !== 'undefined' && typeof siniflar !== 'undefined') {
+      liste = liste.map(o => {
+        if (o.sinif) return o;
+        const vMatch = veliler.find(v => (v.ogrenciAdi||'').trim() === (o.ad||'').trim());
+        if (vMatch) {
+          const sObj = siniflar.find(s => s.id === vMatch.sinifId);
+          if (sObj) return { ...o, sinif: sObj.ad };
+        }
+        return o;
+      });
+    }
+
+    // En az SABIT_LISTE_BOYU satır olacak şekilde boş satırlarla tamamla
+    // (gerçek öğrenci sayısı daha fazlaysa liste büyütülür, her zaman çift sayıda tutulur)
+    let hedefBoy = SABIT_LISTE_BOYU;
+    if (liste.length > hedefBoy) {
+      hedefBoy = liste.length;
+      if (hedefBoy % 2 !== 0) hedefBoy++;
+    }
+    while (liste.length < hedefBoy) liste.push({ ad: '', sinif: '' });
+    _listeBoyu = hedefBoy;
+
+    return liste;
   }
 
   // Müdür ve Müdür Yardımcısı bilgilerini getir
   function _getMudurBilgileri() {
-    // Müdür: okulBilgileriAyari.mudurId -> ogretmenler dizisinden
     let mudurAd = '', mudurYrdAd = '';
     if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && typeof ogretmenler !== 'undefined') {
       const mudur = ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId);
       if (mudur) mudurAd = `${mudur.ad||''} ${mudur.soyad||''}`.trim();
     }
-    // Müdür Yardımcısı: unvan === 'Müdür Yardımcısı'
     if (typeof ogretmenler !== 'undefined') {
       const yrd = ogretmenler.find(o => (o.unvan||'').trim() === 'Müdür Yardımcısı');
       if (yrd) mudurYrdAd = `${yrd.ad||''} ${yrd.soyad||''}`.trim();
@@ -150,7 +181,7 @@
           <!-- Üst Bilgi Tablosu -->
           <table class="tt-info-tablo">
             <tr>
-              <td class="tt-lbl">GÜZERGAH</td>
+              <td class="tt-lbl">SERVİS ADI</td>
               <td id="ttGuzergah" colspan="3"></td>
               <td class="tt-lbl">CEP NO</td>
               <td id="ttCep"></td>
@@ -158,12 +189,10 @@
               <td id="ttAy"></td>
             </tr>
             <tr>
-              <td class="tt-lbl">SÜRÜCÜ / YEDEK</td>
+              <td class="tt-lbl">SÜRÜCÜ</td>
               <td id="ttSofor" colspan="3"></td>
               <td class="tt-lbl">PLAKA</td>
-              <td id="ttPlaka"></td>
-              <td class="tt-lbl">YEDEK</td>
-              <td id="ttYedek"></td>
+              <td id="ttPlaka" colspan="3"></td>
             </tr>
           </table>
 
@@ -197,12 +226,12 @@
           <!-- İmza Alanı -->
           <div class="tt-imza-satir">
             <div class="tt-imza-kutu">
-              <div class="tt-imza-ad" id="ttMudurYrdAd"></div>
               <div class="tt-imza-unvan">Müdür Yardımcısı</div>
+              <div class="tt-imza-ad" id="ttMudurYrdAd"></div>
             </div>
             <div class="tt-imza-kutu">
-              <div class="tt-imza-ad" id="ttMudurAd"></div>
               <div class="tt-imza-unvan">Okul Müdürü</div>
+              <div class="tt-imza-ad" id="ttMudurAd"></div>
             </div>
           </div>
         </div><!-- /tt-print-area -->
@@ -220,12 +249,11 @@
     set('ttBaslik1', 'KORUK İLK-ORTAOKULU');
     set('ttBaslik2', `${ayAdi} TAŞIMA TAKİP ÇİZELGESİ`);
     if (!_servis) return;
-    set('ttGuzergah', _servis.guzergah || '');
+    set('ttGuzergah', _servis.servisAdi || '');
     set('ttCep',      _servis.soforTelefon || '');
     set('ttAy',       ayAdi);
     set('ttSofor',    _servis.soforAdi || '');
     set('ttPlaka',    _servis.plaka || '');
-    set('ttYedek',    _servis.yedekSofor || '');
     const { mudurAd, mudurYrdAd } = _getMudurBilgileri();
     set('ttMudurAd',    mudurAd);
     set('ttMudurYrdAd', mudurYrdAd);
@@ -234,10 +262,9 @@
   function _renderOgrenciler() {
     const grid = document.getElementById('ttOgrenciGrid');
     if (!grid) return;
-    const n     = _ogrenciler.length;
-    const yarisi = Math.ceil(n / 2);
+    const yarisi = Math.ceil(_listeBoyu / 2);
     const sol    = _ogrenciler.slice(0, yarisi);
-    const sag    = _ogrenciler.slice(yarisi);
+    const sag    = _ogrenciler.slice(yarisi, _listeBoyu);
 
     function kolHtml(liste, baslangic) {
       return `<div class="tt-ogr-col">
@@ -265,8 +292,9 @@
       const iso = _isoTarih(dt);
       const gn  = dt.getDay();
       const hs  = gn === 0 || gn === 6;
-      const tatil = _isResmiTatil(dt);
-      const tarihStr = `${GUNLER[gn]}, ${AY_ISIMLERI[_ay]} ${String(g).padStart(2,'0')}, ${_yil}`;
+      const tatil = !hs ? _isResmiTatil(iso) : null;
+      // İstenen format: "1 Haziran 2026 Pazartesi"
+      const tarihStr = `${g} ${AY_ISIMLERI[_ay]} ${_yil} ${GUNLER[gn]}`;
       const vd  = _veri[iso] || {};
 
       if (hs) {
@@ -274,16 +302,19 @@
           <td class="tt-tarih-hucre">${tarihStr}</td>
           ${'<td class="tt-hs-cell">Hafta Sonu</td>'.repeat(8)}
         </tr>`;
+      } else if (tatil) {
+        html += `<tr class="tt-tatil" data-tarih="${iso}" title="${escapeHtml(tatil)}">
+          <td class="tt-tarih-hucre">${tarihStr}</td>
+          ${'<td class="tt-tatil-cell">Resmi Tatil</td>'.repeat(8)}
+        </tr>`;
       } else {
-        const cls = tatil ? ' tt-tatil' : '';
-        const tip = tatil ? ` title="${tatil}"` : '';
-        html += `<tr class="tt-gun${cls}" data-tarih="${iso}"${tip}>
-          <td class="tt-tarih-hucre">${tarihStr}${tatil?' 🔴':''}</td>
-          <td><input type="time" value="${vd.gSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
+        html += `<tr class="tt-gun" data-tarih="${iso}">
+          <td class="tt-tarih-hucre">${tarihStr}</td>
+          <td><input type="text" inputmode="numeric" maxlength="5" placeholder="" value="${vd.gSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
           <td><input type="number" min="0" max="999" value="${vd.gSayi||''}" placeholder="0" oninput="TasimaTakip._otoKaydet()"></td>
           <td class="tt-imza-hucre"></td>
           <td class="tt-imza-hucre"></td>
-          <td><input type="time" value="${vd.aSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
+          <td><input type="text" inputmode="numeric" maxlength="5" placeholder="" value="${vd.aSaat||''}" oninput="TasimaTakip._otoKaydet()"></td>
           <td><input type="number" min="0" max="999" value="${vd.aSayi||''}" placeholder="0" oninput="TasimaTakip._otoKaydet()"></td>
           <td class="tt-imza-hucre"></td>
           <td class="tt-imza-hucre"></td>
@@ -308,7 +339,6 @@
 
       _createModal();
 
-      // Servis bilgisi global "servisler" dizisinden
       _servis = (typeof servisler !== 'undefined')
         ? servisler.find(s => s.id === servisId) || null
         : null;
@@ -358,14 +388,16 @@
       const plaka  = _servis ? (_servis.plaka || 'arac') : 'arac';
       const sonGun = new Date(_yil, _ay+1, 0).getDate();
       let csv = `\uFEFFKORUK İLK-ORTAOKULU ${AY_ISIMLERI[_ay]} ${_yil} TAŞIMA TAKİP ÇİZELGESİ\n`;
-      csv += `Güzergah:;${_servis?.guzergah||''};Şoför:;${_servis?.soforAdi||''};Plaka:;${_servis?.plaka||''}\n\n`;
+      csv += `Servis Adı:;${_servis?.servisAdi||''};Şoför:;${_servis?.soforAdi||''};Plaka:;${_servis?.plaka||''}\n\n`;
       csv += `TARİH;GELİŞ SAATİ;GELEN SAYI;ÇIKIŞ SAATİ;GİDEN SAYI\n`;
       for (let g = 1; g <= sonGun; g++) {
         const dt  = new Date(_yil, _ay, g);
         const iso = _isoTarih(dt);
         const hs  = dt.getDay()===0||dt.getDay()===6;
-        const tar = `${GUNLER[dt.getDay()]} ${String(g).padStart(2,'0')}.${String(_ay+1).padStart(2,'0')}.${_yil}`;
+        const tatil = !hs ? _isResmiTatil(iso) : null;
+        const tar = `${g} ${AY_ISIMLERI[_ay]} ${_yil} ${GUNLER[dt.getDay()]}`;
         if (hs) { csv += `${tar};Hafta Sonu;Hafta Sonu;Hafta Sonu;Hafta Sonu\n`; }
+        else if (tatil) { csv += `${tar};Resmi Tatil;Resmi Tatil;Resmi Tatil;Resmi Tatil\n`; }
         else {
           const vd = _veri[iso] || {};
           csv += `${tar};${vd.gSaat||''};${vd.gSayi||''};${vd.aSaat||''};${vd.aSayi||''}\n`;
