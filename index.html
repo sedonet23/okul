@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/tasima-takip.css">
+  <link rel="stylesheet" href="css/dilekce.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -71,6 +72,7 @@
       <button class="nav-tab" data-tab="evrak"><span class="nt-ico ni-evrak">📋</span><span class="nt-label">Evrak Takibi</span></button>
       <button class="nav-tab" data-tab="notlar"><span class="nt-ico ni-notlar">📝</span><span class="nt-label">Notlar</span></button>
       <button class="nav-tab" data-tab="tasima"><span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Taşıma</span></button>
+      <button class="nav-tab" data-tab="personel"><span class="nt-ico ni-ogretmen">🧑‍💼</span><span class="nt-label">Personel İşleri</span></button>
       <button class="nav-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
       <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
@@ -353,6 +355,22 @@
       </div>
     </section>
 
+    <!-- PERSONEL İŞLERİ -->
+    <section id="tab-personel" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Personel İşleri</div><div class="page-sub">Sürekli işçi, hizmetli ve diğer personel kayıtları &amp; dilekçe sistemi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-amber" onclick="personelModalAc()">+ Yeni Personel</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <input id="personelArama" placeholder="🔍 Ad, TC veya görev ile ara..." oninput="personelAramaGuncelle()" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+      </div>
+      <div class="card">
+        <div id="personelListesi"></div>
+      </div>
+    </section>
+
     <!-- SINAV İŞLEMLERİ -->
     <section id="tab-dokumanlar" class="tab-panel">
       <div class="panel-header">
@@ -593,6 +611,11 @@
         <h3>Temel Bilgiler</h3>
         <div class="form-group"><label>Okul Adı</label><input id="f_okulAdi" placeholder="örn: KORUK İLK - ORTAOKULU"></div>
         <div class="form-group"><label>Okul Müdürü</label><select id="f_okulMudur"></select></div>
+        <div class="form-row">
+          <div class="form-group"><label>İl</label><input id="f_okulIl" placeholder="örn: KARAMAN" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn: ERMENEK" style="text-transform:uppercase;"></div>
+        </div>
+        <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Ermenek İlçe Millî Eğitim Müdürlüğü"></div>
       </div>
 
       <div class="card">
@@ -847,6 +870,8 @@
 <script src="js/harita.js"></script>
 <script src="js/servis-oturma.js"></script>
 <script src="js/tasima-takip.js"></script>
+<script src="js/personel.js"></script>
+<script src="js/dilekce.js"></script>
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
 <script src="js/notlar.js"></script>
