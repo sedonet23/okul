@@ -130,19 +130,22 @@
     const sag    = _ogrenciler.slice(yarisi, _listeBoyu);
 
     function kolHtml(liste, baslangic) {
-      return `<div class="tt-ogr-col">
-        <div class="tt-ogr-head">
-          <span>SIRA</span><span>ÖĞRENCİ ADI SOYADI</span><span>SINIF</span>
-        </div>
+      return `<table class="tt-ogr-tablo">
+        <thead><tr><th class="tt-ogr-sira">SIRA</th><th>ÖĞRENCİ ADI SOYADI</th><th class="tt-ogr-sinif">SINIF</th></tr></thead>
+        <tbody>
         ${liste.map((o,i) => `
-        <div class="tt-ogr-row">
-          <span>${baslangic+i+1}</span>
-          <span class="tt-ogr-ad">${escapeHtml(o.ad||'')}</span>
-          <span>${escapeHtml(o.sinif||'')}</span>
-        </div>`).join('')}
-      </div>`;
+        <tr>
+          <td class="tt-ogr-sira">${baslangic+i+1}</td>
+          <td class="tt-ogr-ad">${escapeHtml(o.ad||'')}</td>
+          <td class="tt-ogr-sinif">${escapeHtml(o.sinif||'')}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>`;
     }
-    return `<div class="tt-ogrenci-grid">${kolHtml(sol, 0)}${kolHtml(sag, yarisi)}</div>`;
+    return `<table class="tt-ogrenci-disgrid"><tr>
+      <td class="tt-ogr-hucre">${kolHtml(sol, 0)}</td>
+      <td class="tt-ogr-hucre">${kolHtml(sag, yarisi)}</td>
+    </tr></table>`;
   }
 
   function _tabloSatirlariHtml() {
@@ -190,30 +193,45 @@
 <style>
   @page { size: A4 portrait; margin: 7mm 6mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background:#fff; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: #111; background:#fff;
+    display: flex; flex-direction: column; min-height: 100vh;
+  }
 
-  .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; }
+  .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; flex: 0 0 auto; }
   .tt-baslik-1 { font-size: 14pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
   .tt-baslik-2 { font-size: 10.5pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
 
-  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8.5pt; }
+  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8.5pt; flex: 0 0 auto; }
   .tt-info-tablo td { border: 1px solid #888; padding: 3px 6px; }
   .tt-info-tablo .tt-lbl { background: #c8e6c9; font-weight: 700; white-space: nowrap; color:#1b5e20; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-  .tt-ogrenci-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #888; margin-bottom: 8px; }
-  .tt-ogr-col { border-right: 1px solid #888; }
-  .tt-ogr-col:last-child { border-right: none; }
-  .tt-ogr-head { display: grid; grid-template-columns: 24px 1fr 42px; background: #a5d6a7; font-size: 7pt; font-weight: 700; text-align: center; border-bottom: 1px solid #888; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .tt-ogr-head span { padding: 2px 1px; border-right: 1px solid #bbb; }
-  .tt-ogr-head span:last-child { border-right: none; }
-  .tt-ogr-row { display: grid; grid-template-columns: 24px 1fr 42px; font-size: 7pt; border-bottom: 1px solid #ddd; line-height: 1.35; }
-  .tt-ogr-row:last-child { border-bottom: none; }
-  .tt-ogr-row:nth-child(even) { background: #f6f6f6; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .tt-ogr-row span { padding: 1.5px 1px; text-align: center; border-right: 1px solid #e3e3e3; }
-  .tt-ogr-row span:last-child { border-right: none; }
-  .tt-ogr-row .tt-ogr-ad { text-align: left; padding-left: 4px; }
+  /* Öğrenci listesi: iki sütunu yan yana taşıyan dış tablo */
+  .tt-ogrenci-disgrid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8px; flex: 0 0 auto; }
+  .tt-ogr-hucre { width: 50%; border: 1px solid #888; vertical-align: top; padding: 0; }
 
-  .tt-ana-tablo { width: 100%; border-collapse: collapse; font-size: 6.6pt; }
+  .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: 7pt; }
+  .tt-ogr-tablo th {
+    background: #a5d6a7; font-weight: 700; text-align: center; padding: 2.5px 2px;
+    border-bottom: 1px solid #888; border-right: 1px solid #bbb;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .tt-ogr-tablo th:last-child { border-right: none; }
+  .tt-ogr-tablo td {
+    padding: 1.5px 3px; text-align: center; border-bottom: 1px solid #ddd; border-right: 1px solid #e3e3e3;
+    line-height: 1.35;
+  }
+  .tt-ogr-tablo td:last-child { border-right: none; }
+  .tt-ogr-tablo tr:last-child td { border-bottom: none; }
+  .tt-ogr-tablo tr:nth-child(even) td { background: #f6f6f6; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-ogr-sira { width: 24px; }
+  .tt-ogr-sinif { width: 42px; }
+  .tt-ogr-ad { text-align: left !important; padding-left: 4px !important; }
+
+  /* Ana takip tablosu: kalan dikey alanı tamamen doldurur */
+  .tt-tablo-kapsayici { flex: 1 1 auto; display: flex; min-height: 0; }
+  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: 6.6pt; table-layout: fixed; }
   .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: 1.5px 2px; text-align: center; vertical-align: middle; }
   .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left !important; padding-left: 6px; width: 125px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -222,9 +240,12 @@
   .tt-tarih-hucre { text-align: left !important; padding-left: 6px; white-space: nowrap; }
   .tt-bos-hucre { min-width: 30px; }
 
+  /* tbody satırları kalan yüksekliği eşit paylaşır */
+  .tt-ana-tablo tbody tr { height: 1px; }
+
   tr.tt-hs td, tr.tt-tatil td { background: #e3e3e3; color: #777; font-style: italic; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-  .tt-imza-satir { display: flex; justify-content: space-between; padding: 12px 10px 0; }
+  .tt-imza-satir { display: flex; justify-content: space-between; padding: 12px 10px 0; flex: 0 0 auto; }
   .tt-imza-kutu { text-align: center; min-width: 130px; }
   .tt-imza-ad { font-size: 8.5pt; font-weight: 700; color: #111; }
   .tt-imza-unvan { font-size: 7.5pt; color: #444; margin-top: 3px; }
@@ -254,26 +275,28 @@
 
   ${_ogrenciGridHtml()}
 
+  <div class="tt-tablo-kapsayici">
   <table class="tt-ana-tablo">
-    <thead>
-      <tr>
-        <th class="tt-th-tarih" rowspan="2">TARİH</th>
-        <th class="tt-th-sabah" colspan="4">ÖĞLE</th>
-        <th class="tt-th-aksam" colspan="4">AKŞAM</th>
-      </tr>
-      <tr>
-        <th class="tt-th-sub">GELİŞ<br>SAATİ</th>
-        <th class="tt-th-sub">GELEN<br>SAYI</th>
-        <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
-        <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
-        <th class="tt-th-sub">ÇIKIŞ<br>SAATİ</th>
-        <th class="tt-th-sub">GİDEN<br>SAYI</th>
-        <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
-        <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
-      </tr>
-    </thead>
-    <tbody>${_tabloSatirlariHtml()}</tbody>
+      <thead>
+        <tr>
+          <th class="tt-th-tarih" rowspan="2">TARİH</th>
+          <th class="tt-th-sabah" colspan="4">ÖĞLE</th>
+          <th class="tt-th-aksam" colspan="4">AKŞAM</th>
+        </tr>
+        <tr>
+          <th class="tt-th-sub">GELİŞ<br>SAATİ</th>
+          <th class="tt-th-sub">GELEN<br>SAYI</th>
+          <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
+          <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
+          <th class="tt-th-sub">ÇIKIŞ<br>SAATİ</th>
+          <th class="tt-th-sub">GİDEN<br>SAYI</th>
+          <th class="tt-th-sub">ŞOFÖR<br>İMZA</th>
+          <th class="tt-th-sub">N.ÖĞRT<br>İMZA</th>
+        </tr>
+      </thead>
+      <tbody>${_tabloSatirlariHtml()}</tbody>
   </table>
+  </div>
 
   <div class="tt-imza-satir">
     <div class="tt-imza-kutu">
