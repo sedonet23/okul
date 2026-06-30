@@ -674,15 +674,32 @@ function renderDashboard(){
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
   const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
+  const servisSayisi = (typeof servisler !== 'undefined' && Array.isArray(servisler)) ? servisler.length : 0;
+  const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
   document.getElementById('dashStats').innerHTML = `
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-chip-num">👨‍🏫 ${ogretmenler.length}</div><div class="stat-chip-label">Öğretmen</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🏫 ${siniflar.length}</div><div class="stat-chip-label">Sınıf</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('siniflar')"><div class="stat-chip-num">🧑‍🎓 ${toplamOgrenci}</div><div class="stat-chip-label">Öğrenci</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-chip-num">🚺 ${kadinOgretmen} / 🚹 ${erkekOgretmen}</div><div class="stat-chip-label">Kadın / Erkek Öğretmen</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('gorevler')"><div class="stat-chip-num">📌 ${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="stat-chip-label">Açık Görev</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('hatirlaticilar')"><div class="stat-chip-num">⏰ ${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="stat-chip-label">Bekleyen Hatırlatıcı</div></div>
-    <div class="stat-chip stat-chip-clickable" onclick="sekmeAc('evrak')"><div class="stat-chip-num">📄 ${evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length}</div><div class="stat-chip-label">Açık Evrak</div></div>
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')"><div class="stat-card-ico stat-card-ico-blue">👨‍🏫</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${ogretmenler.length}</div><div class="stat-card-label">Personel</div></div>
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('siniflar')"><div class="stat-card-ico stat-card-ico-green">🧑‍🎓</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${toplamOgrenci}</div><div class="stat-card-label">Öğrenciler</div></div>
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')"><div class="stat-card-ico stat-card-ico-purple">🚌</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${servisSayisi}</div><div class="stat-card-label">Servis Sayısı</div></div>
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('evrak')"><div class="stat-card-ico stat-card-ico-amber">📄</div><div class="stat-card-tumu">Tümü ›</div><div class="stat-card-num">${acikEvrakSayisi}</div><div class="stat-card-label">Bekleyen Evrak</div></div>
   `;
+  /* ---- Hızlı Bakış: ikincil özet rozetleri (sınıf sayısı, kadın/erkek öğretmen, açık görev, bekleyen hatırlatıcı) ---- */
+  const hizliBakisEl = document.getElementById('dashHizliBakis');
+  if(hizliBakisEl){
+    hizliBakisEl.innerHTML = `
+      <div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>
+      <div class="hb-chip" onclick="sekmeAc('ogretmenler')"><span class="hb-ico">🚺🚹</span><div><div class="hb-num">${kadinOgretmen}/${erkekOgretmen}</div><div class="hb-label">Kadın/Erkek</div></div></div>
+      <div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>
+      <div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>
+    `;
+  }
+  /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı sayısı) ---- */
+  const bellBadgeEl = document.getElementById('topbarBellBadge');
+  if(bellBadgeEl){
+    const bekleyenSayi = hatirlaticilar.filter(h=>!h.tamamlandi).length;
+    bellBadgeEl.textContent = bekleyenSayi;
+    bellBadgeEl.style.display = bekleyenSayi>0 ? 'flex' : 'none';
+  }
+
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
   document.getElementById('dashBugunDersler').innerHTML = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu) ? '<p class="empty-state">🏖️ Tatil modu aktif.</p>' : !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
     (buGunDersler.length ? buGunDersler.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)} <span style="color:var(--text-muted)">(${escapeHtml(ogretmenAdi(d.ogretmenId))})</span></div>`).join('') : '<p class="empty-state">Bugün için ders programı girilmemiş.</p>');
@@ -780,6 +797,7 @@ function renderZilSayaci(bugunGun){
     return;
   }
   const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
+  const durumPilleri = { ders:'Devam ediyor', teneffus:'Teneffüs', ogle:'Öğle Arası', baslamadi:'Henüz başlamadı', bitti:'Sona erdi' };
   zilDurumSinifAyarla(durum.durum==='ogle' ? 'teneffus' : durum.durum);
   if(durum.durum==='bitti'){
     zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
@@ -790,14 +808,30 @@ function renderZilSayaci(bugunGun){
       : `${durum.etiket} başlamasına kalan süre`;
     // YENİ: ilerleme yüzdesi (progBaslangic/progToplamDk varsa hesaplanır, yoksa bar gösterilmez)
     let barHTML = '';
+    let saatAraligiHTML = '';
     if(durum.progToplamDk>0){
       const gecenDk = durum.progToplamDk - durum.kalanDk;
       const yuzde = Math.max(0, Math.min(100, Math.round((gecenDk/durum.progToplamDk)*100)));
       barHTML = `<div class="zil-progress"><div class="zil-progress-fill" style="width:${yuzde}%"></div></div>`;
+      // YENİ: başlangıç-bitiş saat aralığı (mockup'taki "10:10 - 10:55" satırı)
+      const dkSaatStr = dk => { const h=Math.floor(dk/60)%24, m=dk%60; return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'); };
+      saatAraligiHTML = `<div class="zil-saat-araligi">${dkSaatStr(durum.progBaslangic)} - ${dkSaatStr(durum.progBaslangic+durum.progToplamDk)}</div>`;
     }
     zilEl.innerHTML = `
-      <div class="zil-sol"><div class="zil-etiket">${etiketler[durum.durum]}</div><div class="zil-alt">${altMetin}</div>${barHTML}</div>
-      <div class="zil-sayac">${durum.kalanDk} <span>dk</span></div>
+      <div class="zil-sol">
+        <div class="zil-ikon-daire">🔔</div>
+        <div>
+          <div class="zil-baslik-kucuk">Zil Durumu</div>
+          <div class="zil-etiket">${durum.etiket || etiketler[durum.durum]}</div>
+          <span class="zil-pill">${durumPilleri[durum.durum]||''}</span>
+        </div>
+      </div>
+      <div class="zil-sag">
+        <div class="zil-baslik-kucuk zil-baslik-sag">${altMetin}</div>
+        <div class="zil-sayac">${durum.kalanDk} <span>dk</span></div>
+        ${barHTML}
+        ${saatAraligiHTML}
+      </div>
     `;
   }
   if(suankiEl){

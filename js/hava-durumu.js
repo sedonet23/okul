@@ -51,13 +51,23 @@
 
   function topbarRenderEt(kod, sicaklik){
     var el = document.getElementById('topbarHava');
-    if(!el) return;
     var bilgi = havaKoduOku(kod);
-    el.innerHTML =
-      '<span>' + bilgi.e + '</span>' +
-      '<span>' + Math.round(sicaklik) + '°</span>';
-    el.title = bilgi.t;
-    el.style.display = 'flex';
+    if(el){
+      el.innerHTML =
+        '<span>' + bilgi.e + '</span>' +
+        '<span>' + Math.round(sicaklik) + '°</span>';
+      el.title = bilgi.t;
+      el.style.display = 'flex';
+    }
+    // YENİ: dashboard hero kartındaki kompakt hava durumu özeti
+    var heroEl = document.getElementById('heroHava');
+    if(heroEl){
+      heroEl.innerHTML =
+        '<span class="hero-hava-ico">' + bilgi.e + '</span>' +
+        '<span class="hero-hava-sicaklik">' + Math.round(sicaklik) + '°C</span>' +
+        '<span class="hero-hava-aciklama">' + bilgi.t + '</span>';
+      heroEl.style.display = 'flex';
+    }
   }
 
   function kartRenderEt(veri){
