@@ -26,7 +26,64 @@ function asistanPanelRender() {
   kutu.scrollTop = kutu.scrollHeight;
 }
 
-async function asistanGonder() {
+/* ---------- Uygulama verisinden AI için kısa özet üret ---------- */
+function asistanVeriOzeti() {
+  try {
+    const bugun = _isoToday ? _isoToday() : new Date().toISOString().slice(0,10);
+    const parcalar = [];
+    parcalar.push(`Bugünün tarihi: ${bugun}`);
+
+    if (typeof ogretmenler !== 'undefined' && ogretmenler.length) {
+      parcalar.push(`Öğretmenler (${ogretmenler.length}): ` + ogretmenler
+        .map(o => `${o.ad || ''} ${o.soyad || ''}${o.brans ? ' ('+o.brans+')' : ''}`.trim())
+        .join(', '));
+    }
+
+    if (typeof siniflar !== 'undefined' && siniflar.length) {
+      parcalar.push(`Sınıflar (${siniflar.length}): ` + siniflar
+        .map(s => {
+          const ogr = (typeof veliler !== 'undefined') ? veliler.filter(v => v.sinifId === s.id).length : (s.ogrenciSayisi || 0);
+          return `${s.seviye || ''}-${s.sube || ''} (${ogr} öğrenci)`;
+        })
+        .join(', '));
+    }
+
+    if (typeof gorevler !== 'undefined' && gorevler.length) {
+      const acik = gorevler.filter(g => !(g.tamamlandi === true || g.durum === 'tamamlandi'));
+      parcalar.push(`Açık görevler (${acik.length}): ` + acik.slice(0, 15)
+        .map(g => `${g.baslik || ''}${g.tarih ? ' ('+g.tarih+')' : ''}`)
+        .join(', '));
+    }
+
+    if (typeof hatirlaticilar !== 'undefined' && hatirlaticilar.length) {
+      parcalar.push(`Hatırlatıcılar (${hatirlaticilar.length}): ` + hatirlaticilar.slice(0, 15)
+        .map(h => `${h.baslik || ''}${h.tarih ? ' ('+h.tarih+')' : ''}`)
+        .join(', '));
+    }
+
+    if (typeof notlar !== 'undefined' && notlar.length) {
+      parcalar.push(`Not sayısı: ${notlar.length}`);
+    }
+
+    if (typeof nobetAtamalari !== 'undefined' && nobetAtamalari.length) {
+      const yakin = nobetAtamalari.filter(n => n.tarih >= bugun).sort((a,b)=> a.tarih.localeCompare(b.tarih)).slice(0, 20);
+      parcalar.push(`Yaklaşan nöbet atamaları: ` + yakin
+        .map(n => `${n.tarih} - ${n.ogretmenAdi || ''}`)
+        .join(', '));
+    }
+
+    if (typeof evrakTakibi !== 'undefined' && evrakTakibi.length) {
+      parcalar.push(`Evrak takibi kayıt sayısı: ${evrakTakibi.length}`);
+    }
+
+    return parcalar.join('\n');
+  } catch (e) {
+    console.warn('asistanVeriOzeti hata:', e);
+    return '';
+  }
+}
+
+
   const input = document.getElementById('asistanInput');
   const metin = (input.value || '').trim();
   if (!metin || asistanYukleniyor) return;
@@ -40,7 +97,7 @@ async function asistanGonder() {
     const res = await fetch(ASISTAN_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: asistanGecmis })
+      body: JSON.stringify({ messages: asistanGecmis, context: asistanVeriOzeti() })
     });
     const data = await res.json();
 
