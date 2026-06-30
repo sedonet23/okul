@@ -208,21 +208,22 @@
 '  @page { size: A4 portrait; margin: 8mm; }' +
 '  * { box-sizing: border-box; margin: 0; padding: 0; }' +
 '  body { font-family: Calibri, Arial, sans-serif; color: #000; background: #fff; font-size: 9pt; }' +
-'  table { width: 100%; border-collapse: collapse; }' +
-'  .pz-baslik-tablo, .pz-ana-tablo { border: 2.5px solid #000; }' +
-'  td, th { border: 1px solid #000; padding: 2px 4px; }' +
+'  table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 2.5px solid #000; }' +
+'  td, th { border: 1px solid #000; padding: 2px 4px; overflow: hidden; }' +
+'  col.pz-c-tarih { width: 24%; }' +
+'  col.pz-c-durum { width: 17%; }' +
+'  col.pz-c-imza { width: 9.5%; }' +
 '  .pz-baslik-ana { font-size: 14pt; font-weight: 700; text-align: center; padding: 6px; border-bottom: 1.5px solid #000 !important; }' +
 '  .pz-isim-satir { font-size: 10pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 4px; border-bottom: 1.5px solid #000 !important; }' +
 '  .pz-tarih-baslik { background: #ECE9D8; text-align: center; font-weight: 700; border-right: 1.5px solid #000 !important; }' +
 '  .pz-tc-satir { font-size: 9.5pt; font-weight: 700; text-align: center; padding: 4px; background: #ECE9D8; }' +
 '  .pz-bos-bej { background: #ECE9D8; border-left: 1.5px solid #000 !important; }' +
-'  .pz-ana-tablo th { font-size: 7.5pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 3px 2px; }' +
-'  .pz-ana-tablo td { font-size: 7pt; vertical-align: middle; }' +
-'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; width: 24%; border-right: 1.5px solid #000 !important; padding-left: 6px; }' +
-'  .pz-durum { text-align: center; font-weight: 700; width: 17%; }' +
-'  .pz-imza { width: 9.5%; }' +
+'  .pz-sg-ac-baslik { font-size: 7.5pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 3px 2px; border-bottom: 2px solid #000 !important; }' +
+'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; border-right: 1.5px solid #000 !important; padding-left: 6px; font-size: 7pt; }' +
+'  .pz-durum { text-align: center; font-weight: 700; font-size: 7pt; }' +
+'  .pz-imza { font-size: 7pt; }' +
 '  tr.pz-hs td.pz-durum { background: #f5f5f5; }' +
-'  .pz-ana-tablo tr td { border-bottom: 1px solid #999; }' +
+'  tbody tr td { border-bottom: 1px solid #999; }' +
 '  .pz-onay-blok { margin-top: 8px; text-align: right; }' +
 '  .pz-onay-blok .ad { font-weight: 700; font-size: 9pt; }' +
 '  .pz-onay-blok .unvan { font-size: 8pt; color: #333; }' +
@@ -230,21 +231,26 @@
 '</style>' +
 '</head>' +
 '<body>' +
-'  <table class="pz-baslik-tablo">' +
-'    <tr><td class="pz-baslik-ana" colspan="7">' + escapeHtml(okul.okulAdi.toLocaleUpperCase('tr')) + ' SÜREKLİ VE GEÇİCİ İŞÇİLERE AİT İMZA SİRKÜSÜ</td></tr>' +
-'    <tr><td class="pz-isim-satir" colspan="7">İSİM SOYİSİM</td></tr>' +
-'    <tr>' +
-'      <td rowspan="2" class="pz-tarih-baslik">TARİH</td>' +
-'      <td class="pz-tc-satir" colspan="2">' + escapeHtml(state.adSoyad||'') + '<br>TC NO: ' + escapeHtml(state.tc||'') + '</td>' +
-'      <td class="pz-bos-bej" colspan="4"></td>' +
-'    </tr>' +
-'    <tr>' +
-'      <th>SABAH GİRİŞ</th>' +
-'      <th>AKŞAM ÇIKIŞ</th>' +
-'      <th class="pz-bos-bej"></th><th class="pz-bos-bej"></th><th class="pz-bos-bej"></th><th class="pz-bos-bej"></th>' +
-'    </tr>' +
-'  </table>' +
-'  <table class="pz-ana-tablo">' +
+'  <table>' +
+'    <colgroup>' +
+'      <col class="pz-c-tarih">' +
+'      <col class="pz-c-durum"><col class="pz-c-durum">' +
+'      <col class="pz-c-imza"><col class="pz-c-imza"><col class="pz-c-imza"><col class="pz-c-imza">' +
+'    </colgroup>' +
+'    <thead>' +
+'      <tr><td class="pz-baslik-ana" colspan="7">' + escapeHtml(okul.okulAdi.toLocaleUpperCase('tr')) + ' SÜREKLİ VE GEÇİCİ İŞÇİLERE AİT İMZA SİRKÜSÜ</td></tr>' +
+'      <tr><td class="pz-isim-satir" colspan="7">İSİM SOYİSİM</td></tr>' +
+'      <tr>' +
+'        <td rowspan="2" class="pz-tarih-baslik">TARİH</td>' +
+'        <td class="pz-tc-satir" colspan="2">' + escapeHtml(state.adSoyad||'') + '<br>TC NO: ' + escapeHtml(state.tc||'') + '</td>' +
+'        <td class="pz-bos-bej" colspan="4"></td>' +
+'      </tr>' +
+'      <tr>' +
+'        <th class="pz-sg-ac-baslik">SABAH GİRİŞ</th>' +
+'        <th class="pz-sg-ac-baslik">AKŞAM ÇIKIŞ</th>' +
+'        <th class="pz-sg-ac-baslik pz-bos-bej"></th><th class="pz-sg-ac-baslik pz-bos-bej"></th><th class="pz-sg-ac-baslik pz-bos-bej"></th><th class="pz-sg-ac-baslik pz-bos-bej"></th>' +
+'      </tr>' +
+'    </thead>' +
 '    <tbody>' + satirlarHtml + '</tbody>' +
 '  </table>' +
 '  <div class="pz-onay-blok">' +
@@ -310,11 +316,11 @@
 '  .pt-cetvel-baslik { font-size: 13pt; font-weight: 700; text-align: center; }' +
 '  .pt-ay-yil { font-size: 10.5pt; font-weight: 700; text-align: center; }' +
 '  .pt-ana-tablo { border: 2.5px solid #000; }' +
-'  .pt-ana-tablo th { font-size: 7pt; font-weight: 700; text-align: center; background: #f2f2f2; height: 95px; vertical-align: bottom; padding: 0 0 4px; border: 1px solid #000; }' +
+'  .pt-ana-tablo th { font-size: 7pt; font-weight: 700; text-align: center; background: #f2f2f2; height: 105px; vertical-align: bottom; padding: 0 0 4px; border: 1px solid #000; }' +
 '  .pt-ana-tablo thead tr:last-child th { border-bottom: 1.5px solid #000; }' +
 '  .pt-hs-baslik { color: #c00; }' +
-'  .pt-rot-wrap { position: relative; height: 90px; overflow: visible; }' +
-'  .pt-rot { position: absolute; bottom: 4px; left: 50%; transform-origin: left bottom; transform: rotate(-90deg); white-space: nowrap; font-size: 7pt; line-height: 1; }' +
+'  .pt-rot-wrap { position: relative; height: 100px; width: 100%; overflow: hidden; }' +
+'  .pt-rot { position: absolute; bottom: 2px; left: 50%; width: 98px; transform-origin: 0 100%; transform: rotate(-90deg) translateX(0); white-space: nowrap; font-size: 6.3pt; line-height: 1; overflow: hidden; text-overflow: ellipsis; }' +
 '  .pt-ana-tablo td { text-align: center; font-size: 7.5pt; font-weight: 700; border: 1px solid #000; }' +
 '  .pt-ana-tablo tbody tr:first-child td { border-bottom: 1.5px solid #000; }' +
 '  .pt-hs-hucre { color: #c00; }' +
