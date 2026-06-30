@@ -2301,11 +2301,12 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .zil-saat-araligi{ font-family:'Inter'; font-size:11px; color:rgba(255,255,255,.7); }
 
 /* Durum renkleri: ders=yeşil, teneffüs=turuncu, bitti=gri, başlamadı=mavi, tatil=mor */
-#tab-panel.dash-modern .dash-hero.durum-ders{ background:linear-gradient(135deg,#16A34A 0%,#22C55E 60%,#4ADE80 100%); box-shadow:0 12px 32px -8px rgba(22,163,74,.45); }
-#tab-panel.dash-modern .dash-hero.durum-teneffus{ background:linear-gradient(135deg,#EA580C 0%,#F97316 60%,#FB923C 100%); box-shadow:0 12px 32px -8px rgba(234,88,12,.45); }
-#tab-panel.dash-modern .dash-hero.durum-bitti{ background:linear-gradient(135deg,#475569 0%,#64748B 60%,#94A3B8 100%); box-shadow:0 12px 32px -8px rgba(71,85,105,.40); }
-#tab-panel.dash-modern .dash-hero.durum-baslamadi{ background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%); box-shadow:0 12px 32px -8px rgba(37,99,235,.45); }
-#tab-panel.dash-modern .dash-hero.durum-tatil{ background:linear-gradient(135deg,#7C3AED 0%,#9333EA 55%,#C084FC 100%); box-shadow:0 12px 32px -8px rgba(124,58,237,.45); }
+/* Ders durumu artık hero arkaplanını değil, sadece durum rozetini (zil-pill) renklendirir; arkaplan gün saati sahnesine göre değişir (aşağıda .sahne-* kuralları) */
+#tab-panel.dash-modern .dash-hero.durum-ders .zil-pill{ background:rgba(34,197,94,.85); }
+#tab-panel.dash-modern .dash-hero.durum-teneffus .zil-pill{ background:rgba(249,115,22,.85); }
+#tab-panel.dash-modern .dash-hero.durum-bitti .zil-pill{ background:rgba(100,116,139,.85); }
+#tab-panel.dash-modern .dash-hero.durum-baslamadi .zil-pill{ background:rgba(37,99,235,.85); }
+#tab-panel.dash-modern .dash-hero.durum-tatil .zil-pill{ background:rgba(147,51,234,.85); }
 
 /* ---- 2. Hava Durumu kartı (zengin içerik aynen kalıyor) ---- */
 #tab-panel.dash-modern #havaDurumuKartWrap h3{ margin-bottom:10px; }
@@ -2621,3 +2622,102 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .renk-paketi-secenek:hover{ transform:translateY(-1px); }
 .renk-paketi-secenek.aktif{ border-color:var(--brand); background:var(--brand-light); color:var(--brand-dark); }
 .renk-paketi-nokta{ width:18px; height:18px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 2px rgba(0,0,0,0.06); }
+
+/* =========================================================================
+   YENİ: HERO KARTI — GÜN İÇİ SAHNELER
+   .sahne-gundogumu / .sahne-ogle / .sahne-gunbatimi / .sahne-gece sınıfları
+   js/app.js > renderZilSayaci() içinde saate göre otomatik eklenir/değiştirilir.
+   Güneş/ay/yıldızlar tamamen CSS (radial-gradient) ile çizilir, ekstra
+   görsel dosyası gerekmez.
+   ========================================================================= */
+#tab-panel.dash-modern .dash-hero{ position:relative; overflow:hidden; transition: background 1.2s ease; }
+#tab-panel.dash-modern .dash-hero::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  transition: opacity .8s ease;
+}
+#tab-panel.dash-modern .dash-hero > *{ position:relative; z-index:1; }
+
+/* Gün doğumu: 05:00–08:00 — sıcak turuncu/pembe gökyüzü + yükselen güneş */
+#tab-panel.dash-modern .dash-hero.sahne-gundogumu{ background:linear-gradient(180deg,#FF9A6C 0%,#FFC371 45%,#FFE3A3 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gundogumu::before{
+  background: radial-gradient(circle 70px at 18% 92%, #FFF3C4 0%, #FFD66B 55%, rgba(255,214,107,0) 75%);
+}
+
+/* Öğle / güneşli: 08:00–17:00 — canlı mavi gökyüzü + parlak güneş köşede */
+#tab-panel.dash-modern .dash-hero.sahne-ogle{ background:linear-gradient(135deg,#2E8FE0 0%,#4FA8F0 50%,#8AD0F7 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-ogle::before{
+  background: radial-gradient(circle 60px at 88% 12%, #FFF7D6 0%, #FFE69A 55%, rgba(255,230,154,0) 75%);
+}
+
+/* Gün batımı: 17:00–20:00 — turuncu/mor alacakaranlık */
+#tab-panel.dash-modern .dash-hero.sahne-gunbatimi{ background:linear-gradient(180deg,#FF7E5F 0%,#E85C8A 45%,#6B4AA8 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gunbatimi::before{
+  background: radial-gradient(circle 65px at 80% 85%, #FFD7A8 0%, #FF9D6C 55%, rgba(255,157,108,0) 75%);
+}
+
+/* Gece: 20:00–05:00 — koyu lacivert gökyüzü + ay + yıldızlar */
+#tab-panel.dash-modern .dash-hero.sahne-gece{ background:linear-gradient(160deg,#0B1E4A 0%,#1B2D6B 55%,#2C3E8C 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gece::before{
+  background:
+    radial-gradient(circle 36px at 85% 14%, #F2F4FF 0%, #D9DEFF 60%, rgba(217,222,255,0) 75%),
+    radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+    radial-gradient(2px 2px at 40% 65%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 65% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 75% 55%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 30% 80%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 55% 40%, #fff, transparent);
+  opacity:.85;
+}
+
+/* =========================================================================
+   YENİ: ZİL İKONU + İLERLEME ÇUBUĞU ANİMASYONU
+   ========================================================================= */
+@keyframes zilSallan{
+  0%,100%{ transform:rotate(0deg); }
+  10%{ transform:rotate(-12deg); }
+  20%{ transform:rotate(10deg); }
+  30%{ transform:rotate(-8deg); }
+  40%{ transform:rotate(6deg); }
+  50%{ transform:rotate(-3deg); }
+  60%,100%{ transform:rotate(0deg); }
+}
+#tab-panel.dash-modern .zil-ikon-daire{ animation: zilSallan 3.2s ease-in-out infinite; transform-origin: top center; }
+@keyframes zilNabiz{
+  0%,100%{ box-shadow:0 0 0 0 rgba(255,255,255,.35); }
+  50%{ box-shadow:0 0 0 8px rgba(255,255,255,0); }
+}
+#tab-panel.dash-modern .dash-hero-bell{ animation: zilNabiz 2.4s ease-in-out infinite; }
+@keyframes barAkis{
+  0%{ background-position: 0 0; }
+  100%{ background-position: 28px 0; }
+}
+#tab-panel.dash-modern .zil-progress-fill{
+  background-image: linear-gradient(135deg, rgba(255,255,255,.95) 25%, rgba(255,255,255,.65) 25%, rgba(255,255,255,.65) 50%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.95) 75%, rgba(255,255,255,.65) 75%, rgba(255,255,255,.65) 100%);
+  background-size: 28px 28px;
+  animation: barAkis 1s linear infinite;
+}
+
+/* =========================================================================
+   YENİ: HAVA DURUMU İKON ANİMASYONU
+   ========================================================================= */
+@keyframes havaIkonNabiz{
+  0%,100%{ transform:scale(1) rotate(0deg); filter:drop-shadow(0 0 0 rgba(255,200,80,0)); }
+  50%{ transform:scale(1.08) rotate(6deg); filter:drop-shadow(0 0 10px rgba(255,200,80,.55)); }
+}
+.hava-ana-ikon, #tab-panel.dash-modern .hero-hava-ico{
+  display:inline-block; animation: havaIkonNabiz 3.5s ease-in-out infinite;
+}
+
+/* =========================================================================
+   YENİ: GÖLGESİZ BUTONLAR
+   Nöromorfik buton gölgeleri (--nm-out/--nm-sm vb.) kaldırıldı; düz, ince
+   kenarlıklı modern görünüm. Renkler/yapı/tıklama mantığı değişmedi.
+   ========================================================================= */
+.btn, .btn-ghost, .btn-amber, .btn-danger, .toast,
+#tab-panel.dash-modern .card, #tab-panel.dash-modern .qa-item,
+#tab-panel.dash-modern .stat-card, .yillik-ay{
+  box-shadow:none !important;
+}
+.btn{ border:1px solid var(--border); }
+.btn-ghost{ border:1px solid var(--border); }
+.btn:active, .btn-ghost:active, .btn-amber:active, .btn-danger:active{ box-shadow:none !important; transform:scale(.98); }
