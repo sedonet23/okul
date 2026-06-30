@@ -1,9 +1,9 @@
 /* =============================================
    css/tasima-takip.css
    TAŞIMA TAKİP ÇİZELGESİ — Servis Kartı Butonu
-   (Çizelgenin kendisi ayrı bir önizleme/yazdırma
-   penceresinde açılır; bu dosya yalnızca servis
-   detay panelindeki tetikleyici butonu stiller.)
+   (Çizelgenin kendisi sayfa içi bir overlay'de
+   açılır; bu dosya tetikleyici butonu ve overlay
+   açıkken yazdırma davranışını stiller.)
    ============================================= */
 
 .btn-takip-cizelge {
@@ -26,4 +26,11 @@
   background: linear-gradient(135deg, #2e7d32, #43a047);
   transform: translateY(-1px);
   box-shadow: 3px 3px 8px rgba(0,0,0,0.25);
+}
+
+/* Overlay açıkken yazdırma tetiklenirse ana sayfanın geri kalanı
+   gizlensin, sadece overlay içindeki iframe içeriği yazdırılsın. */
+@media print {
+  body.tt-overlay-acik > *:not(#ttOverlay) { display: none !important; }
+  #ttOverlay #ttToolbar { display: none !important; }
 }
