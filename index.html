@@ -76,6 +76,7 @@
       <button class="nav-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
       <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
+      <button class="nav-tab" data-tab="asistan"><span class="nt-ico ni-asistan">🤖</span><span class="nt-label">AI Asistan</span></button>
       
       <div class="nav-separator">— Çizelgeler —</div>
       
@@ -316,6 +317,20 @@
       </div>
       <div class="notes-grid" id="notlarGrid"></div>
     </section>
+
+    <section id="tab-asistan" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">AI Asistan</div><div class="page-sub">Form, rapor, dilekçe, not, görev ve hatırlatıcı taslakları üretir</div></div>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;height:60vh;">
+        <div id="asistanMesajlar" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <textarea id="asistanInput" rows="2" placeholder="Örn: 5/A için yarınki nöbet hatırlatıcısı oluştur" style="flex:1;resize:none;"></textarea>
+          <button class="btn btn-amber" id="asistanGonderBtn">Gönder</button>
+        </div>
+      </div>
+    </section>
+
 
 
 
@@ -878,6 +893,7 @@
 <script src="js/notlar.js"></script>
 <script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
+<script src="js/asistan.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/hava-durumu.js"></script>
