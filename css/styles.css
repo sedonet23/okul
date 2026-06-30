@@ -148,7 +148,7 @@
 }
 
 *{ box-sizing: border-box; }
-html, body{ margin:0; padding:0; }
+html, body{ margin:0; padding:0; max-width:100%; overflow-x:hidden; }
 body{
   font-family: var(--font-body);
   background: var(--nm-bg);
@@ -2167,97 +2167,192 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 
 
 /* =========================================================================
-   DASHBOARD (GENEL BAKIŞ) — MODERN YENİDEN TASARIM (v2)
-   Material Design 3 + Microsoft Fluent karışımı, kullanıcının yüklediği
-   mobil mockup'a sadık. Sadece "#tab-panel.dash-modern" içini hedefler;
-   diğer sekmeler (#tab-nobet, #tab-takvim vb.) etkilenmez. JS id/fonksiyon
-   isimleri değişmedi.
+   DASHBOARD (GENEL BAKIŞ) — MODERN YENİDEN TASARIM (v3)
+   Yüklenen mockup'a göre: üst bar (logo+ad+zil+avatar), tek parça hero
+   (karşılama+hava+zil sayacı), 4'lü istatistik kartları, Hızlı Bakış,
+   8'li hızlı işlem grid'i, "Tümü ›" linkli liste kartları, alt navigasyon.
+
+   ÖNEMLİ — KOYU TEMA DÜZELTMESİ:
+   Önceki sürüm renkleri sabit (hardcoded) hex olarak yazmıştı; bu yüzden
+   [data-theme="dark"] aktifken metinler okunaksız hale geliyordu.
+   Bu sürümde tüm renkler --dm-* adlı YEREL CSS değişkenleri üzerinden
+   tanımlanıyor ve [data-theme="dark"] altında ayrıca override ediliyor.
+   Diğer sekmeler bundan etkilenmez; her şey #tab-panel.dash-modern
+   kapsamına ve topbar'daki yeni elemanlara (.topbar-brand vb.) özeldir.
    ========================================================================= */
 
 #tab-panel.dash-modern{
+  --dm-bg:        #F5F7FB;
+  --dm-card:      #FFFFFF;
+  --dm-card-bd:   #EEF1F6;
+  --dm-ink:       #0F172A;
+  --dm-ink-sub:   #475569;
+  --dm-ink-muted: #94A3B8;
+  --dm-row-bd:    #F1F4F9;
+  --dm-soft-bg:   #F8FAFD;
+  --dm-accent:    #2563EB;
+  --dm-accent-wash:#EFF4FF;
   font-family:'Inter',var(--font-body);
-  background:#F5F7FB;
+  background:var(--dm-bg);
   margin:-20px -28px -40px;
   padding:18px 16px 110px;
 }
+[data-theme="dark"] #tab-panel.dash-modern{
+  --dm-bg:        #141F22;
+  --dm-card:      #1C2A2E;
+  --dm-card-bd:   #2A3A3E;
+  --dm-ink:       #F1F8F8;
+  --dm-ink-sub:   #B9D2D2;
+  --dm-ink-muted: #7FA0A0;
+  --dm-row-bd:    #2A3A3E;
+  --dm-soft-bg:   #20302F;
+  --dm-accent:    #5B8DFF;
+  --dm-accent-wash:#22324A;
+}
 @media (max-width:1100px){ #tab-panel.dash-modern{ margin:-20px -16px -50px; padding:16px 14px 110px; } }
-#tab-panel.dash-modern .page-title{ font-family:'Inter',var(--font-display); font-weight:800; color:#0F172A; }
-#tab-panel.dash-modern .page-title::before{ background:#2563EB; }
+#tab-panel.dash-modern .page-title{ font-family:'Inter',var(--font-display); font-weight:800; color:var(--dm-ink); }
+#tab-panel.dash-modern .page-title::before{ background:var(--dm-accent); }
 #tab-panel.dash-modern .page-header{ margin-bottom:14px; }
 
-/* Genel kart sıfırlama: beyaz zemin, 18-20px radius, hafif Fluent gölgesi */
 #tab-panel.dash-modern .card{
-  background:#FFFFFF; border:1px solid #EEF1F6; border-radius:20px;
+  background:var(--dm-card); border:1px solid var(--dm-card-bd); border-radius:20px;
   box-shadow:0 1px 2px rgba(16,24,40,.04), 0 6px 20px -4px rgba(16,24,40,.07);
   padding:18px; margin-bottom:14px;
   transition:box-shadow .25s ease, transform .25s ease;
 }
-#tab-panel.dash-modern .card:hover{ box-shadow:0 8px 28px -6px rgba(16,24,40,.14); transform:translateY(-2px); }
-#tab-panel.dash-modern .card > h3{ font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:#0F172A; padding-left:0; margin-bottom:12px; }
+[data-theme="dark"] #tab-panel.dash-modern .card{ box-shadow:0 1px 2px rgba(0,0,0,.25), 0 6px 20px -4px rgba(0,0,0,.35); }
+#tab-panel.dash-modern .card:hover{ transform:translateY(-2px); }
+#tab-panel.dash-modern .card > h3{ font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:var(--dm-ink); padding-left:0; margin-bottom:12px; display:flex; align-items:center; }
 #tab-panel.dash-modern .card > h3::before{ display:none; }
-#tab-panel.dash-modern .empty-state{ color:#94A3B8; }
-#tab-panel.dash-modern .dash-row{ border-bottom:1px solid #F1F4F9; font-size:13.5px; color:#1E293B; padding:10px 0; }
-#tab-panel.dash-modern .badge-blue{ background:#EFF4FF; color:#2563EB; }
+#tab-panel.dash-modern .dash-h3-row{ justify-content:space-between; }
+#tab-panel.dash-modern .dash-tumu-link{ font-size:12px; font-weight:700; color:var(--dm-accent); }
+#tab-panel.dash-modern .empty-state{ color:var(--dm-ink-muted); }
+#tab-panel.dash-modern .dash-row{ border-bottom:1px solid var(--dm-row-bd); font-size:13.5px; color:var(--dm-ink); padding:10px 0; }
+#tab-panel.dash-modern .badge-blue{ background:var(--dm-accent-wash); color:var(--dm-accent); }
+#tab-panel.dash-modern .page-sub{ color:var(--dm-ink-sub); }
 
-/* ---- 1. HERO: karşılama + tarih + zil sayacı (tek gradient blok) ---- */
+/* ---- TOPBAR (logo+ad / zil / avatar) — global, dashboard dışında da görünür ama burada tanımlanır ---- */
+.topbar-brand{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; }
+.topbar-logo{ width:32px; height:32px; border-radius:9px; object-fit:cover; flex-shrink:0; }
+.topbar-title{ font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.topbar-bell{
+  position:relative; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--bg-card);
+  display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; flex-shrink:0;
+}
+.topbar-bell-badge{
+  position:absolute; top:-3px; right:-3px; min-width:16px; height:16px; padding:0 3px; border-radius:99px;
+  background:#EF4444; color:#fff; font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center;
+  font-family:'Inter';
+}
+.topbar-avatar{
+  width:38px; height:38px; border-radius:50%; border:none; flex-shrink:0; cursor:pointer;
+  background:linear-gradient(135deg,#2563EB,#7C9CF7); color:#fff; font-family:'Inter'; font-weight:800; font-size:13px;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ---- 1. HERO ---- */
 #tab-panel.dash-modern .dash-hero{
   background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%);
-  border:none; padding:22px; box-shadow:0 12px 32px -8px rgba(37,99,235,.45);
+  border:none; padding:20px; box-shadow:0 12px 32px -8px rgba(37,99,235,.45);
 }
-#tab-panel.dash-modern .dash-hero-greet{ margin-bottom:18px; }
-#tab-panel.dash-modern .dash-hero-hi{ font-family:'Inter'; font-size:21px; font-weight:800; color:#fff; }
-#tab-panel.dash-modern .dash-hero-greet .page-sub{ font-family:'Inter'; color:rgba(255,255,255,.78); font-size:13px; padding-left:0; margin-top:2px; }
+#tab-panel.dash-modern .dash-hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+#tab-panel.dash-modern .dash-hero-hi{ font-family:'Inter'; font-size:19px; font-weight:800; color:#fff; }
+#tab-panel.dash-modern .dash-hero-greet .page-sub{ font-family:'Inter'; color:rgba(255,255,255,.78); font-size:12.5px; padding-left:0; margin-top:2px; }
+/* YENİ: hero içi kompakt hava durumu (heroHava — js/hava-durumu.js dolduruyor) */
+#tab-panel.dash-modern .dash-hero-weather-mini{
+  align-items:center; gap:6px; background:rgba(255,255,255,.16); border-radius:99px; padding:7px 14px;
+  font-family:'Inter'; color:#fff; flex-shrink:0;
+}
+#tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-ico{ font-size:18px; }
+#tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-sicaklik{ font-size:16px; font-weight:800; }
+#tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-aciklama{ font-size:11.5px; color:rgba(255,255,255,.75); display:block; width:100%; text-align:right; }
 
-/* zilWidget burada gradient zemine oturuyor; renderZilSayaci() içeriği aynen basıyor */
+/* Zil sayacı bloğu — renderZilSayaci() içeriği aynen buraya basılıyor */
 #tab-panel.dash-modern .dash-hero-bell{
   background:rgba(255,255,255,.12); border-radius:16px; padding:16px;
   display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
   border:1px solid rgba(255,255,255,.18); cursor:pointer;
 }
-#tab-panel.dash-modern .zil-sol{ flex:1; min-width:140px; }
-#tab-panel.dash-modern .zil-etiket{ font-family:'Inter'; font-size:13px; color:rgba(255,255,255,.9); font-weight:700; }
-#tab-panel.dash-modern .zil-alt{ font-family:'Inter'; font-size:12px; color:rgba(255,255,255,.68); margin-top:2px; }
-#tab-panel.dash-modern .zil-sayac{ font-family:'Inter'; font-size:36px; font-weight:800; color:#fff; line-height:1; white-space:nowrap; }
-#tab-panel.dash-modern .zil-sayac span{ font-size:14px; font-weight:600; color:rgba(255,255,255,.78); }
+#tab-panel.dash-modern .zil-sol{ display:flex; align-items:center; gap:12px; flex:1; min-width:160px; }
+#tab-panel.dash-modern .zil-ikon-daire{
+  width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.3);
+  display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+}
+#tab-panel.dash-modern .zil-baslik-kucuk{ font-family:'Inter'; font-size:11.5px; color:rgba(255,255,255,.72); font-weight:600; }
+#tab-panel.dash-modern .zil-baslik-sag{ text-align:right; }
+#tab-panel.dash-modern .zil-etiket{ font-family:'Inter'; font-size:14px; color:#fff; font-weight:700; margin:1px 0 6px; }
+#tab-panel.dash-modern .zil-pill{
+  display:inline-block; font-family:'Inter'; font-size:11px; font-weight:700; color:#fff;
+  background:rgba(255,255,255,.22); border-radius:99px; padding:3px 10px;
+}
+#tab-panel.dash-modern .zil-sag{ text-align:right; }
+#tab-panel.dash-modern .zil-sayac{ font-family:'Inter'; font-size:34px; font-weight:800; color:#fff; line-height:1; white-space:nowrap; }
+#tab-panel.dash-modern .zil-sayac span{ font-size:13px; font-weight:600; color:rgba(255,255,255,.78); }
 #tab-panel.dash-modern .zil-durum{ font-family:'Inter'; font-size:14.5px; font-weight:700; color:#fff; }
-/* YENİ: ilerleme çubuğu (renderZilSayaci tarafından eklenen .zil-progress) */
-#tab-panel.dash-modern .zil-progress{ margin-top:10px; height:6px; border-radius:99px; background:rgba(255,255,255,.25); overflow:hidden; max-width:240px; }
+#tab-panel.dash-modern .zil-progress{ margin:8px 0 4px; height:6px; border-radius:99px; background:rgba(255,255,255,.25); overflow:hidden; max-width:160px; margin-left:auto; }
 #tab-panel.dash-modern .zil-progress-fill{ height:100%; background:#fff; border-radius:99px; transition:width .6s ease; }
+#tab-panel.dash-modern .zil-saat-araligi{ font-family:'Inter'; font-size:11px; color:rgba(255,255,255,.7); }
 
-/* Not: Durum (ders/teneffüs/bitti/başlamadı) zaten ikon+metinle anlatılıyor;
-   renk varyasyonu için JS'e dokunmadan CSS-only ayrım sınırlı olduğundan eklenmedi. */
+/* Durum renkleri: ders=yeşil, teneffüs=turuncu, bitti=gri, başlamadı=mavi, tatil=mor */
+#tab-panel.dash-modern .dash-hero.durum-ders{ background:linear-gradient(135deg,#16A34A 0%,#22C55E 60%,#4ADE80 100%); box-shadow:0 12px 32px -8px rgba(22,163,74,.45); }
+#tab-panel.dash-modern .dash-hero.durum-teneffus{ background:linear-gradient(135deg,#EA580C 0%,#F97316 60%,#FB923C 100%); box-shadow:0 12px 32px -8px rgba(234,88,12,.45); }
+#tab-panel.dash-modern .dash-hero.durum-bitti{ background:linear-gradient(135deg,#475569 0%,#64748B 60%,#94A3B8 100%); box-shadow:0 12px 32px -8px rgba(71,85,105,.40); }
+#tab-panel.dash-modern .dash-hero.durum-baslamadi{ background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%); box-shadow:0 12px 32px -8px rgba(37,99,235,.45); }
+#tab-panel.dash-modern .dash-hero.durum-tatil{ background:linear-gradient(135deg,#7C3AED 0%,#9333EA 55%,#C084FC 100%); box-shadow:0 12px 32px -8px rgba(124,58,237,.45); }
 
-/* ---- 2. Hava Durumu kartı — zengin içerik aynen kalıyor, sadece çerçeve modernleşti ---- */
+/* ---- 2. Hava Durumu kartı (zengin içerik aynen kalıyor) ---- */
 #tab-panel.dash-modern #havaDurumuKartWrap h3{ margin-bottom:10px; }
 
-/* ---- 3. İstatistik kartları (4'lü) ---- */
-#tab-panel.dash-modern .dash-stats-card{ padding:14px; }
-#tab-panel.dash-modern .dash-stat-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-@media (max-width:600px){ #tab-panel.dash-modern .dash-stat-strip{ grid-template-columns:repeat(2,1fr); } }
-#tab-panel.dash-modern .dash-stat-strip .stat-chip{ background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px; padding:14px 10px; text-align:left; }
-#tab-panel.dash-modern .dash-stat-strip .stat-chip-num{ font-family:'Inter'; font-size:19px; font-weight:800; color:#0F172A; letter-spacing:-0.02em; }
-#tab-panel.dash-modern .dash-stat-strip .stat-chip-label{ font-family:'Inter'; font-size:10.5px; font-weight:600; color:#64748B; text-transform:none; letter-spacing:0; margin-top:4px; }
-#tab-panel.dash-modern .stat-chip-clickable:hover{ background:#EFF4FF; }
+/* ---- 3. İstatistik kartları (4'lü, mockup formatı: ikon + Tümü + büyük sayı + etiket) ---- */
+#tab-panel.dash-modern .dash-stat-strip{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:14px; }
+@media (min-width:560px){ #tab-panel.dash-modern .dash-stat-strip{ grid-template-columns:repeat(4,1fr); } }
+#tab-panel.dash-modern .stat-card{
+  background:var(--dm-card); border:1px solid var(--dm-card-bd); border-radius:18px; padding:14px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04), 0 6px 20px -4px rgba(16,24,40,.07);
+  display:grid; grid-template-columns:1fr auto; align-items:start; cursor:pointer;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+#tab-panel.dash-modern .stat-card:hover{ transform:translateY(-2px); }
+#tab-panel.dash-modern .stat-card-ico{ width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+#tab-panel.dash-modern .stat-card-ico-blue{ background:#EFF4FF; color:#2563EB; } [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-blue{ background:#22324A; color:#7CA8FF; }
+#tab-panel.dash-modern .stat-card-ico-green{ background:#EAF7F0; color:#16A34A; } [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-green{ background:#1E3A2C; color:#4ADE80; }
+#tab-panel.dash-modern .stat-card-ico-purple{ background:#F3EEFE; color:#7C3AED; } [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-purple{ background:#2E2A45; color:#C4A6FF; }
+#tab-panel.dash-modern .stat-card-ico-amber{ background:#FFF1E6; color:#F97316; } [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-amber{ background:#3A2A1A; color:#FDBA74; }
+#tab-panel.dash-modern .stat-card-tumu{ font-family:'Inter'; font-size:11px; font-weight:700; color:var(--dm-accent); align-self:center; justify-self:end; }
+#tab-panel.dash-modern .stat-card-num{ grid-column:1/-1; font-family:'Inter'; font-size:23px; font-weight:800; color:var(--dm-ink); margin-top:10px; letter-spacing:-0.02em; }
+#tab-panel.dash-modern .stat-card-label{ grid-column:1/-1; font-family:'Inter'; font-size:11.5px; font-weight:600; color:var(--dm-ink-sub); margin-top:2px; }
 
-/* ---- 4. Hızlı İşlemler — M3 tarzı renkli ikon rozetleri ---- */
+/* ---- Hızlı Bakış (ikincil özet rozetleri) ---- */
+#tab-panel.dash-modern .dash-hizlibakis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+@media (min-width:560px){ #tab-panel.dash-modern .dash-hizlibakis{ grid-template-columns:repeat(4,1fr); } }
+#tab-panel.dash-modern .hb-chip{ display:flex; align-items:center; gap:8px; background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); border-radius:14px; padding:10px; cursor:pointer; }
+#tab-panel.dash-modern .hb-ico{ font-size:16px; }
+#tab-panel.dash-modern .hb-num{ font-family:'Inter'; font-size:14px; font-weight:800; color:var(--dm-ink); }
+#tab-panel.dash-modern .hb-label{ font-family:'Inter'; font-size:10px; font-weight:600; color:var(--dm-ink-muted); }
+
+/* ---- 4. Hızlı İşlemler (2x4, M3 renkli ikon rozetleri) ---- */
 #tab-panel.dash-modern .qa-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
-@media (max-width:480px){ #tab-panel.dash-modern .qa-grid{ grid-template-columns:repeat(2,1fr); } }
-#tab-panel.dash-modern .qa-item{ background:#F8FAFD; border:1px solid #EEF1F6; border-radius:16px; padding:14px 8px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
+@media (max-width:480px){ #tab-panel.dash-modern .qa-grid{ grid-template-columns:repeat(4,1fr); gap:8px; } }
+#tab-panel.dash-modern .qa-item{ background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); border-radius:16px; padding:12px 6px; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
 #tab-panel.dash-modern .qa-item:active{ transform:scale(.96); }
-#tab-panel.dash-modern .qa-item:hover{ box-shadow:0 6px 18px -4px rgba(16,24,40,.12); transform:translateY(-2px); background:#fff; }
-#tab-panel.dash-modern .qa-icon{ width:42px; height:42px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:19px; }
-#tab-panel.dash-modern .qa-icon.qa-evrak{ background:#EFF4FF; color:#2563EB; }
-#tab-panel.dash-modern .qa-icon.qa-nobet{ background:#FFF1E6; color:#F97316; }
-#tab-panel.dash-modern .qa-icon.qa-not{ background:#EAF7F0; color:#16A34A; }
-#tab-panel.dash-modern .qa-icon.qa-gorev{ background:#F3EEFE; color:#7C3AED; }
-#tab-panel.dash-modern .qa-label{ font-family:'Inter'; font-size:11px; font-weight:600; color:#334155; text-align:center; }
+#tab-panel.dash-modern .qa-item:hover{ box-shadow:0 6px 18px -4px rgba(16,24,40,.12); transform:translateY(-2px); }
+#tab-panel.dash-modern .qa-icon{ width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+#tab-panel.dash-modern .qa-icon.qa-personel{ background:#EFF4FF; color:#2563EB; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-personel{ background:#22324A; color:#7CA8FF; }
+#tab-panel.dash-modern .qa-icon.qa-evrak{ background:#EFF4FF; color:#2563EB; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-evrak{ background:#22324A; color:#7CA8FF; }
+#tab-panel.dash-modern .qa-icon.qa-nobet{ background:#FFF1E6; color:#F97316; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-nobet{ background:#3A2A1A; color:#FDBA74; }
+#tab-panel.dash-modern .qa-icon.qa-not{ background:#EAF7F0; color:#16A34A; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-not{ background:#1E3A2C; color:#4ADE80; }
+#tab-panel.dash-modern .qa-icon.qa-gorev{ background:#F3EEFE; color:#7C3AED; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-gorev{ background:#2E2A45; color:#C4A6FF; }
+#tab-panel.dash-modern .qa-icon.qa-rapor{ background:#FEEAEA; color:#DC2626; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-rapor{ background:#3A2020; color:#FCA5A5; }
+#tab-panel.dash-modern .qa-icon.qa-takvim{ background:#E6F7F7; color:#0E9488; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-takvim{ background:#173A38; color:#5EEAD4; }
+#tab-panel.dash-modern .qa-icon.qa-daha{ background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); color:var(--dm-ink-muted); }
+#tab-panel.dash-modern .qa-label{ font-family:'Inter'; font-size:10.5px; font-weight:600; color:var(--dm-ink-sub); text-align:center; }
 
 /* ---- Diğer dashboard kartları: eşit yükseklik, düzenli boşluk ---- */
 #tab-panel.dash-modern .dash-cols{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; align-items:stretch; }
 @media (max-width:760px){ #tab-panel.dash-modern .dash-cols{ grid-template-columns:1fr; } }
 #tab-panel.dash-modern .dash-cols .card{ height:100%; margin-bottom:0; }
 
-/* ---- AI Asistan FAB'ı — dashboard'dayken glassmorphism, bottom-nav'ın üstünde dursun ---- */
+/* ---- AI Asistan FAB'ı — dashboard'dayken glassmorphism, alt nav barının üstünde ---- */
 body:has(#tab-panel.dash-modern.active) #asistanFab{
   width:58px; height:58px; font-size:25px;
   background:rgba(37,99,235,.78);
@@ -2267,18 +2362,15 @@ body:has(#tab-panel.dash-modern.active) #asistanFab{
   color:#fff;
 }
 body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92); }
-@media (max-width:1100px){
-  #asistanFab{ bottom:84px; } /* alt nav barının üstünde kalsın */
-}
+@media (max-width:1100px){ #asistanFab{ bottom:84px; } }
 
 /* =========================================================================
-   YENİ: MOBİL ALT NAVİGASYON (5 ikon) — sadece <1100px görünür.
+   MOBİL ALT NAVİGASYON (5 ikon) — sadece <1100px görünür.
    Masaüstünde mevcut sol sidebar kullanılmaya devam eder; çakışma yok.
    Tüm butonlar var olan sekmeAc() / evrakModalAc() fonksiyonlarını çağırır.
    ========================================================================= */
 .bottom-nav{ display:none; }
 @media (max-width:1100px){
-  body{ padding-bottom:0; }
   .bottom-nav{
     display:flex; align-items:center; justify-content:space-around;
     position:fixed; left:0; right:0; bottom:0; height:64px; z-index:7000;
@@ -2286,24 +2378,107 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
     border-top:1px solid #EEF1F6; box-shadow:0 -4px 18px rgba(16,24,40,.07);
     padding-bottom:env(safe-area-inset-bottom);
   }
-  [data-theme="dark"] .bottom-nav{ background:rgba(28,42,46,.92); border-top-color:rgba(255,255,255,.08); }
+  [data-theme="dark"] .bottom-nav{ background:rgba(28,42,46,.94); border-top-color:rgba(255,255,255,.08); box-shadow:0 -4px 18px rgba(0,0,0,.35); }
 }
-.bn-item{
-  background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px;
-  font-family:'Inter'; font-size:10.5px; font-weight:600; color:#94A3B8; cursor:pointer; padding:6px 8px; flex:1;
-}
+.bn-item{ background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Inter'; font-size:10.5px; font-weight:600; color:#94A3B8; cursor:pointer; padding:6px 8px; flex:1; }
+[data-theme="dark"] .bn-item{ color:#7FA0A0; }
 .bn-item .bn-ico{ font-size:20px; line-height:1; }
 .bn-item.active{ color:#2563EB; }
+[data-theme="dark"] .bn-item.active{ color:#5B8DFF; }
 .bn-plus{ flex:0 0 auto; }
-.bn-plus-ico{
-  width:46px; height:46px; border-radius:50%; background:#2563EB; color:#fff;
-  font-size:26px; font-weight:700; display:flex; align-items:center; justify-content:center;
-  margin-top:-26px; box-shadow:0 8px 18px -4px rgba(37,99,235,.6);
-}
+.bn-plus-ico{ width:46px; height:46px; border-radius:50%; background:#2563EB; color:#fff; font-size:26px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:-26px; box-shadow:0 8px 18px -4px rgba(37,99,235,.6); }
 
-/* ---- YENİ: Zil sayacı durum renkleri (ders=yeşil, teneffüs=turuncu, bitti=gri, başlamadı=mavi, tatil=mor) ---- */
-#tab-panel.dash-modern .dash-hero.durum-ders{ background:linear-gradient(135deg,#16A34A 0%,#22C55E 60%,#4ADE80 100%); box-shadow:0 12px 32px -8px rgba(22,163,74,.45); }
-#tab-panel.dash-modern .dash-hero.durum-teneffus{ background:linear-gradient(135deg,#EA580C 0%,#F97316 60%,#FB923C 100%); box-shadow:0 12px 32px -8px rgba(234,88,12,.45); }
-#tab-panel.dash-modern .dash-hero.durum-bitti{ background:linear-gradient(135deg,#475569 0%,#64748B 60%,#94A3B8 100%); box-shadow:0 12px 32px -8px rgba(71,85,105,.40); }
-#tab-panel.dash-modern .dash-hero.durum-baslamadi{ background:linear-gradient(135deg,#2563EB 0%,#4F7DF3 55%,#7C9CF7 100%); box-shadow:0 12px 32px -8px rgba(37,99,235,.45); }
-#tab-panel.dash-modern .dash-hero.durum-tatil{ background:linear-gradient(135deg,#7C3AED 0%,#9333EA 55%,#C084FC 100%); box-shadow:0 12px 32px -8px rgba(124,58,237,.45); }
+/* =========================================================================
+   SOL YAN MENÜ (SIDEBAR) — MODERN YENİDEN TASARIM
+   Dashboard ile aynı Material3+Fluent dili: açık zemin, mavi vurgu (#2563EB),
+   yuvarlatılmış aktif sekme, yumuşak gölgeler. ÖNEMLİ: konumlandırma/transform/
+   genişlik/off-canvas mekaniği (position, transform, z-index, .nav-open,
+   .nav-collapsed) hiç değiştirilmedi — sadece renk/şekil/boşluk.
+   ========================================================================= */
+.sidebar{
+  --sb-bg:      #FFFFFF;
+  --sb-bg-2:    #F5F7FB;
+  --sb-ink:     #0F172A;
+  --sb-ink-sub: #64748B;
+  --sb-border:  #EEF1F6;
+  --sb-accent:  #2563EB;
+  --sb-accent-wash:#EFF4FF;
+  background: var(--sb-bg);
+  border-right: 1px solid var(--sb-border);
+  font-family:'Inter',var(--font-body);
+}
+[data-theme="dark"] .sidebar{
+  --sb-bg:      #182426;
+  --sb-bg-2:    #141F22;
+  --sb-ink:     #F1F8F8;
+  --sb-ink-sub: #8FB3B3;
+  --sb-border:  #233234;
+  --sb-accent:  #5B8DFF;
+  --sb-accent-wash:#22324A;
+}
+.sidebar-head{ padding:14px 10px 16px; border-bottom:1px solid var(--sb-border); margin-bottom:10px; }
+.sidebar .brand-title{ color:var(--sb-ink); font-family:'Inter',var(--font-display); font-weight:700; }
+.sidebar .brand-sub{ color:var(--sb-ink-sub); font-family:'Inter'; }
+.sidebar .brand .brand-mark{
+  width:38px; height:38px; border-radius:11px; overflow:hidden;
+  background:var(--sb-accent-wash); display:flex; align-items:center; justify-content:center;
+}
+.sidebar .brand-mark img{ width:100%; height:100%; object-fit:cover; }
+.sidebar-head .hamburger-btn{ background:var(--sb-bg-2); border-color:var(--sb-border); }
+.sidebar-head .hamburger-btn span{ background:var(--sb-ink-sub); }
+.theme-toggle.in-sidebar{ background:var(--sb-bg-2); border-color:var(--sb-border); color:var(--sb-ink); }
+
+.nav{ gap:3px; padding:0 4px; }
+.nav-separator{ color:var(--sb-ink-sub); opacity:.8; }
+.nav-tab{
+  color:var(--sb-ink-sub); border-radius:12px; font-family:'Inter'; font-weight:600;
+  border-left:none; padding:10px 11px;
+}
+.nav-tab .nt-ico{ background:var(--sb-bg-2); border-radius:9px; }
+.nav-tab:hover{ background:var(--sb-bg-2); color:var(--sb-ink); }
+.nav-tab.active{
+  background:var(--sb-accent-wash) !important; color:var(--sb-accent) !important;
+  box-shadow:none;
+}
+.nav-tab.active .nt-ico{ background:var(--sb-accent); color:#fff; }
+[data-theme="dark"] .nav-tab.active{ background:var(--sb-accent-wash) !important; color:var(--sb-accent) !important; }
+
+.nav-group-toggle{ color:var(--sb-ink-sub); border-radius:12px; font-family:'Inter'; font-weight:600; }
+.nav-group-toggle:hover{ background:var(--sb-bg-2); }
+.nav-group-toggle .nt-ico{ background:var(--sb-bg-2); border-radius:9px; }
+.nav-group .nav-sub-tab{ color:var(--sb-ink-sub); }
+.nav-group .nav-sub-tab:hover{ background:var(--sb-bg-2); color:var(--sb-ink); }
+.nav-group .nav-sub-tab.active{ background:var(--sb-accent-wash) !important; color:var(--sb-accent) !important; }
+
+.nav-cikis-btn{
+  color:#DC2626; border-radius:12px; font-family:'Inter'; font-weight:700;
+  border-top:1px solid var(--sb-border); margin-top:8px;
+}
+.nav-cikis-btn .nt-ico{ background:#FEEAEA; }
+[data-theme="dark"] .nav-cikis-btn .nt-ico{ background:#3A2020; }
+
+/* =========================================================================
+   YENİ: GENEL İKON BÜYÜTME PASI
+   Sidebar, hızlı işlemler, istatistik kartları, zil ikonu, alt navigasyon ve
+   hızlı bakış rozetlerindeki ikonlar büyütüldü. Sadece boyut/punto; yapı,
+   id'ler ve tıklama mantığı hiç değişmedi.
+   ========================================================================= */
+.nav-tab .nt-ico{ font-size:19px; width:32px; height:32px; border-radius:9px; }
+.nav-group-toggle .nt-ico{ font-size:19px; width:32px; height:32px; }
+.nav-group .nav-sub-tab .nt-ico{ font-size:17px; width:27px; height:27px; }
+.nav-cikis-btn .nt-ico{ font-size:16px; width:24px; height:24px; }
+.brand .brand-mark{ width:42px; height:42px; }
+
+.topbar-logo{ width:36px; height:36px; }
+.topbar-bell{ width:42px; height:42px; font-size:20px; }
+.topbar-avatar{ width:42px; height:42px; font-size:14px; }
+
+#tab-panel.dash-modern .zil-ikon-daire{ width:54px; height:54px; font-size:25px; }
+#tab-panel.dash-modern .stat-card-ico{ width:46px; height:46px; font-size:21px; border-radius:14px; }
+#tab-panel.dash-modern .qa-icon{ width:46px; height:46px; font-size:21px; border-radius:14px; }
+#tab-panel.dash-modern .hb-ico{ font-size:19px; }
+#tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-ico{ font-size:21px; }
+
+.bn-item .bn-ico{ font-size:24px; }
+.bn-plus-ico{ width:50px; height:50px; font-size:29px; margin-top:-28px; }
+.asistan-fab{ font-size:28px; }
