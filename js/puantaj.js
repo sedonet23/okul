@@ -209,17 +209,20 @@
 '  * { box-sizing: border-box; margin: 0; padding: 0; }' +
 '  body { font-family: Calibri, Arial, sans-serif; color: #000; background: #fff; font-size: 9pt; }' +
 '  table { width: 100%; border-collapse: collapse; }' +
-'  td, th { border: 2px solid #000; padding: 2px 4px; }' +
-'  .pz-baslik-tablo td { border: 1px solid #000; }' +
-'  .pz-baslik-ana { font-size: 15pt; font-weight: 700; text-align: center; padding: 6px; }' +
-'  .pz-isim-satir { font-size: 11pt; font-weight: 700; text-align: center; background: #eee; padding: 4px; }' +
-'  .pz-tc-satir { font-size: 10pt; font-weight: 700; text-align: center; padding: 4px; }' +
-'  .pz-ana-tablo th { font-size: 7.5pt; font-weight: 700; text-align: center; background: #f2f2f2; padding: 3px 2px; }' +
+'  .pz-baslik-tablo, .pz-ana-tablo { border: 2.5px solid #000; }' +
+'  td, th { border: 1px solid #000; padding: 2px 4px; }' +
+'  .pz-baslik-ana { font-size: 14pt; font-weight: 700; text-align: center; padding: 6px; border-bottom: 1.5px solid #000 !important; }' +
+'  .pz-isim-satir { font-size: 10pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 4px; border-bottom: 1.5px solid #000 !important; }' +
+'  .pz-tarih-baslik { background: #ECE9D8; text-align: center; font-weight: 700; border-right: 1.5px solid #000 !important; }' +
+'  .pz-tc-satir { font-size: 9.5pt; font-weight: 700; text-align: center; padding: 4px; background: #ECE9D8; }' +
+'  .pz-bos-bej { background: #ECE9D8; }' +
+'  .pz-ana-tablo th { font-size: 7.5pt; font-weight: 700; text-align: center; background: #ECE9D8; padding: 3px 2px; }' +
 '  .pz-ana-tablo td { font-size: 7pt; vertical-align: middle; }' +
-'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; width: 26%; }' +
+'  .pz-tarih { text-align: left; font-weight: 700; white-space: nowrap; width: 26%; border-right: 1.5px solid #000 !important; padding-left: 6px; }' +
 '  .pz-durum { text-align: center; font-weight: 700; width: 11%; }' +
 '  .pz-imza { width: 12.5%; }' +
 '  tr.pz-hs td.pz-durum { background: #f5f5f5; }' +
+'  .pz-ana-tablo tr td { border-bottom: 1px solid #999; }' +
 '  .pz-onay-blok { margin-top: 8px; text-align: right; }' +
 '  .pz-onay-blok .ad { font-weight: 700; font-size: 9pt; }' +
 '  .pz-onay-blok .unvan { font-size: 8pt; color: #333; }' +
@@ -231,14 +234,14 @@
 '    <tr><td class="pz-baslik-ana" colspan="7">' + escapeHtml(okul.okulAdi.toLocaleUpperCase('tr')) + ' SÜREKLİ VE GEÇİCİ İŞÇİLERE AİT İMZA SİRKÜSÜ</td></tr>' +
 '    <tr><td class="pz-isim-satir" colspan="7">İSİM SOYİSİM</td></tr>' +
 '    <tr>' +
-'      <td rowspan="2" style="text-align:center;font-weight:700;">TARİH</td>' +
+'      <td rowspan="2" class="pz-tarih-baslik">TARİH</td>' +
 '      <td class="pz-tc-satir" colspan="2">' + escapeHtml(state.adSoyad||'') + '<br>TC NO: ' + escapeHtml(state.tc||'') + '</td>' +
-'      <td colspan="4"></td>' +
+'      <td class="pz-bos-bej" colspan="4"></td>' +
 '    </tr>' +
 '    <tr>' +
 '      <th>SABAH GİRİŞ</th>' +
 '      <th>AKŞAM ÇIKIŞ</th>' +
-'      <th></th><th></th><th></th><th></th>' +
+'      <th class="pz-bos-bej"></th><th class="pz-bos-bej"></th><th class="pz-bos-bej"></th><th class="pz-bos-bej"></th>' +
 '    </tr>' +
 '  </table>' +
 '  <table class="pz-ana-tablo">' +
@@ -301,15 +304,19 @@
 '  table { width: 100%; border-collapse: collapse; }' +
 '  .pt-ana-tablo { table-layout: fixed; }' +
 '  td, th { border: 1px solid #000; padding: 1px 2px; overflow: hidden; }' +
-'  .pt-ust-tablo td { border: 2px solid #000; }' +
-'  .pt-okul-adi { font-size: 20pt; font-weight: 700; text-align: center; padding: 4px; }' +
-'  .pt-cetvel-baslik { font-size: 12pt; font-weight: 700; text-align: center; }' +
-'  .pt-ay-yil { font-size: 10pt; font-weight: 700; text-align: center; }' +
-'  .pt-ana-tablo th { font-size: 7pt; font-weight: 700; text-align: center; background: #f2f2f2; height: 95px; vertical-align: bottom; padding: 0 0 4px; }' +
+'  .pt-ust-tablo { border: 2.5px solid #000; }' +
+'  .pt-ust-tablo td { border: 1.5px solid #000; }' +
+'  .pt-okul-adi { font-size: 22pt; font-weight: 700; text-align: center; padding: 4px; border-right: 1.5px solid #000 !important; }' +
+'  .pt-cetvel-baslik { font-size: 13pt; font-weight: 700; text-align: center; }' +
+'  .pt-ay-yil { font-size: 10.5pt; font-weight: 700; text-align: center; }' +
+'  .pt-ana-tablo { border: 2.5px solid #000; }' +
+'  .pt-ana-tablo th { font-size: 7pt; font-weight: 700; text-align: center; background: #f2f2f2; height: 95px; vertical-align: bottom; padding: 0 0 4px; border: 1px solid #000; }' +
+'  .pt-ana-tablo thead tr:last-child th { border-bottom: 1.5px solid #000; }' +
 '  .pt-hs-baslik { color: #c00; }' +
 '  .pt-rot-wrap { position: relative; height: 90px; overflow: visible; }' +
 '  .pt-rot { position: absolute; bottom: 4px; left: 50%; transform-origin: left bottom; transform: rotate(-90deg); white-space: nowrap; font-size: 7pt; line-height: 1; }' +
-'  .pt-ana-tablo td { text-align: center; font-size: 7.5pt; font-weight: 700; }' +
+'  .pt-ana-tablo td { text-align: center; font-size: 7.5pt; font-weight: 700; border: 1px solid #000; }' +
+'  .pt-ana-tablo tbody tr:first-child td { border-bottom: 1.5px solid #000; }' +
 '  .pt-hs-hucre { color: #c00; }' +
 '  .pt-sno { width: 4.5mm; }' +
 '  .pt-ad { width: 34mm; text-align: left !important; font-weight: 400 !important; }' +
@@ -320,7 +327,7 @@
 '  .pt-kod-aciklama table { width: auto; }' +
 '  .pt-kod-aciklama td { border: none; padding: 1px 6px; }' +
 '  .pt-kod-aciklama .k { color: #c00; font-weight: 700; }' +
-'  .pt-onay-kutu { margin-top: 6px; border: 2px solid #000; width: 260px; text-align: center; padding: 6px; }' +
+'  .pt-onay-kutu { margin-top: 6px; border: 2.5px solid #000; width: 260px; text-align: center; padding: 6px; }' +
 '  .pt-onay-kutu .baslik { font-size: 8pt; font-weight: 700; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 6px; }' +
 '  .pt-onay-kutu .ad { font-size: 10pt; font-weight: 700; }' +
 '  .pt-alt-satir { display: flex; justify-content: space-between; align-items: flex-end; }' +
