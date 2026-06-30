@@ -2151,3 +2151,16 @@ body.modal-open { overflow: hidden; touch-action: none; }
 }
 .asistan-msg-user .asistan-msg-bubble{background:var(--accent,#E0A93A);color:#fff;box-shadow:var(--nm-sm);}
 .asistan-typing{opacity:.6;font-style:italic;}
+
+.asistan-fab{
+  position:fixed;right:20px;bottom:20px;z-index:500;
+  width:56px;height:56px;border-radius:50%;border:none;
+  background:var(--bg-card);box-shadow:var(--nm-out);
+  font-size:26px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:transform .15s ease;
+}
+.asistan-fab:active{transform:scale(0.92);box-shadow:var(--nm-in);}
+body:has(#tab-asistan.active) .asistan-fab{display:none;}
+@media (max-width:600px){
+  .asistan-fab{right:14px;bottom:14px;width:50px;height:50px;font-size:22px;}
+}
