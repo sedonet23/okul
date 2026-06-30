@@ -48,6 +48,18 @@ function servisDetayAc(id){
     s.durum || 'Aktif'
   ].filter(Boolean).join(' · ');
   document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); servisModalAc(id); };
+  const _raporBtn = document.getElementById('detayRaporBtn');
+  if (_raporBtn) {
+    _raporBtn.onclick = () => {
+      if (typeof TasimaTakipAc === 'function') {
+        TasimaTakipAc(id);
+      } else if (typeof TasimaTakip !== 'undefined' && TasimaTakip.ac) {
+        TasimaTakip.ac(id);
+      } else {
+        alert('Takip Çizelgesi modülü yüklenemedi (js/tasima-takip.js eksik olabilir). Sayfayı yenileyip tekrar deneyin.');
+      }
+    };
+  }
 
   const servisOgrencileri = veliler.filter(v=>v.servisId===id)
     .sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
@@ -86,7 +98,7 @@ function servisDetayAc(id){
         </div>`}
         ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
         <div class="detay-row" style="margin-top:8px;">
-          <button class="btn-takip-cizelge" onclick="TasimaTakip.ac('${s.id}')">📋 Aylık Takip Çizelgesi</button>
+          <button class="btn-takip-cizelge" onclick="TasimaTakipAc('${s.id}')">📋 Aylık Takip Çizelgesi</button>
         </div>
       </div>
       <div class="detay-card">
