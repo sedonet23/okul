@@ -68,6 +68,9 @@ const COL = {
                                          // Aynı kişi için iki ayrı kayıt (öğretmen + MY) tutmak veri tekrarına ve
                                          // senkron sorunlarına yol açar; bu yüzden MY listesi öğretmenler içinden
                                          // unvan==='Müdür Yardımcısı' filtresiyle hesaplanır (bkz. app.js muduYardimcilari()).
+  // --- YENİ: Personel İşleri + Dilekçe Sistemi (v6.0) ---
+  personel:'oy_personel',               // {adSoyad, tc, telefon, adres, gorev, notlar}
+  dilekceler:'oy_dilekceler',           // {personelId, izinTuru, baslangicTarihi, sure, olusturmaTarihi}
 };
 
 let db = null;

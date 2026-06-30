@@ -422,15 +422,24 @@ function renderOkulBilgileriSayfasi(){
   try {
     const adEl = document.getElementById('f_okulAdi');
     const mudurEl = document.getElementById('f_okulMudur');
+    const ilEl = document.getElementById('f_okulIl');
+    const ilceEl = document.getElementById('f_okulIlce');
+    const mebEl = document.getElementById('f_okulMeb');
     if(adEl) adEl.value = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
     if(mudurEl) mudurEl.innerHTML = ogretmenSecenekleri(okulBilgileriAyari ? okulBilgileriAyari.mudurId : '');
+    if(ilEl) ilEl.value = (okulBilgileriAyari && okulBilgileriAyari.il) || '';
+    if(ilceEl) ilceEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilce) || '';
+    if(mebEl) mebEl.value = (okulBilgileriAyari && okulBilgileriAyari.mebMudurlugu) || '';
     if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
   } catch(e) { console.warn('renderOkulBilgileriSayfasi hata:', e); }
 }
 function okulBilgileriKaydet(){
   const okulAdi = document.getElementById('f_okulAdi').value.trim();
   const mudurId = document.getElementById('f_okulMudur').value;
-  db.collection(COL.okulBilgileri).doc('ayarlar').set({ okulAdi, mudurId })
+  const il = (document.getElementById('f_okulIl')?.value || '').trim().toLocaleUpperCase('tr');
+  const ilce = (document.getElementById('f_okulIlce')?.value || '').trim().toLocaleUpperCase('tr');
+  const mebMudurlugu = (document.getElementById('f_okulMeb')?.value || '').trim();
+  db.collection(COL.okulBilgileri).doc('ayarlar').set({ okulAdi, mudurId, il, ilce, mebMudurlugu })
     .then(()=>toast('Okul bilgileri kaydedildi.'))
     .catch(err=>toast('Hata: '+err.message));
 }
@@ -804,7 +813,8 @@ function yedekVerisiOlustur(){
     bepPlani: cizelgeVerileri.bepPlani, rehberlik: cizelgeVerileri.rehberlik, maarifRapor: cizelgeVerileri.maarifRapor,
     belirliGunler: typeof belirliGunlerListesi !== 'undefined' ? belirliGunlerListesi : [],
     digerEvrak: typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [],
-    sinavlar, denemeSinavlari
+    sinavlar, denemeSinavlari,
+    personel: typeof personelListesi !== 'undefined' ? personelListesi : []
   };
 }
 function tumVerileriYedekle(){
@@ -834,7 +844,8 @@ async function yedektenGeriYukle(file){
       [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
       [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler],
       [data.sinavlar, COL.sinavlar],[data.denemeSinavlari, COL.denemeSinavlari],
-      [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi]
+      [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi],
+      [data.personel, COL.personel]
     ];
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
@@ -901,6 +912,7 @@ function baglantilariKur(){
     bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
     renderBransListesiYonetim();
   }, hataGoster);
+  if(typeof personelBaglantilariKur === 'function') personelBaglantilariKur();
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
