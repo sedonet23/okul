@@ -279,6 +279,66 @@ function toast(msg){
   clearTimeout(window._toastTimer);
   window._toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
+
+/* ====================================================================
+   ORTAK YAZDIRMA YARDIMCISI
+   Android'in çıplak WebView bileşeni window.print() JS API'sini
+   desteklemiyor (bu yalnızca Chrome tarayıcı uygulamasında var) — bu
+   yüzden APK içindeki yazdırma butonları sessizce başarısız oluyordu.
+
+   Native (Capacitor/Android) ortamda: PrintPlugin (bkz. android/.../PrintPlugin.java)
+   üzerinden gerçek Android sistem yazdırma/önizleme diyaloğunu açar —
+   bu diyalog kendi geri/iptal tuşuna ve "PDF olarak kaydet" seçeneğine
+   sahiptir.
+
+   Web/PWA ortamda (native plugin yoksa): Blob URL ile yeni bir pencere
+   açar, kullanıcı "Yazdır" butonuna basınca gerçek bir kullanıcı
+   etkileşimiyle window.print() tetiklenir (otomatik/timer ile tetiklenen
+   print() çağrıları bazı tarayıcılarda engellenebiliyor).
+   ==================================================================== */
+function uygulamaHtmlYazdir(rawHtml, isAdi){
+  isAdi = isAdi || 'Koruk_Okul_Belge';
+
+  const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.PrintPlugin);
+
+  if(nativeVarMi){
+    try{
+      window.Capacitor.Plugins.PrintPlugin.yazdir({ html: rawHtml, isAdi });
+      return;
+    }catch(e){ console.warn('Native yazdırma başarısız, tarayıcı yöntemine dönülüyor:', e.message); }
+  }
+
+  const stilMatch   = rawHtml.match(/<style>([\s\S]*?)<\/style>/);
+  const govdeMatch  = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+  const baslikMatch = rawHtml.match(/<title>([\s\S]*?)<\/title>/);
+  const stil  = stilMatch  ? stilMatch[1]  : '';
+  const govde = govdeMatch ? govdeMatch[1] : rawHtml;
+  const baslik = baslikMatch ? baslikMatch[1] : isAdi;
+
+  const tamHtml = '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>' + baslik + '</title><style>' +
+    stil +
+    '\n .kk-yazdir-toolbar{ display:flex; gap:8px; padding:10px 14px; background:#f3f2ff; align-items:center; }' +
+    '\n .kk-yazdir-toolbar button{ padding:7px 16px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }' +
+    '\n .kk-btn-yazdir{ background:#0A6E6E; color:#fff; }' +
+    '\n .kk-btn-kapat{ background:#e5e7eb; color:#374151; }' +
+    '\n @media print{ .kk-yazdir-toolbar{ display:none !important; } }' +
+    '</style></head><body>' +
+    '<div class="kk-yazdir-toolbar"><button class="kk-btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button><button class="kk-btn-kapat" onclick="window.close()">✕ Kapat</button></div>' +
+    govde +
+    '</body></html>';
+
+  try{
+    const blob = new Blob([tamHtml], { type:'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if(!win) throw new Error('popup_blocked');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  }catch(e2){
+    toast('Yazdırma penceresi açılamadı: ' + (e2 && e2.message));
+  }
+}
+window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
 function ogretmenSecenekleri(seciliId){
   return '<option value="">Seçiniz</option>' + ogretmenler.map(o=>
     `<option value="${o.id}" ${o.id===seciliId?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`
