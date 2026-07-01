@@ -189,10 +189,14 @@
           <div id="dashMiniTakvim"></div>
         </div>
       </div>
+      <!-- YENİ: Yıllık görünüm dashboard'dan kaldırıldı, takvim sayfasında gösterilecek -->
+      <!-- dashYillikGorunum elementi korunuyor ama gizli — takvim.js onu doldurmaya devam ediyor -->
+      <div style="display:none;"><div id="dashYillikGorunum"></div></div>
       <div class="dash-cols">
-        <div class="card" onclick="sekmeAc('takvim')" style="cursor:pointer;">
-          <h3>🗓️ Yıllık Görünüm</h3>
-          <div id="dashYillikGorunum"></div>
+        <!-- Ajanda: yaklaşan etkinlikler, görevler ve hatırlatıcılar -->
+        <div class="card dash-card-clickable" onclick="sekmeAc('takvim')">
+          <h3 class="dash-h3-row">🗓️ Ajanda <span class="dash-tumu-link">Tümü ›</span></h3>
+          <div id="dashAjanda"></div>
         </div>
       </div>
       <div class="dash-cols">
@@ -934,18 +938,38 @@
 
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bn-item active" onclick="sekmeAc('panel'); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item active" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
       <button class="bn-item" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
-      <button class="bn-item bn-plus" onclick="sekmeAc('evrak'); evrakModalAc(); bottomNavAktifYap(this);" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
+      <button class="bn-item bn-plus" onclick="hizliEkleModalAc();" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
       <button class="bn-item" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
       <button class="bn-item" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
     </nav>
+
+    <!-- YENİ: Hızlı Ekle Modalı (+ butonu) -->
+    <div id="hizliEkleModal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.5);align-items:flex-end;">
+      <div style="background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;padding:20px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;">➕ Ne eklemek istersiniz?</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button onclick="hizliEkleModalKapat(); notlarModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <span style="font-size:24px;">📝</span> Yeni Not
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('takvim'); setTimeout(hatirlaticiModalAc,200);" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <span style="font-size:24px;">📅</span> Takvim Etkinliği
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('gorevler'); gorevModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <span style="font-size:24px;">✅</span> Yeni Görev
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('evrak'); evrakModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <span style="font-size:24px;">📄</span> Yeni Evrak
+          </button>
+        </div>
+        <button onclick="hizliEkleModalKapat()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--ink-muted);font-size:14px;cursor:pointer;">İptal</button>
+      </div>
+    </div>
     <script>
-      // YENİ: Alt navigasyonda tıklanan ikonu aktif göster. Mevcut sekmeAc() fonksiyonuna dokunmaz.
-      function bottomNavAktifYap(el){
-        document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
-        el.classList.add('active');
-      }
+      function hizliEkleModalAc(){ document.getElementById('hizliEkleModal').style.display='flex'; document.body.classList.add('modal-open'); }
+      function hizliEkleModalKapat(){ document.getElementById('hizliEkleModal').style.display='none'; document.body.classList.remove('modal-open'); }
+      function bottomNavAktifYap(el){ document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
     </script>
 
   </div>
