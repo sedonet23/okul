@@ -148,6 +148,27 @@ function detayPanelineProfilFotoEkle(ogretmenId) {
    ================================================================ */
 let _aramaKategori = 'hepsi';
 
+/* Tek bir öğrenci satırının HTML'i — hem Öğrenciler sekmesinde hem Arama
+   sonuçlarında kullanılır. NOT: bu fonksiyon önceden çağrılıyor ama hiçbir
+   yerde TANIMLANMAMIŞTI — bu yüzden hem Öğrenciler sekmesi hem de Arama
+   ("Tümü" dahil) her öğrenci satırı çizilmeye çalışıldığında sessizce
+   hata verip (ReferenceError) yarım kalıyordu. */
+function _ogrenciSatirHtml(v, sinifAdi) {
+  const telefonlar = [v.telefon1 || v.telefon, v.telefon2, v.telefon3].filter(Boolean).join(' · ');
+  return `
+    <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;" onclick="ogrenciDetayModalAc('${v.id}')">
+      <span>
+        <strong>${escapeHtml(v.ogrenciAdi || '—')}</strong>
+        ${v.ogrenciNo ? `<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>` : ''}
+        ${v.cinsiyet ? `<span class="badge badge-${v.cinsiyet === 'Kız' ? 'rose' : 'blue'}">${escapeHtml(v.cinsiyet)}</span>` : ''}
+        ${v.servisAdi ? `<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>` : ''}
+        <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(sinifAdi || '—')} · ${escapeHtml(v.veliAdi || '—')}</span>
+        ${telefonlar ? `<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>` : ''}
+      </span>
+      <span style="color:var(--ink-muted);font-size:18px;">›</span>
+    </div>`;
+}
+
 function renderOgrenciler() {
   if (typeof veliler === 'undefined') return;
   const aramaEl = document.getElementById('ogrenciArama');

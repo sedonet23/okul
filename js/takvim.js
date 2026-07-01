@@ -60,6 +60,7 @@ function takvimVeriGuncelle(){
   takvimGridRender();
   takvimAjandaRender();
   renderDashHatirlaticilar();
+  if(typeof renderDashAjanda==='function') renderDashAjanda();
   renderDashMiniTakvim();
   renderDashYillikGorunum();
 }
@@ -472,42 +473,79 @@ function renderDashAjanda(){
 
   (typeof hatirlaticilar !== 'undefined' ? hatirlaticilar : [])
     .filter(h=>!h.tamamlandi && h.tarih >= bugun)
-    .forEach(h=> items.push({ iso: h.tarih, saat: h.saat||'', baslik: h.baslik, ikon:'⏰', renk:'#2563EB' }));
+    .forEach(h=> items.push({ iso: h.tarih, saat: h.saat||'', baslik: h.baslik, ikon:'⏰' }));
 
   (typeof gorevler !== 'undefined' ? gorevler : [])
     .filter(g=>!gorevTamamlandiMi(g) && g.sonTarih && g.sonTarih >= bugun)
-    .forEach(g=> items.push({ iso: g.sonTarih, saat:'', baslik: g.baslik, ikon:'✅', renk:'#16A34A' }));
+    .forEach(g=> items.push({ iso: g.sonTarih, saat:'', baslik: g.baslik, ikon:'✅' }));
+
+  // YENİ: Periyodik işler — gecikmiş olanlar en üstte, yanıp sönen kırmızı
+  // nokta ile (Takvim sekmesindeki "Ajanda — Yaklaşan 30 Gün" ile aynı mantık).
+  const acilSinir = new Date(); acilSinir.setDate(acilSinir.getDate()+1);
+  const acilSinirISO = `${acilSinir.getFullYear()}-${_pad2(acilSinir.getMonth()+1)}-${_pad2(acilSinir.getDate())}`;
+  const periyodikOgeler = [];
+  (typeof periyodikIsler !== 'undefined' ? periyodikIsler : []).forEach(p=>{
+    if(p.tamamlandi || !p.bitis) return;
+    const gecikmis = p.bitis < bugun;
+    const acil = !gecikmis && p.bitis <= acilSinirISO;
+    if(gecikmis || acil){
+      periyodikOgeler.push({ iso: gecikmis ? bugun : p.bitis, baslik: p.isAdi||'Periyodik İş', gecikmis, bitis: p.bitis });
+    }
+  });
+  // Periyodik işler her zaman en üstte (gecikmiş > acil > tarih)
+  periyodikOgeler.sort((a,b)=> (b.gecikmis - a.gecikmis) || a.bitis.localeCompare(b.bitis));
 
   items.sort((a,b)=>(a.iso+a.saat).localeCompare(b.iso+b.saat));
   const gorunenler = items.slice(0,8);
 
-  if(!gorunenler.length){
+  if(!gorunenler.length && !periyodikOgeler.length){
     el.innerHTML = '<p class="empty-state">Yaklaşan etkinlik veya görev yok.</p>';
     return;
   }
 
-  // Tarihe göre grupla
-  const gruplar = {};
-  gorunenler.forEach(x=>{
-    if(!gruplar[x.iso]) gruplar[x.iso]=[];
-    gruplar[x.iso].push(x);
-  });
+  let html = '';
 
-  el.innerHTML = Object.keys(gruplar).map(iso=>{
-    const tarihMetin = iso===bugun ? 'Bugün' : _trFormatTarih(iso);
-    const satirlar = gruplar[iso].map(x=>`
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);">
-        <span style="font-size:16px;flex-shrink:0;">${x.ikon}</span>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(x.baslik)}</div>
-          ${x.saat?`<div style="font-size:11px;color:var(--ink-muted);">${x.saat}</div>`:''}
-        </div>
-      </div>`).join('');
-    return `<div style="margin-bottom:8px;">
-      <div style="font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">${tarihMetin}</div>
-      ${satirlar}
+  if(periyodikOgeler.length){
+    html += `<div style="margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:800;color:#DC2626;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">🔄 Periyodik İşler</div>
+      ${periyodikOgeler.map(p=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);cursor:pointer;" onclick="sekmeAc('periyodikIsler')">
+          <span class="periyodik-pulse" style="flex-shrink:0;">●</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.baslik)}</div>
+            <div style="font-size:11px;color:${p.gecikmis?'#DC2626':'var(--ink-muted)'};">${p.gecikmis?'⚠️ Gecikmiş — Teslim: '+_trFormatTarih(p.bitis):'Teslim: '+_trFormatTarih(p.bitis)}</div>
+          </div>
+          <span style="color:var(--ink-muted);font-size:16px;">›</span>
+        </div>`).join('')}
     </div>`;
-  }).join('');
+  }
+
+  if(gorunenler.length){
+    // Tarihe göre grupla
+    const gruplar = {};
+    gorunenler.forEach(x=>{
+      if(!gruplar[x.iso]) gruplar[x.iso]=[];
+      gruplar[x.iso].push(x);
+    });
+
+    html += Object.keys(gruplar).map(iso=>{
+      const tarihMetin = iso===bugun ? 'Bugün' : _trFormatTarih(iso);
+      const satirlar = gruplar[iso].map(x=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);">
+          <span style="font-size:16px;flex-shrink:0;">${x.ikon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(x.baslik)}</div>
+            ${x.saat?`<div style="font-size:11px;color:var(--ink-muted);">${x.saat}</div>`:''}
+          </div>
+        </div>`).join('');
+      return `<div style="margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">${tarihMetin}</div>
+        ${satirlar}
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
 }
 
 function renderDashHatirlaticilar(){

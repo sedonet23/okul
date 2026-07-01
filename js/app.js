@@ -675,17 +675,19 @@ function renderDashboard(){
   if(heroSelamlaEl){
     const saat = new Date().getHours();
     const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    // YENİ: Aktif kullanıcı adını al
+    // Aktif kullanıcı adını al — hiç kullanıcı seçilmemişse isim eklemeden
+    // sadece selamla (önceden burada sabit "Sedat Bey" yazıyordu, kullanıcı
+    // seçilmemiş olsa bile hep bu isim görünüyordu).
     const kullaniciAdi = (function(){
       const id = localStorage.getItem('oyAktifKullaniciId');
-      if(!id) return 'Sedat Bey';
+      if(!id) return '';
       const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-      if(o) return (o.ad||'').split(' ')[0] + ' Bey';
+      if(o && o.ad) return o.ad.split(' ')[0] + ' Bey';
       const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-      if(p) return ((p.ad||p.adSoyad||'').split(' ')[0]) + ' Bey';
-      return 'Sedat Bey';
+      if(p){ const ad = p.ad || p.adSoyad || ''; if(ad) return ad.split(' ')[0] + ' Bey'; }
+      return '';
     })();
-    heroSelamlaEl.textContent = `${selam}, ${kullaniciAdi} 👋`;
+    heroSelamlaEl.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   }
   const bugunGun = GUNADI[new Date().getDay()];
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
