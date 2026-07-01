@@ -57,13 +57,18 @@
       el.title = bilgi.t;
       el.style.display = 'flex';
     }
-    // YENİ: hero kartındaki hava satırı (tıklanınca detay açılır)
+    // YENİ: hero kartındaki hava satırı (tıklanınca detay açılır) + konum adı
     var heroSatir = document.getElementById('heroHavaSatir');
     if(heroSatir){
       heroSatir.innerHTML =
-        '<span class="hava-ana-ikon" style="font-size:22px;">' + bilgi.e + '</span>' +
-        '<span class="hero-hava-sicaklik">' + Math.round(sicaklik) + '°C</span>' +
-        '<span class="hero-hava-aciklama">' + bilgi.t + '</span>' +
+        '<span class="hava-ana-ikon" style="font-size:22px;flex-shrink:0;">' + bilgi.e + '</span>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span class="hero-hava-sicaklik">' + Math.round(sicaklik) + '°C</span>' +
+            '<span class="hero-hava-aciklama">' + bilgi.t + '</span>' +
+          '</div>' +
+          '<div id="heroKonumMetni" style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;"></div>' +
+        '</div>' +
         '<span class="hero-hava-detay-ok">Detaylar ›</span>';
       heroSatir.style.display = 'flex';
     }
@@ -140,7 +145,6 @@
         .then(function(r){ return r.json(); })
         .then(function(geo){
           var el = document.getElementById('havaDurumuKonumAdi');
-          if(!el) return;
           var parts = [];
           if(geo.address){
             if(geo.address.neighbourhood) parts.push(geo.address.neighbourhood);
@@ -148,7 +152,11 @@
             if(geo.address.city || geo.address.town || geo.address.county)
               parts.push(geo.address.city || geo.address.town || geo.address.county);
           }
-          el.textContent = parts.length ? parts.join(', ') : (geo.display_name || '').split(',').slice(0,2).join(',');
+          var konumMetin = parts.length ? parts.join(', ') : (geo.display_name || '').split(',').slice(0,2).join(',');
+          if(el) el.textContent = konumMetin;
+          // YENİ: Hero'daki konum satırını da güncelle
+          var heroKonum = document.getElementById('heroKonumMetni');
+          if(heroKonum) heroKonum.textContent = '📍 ' + konumMetin;
         }).catch(function(){});
     } catch(e) {}
   }

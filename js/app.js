@@ -691,21 +691,28 @@ function renderDashboard(){
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
   const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
-  const kizOgrenci = (typeof veliler!=='undefined') ? veliler.filter(v=>v.cinsiyet==='Kız'||v.cinsiyet==='K').length : 0;
-  const erkekOgrenci = (typeof veliler!=='undefined') ? veliler.filter(v=>v.cinsiyet==='Erkek'||v.cinsiyet==='E').length : 0;
+  const kadinPersonel = ogretmenler.filter(o=>o.cinsiyet==='kadin'||o.cinsiyet==='Kadın').length
+    + ((typeof personelListesi!=='undefined') ? personelListesi.filter(p=>p.cinsiyet==='kadin'||p.cinsiyet==='Kadın').length : 0);
+  const erkekPersonel = ogretmenler.filter(o=>o.cinsiyet==='erkek'||o.cinsiyet==='Erkek').length
+    + ((typeof personelListesi!=='undefined') ? personelListesi.filter(p=>p.cinsiyet==='erkek'||p.cinsiyet==='Erkek').length : 0);
+  const kizOgrenci = (typeof veliler!=='undefined') ? veliler.filter(v=>['Kız','K','kiz','kız'].includes(v.cinsiyet)).length : 0;
+  const erkekOgrenci = (typeof veliler!=='undefined') ? veliler.filter(v=>['Erkek','E','erkek'].includes(v.cinsiyet)).length : 0;
   const servisSayisi = (typeof servisler !== 'undefined' && Array.isArray(servisler)) ? servisler.length : 0;
   const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
+
   document.getElementById('dashStats').innerHTML = `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
       <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
       <div class="stat-card-num">${ogretmenler.length}</div>
       <div class="stat-card-label">Personel</div>
+      ${kadinPersonel||erkekPersonel ? `<div class="stat-card-cinsiyet">🚺${kadinPersonel} 🚹${erkekPersonel}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
       <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
       <div class="stat-card-num">${toplamOgrenci}</div>
-      <div class="stat-card-label">Öğrenciler${kizOgrenci||erkekOgrenci ? `<span class="stat-card-cinsiyet">🚺${kizOgrenci} 🚹${erkekOgrenci}</span>` : ''}</div>
+      <div class="stat-card-label">Öğrenciler</div>
+      ${kizOgrenci||erkekOgrenci ? `<div class="stat-card-cinsiyet">🚺${kizOgrenci} 🚹${erkekOgrenci}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')">
