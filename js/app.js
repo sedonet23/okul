@@ -1152,10 +1152,22 @@ async function tumVerileriYedekle(){
   // istediği yere gönderebilir (ayrı bir Google girişi gerekmeden).
   uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true);
 }
+function _dosyaMetniOku(dosya){
+  // Bazı Android WebView sürümlerinde File.text() sessizce başarısız
+  // olabiliyor; FileReader daha geniş uyumluluğa sahip.
+  return new Promise((resolve, reject)=>{
+    const okuyucu = new FileReader();
+    okuyucu.onload = ()=> resolve(okuyucu.result);
+    okuyucu.onerror = ()=> reject(okuyucu.error || new Error('Dosya okunamadı'));
+    okuyucu.readAsText(dosya, 'utf-8');
+  });
+}
+
 async function yedektenGeriYukle(file){
-  if(!file) return;
-  const metin = await file.text();
+  if(!file){ console.warn('yedektenGeriYukle: dosya seçilmedi.'); return; }
+  toast('Yedek okunuyor, lütfen bekleyin…');
   try{
+    const metin = await _dosyaMetniOku(file);
     const data = JSON.parse(metin);
     if(!confirm("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?")) return;
     const eslemeler = [
@@ -1173,12 +1185,14 @@ async function yedektenGeriYukle(file){
       [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi],
       [data.personel, COL.personel]
     ];
+    let toplamKayit = 0;
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
       for(const oge of liste){
         const {id, ...veri} = oge;
         if(id){ await db.collection(koleksiyon).doc(id).set(veri); }
         else { await db.collection(koleksiyon).add(veri); }
+        toplamKayit++;
       }
     }
     if(data.dersSaatleriAyarlari){
@@ -1194,8 +1208,11 @@ async function yedektenGeriYukle(file){
       try{ await mevzuatYedektenYukle(data.mevzuat); }
       catch(e){ console.warn('Mevzuat geri yüklenemedi:', e.message); }
     }
-    toast('Geri yükleme tamamlandı.');
+    const yedekDosyaEl = document.getElementById('yedekDosya');
+    if(yedekDosyaEl) yedekDosyaEl.value = '';
+    toast(`Geri yükleme tamamlandı (${toplamKayit} kayıt işlendi).`);
   }catch(err){
+    console.error('yedektenGeriYukle hatası:', err);
     toast('Geri yükleme hatası: '+err.message);
   }
 }
