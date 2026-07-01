@@ -1029,9 +1029,19 @@ function baglantilariKur(){
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
+/* ---------- Sekme geçmişi (Android donanım geri tuşu için) ---------- */
+let _sekmeGecmisi = ['panel'];
+let _geriGidiliyor = false;
+
+function bottomNavAktifYap(el){
+  document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
 function sekmeAc(tab){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
+  document.querySelectorAll('.bn-item[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // YENİ: açık hava durumu detay panelini kapat
   var wp = document.getElementById('havaDurumuDetayPanel');
@@ -1044,7 +1054,56 @@ function sekmeAc(tab){
   // olabilir, bu yüzden onSnapshot dinleyicileri de globalAramaYap()'ı
   // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
   if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
+
+  // Geçmiş yığını: geri tuşuyla gelinen bir geçiş değilse ve aynı sekme
+  // tekrar açılmıyorsa geçmişe ekle (Android donanım geri tuşu için).
+  if(!_geriGidiliyor && _sekmeGecmisi[_sekmeGecmisi.length-1] !== tab){
+    _sekmeGecmisi.push(tab);
+    if(_sekmeGecmisi.length > 40) _sekmeGecmisi.shift();
+  }
+  _geriGidiliyor = false;
 }
+
+/* Android MainActivity.onBackPressed() tarafından çağrılır.
+   Dönüş değerleri: 'handled' (bir şey kapatıldı/geri gidildi, native hiçbir
+   şey yapmasın) veya 'exit' (uygulamanın en üst seviyesindeyiz, native
+   çift-basışla-çık mantığını uygulasın). */
+function geriTusuIsle(){
+  var mo = document.getElementById('modalOverlay');
+  if(mo && mo.classList.contains('active')){ modalKapat(); return 'handled'; }
+
+  var deo = document.getElementById('detayOverlay');
+  if(deo && deo.classList.contains('active')){ detayPanelKapat(); return 'handled'; }
+
+  var ksm = document.getElementById('kullaniciSecModal');
+  if(ksm && ksm.style.display && ksm.style.display !== 'none'){
+    if(typeof kullaniciSecModalKapat === 'function') kullaniciSecModalKapat(); else ksm.style.display = 'none';
+    return 'handled';
+  }
+
+  var hp = document.getElementById('havaDurumuDetayPanel');
+  if(hp){ hp.remove(); return 'handled'; }
+
+  var hem = document.getElementById('hizliEkleModal');
+  if(hem && hem.style.display && hem.style.display !== 'none'){
+    if(typeof hizliEkleModalKapat === 'function') hizliEkleModalKapat(); else hem.style.display = 'none';
+    return 'handled';
+  }
+
+  if(document.body.classList.contains('nav-open')){ menuKapat(); return 'handled'; }
+
+  if(_sekmeGecmisi.length > 1){
+    _sekmeGecmisi.pop();
+    var onceki = _sekmeGecmisi[_sekmeGecmisi.length-1];
+    _geriGidiliyor = true;
+    sekmeAc(onceki);
+    return 'handled';
+  }
+
+  return 'exit';
+}
+window.geriTusuIsle = geriTusuIsle;
+
 function haritaSekmesiAc(){
   sekmeAc('harita');
   // Harita başlatmayı bir sonraki tick'e bırak (DOM görünür olduktan sonra)

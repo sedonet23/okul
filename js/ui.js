@@ -109,6 +109,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
     btn.addEventListener('click', menuKapat);
   });
 
+  /* ---------- Kenardan kaydırma (swipe) ile menü aç/kapa ----------
+     Ekranın sol kenarına yakın (ilk ~28px) başlayan sağa doğru kaydırma
+     menüyü açar. Menü açıkken herhangi bir yerden sola kaydırma kapatır.
+     Dikey kaydırmayla (sayfa scroll'u) karışmaması için hareketin büyük
+     ölçüde yatay olması şartı aranır. */
+  (function swipeMenuKur(){
+    const KENAR_ESIGI = 28;      // px — sadece ekranın solundan başlayan dokunuşlar açar
+    const ESIK = 60;             // px — menüyü tetiklemek için gereken minimum yatay kaydırma
+    const DIKEY_TOLERANS = 45;   // px — bu kadar dikey harekete kadar "yatay kaydırma" sayılır
+    let basX = 0, basY = 0, izleniyor = false, kenardanBasladi = false;
+
+    document.addEventListener('touchstart', (e)=>{
+      if(e.touches.length !== 1) return;
+      basX = e.touches[0].clientX;
+      basY = e.touches[0].clientY;
+      kenardanBasladi = basX <= KENAR_ESIGI;
+      izleniyor = true;
+    }, { passive:true });
+
+    document.addEventListener('touchend', (e)=>{
+      if(!izleniyor) return;
+      izleniyor = false;
+      const bitis = e.changedTouches[0];
+      const dx = bitis.clientX - basX;
+      const dy = Math.abs(bitis.clientY - basY);
+      if(dy > DIKEY_TOLERANS) return; // dikey scroll, jest sayma
+
+      const acikMi = document.body.classList.contains('nav-open');
+      if(!acikMi && kenardanBasladi && dx > ESIK){
+        menuAcKapat();
+      } else if(acikMi && dx < -ESIK){
+        menuKapat();
+      }
+    }, { passive:true });
+  })();
+
   /* ---------- Çizelgeler açılır menüsü (sol menü) ----------
      Event delegation kullanılır: buton DOM'a sonradan eklenmiş/başka bir
      script tarafından yeniden oluşturulmuş olsa bile çalışmaya devam eder. */

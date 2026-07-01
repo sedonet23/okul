@@ -530,38 +530,53 @@
       const html = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
 
       // Bu uygulama bir native WebView kabuğu (Capacitor) içinde çalışıyor.
-      // window.open() burada yeni bir sekme açmaz, işletim sistemine harici
-      // bir "Şununla Aç" intent'i fırlatır ve geri tuşu uygulamayı kapatır —
-      // bu yüzden YENİ PENCERE AÇMIYORUZ. Aynı sayfa içinde gizli bir katmana
-      // basıp window.print() çağırıyoruz; bu WebView sürümüne göre değişebilir.
-      const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
-      const bodyMatch  = html.match(/<body[^>]*>([\s\S]*?)<\/body>/);
-      const stilIcerik = styleMatch ? styleMatch[1] : '';
-      const govdeIcerik = bodyMatch ? bodyMatch[1] : html;
+      // window.open('', '_blank') + document.write() eski yöntemi bazı Android
+      // WebView sürümlerinde print() tetiklemiyor. raporlama.js'de kanıtlanmış
+      // yöntem: Blob URL ile gerçek bir "origin" oluşturup window.open() ile
+      // açmak — bu şekilde açılan pencere kendi window.print()'ini güvenilir
+      // şekilde çalıştırabiliyor (otomatik onload script'i ile).
+      const yazdirScriptli = html.replace(
+        '</body>',
+        '<script>window.onload=function(){ setTimeout(function(){ try{ window.print(); }catch(e){} }, 200); };<\\/script></body>'
+      );
 
-      let katman = document.getElementById('ptYazdirKatmani');
-      if (katman) katman.remove();
+      try {
+        const blob = new Blob([yazdirScriptli], { type: 'text/html;charset=utf-8' });
+        const url  = URL.createObjectURL(blob);
+        const win  = window.open(url, '_blank');
+        if (!win) throw new Error('popup_blocked');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch(e) {
+        // Fallback: aynı sayfa içinde gizli katman + doğrudan window.print()
+        const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+        const bodyMatch  = html.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+        const stilIcerik = styleMatch ? styleMatch[1] : '';
+        const govdeIcerik = bodyMatch ? bodyMatch[1] : html;
 
-      katman = document.createElement('div');
-      katman.id = 'ptYazdirKatmani';
-      katman.innerHTML = '<style id="ptYazdirStil">' + stilIcerik +
-        '\n  @media screen { #ptYazdirKatmani { display:none !important; } }' +
-        '\n  @media print {' +
-        '    body.pt-yazdiriliyor > *:not(#ptYazdirKatmani) { display:none !important; }' +
-        '    #ptYazdirKatmani { display:block !important; }' +
-        '  }' +
-      '</style>' + govdeIcerik;
-      document.body.appendChild(katman);
-      document.body.classList.add('pt-yazdiriliyor');
+        let katman = document.getElementById('ptYazdirKatmani');
+        if (katman) katman.remove();
 
-      setTimeout(function(){
-        try { window.print(); } catch(e) {}
+        katman = document.createElement('div');
+        katman.id = 'ptYazdirKatmani';
+        katman.innerHTML = '<style id="ptYazdirStil">' + stilIcerik +
+          '\n  @media screen { #ptYazdirKatmani { display:none !important; } }' +
+          '\n  @media print {' +
+          '    body.pt-yazdiriliyor > *:not(#ptYazdirKatmani) { display:none !important; }' +
+          '    #ptYazdirKatmani { display:block !important; }' +
+          '  }' +
+        '</style>' + govdeIcerik;
+        document.body.appendChild(katman);
+        document.body.classList.add('pt-yazdiriliyor');
+
         setTimeout(function(){
-          document.body.classList.remove('pt-yazdiriliyor');
-          const k = document.getElementById('ptYazdirKatmani');
-          if (k) k.remove();
-        }, 600);
-      }, 150);
+          try { window.print(); } catch(e2) { toast('Yazdırma başlatılamadı: ' + e2.message); }
+          setTimeout(function(){
+            document.body.classList.remove('pt-yazdiriliyor');
+            const k = document.getElementById('ptYazdirKatmani');
+            if (k) k.remove();
+          }, 600);
+        }, 150);
+      }
     }
 
     function _htmlIndir() {
