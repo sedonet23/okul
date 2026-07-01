@@ -189,11 +189,8 @@
           <div id="dashMiniTakvim"></div>
         </div>
       </div>
-      <!-- YENİ: Yıllık görünüm dashboard'dan kaldırıldı, takvim sayfasında gösterilecek -->
-      <!-- dashYillikGorunum elementi korunuyor ama gizli — takvim.js onu doldurmaya devam ediyor -->
-      <div style="display:none;"><div id="dashYillikGorunum"></div></div>
+      <!-- YENİ: Ajanda anasayfada — yaklaşan etkinlikler, görevler ve hatırlatıcılar -->
       <div class="dash-cols">
-        <!-- Ajanda: yaklaşan etkinlikler, görevler ve hatırlatıcılar -->
         <div class="card dash-card-clickable" onclick="sekmeAc('takvim')">
           <h3 class="dash-h3-row">🗓️ Ajanda <span class="dash-tumu-link">Tümü ›</span></h3>
           <div id="dashAjanda"></div>
@@ -344,9 +341,15 @@
       <div class="card takvim-kart">
         <div class="takvim-grid" id="takvimGrid"></div>
       </div>
+      <!-- Ajanda takvim sayfasında da kalıyor -->
       <div class="card" style="margin-top:0;">
         <h3>📋 Ajanda — Yaklaşan 30 Gün</h3>
         <div id="takvimAjanda"></div>
+      </div>
+      <!-- YENİ: Yıllık görünüm takvim sayfasına taşındı -->
+      <div class="card" style="margin-top:0;">
+        <h3>🗓️ Yıllık Görünüm</h3>
+        <div id="dashYillikGorunum"></div>
       </div>
     </section>
 
@@ -708,22 +711,48 @@
 
     </section>
 
-    <!-- YENİ: Global Arama Sekmesi -->
+    <!-- YENİ: Global Arama Sekmesi — gelişmiş filtreler, servis bazlı öğrenci, temizle butonu -->
     <section id="tab-arama" class="tab-panel">
       <div class="page-header"><div><div class="page-title">🔍 Arama</div><div class="page-sub">Tüm kayıtlarda ara</div></div></div>
       <div class="card" style="margin-bottom:14px;">
-        <input type="text" id="globalAramaInput" placeholder="Öğretmen, öğrenci, veli, şoför, servis, evrak, not…" oninput="globalAramaYap()" style="font-size:16px;padding:14px 16px;" autofocus>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;" id="aramaKategoriButonlar">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input type="text" id="globalAramaInput" placeholder="Öğretmen, öğrenci, servis adı, evrak…" oninput="globalAramaYap()" style="font-size:15px;padding:12px 14px;flex:1;">
+          <button onclick="globalAramaTemizle()" style="background:var(--nm-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:16px;color:var(--ink-muted);" title="Temizle">✕</button>
+        </div>
+        <!-- Kategori filtreleri -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="aramaKategoriButonlar">
           <button class="btn btn-ghost btn-sm arama-kat aktif" data-kat="hepsi" onclick="aramaKatSec(this)">Tümü</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogretmen" onclick="aramaKatSec(this)">👩‍🏫 Öğretmen</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogrenci" onclick="aramaKatSec(this)">👨‍🎓 Öğrenci</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="personel" onclick="aramaKatSec(this)">🧑‍💼 Personel</button>
-          <button class="btn btn-ghost btn-sm arama-kat" data-kat="servis" onclick="aramaKatSec(this)">🚌 Servis/Şoför</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="servis" onclick="aramaKatSec(this)">🚌 Servis</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="evrak" onclick="aramaKatSec(this)">📄 Evrak</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="not" onclick="aramaKatSec(this)">📝 Not</button>
         </div>
+        <!-- Gelişmiş filtreler -->
+        <details id="gelistirmisFiltreler" style="margin-top:4px;">
+          <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--brand);padding:6px 0;">⚙️ Gelişmiş Filtreler</summary>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:4px;">Servis(ler) — öğrencileri listele</div>
+              <div id="aramaServisSecenekleri" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:4px;">Sınıf(lar)</div>
+              <div id="aramaSinifSecenekleri" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <select id="aramaCinsiyetFiltre" onchange="globalAramaYap()" style="flex:1;">
+                <option value="">Tüm Cinsiyetler</option>
+                <option value="kiz">🚺 Kız</option>
+                <option value="erkek">🚹 Erkek</option>
+              </select>
+            </div>
+            <button onclick="gelismisFiltreSifirla()" class="btn btn-ghost btn-sm" style="align-self:flex-start;">🔄 Filtreleri Sıfırla</button>
+          </div>
+        </details>
       </div>
-      <div id="globalAramaSonuclar"><p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın…</p></div>
+      <div id="globalAramaSonuclar"><p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın veya filtre seçin…</p></div>
     </section>
 
     <section id="tab-veri" class="tab-panel">
