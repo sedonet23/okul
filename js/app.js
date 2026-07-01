@@ -970,7 +970,11 @@ function renderZilSayaci(bugunGun){
 }
 
 /* ============== YEDEKLEME ============== */
-function yedekVerisiOlustur(){
+async function yedekVerisiOlustur(){
+  let mevzuat;
+  try{ mevzuat = typeof mevzuatTumVeriyiOku === 'function' ? await mevzuatTumVeriyiOku() : undefined; }
+  catch(e){ console.warn('Mevzuat verisi yedeğe eklenemedi:', e.message); }
+
   return {
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
@@ -985,11 +989,12 @@ function yedekVerisiOlustur(){
     belirliGunler: typeof belirliGunlerListesi !== 'undefined' ? belirliGunlerListesi : [],
     digerEvrak: typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [],
     sinavlar, denemeSinavlari,
-    personel: typeof personelListesi !== 'undefined' ? personelListesi : []
+    personel: typeof personelListesi !== 'undefined' ? personelListesi : [],
+    mevzuat: mevzuat || undefined
   };
 }
-function tumVerileriYedekle(){
-  const yedek = yedekVerisiOlustur();
+async function tumVerileriYedekle(){
+  const yedek = await yedekVerisiOlustur();
   const blob = new Blob([JSON.stringify(yedek,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1034,6 +1039,10 @@ async function yedektenGeriYukle(file){
     }
     if(data.periyodikSablon){
       await db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler: data.periyodikSablon });
+    }
+    if(data.mevzuat && typeof mevzuatYedektenYukle === 'function'){
+      try{ await mevzuatYedektenYukle(data.mevzuat); }
+      catch(e){ console.warn('Mevzuat geri yüklenemedi:', e.message); }
     }
     toast('Geri yükleme tamamlandı.');
   }catch(err){

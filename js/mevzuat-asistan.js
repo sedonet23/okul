@@ -1,0 +1,320 @@
+/* ====================================================================
+   js/mevzuat-asistan.js
+   MEVZUAT ASİSTANI MODÜLÜ
+
+   Depolama: Firestore DEĞİL — tamamen cihaz içi IndexedDB (tek kullanıcı
+   için tasarlandı, Firestore kotasını hiç harcamaz). Google Drive'a
+   otomatik yedekleniyor (bkz. app.js yedekVerisiOlustur/yedektenGeriYukle
+   — bu dosyadaki mevzuatTumVeriyiOku()/mevzuatYedektenYukle() ile bağlanır).
+
+   Veri modeli:
+     kayitlar : {id, baslik, kaynak, kategori, eklenmeTarihi, chunkSayisi}
+     chunklar : {id, mevzuatId, indeks, baslik, metin, anahtarKelimeler:[...]}
+
+   Akış:
+     1) Kullanıcı mevzuat metnini yapıştırır → madde/paragraf bazlı
+        chunk'lara bölünür → IndexedDB'ye yazılır.
+     2) Soru sorulduğunda, TÜM işlem cihazda: basit anahtar kelime
+        skorlamasıyla en alakalı birkaç chunk seçilir.
+     3) Sadece o birkaç chunk, mevcut AI asistan altyapısına (Cloudflare
+        Worker — bkz. js/asistan.js ASISTAN_API_URL) "context" olarak
+        gönderilir, soru cevaplanır.
+   ==================================================================== */
+
+const MEVZUAT_DB_ADI = 'okulMevzuatDB';
+const MEVZUAT_DB_SURUM = 1;
+let _mevzuatDbHandle = null;
+
+let mevzuatKayitlari = [];   // {id, baslik, kaynak, kategori, eklenmeTarihi, chunkSayisi}
+let mevzuatSohbetGecmisi = []; // [{role:'user'|'model', text}]
+let mevzuatYukleniyor = false;
+let mevzuatAltGorunum = 'kaynaklar'; // 'kaynaklar' | 'sohbet'
+
+/* ---------- IndexedDB temel katman ---------- */
+function _mevzuatDbAc(){
+  return new Promise((resolve, reject)=>{
+    if(_mevzuatDbHandle){ resolve(_mevzuatDbHandle); return; }
+    const istek = indexedDB.open(MEVZUAT_DB_ADI, MEVZUAT_DB_SURUM);
+    istek.onupgradeneeded = (e)=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains('kayitlar')){
+        db.createObjectStore('kayitlar', { keyPath: 'id' });
+      }
+      if(!db.objectStoreNames.contains('chunklar')){
+        const cs = db.createObjectStore('chunklar', { keyPath: 'id' });
+        cs.createIndex('mevzuatId', 'mevzuatId', { unique: false });
+      }
+    };
+    istek.onsuccess = (e)=>{ _mevzuatDbHandle = e.target.result; resolve(_mevzuatDbHandle); };
+    istek.onerror = (e)=> reject(e.target.error);
+  });
+}
+
+function _mevzuatStoreIslem(storeAdi, mod, islevGorevi){
+  return _mevzuatDbAc().then(db=> new Promise((resolve, reject)=>{
+    const tx = db.transaction(storeAdi, mod);
+    const store = tx.objectStore(storeAdi);
+    const sonuc = islevGorevi(store);
+    tx.oncomplete = ()=> resolve(sonuc);
+    tx.onerror = ()=> reject(tx.error);
+  }));
+}
+
+function _mevzuatTumKayitlariOku(){
+  return _mevzuatDbAc().then(db=> new Promise((resolve, reject)=>{
+    const tx = db.transaction('kayitlar', 'readonly');
+    const req = tx.objectStore('kayitlar').getAll();
+    req.onsuccess = ()=> resolve(req.result || []);
+    req.onerror = ()=> reject(req.error);
+  }));
+}
+
+function _mevzuatTumChunklariOku(){
+  return _mevzuatDbAc().then(db=> new Promise((resolve, reject)=>{
+    const tx = db.transaction('chunklar', 'readonly');
+    const req = tx.objectStore('chunklar').getAll();
+    req.onsuccess = ()=> resolve(req.result || []);
+    req.onerror = ()=> reject(req.error);
+  }));
+}
+
+function _mevzuatChunklariGetir(mevzuatId){
+  return _mevzuatDbAc().then(db=> new Promise((resolve, reject)=>{
+    const tx = db.transaction('chunklar', 'readonly');
+    const idx = tx.objectStore('chunklar').index('mevzuatId');
+    const req = idx.getAll(IDBKeyRange.only(mevzuatId));
+    req.onsuccess = ()=> resolve(req.result || []);
+    req.onerror = ()=> reject(req.error);
+  }));
+}
+
+/* ---------- Firestore/Drive yedekleme köprüsü (bkz. app.js) ---------- */
+async function mevzuatTumVeriyiOku(){
+  const [kayitlar, chunklar] = await Promise.all([_mevzuatTumKayitlariOku(), _mevzuatTumChunklariOku()]);
+  return { kayitlar, chunklar };
+}
+
+async function mevzuatYedektenYukle(veri){
+  if(!veri) return;
+  const kayitlar = Array.isArray(veri.kayitlar) ? veri.kayitlar : [];
+  const chunklar = Array.isArray(veri.chunklar) ? veri.chunklar : [];
+  await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=>{
+    kayitlar.forEach(k=> store.put(k));
+  });
+  await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=>{
+    chunklar.forEach(c=> store.put(c));
+  });
+  await mevzuatKayitlariYenile();
+}
+
+/* ---------- başlangıç ---------- */
+async function mevzuatBaslangicYukle(){
+  try{ await mevzuatKayitlariYenile(); }
+  catch(e){ console.warn('Mevzuat verisi yüklenemedi:', e.message); }
+}
+document.addEventListener('DOMContentLoaded', ()=> setTimeout(mevzuatBaslangicYukle, 800));
+
+async function mevzuatKayitlariYenile(){
+  mevzuatKayitlari = await _mevzuatTumKayitlariOku();
+  mevzuatKayitlari.sort((a,b)=> (b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||''));
+  renderMevzuatKayitlari();
+}
+
+/* ---------- chunk'lama ----------
+   Türkçe mevzuat metinlerinde en yaygın kalıp "MADDE 1-", "Madde 1."
+   şeklindedir. Bu kalıp bulunursa ona göre bölünür; bulunamazsa
+   paragraflara (boş satır) göre, o da yoksa sabit uzunlukta bölünür. */
+function _mevzuatMetniChunklaraBol(metin){
+  const temiz = (metin || '').replace(/\r\n/g, '\n').trim();
+  if(!temiz) return [];
+
+  const maddeRegex = /(?=^\s*MADDE\s+\d+\s*[-–.]|^\s*Madde\s+\d+\s*[-–.])/gim;
+  let parcalar = temiz.split(maddeRegex).map(p=>p.trim()).filter(Boolean);
+
+  if(parcalar.length <= 1){
+    parcalar = temiz.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean);
+  }
+
+  // Hâlâ tek parçaysa (biçimlendirilmemiş uzun metin) sabit uzunlukta böl
+  if(parcalar.length <= 1 && temiz.length > 1200){
+    parcalar = [];
+    for(let i = 0; i < temiz.length; i += 1000){
+      parcalar.push(temiz.slice(i, i + 1000));
+    }
+  }
+  if(parcalar.length === 0) parcalar = [temiz];
+
+  return parcalar.map((p, i)=>{
+    const ilkSatir = p.split('\n')[0].trim();
+    const baslik = ilkSatir.length <= 80 ? ilkSatir : `Bölüm ${i + 1}`;
+    return { baslik, metin: p, anahtarKelimeler: _mevzuatAnahtarKelimelerCikar(p) };
+  });
+}
+
+const MEVZUAT_STOP_KELIME = new Set(['ve','veya','ile','bir','bu','da','de','ki','için','olan','olarak',
+  'ise','gibi','çok','daha','en','ya','ancak','fakat','madde','fıkra','bent','göre','şu','o','her']);
+
+function _mevzuatAnahtarKelimelerCikar(metin){
+  const kelimeler = (metin.toLocaleLowerCase('tr'))
+    .replace(/[^\wçğıöşü\s]/gi, ' ')
+    .split(/\s+/)
+    .filter(k => k.length > 2 && !MEVZUAT_STOP_KELIME.has(k));
+  return [...new Set(kelimeler)].slice(0, 60);
+}
+
+/* ---------- yeni mevzuat ekleme ---------- */
+async function mevzuatEkle(){
+  const baslik = document.getElementById('f_mvBaslik').value.trim();
+  const kaynak = document.getElementById('f_mvKaynak').value.trim();
+  const kategori = document.getElementById('f_mvKategori').value.trim() || 'Genel';
+  const metin = document.getElementById('f_mvMetin').value;
+
+  if(!baslik || !metin || !metin.trim()){ toast('Başlık ve metin zorunlu.'); return; }
+
+  const parcalar = _mevzuatMetniChunklaraBol(metin);
+  if(parcalar.length === 0){ toast('Metinden bölüm çıkarılamadı.'); return; }
+
+  const mevzuatId = 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const kayit = { id: mevzuatId, baslik, kaynak, kategori, eklenmeTarihi: new Date().toISOString(), chunkSayisi: parcalar.length };
+  const chunklar = parcalar.map((p, i)=> ({
+    id: mevzuatId + '_c' + i, mevzuatId, indeks: i, baslik: p.baslik, metin: p.metin, anahtarKelimeler: p.anahtarKelimeler
+  }));
+
+  await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=> store.put(kayit));
+  await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=> chunklar.forEach(c=> store.put(c)));
+
+  toast(`"${baslik}" eklendi (${parcalar.length} bölüm).`);
+  modalKapat();
+  await mevzuatKayitlariYenile();
+}
+
+function mevzuatEkleModalAc(){
+  const body = `
+    <div class="form-group"><label>Başlık</label><input type="text" id="f_mvBaslik" placeholder="Örn: Milli Eğitim Bakanlığı Personeli İzin Yönergesi"></div>
+    <div class="form-group"><label>Kaynak (opsiyonel)</label><input type="text" id="f_mvKaynak" placeholder="Örn: mevzuat.gov.tr, Resmî Gazete"></div>
+    <div class="form-group"><label>Kategori</label><input type="text" id="f_mvKategori" list="mvKategoriListesi" placeholder="Genel" value="Genel">
+      <datalist id="mvKategoriListesi">${[...new Set(mevzuatKayitlari.map(k=>k.kategori).filter(Boolean))].map(k=>`<option value="${escapeHtml(k)}">`).join('')}</datalist>
+    </div>
+    <div class="form-group"><label>Mevzuat Metni</label><textarea id="f_mvMetin" rows="10" placeholder="Metni buraya yapıştırın (MADDE 1-, MADDE 2- şeklinde bölünmüş olması aramayı daha isabetli yapar)"></textarea></div>
+    <div class="page-sub">PDF'ten metin çıkaramıyorsan, dosyayı bu sohbete yükleyip "bu PDF'in metnini çıkar" diyebilirsin, çıkan metni buraya yapıştırırsın.</div>
+  `;
+  modalAc('+ Yeni Mevzuat Ekle', body, mevzuatEkle, null, 'Bölerek Kaydet');
+}
+
+/* ---------- kayıt listesi ---------- */
+function renderMevzuatKayitlari(){
+  const hedef = document.getElementById('mevzuatKayitlariListesi');
+  if(!hedef) return;
+  hedef.innerHTML = mevzuatKayitlari.length ? mevzuatKayitlari.map(k=>`
+    <div class="evrak-row">
+      <div class="evrak-body">
+        <div class="evrak-title">${escapeHtml(k.baslik)} <span class="badge badge-blue">${escapeHtml(k.kategori||'Genel')}</span></div>
+        <div class="evrak-meta">${k.kaynak ? escapeHtml(k.kaynak) + ' · ' : ''}${k.chunkSayisi||0} bölüm · ${formatTarih((k.eklenmeTarihi||'').slice(0,10))}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="mevzuatSil('${k.id}')">Sil</button>
+    </div>
+  `).join('') : '<div class="empty-state">Henüz mevzuat eklenmedi. "+ Yeni Mevzuat Ekle" ile başla.</div>';
+}
+
+async function mevzuatSil(id){
+  if(!confirm('Bu mevzuatı ve tüm bölümlerini silmek istediğinize emin misiniz?')) return;
+  const chunklar = await _mevzuatChunklariGetir(id);
+  await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=> chunklar.forEach(c=> store.delete(c.id)));
+  await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=> store.delete(id));
+  toast('Silindi.');
+  await mevzuatKayitlariYenile();
+}
+
+/* ---------- alt görünüm sekmeleri ---------- */
+function mevzuatAltGorunumSec(g){
+  mevzuatAltGorunum = g;
+  document.querySelectorAll('#tab-mevzuat .mevzuat-altsekme-btn').forEach(b=>b.classList.toggle('active', b.dataset.g===g));
+  document.querySelectorAll('#tab-mevzuat .mevzuat-altgorunum').forEach(el=> el.style.display = (el.dataset.g===g) ? '' : 'none');
+}
+
+/* ---------- cihazda arama (index tabanlı, Firestore'a hiç gitmiyor) ---------- */
+async function _mevzuatEnAlakaliChunklariBul(soru, adet){
+  adet = adet || 4;
+  const sorguKelimeleri = _mevzuatAnahtarKelimelerCikar(soru);
+  if(sorguKelimeleri.length === 0) return [];
+
+  const tumChunklar = await _mevzuatTumChunklariOku();
+  const skorlar = tumChunklar.map(c=>{
+    const kelimeSeti = new Set(c.anahtarKelimeler || []);
+    let skor = 0;
+    sorguKelimeleri.forEach(k=>{ if(kelimeSeti.has(k)) skor++; });
+    if(c.baslik && sorguKelimeleri.some(k=> c.baslik.toLocaleLowerCase('tr').includes(k))) skor += 2;
+    return { chunk: c, skor };
+  }).filter(x=> x.skor > 0);
+
+  skorlar.sort((a,b)=> b.skor - a.skor);
+  return skorlar.slice(0, adet).map(x=> x.chunk);
+}
+
+/* ---------- sohbet ---------- */
+function mevzuatSohbetRender(){
+  const kutu = document.getElementById('mevzuatMesajlar');
+  if(!kutu) return;
+  kutu.innerHTML = mevzuatSohbetGecmisi.map(m=>`
+    <div class="asistan-msg asistan-msg-${m.role}">
+      <div class="asistan-msg-bubble">${escapeHtml(m.text).replace(/\n/g,'<br>')}</div>
+    </div>
+  `).join('') + (mevzuatYukleniyor ? `
+    <div class="asistan-msg asistan-msg-model"><div class="asistan-msg-bubble asistan-typing">Aranıyor…</div></div>` : '');
+  kutu.scrollTop = kutu.scrollHeight;
+}
+
+async function mevzuatSoruGonder(){
+  const input = document.getElementById('mevzuatInput');
+  const soru = (input.value || '').trim();
+  if(!soru || mevzuatYukleniyor) return;
+
+  mevzuatSohbetGecmisi.push({ role:'user', text: soru });
+  input.value = '';
+  mevzuatYukleniyor = true;
+  mevzuatSohbetRender();
+
+  try{
+    const ilgiliChunklar = await _mevzuatEnAlakaliChunklariBul(soru, 4);
+
+    if(ilgiliChunklar.length === 0){
+      mevzuatYukleniyor = false;
+      mevzuatSohbetGecmisi.push({ role:'model', text: 'Eklediğin mevzuatlar arasında bu soruyla ilgili bir bölüm bulamadım. Farklı kelimelerle sorabilir ya da ilgili mevzuatı önce ekleyebilirsin.' });
+      mevzuatSohbetRender();
+      return;
+    }
+
+    const baglam = ilgiliChunklar.map(c=>{
+      const ustKayit = mevzuatKayitlari.find(k=> k.id === c.mevzuatId);
+      return `[Kaynak: ${ustKayit ? ustKayit.baslik : 'Bilinmeyen'} — ${c.baslik}]\n${c.metin}`;
+    }).join('\n\n---\n\n');
+
+    const sistemYonergesi = 'Sen bir okul mevzuat asistanısın. Sana verilen mevzuat bölümlerine dayanarak soruyu KISA ve NET cevapla. ' +
+      'Cevabın sonunda hangi mevzuat/madde başlığından yararlandığını belirt. Verilen metinlerde cevap yoksa, bunu açıkça söyle, uydurma.';
+
+    const res = await fetch(ASISTAN_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'user', text: sistemYonergesi + '\n\nSoru: ' + soru }
+        ],
+        context: baglam
+      })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error(data.error || 'Bilinmeyen hata');
+
+    mevzuatYukleniyor = false;
+    mevzuatSohbetGecmisi.push({ role:'model', text: data.text || '(boş yanıt)' });
+    mevzuatSohbetRender();
+  }catch(err){
+    mevzuatYukleniyor = false;
+    mevzuatSohbetGecmisi.push({ role:'model', text: '⚠️ Hata: ' + err.message });
+    mevzuatSohbetRender();
+  }
+}
+
+function mevzuatInputEnter(e){
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); mevzuatSoruGonder(); }
+}

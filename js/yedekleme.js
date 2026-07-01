@@ -120,7 +120,7 @@ async function driveyeYedekleAt(otomatikMi){
     driveDurumGuncelle('Drive yetkilendirmesi bekleniyor...');
     await driveErisimIste();
     driveDurumGuncelle('Yedekleniyor...');
-    const yedek = yedekVerisiOlustur();
+    const yedek = await yedekVerisiOlustur();
     const dosyaAdi = `okul-yedek-${todayISO()}.json`;
     const klasorId = await driveKlasorIdGetir();
     await driveDosyaYukle(klasorId, dosyaAdi, JSON.stringify(yedek, null, 2));
