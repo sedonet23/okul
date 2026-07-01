@@ -1154,53 +1154,63 @@ async function tumVerileriYedekle(){
 }
 function _dosyaMetniOku(dosya){
   // Bazı Android WebView sürümlerinde / bazı dosya kaynaklarında (SAF ile
-  // seçilen content:// URI'ler gibi) tek bir okuma yöntemi başarısız
-  // olabiliyor. Üç farklı yöntemi sırayla dener, hangisi başarılı olursa
-  // onu kullanır. Hepsi başarısız olursa her denemenin hatasını birleştirip
-  // gösterir (teşhis için).
-  return new Promise((resolve, reject)=>{
-    const hatalar = [];
+  // seçilen content:// URI'ler gibi) tek bir okuma yöntemi HİÇ HATA
+  // VERMEDEN sonsuza kadar takılı kalabiliyor (örn. arrayBuffer() hiç
+  // cevap dönmüyor). Bu yüzden her yönteme bir zaman aşımı (5sn) konuyor —
+  // süre dolarsa o yöntem "başarısız" sayılıp bir sonraki denenir.
+  const ZAMAN_ASIMI_MS = 5000;
 
-    function fileReaderIleDene(){
-      try{
-        const okuyucu = new FileReader();
-        okuyucu.onload = ()=> resolve(okuyucu.result);
-        okuyucu.onerror = ()=>{
-          hatalar.push('FileReader: ' + ((okuyucu.error && (okuyucu.error.name + ' - ' + okuyucu.error.message)) || 'bilinmeyen hata'));
-          arrayBufferIleDene();
-        };
-        okuyucu.readAsText(dosya, 'utf-8');
-      }catch(e){
-        hatalar.push('FileReader (senkron hata): ' + e.message);
-        arrayBufferIleDene();
-      }
-    }
+  function zamanAsimliCalistir(sozVerFn, adi){
+    return new Promise((resolve, reject)=>{
+      let bitti = false;
+      const zamanlayici = setTimeout(()=>{
+        if(bitti) return;
+        bitti = true;
+        reject(new Error(adi + ': zaman aşımına uğradı (' + (ZAMAN_ASIMI_MS/1000) + 'sn içinde cevap vermedi)'));
+      }, ZAMAN_ASIMI_MS);
 
-    function arrayBufferIleDene(){
-      dosya.arrayBuffer()
-        .then(buf => resolve(new TextDecoder('utf-8').decode(buf)))
-        .catch(e => {
-          hatalar.push('arrayBuffer: ' + e.message);
-          textIleDene();
-        });
-    }
+      sozVerFn().then(sonuc=>{
+        if(bitti) return;
+        bitti = true; clearTimeout(zamanlayici); resolve(sonuc);
+      }).catch(hata=>{
+        if(bitti) return;
+        bitti = true; clearTimeout(zamanlayici);
+        reject(new Error(adi + ': ' + (hata && hata.message ? hata.message : hata)));
+      });
+    });
+  }
 
-    function textIleDene(){
-      if(typeof dosya.text !== 'function'){
-        hatalar.push('File.text(): bu tarayıcıda desteklenmiyor');
-        reject(new Error('Dosya hiçbir yöntemle okunamadı — ' + hatalar.join(' | ')));
-        return;
-      }
-      dosya.text()
-        .then(resolve)
-        .catch(e => {
-          hatalar.push('File.text(): ' + e.message);
-          reject(new Error('Dosya hiçbir yöntemle okunamadı — ' + hatalar.join(' | ')));
-        });
-    }
-
-    fileReaderIleDene();
+  const fileReaderSozVer = ()=> new Promise((resolve, reject)=>{
+    const okuyucu = new FileReader();
+    okuyucu.onload = ()=> resolve(okuyucu.result);
+    okuyucu.onerror = ()=> reject(okuyucu.error || new Error('bilinmeyen hata'));
+    okuyucu.readAsText(dosya, 'utf-8');
   });
+
+  const arrayBufferSozVer = ()=> dosya.arrayBuffer().then(buf => new TextDecoder('utf-8').decode(buf));
+
+  const textSozVer = ()=> {
+    if(typeof dosya.text !== 'function') return Promise.reject(new Error('bu tarayıcıda desteklenmiyor'));
+    return dosya.text();
+  };
+
+  const yontemler = [
+    ['FileReader', fileReaderSozVer],
+    ['arrayBuffer', arrayBufferSozVer],
+    ['File.text()', textSozVer]
+  ];
+
+  return (async ()=>{
+    const hatalar = [];
+    for(const [adi, fn] of yontemler){
+      try{
+        return await zamanAsimliCalistir(fn, adi);
+      }catch(e){
+        hatalar.push(e.message);
+      }
+    }
+    throw new Error('Dosya hiçbir yöntemle okunamadı — ' + hatalar.join(' | '));
+  })();
 }
 
 async function yedektenGeriYukle(file){
