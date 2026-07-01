@@ -10,6 +10,7 @@ import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 public class MainActivity extends BridgeActivity {
 
     private SwipeRefreshLayout swipeRefresh;
+    private long sonGeriTusuZamani = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -18,6 +19,34 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
+    }
+
+    /* Donanım geri tuşu: önce web tarafındaki geriTusuIsle() fonksiyonuna
+       sor — açık bir modal/detay panel/menü varsa veya sekme geçmişi
+       boş değilse JS tarafı kendi içinde geri gider ve 'handled' döner.
+       Web tarafı zaten en üst seviyedeyse ('exit') çift basışla çıkış
+       uygulanır: ilk basışta uyarı gösterilir, 2 saniye içinde tekrar
+       basılırsa uygulama kapanır. */
+    @Override
+    public void onBackPressed() {
+        android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+        if (webView == null) { super.onBackPressed(); return; }
+
+        webView.evaluateJavascript(
+            "(function(){ try { return (typeof geriTusuIsle==='function') ? geriTusuIsle() : 'exit'; } catch(e){ return 'exit'; } })()",
+            (String sonuc) -> {
+                String temiz = sonuc != null ? sonuc.replace("\"", "") : "exit";
+                if ("handled".equals(temiz)) return;
+
+                long simdi = System.currentTimeMillis();
+                if (simdi - sonGeriTusuZamani < 2000) {
+                    finish();
+                } else {
+                    sonGeriTusuZamani = simdi;
+                    android.widget.Toast.makeText(MainActivity.this, "Çıkmak için tekrar geri tuşuna basın", android.widget.Toast.LENGTH_SHORT).show();
+                }
+            }
+        );
     }
 
     private void setupPullToRefresh() {
