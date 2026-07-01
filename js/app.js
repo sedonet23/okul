@@ -1153,13 +1153,53 @@ async function tumVerileriYedekle(){
   uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true);
 }
 function _dosyaMetniOku(dosya){
-  // Bazı Android WebView sürümlerinde File.text() sessizce başarısız
-  // olabiliyor; FileReader daha geniş uyumluluğa sahip.
+  // Bazı Android WebView sürümlerinde / bazı dosya kaynaklarında (SAF ile
+  // seçilen content:// URI'ler gibi) tek bir okuma yöntemi başarısız
+  // olabiliyor. Üç farklı yöntemi sırayla dener, hangisi başarılı olursa
+  // onu kullanır. Hepsi başarısız olursa her denemenin hatasını birleştirip
+  // gösterir (teşhis için).
   return new Promise((resolve, reject)=>{
-    const okuyucu = new FileReader();
-    okuyucu.onload = ()=> resolve(okuyucu.result);
-    okuyucu.onerror = ()=> reject(okuyucu.error || new Error('Dosya okunamadı'));
-    okuyucu.readAsText(dosya, 'utf-8');
+    const hatalar = [];
+
+    function fileReaderIleDene(){
+      try{
+        const okuyucu = new FileReader();
+        okuyucu.onload = ()=> resolve(okuyucu.result);
+        okuyucu.onerror = ()=>{
+          hatalar.push('FileReader: ' + ((okuyucu.error && (okuyucu.error.name + ' - ' + okuyucu.error.message)) || 'bilinmeyen hata'));
+          arrayBufferIleDene();
+        };
+        okuyucu.readAsText(dosya, 'utf-8');
+      }catch(e){
+        hatalar.push('FileReader (senkron hata): ' + e.message);
+        arrayBufferIleDene();
+      }
+    }
+
+    function arrayBufferIleDene(){
+      dosya.arrayBuffer()
+        .then(buf => resolve(new TextDecoder('utf-8').decode(buf)))
+        .catch(e => {
+          hatalar.push('arrayBuffer: ' + e.message);
+          textIleDene();
+        });
+    }
+
+    function textIleDene(){
+      if(typeof dosya.text !== 'function'){
+        hatalar.push('File.text(): bu tarayıcıda desteklenmiyor');
+        reject(new Error('Dosya hiçbir yöntemle okunamadı — ' + hatalar.join(' | ')));
+        return;
+      }
+      dosya.text()
+        .then(resolve)
+        .catch(e => {
+          hatalar.push('File.text(): ' + e.message);
+          reject(new Error('Dosya hiçbir yöntemle okunamadı — ' + hatalar.join(' | ')));
+        });
+    }
+
+    fileReaderIleDene();
   });
 }
 
