@@ -350,13 +350,13 @@ window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
    doğrudan cihazın "İndirilenler" klasörüne yazar.
    Web/PWA ortamda (native plugin yoksa): klasik blob + <a download> yöntemi.
    ==================================================================== */
-function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru){
+function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru, paylas){
   const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
     window.Capacitor.Plugins && window.Capacitor.Plugins.SavePlugin);
 
   if(nativeVarMi){
-    window.Capacitor.Plugins.SavePlugin.kaydet({ base64: base64Veri, dosyaAdi, mimeTuru })
-      .then(()=> toast(`"${dosyaAdi}" İndirilenler klasörüne kaydedildi.`))
+    window.Capacitor.Plugins.SavePlugin.kaydet({ base64: base64Veri, dosyaAdi, mimeTuru, paylas: !!paylas })
+      .then(()=> { if(!paylas) toast(`"${dosyaAdi}" İndirilenler klasörüne kaydedildi.`); })
       .catch(e=> toast('Dosya kaydedilemedi: ' + (e && e.message)));
     return;
   }
@@ -1035,7 +1035,10 @@ async function tumVerileriYedekle(){
   const jsonMetin = JSON.stringify(yedek, null, 2);
   // UTF-8 güvenli base64 (Türkçe karakterler için btoa tek başına yetmez)
   const base64Json = btoa(unescape(encodeURIComponent(jsonMetin)));
-  uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json');
+  // paylas=true: native ortamda kaydettikten hemen sonra Android'in "Paylaş"
+  // menüsünü açar — kullanıcı dosyayı doğrudan Drive/WhatsApp/e-posta gibi
+  // istediği yere gönderebilir (ayrı bir Google girişi gerekmeden).
+  uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true);
 }
 async function yedektenGeriYukle(file){
   if(!file) return;
