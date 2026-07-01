@@ -8,6 +8,32 @@ function isNative(){
   } catch(e){ return false; }
 }
 
+/* ---------- Diğer modüllerin (örn. haberler.js) erişebilmesi için cihaz token'ı ---------- */
+let _cihazTokenGlobal = null;
+function cihazTokenGetir(){ return _cihazTokenGlobal; }
+
+/* Lokalde saklanan kategori tercihlerini token kaydıyla birlikte Firestore'a yaz */
+async function _cihazKategoriTercihleriSenkronla(token){
+  if(!token || !db) return;
+  try{
+    const ham = localStorage.getItem('haberKategoriTercihleri');
+    const kategoriler = ham ? JSON.parse(ham) : null;
+    if(kategoriler) await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({ kategoriler }, { merge:true });
+  }catch(e){ console.warn('Kategori tercihi senkronize edilemedi:', e.message); }
+}
+
+/* Sayfa açılışında, izin zaten verilmişse token'ı sessizce al (yeniden izin istemeden) */
+async function _webPushTokenSessizceAl(){
+  try{
+    if(isNative() || !messaging) return;
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const kayit = await navigator.serviceWorker.register('/okul/firebase-messaging-sw.js');
+    const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: kayit });
+    if(token){ _cihazTokenGlobal = token; await _cihazKategoriTercihleriSenkronla(token); }
+  }catch(e){ console.warn('Sessiz token alma başarısız:', e.message); }
+}
+document.addEventListener('DOMContentLoaded', ()=> setTimeout(_webPushTokenSessizceAl, 1500));
+
 async function _getNativePush(){
   // Yöntem 1: window.Capacitor.Plugins
   if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications){
@@ -73,9 +99,11 @@ async function bildirimleriAc(){
     const kayit = await navigator.serviceWorker.register('/okul/firebase-messaging-sw.js');
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: kayit });
     if(!token){ toast('Token alinamadi.'); return; }
+    _cihazTokenGlobal = token;
     await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({
       token, eklenmeTarihi: new Date().toISOString(), tarayici: navigator.userAgent
     });
+    await _cihazKategoriTercihleriSenkronla(token);
     toast('Bildirimler acildi.');
     pushDurumGuncelle();
   }catch(err){
@@ -99,9 +127,11 @@ async function _nativeBildirimleriAc(){
     PushNotifications.addListener('registration', async (tokenObj) => {
       const token = tokenObj.value;
       try {
+        _cihazTokenGlobal = token;
         await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({
           token, eklenmeTarihi: new Date().toISOString(), tarayici: 'Android-Native'
         });
+        await _cihazKategoriTercihleriSenkronla(token);
         toast('Bildirimler acildi, cihaz kaydedildi.');
         pushDurumGuncelle();
       } catch(e){

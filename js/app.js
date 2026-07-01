@@ -1002,6 +1002,7 @@ function baglantilariKur(){
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); if(typeof renderDigerEvrak==='function') renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
+  if(typeof haberlerBaglantilariKur === 'function') haberlerBaglantilariKur();
   if(typeof servisOturmaBaglantisiKur === "function") servisOturmaBaglantisiKur();
   sinavBaglantilariKur();
   if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur();
