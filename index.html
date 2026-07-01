@@ -728,6 +728,7 @@
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="servis" onclick="aramaKatSec(this)">🚌 Servis</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="evrak" onclick="aramaKatSec(this)">📄 Evrak</button>
           <button class="btn btn-ghost btn-sm arama-kat" data-kat="not" onclick="aramaKatSec(this)">📝 Not</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="cizelge" onclick="aramaKatSec(this)">🗂️ Çizelge</button>
         </div>
         <!-- Gelişmiş filtreler -->
         <details id="gelistirmisFiltreler" style="margin-top:4px;">
@@ -751,6 +752,9 @@
             <button onclick="gelismisFiltreSifirla()" class="btn btn-ghost btn-sm" style="align-self:flex-start;">🔄 Filtreleri Sıfırla</button>
           </div>
         </details>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button onclick="globalAramaYazdir()" class="btn btn-ghost btn-sm" title="Arama sonuçlarını yazdır">🖨️ Yazdır</button>
       </div>
       <div id="globalAramaSonuclar"><p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın veya filtre seçin…</p></div>
     </section>
