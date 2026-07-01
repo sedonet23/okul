@@ -213,9 +213,14 @@ function renderOgrenciler() {
   listeEl.innerHTML = html;
 }
 
+
 /* ================================================================
-   GLOBAL ARAMA
+   GLOBAL ARAMA — gelişmiş, çoklu kriter, servis bazlı öğrenci
    ================================================================ */
+// _aramaKategori zaten yukarıda tanımlı
+let _seciliServisler = new Set(); // çoklu servis filtresi
+let _seciliSiniflar  = new Set(); // çoklu sınıf filtresi
+
 function aramaKatSec(btn) {
   document.querySelectorAll('.arama-kat').forEach(b => b.classList.remove('aktif'));
   btn.classList.add('aktif');
@@ -223,21 +228,88 @@ function aramaKatSec(btn) {
   globalAramaYap();
 }
 
+function globalAramaTemizle() {
+  const inp = document.getElementById('globalAramaInput');
+  if (inp) { inp.value = ''; inp.focus(); }
+  globalAramaYap();
+}
+
+function gelismisFiltreSifirla() {
+  _seciliServisler.clear();
+  _seciliSiniflar.clear();
+  document.getElementById('aramaCinsiyetFiltre').value = '';
+  document.querySelectorAll('.arama-filtre-chip.secili').forEach(c => c.classList.remove('secili'));
+  globalAramaYap();
+}
+
+function aramaFiltreTikla(set, id, el) {
+  if (set.has(id)) { set.delete(id); el.classList.remove('secili'); }
+  else             { set.add(id);    el.classList.add('secili'); }
+  globalAramaYap();
+}
+
+/* Gelişmiş filtre seçeneklerini (servis + sınıf chip'leri) doldur */
+function aramaGelismisFiltreDoldur() {
+  const servisEl = document.getElementById('aramaServisSecenekleri');
+  const sinifEl  = document.getElementById('aramaSinifSecenekleri');
+  if (!servisEl || !sinifEl) return;
+
+  if (servisEl.children.length === 0 && typeof servisler !== 'undefined') {
+    servisler.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip';
+      btn.textContent = '🚌 ' + (s.servisAdi || '—');
+      btn.onclick = () => aramaFiltreTikla(_seciliServisler, s.id, btn);
+      servisEl.appendChild(btn);
+    });
+  }
+  if (sinifEl.children.length === 0 && typeof siniflar !== 'undefined') {
+    siniflar.slice().sort((a,b)=>String(a.ad).localeCompare(String(b.ad),'tr')).forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip';
+      btn.textContent = '🏫 ' + (s.ad || '—');
+      btn.onclick = () => aramaFiltreTikla(_seciliSiniflar, s.id, btn);
+      sinifEl.appendChild(btn);
+    });
+  }
+}
+
+// Arama sekmesi açılınca filtre chip'lerini doldur
+document.addEventListener('DOMContentLoaded', () => {
+  const obs = new MutationObserver(() => {
+    const el = document.getElementById('tab-arama');
+    if (el && el.classList.contains('active')) {
+      aramaGelismisFiltreDoldur();
+      obs.disconnect();
+    }
+  });
+  obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+});
+
 function globalAramaYap() {
+  aramaGelismisFiltreDoldur(); // chip'ler dolmamışsa doldur
   const inp = document.getElementById('globalAramaInput');
   const q   = (inp ? inp.value : '').toLocaleLowerCase('tr').trim();
+  const cinsEl = document.getElementById('aramaCinsiyetFiltre');
+  const cinsF  = cinsEl ? cinsEl.value : '';
   const out = document.getElementById('globalAramaSonuclar');
   if (!out) return;
-  if (!q) { out.innerHTML = '<p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın…</p>'; return; }
 
-  let html = '';
+  const hicKriter = !q && _seciliServisler.size === 0 && _seciliSiniflar.size === 0 && !cinsF;
+  if (hicKriter) {
+    out.innerHTML = '<p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın veya filtre seçin…</p>';
+    return;
+  }
+
   const kat = _aramaKategori;
+  let html = '';
 
-  /* Öğretmenler */
+  /* ---- Öğretmenler ---- */
   if (kat === 'hepsi' || kat === 'ogretmen') {
-    const hits = (typeof ogretmenler !== 'undefined' ? ogretmenler : []).filter(o =>
-      [o.ad, o.soyad, o.brans, o.unvan, o.telefon, o.eposta].join(' ').toLocaleLowerCase('tr').includes(q)
-    );
+    const hits = (typeof ogretmenler !== 'undefined' ? ogretmenler : []).filter(o => {
+      if (!q) return false;
+      return [o.ad, o.soyad, o.brans, o.unvan, o.telefon, o.eposta].join(' ').toLocaleLowerCase('tr').includes(q);
+    });
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>👩‍🏫 Öğretmenler (${hits.length})</h3>`;
       hits.forEach(o => {
@@ -254,27 +326,54 @@ function globalAramaYap() {
     }
   }
 
-  /* Öğrenciler / Veliler */
+  /* ---- Öğrenciler / Veliler (metin + servis + sınıf + cinsiyet filtresi) ---- */
   if (kat === 'hepsi' || kat === 'ogrenci') {
-    const hits = (typeof veliler !== 'undefined' ? veliler : []).filter(v =>
-      [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta,
-        (typeof siniflar !== 'undefined' ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad : '')
-      ].join(' ').toLocaleLowerCase('tr').includes(q)
-    );
-    if (hits.length) {
-      html += `<div class="card" style="margin-bottom:12px;"><h3>👨‍🎓 Öğrenciler / Veliler (${hits.length})</h3>`;
-      hits.slice(0, 30).forEach(v => {
-        html += _ogrenciSatirHtml(v, (typeof siniflar !== 'undefined' ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad : '') || '?');
+    const tumVeliler = typeof veliler !== 'undefined' ? veliler : [];
+
+    // Servis bazlı öğrenci: servis adına göre eşleştir
+    let servisIdlerdenGelen = new Set();
+    if (typeof servisler !== 'undefined' && q) {
+      servisler.filter(s => (s.servisAdi||'').toLocaleLowerCase('tr').includes(q)).forEach(s => {
+        servisIdlerdenGelen.add(s.id);
       });
-      if (hits.length > 30) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-30} daha — aramayı daraltın.</p>`;
+    }
+
+    const hits = tumVeliler.filter(v => {
+      // Çoklu servis filtresi
+      if (_seciliServisler.size > 0 && !_seciliServisler.has(v.servisId)) return false;
+      // Çoklu sınıf filtresi
+      if (_seciliSiniflar.size > 0 && !_seciliSiniflar.has(v.sinifId)) return false;
+      // Cinsiyet filtresi
+      if (cinsF === 'kiz' && !['Kız','K','kiz','kız'].includes(v.cinsiyet)) return false;
+      if (cinsF === 'erkek' && !['Erkek','E','erkek'].includes(v.cinsiyet)) return false;
+
+      if (!q) return true; // sadece filtre ile çalışıyor
+
+      // Metin eşleşmesi: ad/veli/sınıf VEYA servis adı üzerinden
+      const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'' : '';
+      const metinEslesti = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi].join(' ').toLocaleLowerCase('tr').includes(q);
+      const servisEslesti = servisIdlerdenGelen.has(v.servisId);
+      return metinEslesti || servisEslesti;
+    });
+
+    if (hits.length) {
+      const baslik = _seciliServisler.size > 0 || _seciliSiniflar.size > 0
+        ? `Filtreli Öğrenciler (${hits.length})`
+        : servisIdlerdenGelen.size > 0 ? `🚌 Servis Öğrencileri (${hits.length})` : `👨‍🎓 Öğrenciler (${hits.length})`;
+      html += `<div class="card" style="margin-bottom:12px;"><h3>${baslik}</h3>`;
+      hits.slice(0, 50).forEach(v => {
+        const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'?' : '?';
+        html += _ogrenciSatirHtml(v, sAdi);
+      });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }
 
-  /* Personel */
+  /* ---- Personel ---- */
   if (kat === 'hepsi' || kat === 'personel') {
     const liste = typeof personelListesi !== 'undefined' ? personelListesi : [];
-    const hits  = liste.filter(p => [p.ad, p.soyad, p.gorev, p.unvan, p.telefon].join(' ').toLocaleLowerCase('tr').includes(q));
+    const hits  = q ? liste.filter(p => [p.ad, p.soyad, p.gorev, p.unvan, p.telefon].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>🧑‍💼 Personel (${hits.length})</h3>`;
       hits.forEach(p => {
@@ -292,29 +391,30 @@ function globalAramaYap() {
     }
   }
 
-  /* Servis / Şoför */
+  /* ---- Servis (sadece servis kartı, öğrenciler ayrıca üstte gösteriliyor) ---- */
   if (kat === 'hepsi' || kat === 'servis') {
     const liste = typeof servisler !== 'undefined' ? servisler : [];
-    const hits  = liste.filter(s => [s.servisAdi, s.soforAdi, s.soforTelefon, s.plaka, s.guzergah].join(' ').toLocaleLowerCase('tr').includes(q));
+    const hits  = q ? liste.filter(s => [s.servisAdi, s.soforAdi, s.soforTelefon, s.plaka, s.guzergah].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>🚌 Servis / Şoför (${hits.length})</h3>`;
       hits.forEach(s => {
+        const ogrSay = (typeof veliler!=='undefined') ? veliler.filter(v=>v.servisId===s.id).length : '';
         html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('tasima')">
           <div style="flex:1;">
             <div style="font-weight:700;color:var(--ink);">${escapeHtml(s.servisAdi||'—')}</div>
-            <div style="font-size:12px;color:var(--ink-muted);">Şoför: ${escapeHtml(s.soforAdi||'—')} ${s.plaka?'· '+escapeHtml(s.plaka):''}</div>
+            <div style="font-size:12px;color:var(--ink-muted);">Şoför: ${escapeHtml(s.soforAdi||'—')} ${s.plaka?'· '+escapeHtml(s.plaka):''} ${ogrSay?'· '+ogrSay+' öğrenci':''}</div>
           </div>
-          ${s.soforTelefon?`<a href="tel:${escapeHtml(s.soforTelefon)}" style="color:var(--brand);font-size:12px;">📞 ${escapeHtml(s.soforTelefon)}</a>`:''}
+          ${s.soforTelefon?`<a href="tel:${escapeHtml(s.soforTelefon)}" onclick="event.stopPropagation()" style="color:var(--brand);font-size:12px;">📞</a>`:''}
         </div>`;
       });
       html += '</div>';
     }
   }
 
-  /* Evrak */
+  /* ---- Evrak ---- */
   if (kat === 'hepsi' || kat === 'evrak') {
     const liste = typeof evrakTakibi !== 'undefined' ? evrakTakibi : [];
-    const hits  = liste.filter(e => [e.ad, e.tur, e.aciklama, e.durum].join(' ').toLocaleLowerCase('tr').includes(q));
+    const hits  = q ? liste.filter(e => [e.ad, e.tur, e.aciklama, e.durum].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>📄 Evrak (${hits.length})</h3>`;
       hits.forEach(e => {
@@ -328,17 +428,16 @@ function globalAramaYap() {
     }
   }
 
-  /* Notlar */
+  /* ---- Notlar ---- */
   if (kat === 'hepsi' || kat === 'not') {
     const liste = typeof notlar !== 'undefined' ? notlar : [];
-    const hits  = liste.filter(n => [n.baslik, String(n.icerik||'')].join(' ').toLocaleLowerCase('tr').includes(q));
+    const hits  = q ? liste.filter(n => [n.baslik, String(n.icerik||'')].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>📝 Notlar (${hits.length})</h3>`;
       hits.forEach(n => {
-        const ozet = String(n.icerik||'').slice(0,80);
         html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('notlar')">
           <div style="flex:1;"><div style="font-weight:700;color:var(--ink);">${escapeHtml(n.baslik||'—')}</div>
-          ${ozet?`<div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(ozet)}…</div>`:''}</div>
+          ${n.icerik?`<div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(String(n.icerik).slice(0,80))}…</div>`:''}</div>
         </div>`;
       });
       html += '</div>';
@@ -349,214 +448,5 @@ function globalAramaYap() {
   out.innerHTML = html;
 }
 
-/* ================================================================
-   ÖĞRENCİ DETAY MODALI
-   Mevcut .detay-overlay / .detay-panel (öğretmen için kullanılan)
-   yapısını yeniden kullanır. ogretmenDetayAc() ile aynı HTML
-   kabuğuna yazılır, böylece ekstra HTML eklemeye gerek kalmaz.
-   ================================================================ */
-function ogrenciDetayAc(vId) {
-  const v = (typeof veliler !== 'undefined') ? veliler.find(x => x.id === vId) : null;
-  if (!v) return;
-
-  const sinifAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s => s.id === v.sinifId) || {}).ad || '—' : '—';
-  const servisAdi = (typeof servisler !== 'undefined' && v.servisId) ? (servisler.find(s => s.id === v.servisId) || {}).servisAdi || '—' : '—';
-
-  // Öğretmen detay panelini yeniden kullan (aynı overlay)
-  const overlay = document.getElementById('detayOverlay');
-  if (!overlay) return;
-
-  document.getElementById('detayBaslik').textContent = v.ogrenciAdi || '—';
-  document.getElementById('detayAltBaslik').textContent = `${sinifAdi} · ${v.cinsiyet || ''}`;
-
-  const duzenleBtn = document.getElementById('detayDuzenleBtn');
-  if (duzenleBtn) {
-    duzenleBtn.textContent = '✏️ Düzenle';
-    duzenleBtn.onclick = () => { detayPanelKapat(); veliModalAc(vId); };
-  }
-  const raporBtn = document.getElementById('detayRaporBtn');
-  if (raporBtn) raporBtn.style.display = 'none';
-
-  // Telefon satırı yardımcı
-  const telSatir = (tel, yak) => tel
-    ? `<a href="tel:${escapeHtml(tel)}" style="display:flex;align-items:center;gap:8px;color:var(--brand);font-size:13px;padding:8px 0;border-bottom:1px solid var(--border-soft);">
-        <span style="min-width:56px;font-weight:600;color:var(--ink-muted);font-size:11px;">${escapeHtml(yak||'Telefon')}</span>
-        <span>${escapeHtml(tel)}</span>
-        <span style="margin-left:auto;font-size:16px;">📞</span>
-       </a>` : '';
-
-  const tel1 = v.telefon1 || v.telefon || '';
-  const yak1 = v.yakinlik1 || v.yakinlik || 'Veli';
-  const tel2 = v.telefon2 || '';
-  const yak2 = v.yakinlik2 || 'Veli 2';
-  const tel3 = v.telefon3 || '';
-  const yak3 = v.yakinlik3 || 'Veli 3';
-
-  document.getElementById('detayBody').innerHTML = `
-    <div style="padding:14px 18px;display:flex;flex-direction:column;gap:14px;">
-
-      <!-- Kişisel Bilgiler -->
-      <div class="detay-card">
-        <h4>👤 Öğrenci Bilgileri</h4>
-        ${v.ogrenciNo ? `<div class="detay-row"><span class="detay-row-muted">Öğrenci No</span><strong>${escapeHtml(v.ogrenciNo)}</strong></div>` : ''}
-        <div class="detay-row"><span class="detay-row-muted">Sınıf</span><strong>${escapeHtml(sinifAdi)}</strong></div>
-        ${v.cinsiyet ? `<div class="detay-row"><span class="detay-row-muted">Cinsiyet</span><span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span></div>` : ''}
-        ${servisAdi !== '—' ? `<div class="detay-row"><span class="detay-row-muted">Servis</span>${escapeHtml(servisAdi)}</div>` : ''}
-        ${v.adres ? `<div class="detay-row"><span class="detay-row-muted">Adres</span>${escapeHtml(v.adres)}</div>` : ''}
-      </div>
-
-      <!-- Veli İletişim -->
-      <div class="detay-card">
-        <h4>📞 Veli İletişim</h4>
-        <div style="margin-bottom:4px;font-weight:700;color:var(--ink);">${escapeHtml(v.veliAdi || '—')}</div>
-        ${telSatir(tel1, yak1)}
-        ${telSatir(tel2, yak2)}
-        ${telSatir(tel3, yak3)}
-        ${v.eposta ? `<div class="detay-row"><a href="mailto:${escapeHtml(v.eposta)}" style="color:var(--brand);">✉️ ${escapeHtml(v.eposta)}</a></div>` : ''}
-      </div>
-
-      <!-- WhatsApp hızlı buton -->
-      ${tel1 ? `<a href="https://wa.me/9${tel1.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener"
-          style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;border-radius:12px;padding:12px;font-weight:700;font-size:14px;text-decoration:none;">
-          <span style="font-size:20px;">💬</span> WhatsApp ile İletişim
-        </a>` : ''}
-    </div>`;
-
-  // Profil avatar
-  setTimeout(() => {
-    const head = document.querySelector('.detay-head');
-    if (head) {
-      const old = head.querySelector('.detay-profil-foto');
-      if (old) old.remove();
-      const wrap = document.createElement('div');
-      wrap.className = 'detay-profil-foto';
-      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;';
-      const harf = (v.ogrenciAdi || '?')[0].toUpperCase();
-      wrap.innerHTML = `<div style="width:60px;height:60px;border-radius:var(--icon-shape,50%);background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;">${harf}</div>`;
-      head.insertBefore(wrap, head.firstChild);
-    }
-  }, 10);
-
-  overlay.classList.add('active');
-  document.body.classList.add('modal-open');
-}
-
-/* ================================================================
-   GLOBAL ARAMA — tıklanabilir detay yönlendirme (fonksiyon güncellendi)
-   ================================================================ */
-
-// renderOgrenciler içindeki satırları tıklanabilir hale getir
-function _ogrenciSatirHtml(v, sinifAdi) {
-  const harf  = (v.ogrenciAdi || '?')[0].toUpperCase();
-  const tel   = v.telefon1 || v.telefon || '';
-  return `<div class="detay-row" style="cursor:pointer;" onclick="ogrenciDetayAc('${v.id}')">
-    <div style="width:36px;height:36px;border-radius:var(--icon-shape,50%);background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${harf}</div>
-    <div style="flex:1;min-width:0;padding-left:10px;">
-      <div style="font-weight:700;color:var(--ink);font-size:14px;">${escapeHtml(v.ogrenciAdi || '—')}</div>
-      <div style="font-size:12px;color:var(--ink-muted);">Veli: ${escapeHtml(v.veliAdi || '—')}${v.yakinlik ? ' ('+escapeHtml(v.yakinlik)+')' : ''}</div>
-    </div>
-    ${tel ? `<a href="tel:${escapeHtml(tel)}" onclick="event.stopPropagation()" style="color:var(--brand);font-size:12px;flex-shrink:0;">📞</a>` : ''}
-    <span style="color:var(--ink-muted);font-size:18px;margin-left:6px;">›</span>
-  </div>`;
-}
-
-/* ================================================================
-   AKTİF KULLANICI (Topbar Avatar)
-   localStorage'da 'oyAktifKullaniciId' olarak saklanır.
-   Öğretmenler ve personel arasından seçilebilir.
-   ================================================================ */
-
-function aktifKullaniciyiGuncelle() {
-  const id = localStorage.getItem('oyAktifKullaniciId');
-  const btn = document.getElementById('topbarAvatar');
-  if (!btn) return;
-
-  let kisi = null;
-  if (id) {
-    kisi = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(o => o.id === id) : null;
-    if (!kisi && typeof personelListesi !== 'undefined') {
-      kisi = personelListesi.find(p => p.id === id);
-    }
-  }
-
-  if (kisi && kisi.profilFotoUrl) {
-    // Profil fotoğrafı varsa img olarak göster
-    btn.innerHTML = `<img src="${escapeHtml(kisi.profilFotoUrl)}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" alt="Profil">`;
-    btn.style.padding = '0';
-    btn.style.overflow = 'hidden';
-  } else if (kisi) {
-    // Baş harf rozeti
-    const ad = kisi.ad || kisi.adSoyad || '';
-    const soyad = kisi.soyad || '';
-    const harf = (ad[0] || '') + (soyad[0] || '');
-    btn.textContent = harf.toUpperCase() || 'SE';
-    btn.style.padding = '';
-  } else {
-    btn.textContent = 'SE';
-    btn.style.padding = '';
-  }
-}
-
-function kullaniciSecModalAc() {
-  const modal = document.getElementById('kullaniciSecModal');
-  const liste = document.getElementById('kullaniciSecListe');
-  if (!modal || !liste) return;
-
-  const aktifId = localStorage.getItem('oyAktifKullaniciId');
-
-  // Öğretmenler + Personel listesi
-  const kisiler = [
-    ...(typeof ogretmenler !== 'undefined' ? ogretmenler.map(o => ({
-      id: o.id, tip: 'ogretmen',
-      ad: `${o.ad || ''} ${o.soyad || ''}`.trim(),
-      alt: o.brans || o.unvan || 'Öğretmen',
-      foto: o.profilFotoUrl || null
-    })) : []),
-    ...(typeof personelListesi !== 'undefined' ? personelListesi.map(p => ({
-      id: p.id, tip: 'personel',
-      ad: p.adSoyad || `${p.ad || ''} ${p.soyad || ''}`.trim(),
-      alt: p.gorev || p.unvan || 'Personel',
-      foto: null
-    })) : [])
-  ].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
-
-  liste.innerHTML = kisiler.map(k => {
-    const harf = (k.ad[0] || 'K').toUpperCase();
-    const aktifMi = k.id === aktifId;
-    const avatarHtml = k.foto
-      ? `<img src="${escapeHtml(k.foto)}" style="width:44px;height:44px;border-radius:var(--icon-shape,50%);object-fit:cover;flex-shrink:0;" alt="">`
-      : `<div style="width:44px;height:44px;border-radius:var(--icon-shape,50%);background:${aktifMi?'var(--brand)':'var(--brand-light)'};color:${aktifMi?'#fff':'var(--brand)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0;">${harf}</div>`;
-    return `<div onclick="kullaniciyiSec('${k.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;cursor:pointer;background:${aktifMi?'var(--brand-light)':'var(--nm-bg)'};border:${aktifMi?'2px solid var(--brand)':'1px solid var(--border)'};">
-      ${avatarHtml}
-      <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;font-size:14px;color:${aktifMi?'var(--brand)':'var(--ink)'};">${escapeHtml(k.ad)}</div>
-        <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.alt)}</div>
-      </div>
-      ${aktifMi ? '<span style="color:var(--brand);font-size:18px;">✓</span>' : ''}
-    </div>`;
-  }).join('');
-
-  modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
-}
-
-function kullaniciSecModalKapat() {
-  const modal = document.getElementById('kullaniciSecModal');
-  if (modal) modal.style.display = 'none';
-  document.body.classList.remove('modal-open');
-}
-
-function kullaniciyiSec(id) {
-  localStorage.setItem('oyAktifKullaniciId', id);
-  kullaniciSecModalKapat();
-  aktifKullaniciyiGuncelle();
-
-  // Karşılama metnini anında güncelle
-  if (typeof renderDashboard === 'function') renderDashboard();
-
-  // Kişi detay panelini aç
-  const ogr = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(o => o.id === id) : null;
-  if (ogr) { ogretmenDetayAc(id); return; }
-  const per = (typeof personelListesi !== 'undefined') ? personelListesi.find(p => p.id === id) : null;
-  if (per) { personelDetayAc(id); return; }
-}
+/* ---- Filtre chip CSS yardımcısı (JS'ten ekleniyor) ---- */
+(function(){ const s=document.createElement('style'); s.textContent='.arama-filtre-chip.secili{background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important;}'; document.head.appendChild(s); })();

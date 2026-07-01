@@ -157,6 +157,18 @@
           // YENİ: Hero'daki konum satırını da güncelle
           var heroKonum = document.getElementById('heroKonumMetni');
           if(heroKonum) heroKonum.textContent = '📍 ' + konumMetin;
+          // Tekrar bulamazsa yeni bir tane oluştur
+          if(!heroKonum){
+            var heroSatirDiv = document.getElementById('heroHavaSatir');
+            if(heroSatirDiv){
+              var yeni = document.createElement('div');
+              yeni.id = 'heroKonumMetni';
+              yeni.style.cssText = 'font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;';
+              yeni.textContent = '📍 ' + konumMetin;
+              var icDiv = heroSatirDiv.querySelector('div');
+              if(icDiv) icDiv.appendChild(yeni);
+            }
+          }
         }).catch(function(){});
     } catch(e) {}
   }
