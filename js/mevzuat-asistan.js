@@ -162,6 +162,18 @@ function _mevzuatAnahtarKelimelerCikar(metin){
   return [...new Set(kelimeler)].slice(0, 60);
 }
 
+/* Türkçe eklemeli (agglutinative) bir dil: "izin" sorulur, metinde
+   "iznin", "izinli", "izinlerini" geçer — tam kelime eşleşmesi bunları
+   YAKALAYAMAZ. Basit bir "sözde-kök" (ilk ~5 karakter) çıkarıp o gövdeyi
+   karşılaştırmak, ek farklarını büyük ölçüde tolere eder. Kusursuz bir
+   Türkçe kök bulma algoritması değildir ama pratikte işe yarar. */
+function _mevzuatGovdeCikar(kelime){
+  // "izin" -> "izi", "iznin" -> "izni"... tam eşleşmeyecek özel bir kaç
+  // sık ek kalıbını (ünlü düşmesi vb.) normalize etmeye çalışmadan önce,
+  // basitçe ilk 5 karaktere kırp — çoğu ek 5. karakterden sonra başlar.
+  return kelime.length > 5 ? kelime.slice(0, 5) : kelime;
+}
+
 /* ---------- toplu içe aktarma ----------
    Beklenen JSON formatı: [{ baslik, kaynak, kategori, metin }, ...]
    Aynı 'kaynak' (URL) ile daha önce eklenmiş kayıtlar atlanır (tekrar
@@ -305,16 +317,22 @@ function mevzuatAltGorunumSec(g){
 
 /* ---------- cihazda arama (index tabanlı, Firestore'a hiç gitmiyor) ---------- */
 async function _mevzuatEnAlakaliChunklariBul(soru, adet){
-  adet = adet || 4;
+  adet = adet || 6;
   const sorguKelimeleri = _mevzuatAnahtarKelimelerCikar(soru);
   if(sorguKelimeleri.length === 0) return [];
+  const sorguGovdeleri = [...new Set(sorguKelimeleri.map(_mevzuatGovdeCikar))];
 
   const tumChunklar = await _mevzuatTumChunklariOku();
   const skorlar = tumChunklar.map(c=>{
-    const kelimeSeti = new Set(c.anahtarKelimeler || []);
+    const kelimeler = c.anahtarKelimeler || [];
+    const govdeSeti = new Set(kelimeler.map(_mevzuatGovdeCikar));
     let skor = 0;
-    sorguKelimeleri.forEach(k=>{ if(kelimeSeti.has(k)) skor++; });
-    if(c.baslik && sorguKelimeleri.some(k=> c.baslik.toLocaleLowerCase('tr').includes(k))) skor += 2;
+    sorguGovdeleri.forEach(g=>{ if(govdeSeti.has(g)) skor++; });
+    // başlıkta geçen gövdeler ekstra ağırlıklı (o bölümün konusu olma ihtimali yüksek)
+    if(c.baslik){
+      const baslikGovde = _mevzuatAnahtarKelimelerCikar(c.baslik).map(_mevzuatGovdeCikar);
+      sorguGovdeleri.forEach(g=>{ if(baslikGovde.includes(g)) skor += 2; });
+    }
     return { chunk: c, skor };
   }).filter(x=> x.skor > 0);
 
@@ -346,7 +364,7 @@ async function mevzuatSoruGonder(){
   mevzuatSohbetRender();
 
   try{
-    const ilgiliChunklar = await _mevzuatEnAlakaliChunklariBul(soru, 4);
+    const ilgiliChunklar = await _mevzuatEnAlakaliChunklariBul(soru, 6);
 
     if(ilgiliChunklar.length === 0){
       mevzuatYukleniyor = false;
@@ -360,8 +378,11 @@ async function mevzuatSoruGonder(){
       return `[Kaynak: ${ustKayit ? ustKayit.baslik : 'Bilinmeyen'} — ${c.baslik}]\n${c.metin}`;
     }).join('\n\n---\n\n');
 
-    const sistemYonergesi = 'Sen bir okul mevzuat asistanısın. Sana verilen mevzuat bölümlerine dayanarak soruyu KISA ve NET cevapla. ' +
-      'Cevabın sonunda hangi mevzuat/madde başlığından yararlandığını belirt. Verilen metinlerde cevap yoksa, bunu açıkça söyle, uydurma.';
+    const sistemYonergesi = 'Sen bir okul mevzuat asistanısın. Sana verilen mevzuat bölümlerine dayanarak soruyu cevapla. ' +
+      'ÖNEMLİ: Cevabında SADECE "hangi maddeye göre" deme — ilgili maddenin/fıkranın GEÇERLİ HÜKMÜNÜ (asıl metnini, ' +
+      'gerekiyorsa kısaltarak) da yaz, kullanıcı maddeyi tekrar açıp okumak zorunda kalmasın. ' +
+      'Cevabın sonunda hangi mevzuat/madde başlığından yararlandığını ayrıca belirt. ' +
+      'Verilen metinlerde cevap yoksa, bunu açıkça söyle, uydurma.';
 
     const res = await fetch(ASISTAN_API_URL, {
       method: 'POST',

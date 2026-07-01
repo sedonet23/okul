@@ -339,6 +339,43 @@ function uygulamaHtmlYazdir(rawHtml, isAdi){
   }
 }
 window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
+
+/* ====================================================================
+   ORTAK DOSYA KAYDETME/İNDİRME YARDIMCISI
+   Android'in çıplak WebView bileşeni tarayıcıların standart blob indirme
+   davranışını (<a download>) desteklemiyor — bu yüzden şablon (xlsx) ve
+   yedek (json) indirme butonları APK içinde sessizce çalışmıyordu.
+
+   Native (Capacitor/Android) ortamda: SavePlugin üzerinden dosyayı
+   doğrudan cihazın "İndirilenler" klasörüne yazar.
+   Web/PWA ortamda (native plugin yoksa): klasik blob + <a download> yöntemi.
+   ==================================================================== */
+function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru){
+  const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.SavePlugin);
+
+  if(nativeVarMi){
+    window.Capacitor.Plugins.SavePlugin.kaydet({ base64: base64Veri, dosyaAdi, mimeTuru })
+      .then(()=> toast(`"${dosyaAdi}" İndirilenler klasörüne kaydedildi.`))
+      .catch(e=> toast('Dosya kaydedilemedi: ' + (e && e.message)));
+    return;
+  }
+
+  try{
+    const ikiliVeri = atob(base64Veri);
+    const baytlar = new Uint8Array(ikiliVeri.length);
+    for(let i=0; i<ikiliVeri.length; i++) baytlar[i] = ikiliVeri.charCodeAt(i);
+    const blob = new Blob([baytlar], { type: mimeTuru });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = dosyaAdi;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    toast('Dosya indirilemedi: ' + e.message);
+  }
+}
+window.uygulamaDosyaKaydet = uygulamaDosyaKaydet;
 function ogretmenSecenekleri(seciliId){
   return '<option value="">Seçiniz</option>' + ogretmenler.map(o=>
     `<option value="${o.id}" ${o.id===seciliId?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`
@@ -995,12 +1032,10 @@ async function yedekVerisiOlustur(){
 }
 async function tumVerileriYedekle(){
   const yedek = await yedekVerisiOlustur();
-  const blob = new Blob([JSON.stringify(yedek,null,2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = `okul-yedek-${todayISO()}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
+  const jsonMetin = JSON.stringify(yedek, null, 2);
+  // UTF-8 güvenli base64 (Türkçe karakterler için btoa tek başına yetmez)
+  const base64Json = btoa(unescape(encodeURIComponent(jsonMetin)));
+  uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json');
 }
 async function yedektenGeriYukle(file){
   if(!file) return;
@@ -1437,8 +1472,8 @@ function sablonIndir(tip) {
   ];
 
   XLSX.utils.book_append_sheet(wb, ws, t.baslik.slice(0, 31));
-  XLSX.writeFile(wb, `${tip}_sablonu.xlsx`);
-  toast(`"${t.baslik.split('—')[0].trim()}" şablonu indirildi.`);
+  const base64Xlsx = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+  uygulamaDosyaKaydet(base64Xlsx, `${tip}_sablonu.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
 function tumSablonlariIndir() {

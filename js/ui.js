@@ -115,26 +115,41 @@ document.addEventListener('DOMContentLoaded', ()=>{
      Dikey kaydırmayla (sayfa scroll'u) karışmaması için hareketin büyük
      ölçüde yatay olması şartı aranır. */
   (function swipeMenuKur(){
-    const KENAR_ESIGI = 28;      // px — sadece ekranın solundan başlayan dokunuşlar açar
-    const ESIK = 60;             // px — menüyü tetiklemek için gereken minimum yatay kaydırma
-    const DIKEY_TOLERANS = 45;   // px — bu kadar dikey harekete kadar "yatay kaydırma" sayılır
+    const ESIK = 50;              // px — menüyü tetiklemek için gereken minimum yatay kaydırma
     let basX = 0, basY = 0, izleniyor = false, kenardanBasladi = false;
+
+    function duzenlenebilirMi(el){
+      if(!el || !el.closest) return false;
+      return !!el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]');
+    }
 
     document.addEventListener('touchstart', (e)=>{
       if(e.touches.length !== 1) return;
+      // Bir metin kutusu/textarea/düzenlenebilir alan üzerindeyse jest
+      // algılamasını TAMAMEN devre dışı bırak — hem imleç sürüklerken
+      // yanlışlıkla menü açılmasın, hem de klavye/IME ile olası
+      // etkileşimden tamamen kaçınılmış olsun.
+      if(duzenlenebilirMi(e.target)){ izleniyor = false; return; }
       basX = e.touches[0].clientX;
       basY = e.touches[0].clientY;
-      kenardanBasladi = basX <= KENAR_ESIGI;
+      // Ekranın SOL YARISINDAN başlayan her dokunuş açma jesti sayılır —
+      // sadece kenardan değil, ekranın ortasına kadar herhangi bir yerden
+      // sağa doğru kaydırınca menü açılabilsin diye.
+      kenardanBasladi = basX <= (window.innerWidth * 0.5);
       izleniyor = true;
     }, { passive:true });
 
     document.addEventListener('touchend', (e)=>{
       if(!izleniyor) return;
       izleniyor = false;
+      if(duzenlenebilirMi(e.target)) return;
       const bitis = e.changedTouches[0];
       const dx = bitis.clientX - basX;
       const dy = Math.abs(bitis.clientY - basY);
-      if(dy > DIKEY_TOLERANS) return; // dikey scroll, jest sayma
+      // Sabit piksel eşiği yerine ORAN kullanıyoruz: yatay hareket, dikey
+      // hareketin en az 1.2 katı olsun yeterli — doğal (tam düz olmayan)
+      // kaydırmaları da kabul eder, ama dikey scroll'la karışmaz.
+      if(dy > Math.abs(dx) * 0.8) return;
 
       const acikMi = document.body.classList.contains('nav-open');
       if(!acikMi && kenardanBasladi && dx > ESIK){
@@ -236,17 +251,25 @@ function aktifKullaniciyiGuncelle(){
   const avatarEl = document.getElementById('topbarAvatar');
   if(!avatarEl) return;
   const id = localStorage.getItem('oyAktifKullaniciId');
-  if(!id){ avatarEl.textContent = '👤'; return; }
+  if(!id){ avatarEl.innerHTML = '👤'; return; }
   let ad = '';
+  let fotoUrl = '';
   const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-  if(o) ad = ((o.ad||'')+' '+(o.soyad||'')).trim();
+  if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = o.profilFotoUrl || ''; }
   if(!ad){
     const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-    if(p) ad = (p.ad || p.adSoyad || '').trim();
+    if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
   }
-  if(!ad){ avatarEl.textContent = '👤'; return; }
-  const bas = ad.split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase();
-  avatarEl.textContent = bas || '👤';
+  if(!ad){ avatarEl.innerHTML = '👤'; return; }
+
+  if(fotoUrl){
+    avatarEl.innerHTML = `<img src="${escapeHtml(fotoUrl)}" alt="Profil" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" onerror="this.parentElement.textContent = (this.parentElement.dataset.baslar || '👤');">`;
+    const basHarf = ad.split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    avatarEl.dataset.baslar = basHarf || '👤';
+  } else {
+    const bas = ad.split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase();
+    avatarEl.textContent = bas || '👤';
+  }
 }
 
 // Uygulama açılışında (Firestore bağlanmadan önce bile) avatarı güncelle —
