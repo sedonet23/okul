@@ -436,6 +436,25 @@ function _okulaBaslamaYasiHesapla(){
     durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>İlkokul 1. sınıfa kaydı zorunludur.</strong> (${egitimYili} Eylül sonu itibarıyla ${ay} aylık — 69 ay ve üzeri.)` });
   } else if(ay >= 66){
     durumlar.push({ ikon:'📝', renk:'amber', metin:`<strong>İlkokul 1. sınıfa velinin yazılı isteğiyle kaydedilebilir.</strong> (${ay} aylık — 66-68 ay arası, zorunlu değil, isteğe bağlı.) Veli istemezse okul öncesi eğitime yönlendirilebilir veya kaydı bir yıl ertelenebilir.` });
+  } else {
+    // İlkokula henüz uygun değil — ne kadar eksik olduğunu ve hangi eğitim
+    // yılında (69 ay dolarak) zorunlu kayıt hakkı doğacağını da göster.
+    const eksikAy = 66 - ay; // en erken (isteğe bağlı 66 ay) hakkı için eksik ay
+    let zorunluYil = egitimYili;
+    while(true){
+      const rEylul = new Date(zorunluYil, 8, 30);
+      let ayOYil = (rEylul.getFullYear() - dogum.getFullYear()) * 12 + (rEylul.getMonth() - dogum.getMonth());
+      if(rEylul.getDate() < dogum.getDate()) ayOYil--;
+      if(ayOYil >= 69) break;
+      zorunluYil++;
+      if(zorunluYil > egitimYili + 10) break; // sonsuz döngü koruması
+    }
+    durumlar.push({
+      ikon:'❌', renk:'brick',
+      metin:`<strong>${egitimYili} eğitim yılında ilkokul 1. sınıfa kayıt olamaz.</strong> ${ay} aylık — 66 ay şartını (isteğe bağlı kayıt için) doldurmasına ${eksikAy} ay var. `
+        + `Zorunlu kayıt hakkı (69 ay) için <strong>${zorunluYil} - ${zorunluYil+1} eğitim yılı</strong>nı beklemesi gerekiyor`
+        + (zorunluYil > egitimYili ? `; isteğe bağlı (veli talebiyle) kayıt hakkı ise bir yıl öncesinde, <strong>${zorunluYil-1} - ${zorunluYil} eğitim yılı</strong>nda doğar.` : '.')
+    });
   }
 
   if(ay >= 57 && ay <= 68){
