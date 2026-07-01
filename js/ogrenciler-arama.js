@@ -45,6 +45,7 @@ function profilFotoIsle(inputEl, ogretmenId) {
 
 /* ================================================================
    ÖĞRETMEN PROFİL FOTOĞRAFI — görüntüleme yardımcısı
+   ================================================================ */
 function profilFotoGoster(ogretmenId) {
   const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x => x.id === ogretmenId) : null;
   if (!o) return '';
@@ -473,8 +474,105 @@ function globalAramaYap() {
     }
   }
 
+  /* ---- Çizelgeler ---- */
+  if (kat === 'hepsi' || kat === 'cizelge') {
+    const CIZELGE_TIPLERI = {
+      sosyalKulupler: '🎯 Sosyal Kulüp',
+      sok:            '📋 ŞÖK',
+      zumre:          '👥 Zümre',
+      bepPlani:       '📘 Yıllık Plan / BEP',
+      rehberlik:      '🧭 Rehberlik',
+      maarifRapor:    '📊 Maarif Raporu'
+    };
+    const cVerileri = typeof cizelgeVerileri !== 'undefined' ? cizelgeVerileri : {};
+    const bGunler   = typeof belirliGunlerListesi !== 'undefined' ? belirliGunlerListesi : [];
+    const digerE    = typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [];
+
+    const hits = [];
+    Object.keys(CIZELGE_TIPLERI).forEach(tip => {
+      (cVerileri[tip] || []).forEach(k => {
+        const ogrAdi = k.ogretmenId
+          ? (typeof _ogretmenAdi === 'function' ? _ogretmenAdi(k.ogretmenId) : '')
+          : (k.ogretmenIdler && typeof _ogretmenAdlari === 'function' ? _ogretmenAdlari(k.ogretmenIdler) : '');
+        const baslik = k.ad || k.ders || k.rapor || k.brans || 'Kayıt';
+        const hay = [baslik, k.sinif, k.aciklama, ogrAdi].join(' ').toLocaleLowerCase('tr');
+        if (!q || hay.includes(q)) hits.push({ tip, label: CIZELGE_TIPLERI[tip], baslik, alt: [k.sinif, ogrAdi].filter(Boolean).join(' · ') });
+      });
+    });
+    bGunler.forEach(k => {
+      const ogrAdi = k.ogretmenIdler && typeof _ogretmenAdlari === 'function' ? _ogretmenAdlari(k.ogretmenIdler) : '';
+      const hay = [k.ad, k.aciklama, ogrAdi].join(' ').toLocaleLowerCase('tr');
+      if (!q || hay.includes(q)) hits.push({ tip: 'belirliGunler', label: '📅 Belirli Gün/Hafta', baslik: k.ad || 'Kayıt', alt: ogrAdi });
+    });
+    digerE.forEach(k => {
+      const hay = [k.ad, k.aciklama].join(' ').toLocaleLowerCase('tr');
+      if (!q || hay.includes(q)) hits.push({ tip: 'digerEvrak', label: '🗂️ Diğer Evrak', baslik: k.ad || 'Kayıt', alt: '' });
+    });
+
+    if (hits.length) {
+      html += `<div class="card" style="margin-bottom:12px;"><h3>🗂️ Çizelgeler (${hits.length})</h3>`;
+      hits.slice(0, 50).forEach(h => {
+        html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('${h.tip}')">
+          <div style="flex:1;">
+            <div style="font-weight:700;color:var(--ink);">${escapeHtml(h.baslik)}</div>
+            <div style="font-size:12px;color:var(--ink-muted);">${h.label}${h.alt ? ' · ' + escapeHtml(h.alt) : ''}</div>
+          </div>
+          <span style="color:var(--ink-muted);font-size:18px;">›</span>
+        </div>`;
+      });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
+      html += '</div>';
+    }
+  }
+
   if (!html) html = '<p class="empty-state" style="margin-top:24px;">Sonuç bulunamadı.</p>';
   out.innerHTML = html;
+}
+
+/* ================================================================
+   ARAMA SONUÇLARINI YAZDIR
+   ================================================================ */
+function globalAramaYazdir() {
+  const out = document.getElementById('globalAramaSonuclar');
+  if (!out || !out.innerHTML.trim()) { toast('Yazdırılacak sonuç yok.'); return; }
+
+  const inp = document.getElementById('globalAramaInput');
+  const q   = inp ? inp.value.trim() : '';
+  const tarih = new Date().toLocaleDateString('tr-TR');
+
+  const pencere = window.open('', '_blank');
+  if (!pencere) { toast('Yazdırma penceresi açılamadı. Pop-up engelleyiciyi kontrol edin.'); return; }
+
+  pencere.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Arama Sonuçları</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 24px; color: #222; }
+        h1 { font-size: 18px; margin-bottom: 2px; }
+        .meta { font-size: 12px; color: #666; margin-bottom: 18px; }
+        .card { border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; break-inside: avoid; }
+        .card h3 { font-size: 14px; margin: 0 0 8px 0; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+        .detay-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
+        .detay-row:last-child { border-bottom: none; }
+        .detay-row img, .detay-row > div[style*="border-radius"] { display: none; }
+        .detay-row-muted { color: #777; }
+        .badge { font-size: 10px; border: 1px solid #ccc; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
+        a { color: #222; text-decoration: none; }
+        span[style*="font-size:18px"] { display: none; }
+      </style>
+    </head>
+    <body>
+      <h1>🔍 Arama Sonuçları</h1>
+      <div class="meta">${q ? `Arama: "${escapeHtml(q)}" · ` : 'Tüm kayıtlar · '}${tarih}</div>
+      ${out.innerHTML}
+    </body>
+    </html>
+  `);
+  pencere.document.close();
+  pencere.focus();
+  setTimeout(() => pencere.print(), 300);
 }
 
 /* ---- Filtre chip CSS yardımcısı (JS'ten ekleniyor) ---- */
