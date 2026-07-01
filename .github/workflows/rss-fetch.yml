@@ -1,1 +1,25 @@
+name: RSS Haber Taraması
 
+on:
+  schedule:
+    # Her gece 00:00 UTC = 03:00 Türkiye saati
+    - cron: '0 0 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  rss-fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bağımlılıkları kur
+        run: npm install
+
+      - name: RSS kaynaklarını tara ve bildirim gönder
+        run: node scripts/rss-fetch.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}a
