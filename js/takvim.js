@@ -464,6 +464,52 @@ function gorevToggleAjanda(id, deger){
 /* ================================================================
    DASHBOARD — Yaklaşan Etkinlikler & Görevler
    ================================================================ */
+function renderDashAjanda(){
+  const el = document.getElementById('dashAjanda');
+  if(!el) return;
+  const bugun = _isoToday();
+  const items = [];
+
+  (typeof hatirlaticilar !== 'undefined' ? hatirlaticilar : [])
+    .filter(h=>!h.tamamlandi && h.tarih >= bugun)
+    .forEach(h=> items.push({ iso: h.tarih, saat: h.saat||'', baslik: h.baslik, ikon:'⏰', renk:'#2563EB' }));
+
+  (typeof gorevler !== 'undefined' ? gorevler : [])
+    .filter(g=>!gorevTamamlandiMi(g) && g.sonTarih && g.sonTarih >= bugun)
+    .forEach(g=> items.push({ iso: g.sonTarih, saat:'', baslik: g.baslik, ikon:'✅', renk:'#16A34A' }));
+
+  items.sort((a,b)=>(a.iso+a.saat).localeCompare(b.iso+b.saat));
+  const gorunenler = items.slice(0,8);
+
+  if(!gorunenler.length){
+    el.innerHTML = '<p class="empty-state">Yaklaşan etkinlik veya görev yok.</p>';
+    return;
+  }
+
+  // Tarihe göre grupla
+  const gruplar = {};
+  gorunenler.forEach(x=>{
+    if(!gruplar[x.iso]) gruplar[x.iso]=[];
+    gruplar[x.iso].push(x);
+  });
+
+  el.innerHTML = Object.keys(gruplar).map(iso=>{
+    const tarihMetin = iso===bugun ? 'Bugün' : _trFormatTarih(iso);
+    const satirlar = gruplar[iso].map(x=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);">
+        <span style="font-size:16px;flex-shrink:0;">${x.ikon}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(x.baslik)}</div>
+          ${x.saat?`<div style="font-size:11px;color:var(--ink-muted);">${x.saat}</div>`:''}
+        </div>
+      </div>`).join('');
+    return `<div style="margin-bottom:8px;">
+      <div style="font-size:11px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;">${tarihMetin}</div>
+      ${satirlar}
+    </div>`;
+  }).join('');
+}
+
 function renderDashHatirlaticilar(){
   const el = document.getElementById('dashHatirlaticilar');
   if(!el) return;
