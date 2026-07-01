@@ -433,7 +433,11 @@ function _okulaBaslamaYasiHesapla(){
 
   let durumlar = [];
   if(ay >= 69){
-    durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>İlkokul 1. sınıfa kaydı zorunludur.</strong> (${egitimYili} Eylül sonu itibarıyla ${ay} aylık — 69 ay ve üzeri.)` });
+    let ekNot = '';
+    if(ay <= 71){
+      ekNot = ` Ancak <strong>velinin yazılı talebi ile kayıt bir yıl ertelenebilir veya çocuk okul öncesi eğitime yönlendirilebilir</strong> (Yönetmelik md.11/6-b, sadece 69-71 ay arası için geçerli bir haktır).`;
+    }
+    durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>İlkokul 1. sınıfa kaydı zorunludur.</strong> (${egitimYili} Eylül sonu itibarıyla ${ay} aylık — 69 ay ve üzeri.)${ekNot}` });
   } else if(ay >= 66){
     durumlar.push({ ikon:'📝', renk:'amber', metin:`<strong>İlkokul 1. sınıfa velinin yazılı isteğiyle kaydedilebilir.</strong> (${ay} aylık — 66-68 ay arası, zorunlu değil, isteğe bağlı.) Veli istemezse okul öncesi eğitime yönlendirilebilir veya kaydı bir yıl ertelenebilir.` });
   } else {
