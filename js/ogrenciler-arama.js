@@ -297,24 +297,21 @@ function globalAramaYap() {
   const out = document.getElementById('globalAramaSonuclar');
   if (!out) return;
 
-  const hicKriter = !q && _seciliServisler.size === 0 && _seciliSiniflar.size === 0 && !cinsF;
-  if (hicKriter) {
-    out.innerHTML = '<p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın veya filtre seçin…</p>';
-    return;
-  }
-
+  // Kriter yokken de (yazmaya başlamadan / filtre seçmeden) tüm kayıtları
+  // listele — kullanıcı isterse kendi metniyle ya da gelişmiş filtrelerle
+  // daraltabilsin.
   const kat = _aramaKategori;
   let html = '';
 
   /* ---- Öğretmenler ---- */
   if (kat === 'hepsi' || kat === 'ogretmen') {
-    const hits = (typeof ogretmenler !== 'undefined' ? ogretmenler : []).filter(o => {
-      if (!q) return false;
-      return [o.ad, o.soyad, o.brans, o.unvan, o.telefon, o.eposta].join(' ').toLocaleLowerCase('tr').includes(q);
-    });
+    const tumOgretmenler = typeof ogretmenler !== 'undefined' ? ogretmenler : [];
+    const hits = q
+      ? tumOgretmenler.filter(o => [o.ad, o.soyad, o.brans, o.unvan, o.telefon, o.eposta].join(' ').toLocaleLowerCase('tr').includes(q))
+      : tumOgretmenler;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>👩‍🏫 Öğretmenler (${hits.length})</h3>`;
-      hits.forEach(o => {
+      hits.slice(0, 50).forEach(o => {
         html += `<div class="detay-row" style="cursor:pointer;" onclick="ogretmenDetayAc('${o.id}')">
           ${profilFotoGoster(o.id).replace('width:70px;height:70px','width:36px;height:36px').replace('font-size:22px','font-size:13px')}
           <div style="flex:1;padding:6px 0 6px 10px;">
@@ -324,6 +321,7 @@ function globalAramaYap() {
           <span style="color:var(--ink-muted);font-size:18px;">›</span>
         </div>`;
       });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }
@@ -332,19 +330,10 @@ function globalAramaYap() {
   if (kat === 'hepsi' || kat === 'ogrenci') {
     const tumVeliler = typeof veliler !== 'undefined' ? veliler : [];
 
-    // Servis bazlı öğrenci: servis adına göre eşleştir
-    let servisIdlerdenGelen = new Set();
-    if (typeof servisler !== 'undefined' && q) {
-      servisler.filter(s => (s.servisAdi||'').toLocaleLowerCase('tr').includes(q)).forEach(s => {
-        servisIdlerdenGelen.add(s.id);
-      });
-    }
-
     const hits = tumVeliler.filter(v => {
       // Çoklu servis filtresi (chip'ten) — servisId veya servisAdi ile eşleştir
       if (_seciliServisler.size > 0) {
         const servisIdEslesti = _seciliServisler.has(v.servisId);
-        // servisId yoksa servisAdi veya notlar alanında servis adı geçiyor mu bak
         const seciliServisAdlari = typeof servisler !== 'undefined'
           ? servisler.filter(s => _seciliServisler.has(s.id)).map(s => (s.servisAdi||'').toLocaleLowerCase('tr'))
           : [];
@@ -359,24 +348,23 @@ function globalAramaYap() {
       if (cinsF === 'kiz' && !['Kız','K','kiz','kız'].includes(v.cinsiyet)) return false;
       if (cinsF === 'erkek' && !['Erkek','E','erkek'].includes(v.cinsiyet)) return false;
 
-      if (!q) return true; // sadece filtre ile çalışıyor — chip seçiliyse tüm eşleşenler gelir
+      if (!q) return true; // chip/cinsiyet filtresiyle çalışıyor, metin yok
 
-      // Chip aktifken q sadece ek daraltma (ad/veli üzerinden)
-      if (_seciliServisler.size > 0 || _seciliSiniflar.size > 0) {
-        return [v.ogrenciAdi, v.veliAdi, v.telefon].join(' ').toLocaleLowerCase('tr').includes(q);
-      }
-
-      // Chip yokken: ad/veli/sınıf VEYA servis adı üzerinden tam arama
+      // Metin arama: ad/veli/telefon/eposta/sınıf adı VEYA servis adı üzerinden —
+      // chip seçili olsun ya da olmasın her zaman aynı geniş eşleşme kullanılır.
+      // (Önceki sürümde chip aktifken metin sadece isimle eşleşiyordu; bu da
+      // "Tümü" sekmesinde servis adı yazınca öğrencilerin hiç çıkmamasına yol açıyordu.)
       const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'' : '';
-      const metinEslesti = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi].join(' ').toLocaleLowerCase('tr').includes(q);
-      const servisEslesti = servisIdlerdenGelen.has(v.servisId);
-      return metinEslesti || servisEslesti;
+      const sonServisAdi = (typeof servisler !== 'undefined') ? (servisler.find(s=>s.id===v.servisId)||{}).servisAdi||'' : '';
+      const hay = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi, sonServisAdi, v.servisAdi]
+        .join(' ').toLocaleLowerCase('tr');
+      return hay.includes(q);
     });
 
     if (hits.length) {
       const baslik = _seciliServisler.size > 0 || _seciliSiniflar.size > 0
         ? `Filtreli Öğrenciler (${hits.length})`
-        : servisIdlerdenGelen.size > 0 ? `🚌 Servis Öğrencileri (${hits.length})` : `👨‍🎓 Öğrenciler (${hits.length})`;
+        : `👨‍🎓 Öğrenciler (${hits.length})`;
       html += `<div class="card" style="margin-bottom:12px;"><h3>${baslik}</h3>`;
       hits.slice(0, 50).forEach(v => {
         const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'?' : '?';
@@ -390,10 +378,10 @@ function globalAramaYap() {
   /* ---- Personel ---- */
   if (kat === 'hepsi' || kat === 'personel') {
     const liste = typeof personelListesi !== 'undefined' ? personelListesi : [];
-    const hits  = q ? liste.filter(p => [p.ad, p.soyad, p.gorev, p.unvan, p.telefon].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
+    const hits  = q ? liste.filter(p => [p.ad, p.soyad, p.gorev, p.unvan, p.telefon].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>🧑‍💼 Personel (${hits.length})</h3>`;
-      hits.forEach(p => {
+      hits.slice(0, 50).forEach(p => {
         html += `<div class="detay-row" style="cursor:pointer;" onclick="personelDetayAc('${p.id}')">
           <div style="width:36px;height:36px;border-radius:var(--icon-shape,50%);background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${((p.ad||'?')[0]).toUpperCase()}</div>
           <div style="flex:1;padding-left:10px;">
@@ -404,6 +392,7 @@ function globalAramaYap() {
           <span style="color:var(--ink-muted);font-size:18px;margin-left:6px;">›</span>
         </div>`;
       });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }
@@ -411,7 +400,7 @@ function globalAramaYap() {
   /* ---- Servis (sadece servis kartı, öğrenciler ayrıca üstte gösteriliyor) ---- */
   if (kat === 'hepsi' || kat === 'servis') {
     const liste = typeof servisler !== 'undefined' ? servisler : [];
-    const hits  = q ? liste.filter(s => [s.servisAdi, s.soforAdi, s.soforTelefon, s.plaka, s.guzergah].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
+    const hits  = q ? liste.filter(s => [s.servisAdi, s.soforAdi, s.soforTelefon, s.plaka, s.guzergah].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>🚌 Servis / Şoför (${hits.length})</h3>`;
       hits.forEach(s => {
@@ -431,16 +420,17 @@ function globalAramaYap() {
   /* ---- Evrak ---- */
   if (kat === 'hepsi' || kat === 'evrak') {
     const liste = typeof evrakTakibi !== 'undefined' ? evrakTakibi : [];
-    const hits  = q ? liste.filter(e => [e.ad, e.tur, e.aciklama, e.durum].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
+    const hits  = q ? liste.filter(e => [e.ad, e.tur, e.aciklama, e.durum].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>📄 Evrak (${hits.length})</h3>`;
-      hits.forEach(e => {
+      hits.slice(0, 50).forEach(e => {
         html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('evrak')">
           <div style="flex:1;"><div style="font-weight:700;color:var(--ink);">${escapeHtml(e.ad||'—')}</div>
           <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(e.tur||'')} · ${escapeHtml(e.durum||'')} · ${escapeHtml(e.tarih||'')}</div></div>
           <span style="color:var(--ink-muted);">›</span>
         </div>`;
       });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }
@@ -448,15 +438,16 @@ function globalAramaYap() {
   /* ---- Notlar ---- */
   if (kat === 'hepsi' || kat === 'not') {
     const liste = typeof notlar !== 'undefined' ? notlar : [];
-    const hits  = q ? liste.filter(n => [n.baslik, String(n.icerik||'')].join(' ').toLocaleLowerCase('tr').includes(q)) : [];
+    const hits  = q ? liste.filter(n => [n.baslik, String(n.icerik||'')].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>📝 Notlar (${hits.length})</h3>`;
-      hits.forEach(n => {
+      hits.slice(0, 50).forEach(n => {
         html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('notlar')">
           <div style="flex:1;"><div style="font-weight:700;color:var(--ink);">${escapeHtml(n.baslik||'—')}</div>
           ${n.icerik?`<div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(String(n.icerik).slice(0,80))}…</div>`:''}</div>
         </div>`;
       });
+      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }

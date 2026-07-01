@@ -80,76 +80,19 @@
   }
 
   function kartRenderEt(veri){
-    // Bağımsız hava durumu kartı kaldırıldı; sadece hero satırını güncelle
+    // Bağımsız hava durumu kartı kaldırıldı; sadece hero satırını ve
+    // detay panelindeki konum adını güncelliyoruz. (Not: eski kod burada
+    // artık DOM'da bulunmayan bir "kart" elemanına yazıyordu ve bu satır
+    // hata fırlatıp aşağıdaki ters-geocoding kodunun hiç çalışmamasına
+    // sebep oluyordu — konum bu yüzden hiçbir yerde görünmüyordu.)
     var yukleniyor = document.getElementById('havaDurumuYukleniyor');
     if(yukleniyor) yukleniyor.style.display = 'none';
-    // topbarRenderEt heroHavaSatir'ı zaten güncelliyor; burada ek bir şey yapmıyoruz
-
-    var anlikBilgi = havaKoduOku(veri.current.weather_code);
-
-    // Konum adını topbar'dan al veya koordinatlardan oluştur
-    var konumAdi = '';
-    try {
-      var topbarEl = document.getElementById('topbarHava');
-      if(topbarEl && topbarEl.title) konumAdi = topbarEl.title;
-    } catch(e) {}
-
-    var nem      = veri.current.relative_humidity_2m;
-    var ruzgar   = Math.round(veri.current.wind_speed_10m);
-    var hissedilen = Math.round(veri.current.apparent_temperature);
-
-    // Ana sıcaklık kutusu — koyu gradient arka plan
-    var html = '<div style="background:linear-gradient(145deg,#0F3E50,#071E28);border-radius:14px;padding:16px 14px;margin-bottom:12px;cursor:pointer;" onclick="havaDurumuDetayAc()">';
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;">';
-    html += '<div style="display:flex;align-items:center;gap:14px;">';
-    html += '<div class="hava-ana-ikon" style="font-size:44px;line-height:1;">' + anlikBilgi.e + '</div>';
-    html += '<div>';
-    html += '<div style="font-size:28px;font-weight:800;color:#ffffff;">' + Math.round(veri.current.temperature_2m) + '°C</div>';
-    html += '<div style="color:rgba(255,255,255,0.80);font-size:13px;margin-top:2px;">' + anlikBilgi.t + '</div>';
-    html += '</div>';
-    html += '</div>';
-    html += '<span style="color:rgba(255,255,255,0.60);font-size:12px;">Detaylar ›</span>';
-    html += '</div>';
-    html += '<div style="display:flex;gap:14px;margin-top:10px;">';
-    html += '<span style="color:rgba(255,255,255,0.75);font-size:12px;">💧 ' + nem + '%</span>';
-    html += '<span style="color:rgba(255,255,255,0.75);font-size:12px;">💨 ' + ruzgar + ' km/s</span>';
-    html += '<span style="color:rgba(255,255,255,0.75);font-size:12px;">🌡️ Hissedilen ' + hissedilen + '°C</span>';
-    html += '</div>';
-    html += '</div>';
-
-    // Tahmin günleri
-    html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">';
-    for(var i=0; i<veri.daily.time.length; i++){
-      var gunBilgi = havaKoduOku(veri.daily.weather_code[i]);
-      html += '<div style="text-align:center;padding:8px 2px;border-radius:10px;background:rgba(128,128,128,0.12);">';
-      html += '<div style="font-size:12px;color:var(--ink-soft);margin-bottom:4px;">' + gunEtiketi(veri.daily.time[i], i) + '</div>';
-      html += '<div style="font-size:20px;">' + gunBilgi.e + '</div>';
-      html += '<div style="font-size:12px;margin-top:4px;"><strong style="color:var(--ink);">' + Math.round(veri.daily.temperature_2m_max[i]) + '°</strong><span style="color:var(--ink-muted);"> / ' + Math.round(veri.daily.temperature_2m_min[i]) + '°</span></div>';
-      html += '</div>';
-    }
-    html += '</div>';
-
-    // Konum + saat satırı
-    var simdi = new Date();
-    var saatStr = simdi.getHours().toString().padStart(2,'0') + ':' + simdi.getMinutes().toString().padStart(2,'0');
-    var konumHTML = '<div id="havaDurumuKonumSatir" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
-    konumHTML += '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-muted);">';
-    konumHTML += '<span>📍</span><span id="havaDurumuKonumAdi">Konum alınıyor…</span></div>';
-    konumHTML += '<div style="display:flex;align-items:center;gap:6px;">';
-    konumHTML += '<span style="font-size:12px;color:var(--ink-muted);">' + saatStr + '</span>';
-    konumHTML += '<button onclick="konumIsteVeBaslat()" style="background:var(--nm-bg);border:none;box-shadow:2px 2px 5px rgba(163,177,198,0.50),-2px -2px 5px rgba(255,255,255,0.70);border-radius:8px;padding:4px 8px;cursor:pointer;font-size:14px;" title="Yenile">🔄</button>';
-    konumHTML += '</div></div>';
-
-    kart.innerHTML = konumHTML + html;
-    // Kart artık ana sayfada gösterilmiyor — hero içindeki heroHavaSatir kullanılıyor
-    // wrap.style.display = 'block'; // KAPATILDI
 
     // Ters geocoding ile konum adını al
     try {
       fetch('https://nominatim.openstreetmap.org/reverse?lat=' + _sonLat + '&lon=' + _sonLon + '&format=json&accept-language=tr')
         .then(function(r){ return r.json(); })
         .then(function(geo){
-          var el = document.getElementById('havaDurumuKonumAdi');
           var parts = [];
           if(geo.address){
             if(geo.address.neighbourhood) parts.push(geo.address.neighbourhood);
@@ -158,29 +101,49 @@
               parts.push(geo.address.city || geo.address.town || geo.address.county);
           }
           var konumMetin = parts.length ? parts.join(', ') : (geo.display_name || '').split(',').slice(0,2).join(',');
+          if(!konumMetin) return;
+
+          _sonKonumAdi = konumMetin;
           // localStorage'a kaydet — bir sonraki açılışta hemen göster
           try { localStorage.setItem('oyHavaKonum', konumMetin); } catch(e) {}
-          if(el) el.textContent = konumMetin;
-          // YENİ: Hero'daki konum satırını da güncelle
-          var heroKonum = document.getElementById('heroKonumMetni');
-          if(heroKonum) heroKonum.textContent = '📍 ' + konumMetin;
-          // Tekrar bulamazsa yeni bir tane oluştur
-          if(!heroKonum){
-            var heroSatirDiv = document.getElementById('heroHavaSatir');
-            if(heroSatirDiv){
-              var yeni = document.createElement('div');
-              yeni.id = 'heroKonumMetni';
-              yeni.style.cssText = 'font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;';
-              yeni.textContent = '📍 ' + konumMetin;
-              var icDiv = heroSatirDiv.querySelector('div');
-              if(icDiv) icDiv.appendChild(yeni);
-            }
-          }
+
+          konumHerYereYaz(konumMetin);
         }).catch(function(){});
     } catch(e) {}
   }
 
-  var _sonLat = null, _sonLon = null, _sonVeri = null;
+  // Konum metnini; ana sayfa hero'su, hava durumu detay paneli ve topbar
+  // başlığında bulunan her yere yazar.
+  function konumHerYereYaz(konumMetin){
+    // 1) Ana sayfa hero satırı
+    var heroKonum = document.getElementById('heroKonumMetni');
+    if(heroKonum){
+      heroKonum.textContent = '📍 ' + konumMetin;
+    } else {
+      var heroSatirDiv = document.getElementById('heroHavaSatir');
+      if(heroSatirDiv){
+        var icDiv = heroSatirDiv.querySelector('div');
+        if(icDiv){
+          var yeni = document.createElement('div');
+          yeni.id = 'heroKonumMetni';
+          yeni.style.cssText = 'font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;';
+          yeni.textContent = '📍 ' + konumMetin;
+          icDiv.appendChild(yeni);
+        }
+      }
+    }
+
+    // 2) Hava durumu detay paneli (açıksa)
+    var detayKonum = document.getElementById('havDetayKonumMetni');
+    if(detayKonum) detayKonum.textContent = '📍 ' + konumMetin;
+
+    // 3) Topbar hava rozeti tooltip'i
+    var topbarEl = document.getElementById('topbarHava');
+    if(topbarEl && !topbarEl.title) topbarEl.title = konumMetin;
+  }
+
+  var _sonLat = null, _sonLon = null, _sonVeri = null, _sonKonumAdi = null;
+  try { _sonKonumAdi = localStorage.getItem('oyHavaKonum') || null; } catch(e){}
 
   function havaDurumuDetayAc(){
     if(!_sonVeri) return;
@@ -201,7 +164,10 @@
 
     // Üst bar (kapat)
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;position:sticky;top:0;background:rgba(11,30,74,.92);backdrop-filter:blur(12px);z-index:10;">';
+    html += '<div>';
     html += '<div style="color:#fff;font-size:16px;font-weight:800;">🌤️ Hava Durumu</div>';
+    html += '<div id="havDetayKonumMetni" style="color:rgba(255,255,255,.65);font-size:11px;margin-top:2px;">' + (_sonKonumAdi ? '📍 ' + _sonKonumAdi : 'Konum alınıyor…') + '</div>';
+    html += '</div>';
     html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
     html += '</div>';
 
