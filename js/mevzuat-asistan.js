@@ -162,6 +162,57 @@ function _mevzuatAnahtarKelimelerCikar(metin){
   return [...new Set(kelimeler)].slice(0, 60);
 }
 
+/* ---------- toplu içe aktarma ----------
+   Beklenen JSON formatı: [{ baslik, kaynak, kategori, metin }, ...]
+   Aynı 'kaynak' (URL) ile daha önce eklenmiş kayıtlar atlanır (tekrar
+   içe aktarınca kopya oluşmaz). */
+async function mevzuatTopluIceAktar(dosya){
+  if(!dosya) return;
+  let liste;
+  try{
+    const metin = await dosya.text();
+    liste = JSON.parse(metin);
+    if(!Array.isArray(liste)) throw new Error('Dosya bir dizi (array) içermiyor.');
+  }catch(e){
+    toast('Dosya okunamadı: ' + e.message);
+    return;
+  }
+
+  const mevcutKaynaklar = new Set(mevzuatKayitlari.map(k => k.kaynak).filter(Boolean));
+  let eklenen = 0, atlanan = 0, hatali = 0;
+
+  for(const oge of liste){
+    try{
+      if(!oge.baslik || !oge.metin || !oge.metin.trim()){ hatali++; continue; }
+      if(oge.kaynak && mevcutKaynaklar.has(oge.kaynak)){ atlanan++; continue; }
+
+      const parcalar = _mevzuatMetniChunklaraBol(oge.metin);
+      if(parcalar.length === 0){ hatali++; continue; }
+
+      const mevzuatId = 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      const kayit = {
+        id: mevzuatId, baslik: oge.baslik, kaynak: oge.kaynak || '', kategori: oge.kategori || 'Genel',
+        eklenmeTarihi: new Date().toISOString(), chunkSayisi: parcalar.length
+      };
+      const chunklar = parcalar.map((p, i)=> ({
+        id: mevzuatId + '_c' + i, mevzuatId, indeks: i, baslik: p.baslik, metin: p.metin, anahtarKelimeler: p.anahtarKelimeler
+      }));
+
+      await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=> store.put(kayit));
+      await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=> chunklar.forEach(c=> store.put(c)));
+      if(oge.kaynak) mevcutKaynaklar.add(oge.kaynak);
+      eklenen++;
+    }catch(e){
+      console.warn('Toplu içe aktarmada bir kayıt atlandı:', e.message);
+      hatali++;
+    }
+  }
+
+  toast(`İçe aktarma tamamlandı: ${eklenen} eklendi, ${atlanan} zaten vardı, ${hatali} hatalı.`);
+  document.getElementById('mvTopluDosya').value = '';
+  await mevzuatKayitlariYenile();
+}
+
 /* ---------- yeni mevzuat ekleme ---------- */
 async function mevzuatEkle(){
   const baslik = document.getElementById('f_mvBaslik').value.trim();
