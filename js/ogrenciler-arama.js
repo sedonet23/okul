@@ -245,6 +245,7 @@ function gelismisFiltreSifirla() {
 function aramaFiltreTikla(set, id, el) {
   if (set.has(id)) { set.delete(id); el.classList.remove('secili'); }
   else             { set.add(id);    el.classList.add('secili'); }
+  console.log('[Arama] servisler seçili:', [..._seciliServisler], 'veliler:', typeof veliler !== 'undefined' ? veliler.length : 'TANIMSIZ');
   globalAramaYap();
 }
 
@@ -339,17 +340,32 @@ function globalAramaYap() {
     }
 
     const hits = tumVeliler.filter(v => {
-      // Çoklu servis filtresi
-      if (_seciliServisler.size > 0 && !_seciliServisler.has(v.servisId)) return false;
+      // Çoklu servis filtresi (chip'ten) — servisId veya servisAdi ile eşleştir
+      if (_seciliServisler.size > 0) {
+        const servisIdEslesti = _seciliServisler.has(v.servisId);
+        // servisId yoksa servisAdi veya notlar alanında servis adı geçiyor mu bak
+        const seciliServisAdlari = typeof servisler !== 'undefined'
+          ? servisler.filter(s => _seciliServisler.has(s.id)).map(s => (s.servisAdi||'').toLocaleLowerCase('tr'))
+          : [];
+        const servisAdEslesti = seciliServisAdlari.some(ad =>
+          (v.servisAdi||v.servis||v.servisId||'').toLocaleLowerCase('tr').includes(ad)
+        );
+        if (!servisIdEslesti && !servisAdEslesti) return false;
+      }
       // Çoklu sınıf filtresi
       if (_seciliSiniflar.size > 0 && !_seciliSiniflar.has(v.sinifId)) return false;
       // Cinsiyet filtresi
       if (cinsF === 'kiz' && !['Kız','K','kiz','kız'].includes(v.cinsiyet)) return false;
       if (cinsF === 'erkek' && !['Erkek','E','erkek'].includes(v.cinsiyet)) return false;
 
-      if (!q) return true; // sadece filtre ile çalışıyor
+      if (!q) return true; // sadece filtre ile çalışıyor — chip seçiliyse tüm eşleşenler gelir
 
-      // Metin eşleşmesi: ad/veli/sınıf VEYA servis adı üzerinden
+      // Chip aktifken q sadece ek daraltma (ad/veli üzerinden)
+      if (_seciliServisler.size > 0 || _seciliSiniflar.size > 0) {
+        return [v.ogrenciAdi, v.veliAdi, v.telefon].join(' ').toLocaleLowerCase('tr').includes(q);
+      }
+
+      // Chip yokken: ad/veli/sınıf VEYA servis adı üzerinden tam arama
       const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'' : '';
       const metinEslesti = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi].join(' ').toLocaleLowerCase('tr').includes(q);
       const servisEslesti = servisIdlerdenGelen.has(v.servisId);

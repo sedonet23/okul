@@ -187,15 +187,15 @@
 
     var panel = document.createElement('div');
     panel.id = 'havaDurumuDetayPanel';
-    panel.style.cssText = 'position:fixed;inset:0;z-index:3000;overflow-y:auto;font-family:Inter,sans-serif;';
+    panel.style.cssText = 'position:fixed;inset:0;z-index:8000;overflow-y:auto;overflow-x:hidden;font-family:Inter,sans-serif;padding-bottom:80px;';
 
     // ------- ANA BAŞLIK ------- //
     var html = '<div style="min-height:100vh;background:linear-gradient(160deg,#0B1E4A 0%,#1B3570 50%,#2C509A 100%);">';
 
     // Üst bar (kapat)
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;position:sticky;top:0;background:rgba(11,30,74,.85);backdrop-filter:blur(12px);z-index:10;">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;position:sticky;top:0;background:rgba(11,30,74,.92);backdrop-filter:blur(12px);z-index:10;">';
     html += '<div style="color:#fff;font-size:16px;font-weight:800;">🌤️ Hava Durumu</div>';
-    html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.12);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>';
+    html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
     html += '</div>';
 
     // Anlık büyük kart
