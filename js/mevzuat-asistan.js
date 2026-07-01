@@ -166,51 +166,71 @@ function _mevzuatAnahtarKelimelerCikar(metin){
    Beklenen JSON formatı: [{ baslik, kaynak, kategori, metin }, ...]
    Aynı 'kaynak' (URL) ile daha önce eklenmiş kayıtlar atlanır (tekrar
    içe aktarınca kopya oluşmaz). */
+function _dosyaMetniOku(dosya){
+  // Bazı Android WebView sürümlerinde File.text() sessizce başarısız
+  // olabiliyor; FileReader daha geniş uyumluluğa sahip.
+  return new Promise((resolve, reject)=>{
+    const okuyucu = new FileReader();
+    okuyucu.onload = ()=> resolve(okuyucu.result);
+    okuyucu.onerror = ()=> reject(okuyucu.error || new Error('Dosya okunamadı'));
+    okuyucu.readAsText(dosya, 'utf-8');
+  });
+}
+
 async function mevzuatTopluIceAktar(dosya){
-  if(!dosya) return;
-  let liste;
+  if(!dosya){ console.warn('mevzuatTopluIceAktar: dosya seçilmedi.'); return; }
+  toast('İçe aktarılıyor, lütfen bekleyin…');
+
   try{
-    const metin = await dosya.text();
-    liste = JSON.parse(metin);
-    if(!Array.isArray(liste)) throw new Error('Dosya bir dizi (array) içermiyor.');
-  }catch(e){
-    toast('Dosya okunamadı: ' + e.message);
-    return;
-  }
-
-  const mevcutKaynaklar = new Set(mevzuatKayitlari.map(k => k.kaynak).filter(Boolean));
-  let eklenen = 0, atlanan = 0, hatali = 0;
-
-  for(const oge of liste){
+    let liste;
     try{
-      if(!oge.baslik || !oge.metin || !oge.metin.trim()){ hatali++; continue; }
-      if(oge.kaynak && mevcutKaynaklar.has(oge.kaynak)){ atlanan++; continue; }
-
-      const parcalar = _mevzuatMetniChunklaraBol(oge.metin);
-      if(parcalar.length === 0){ hatali++; continue; }
-
-      const mevzuatId = 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-      const kayit = {
-        id: mevzuatId, baslik: oge.baslik, kaynak: oge.kaynak || '', kategori: oge.kategori || 'Genel',
-        eklenmeTarihi: new Date().toISOString(), chunkSayisi: parcalar.length
-      };
-      const chunklar = parcalar.map((p, i)=> ({
-        id: mevzuatId + '_c' + i, mevzuatId, indeks: i, baslik: p.baslik, metin: p.metin, anahtarKelimeler: p.anahtarKelimeler
-      }));
-
-      await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=> store.put(kayit));
-      await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=> chunklar.forEach(c=> store.put(c)));
-      if(oge.kaynak) mevcutKaynaklar.add(oge.kaynak);
-      eklenen++;
+      const metin = await _dosyaMetniOku(dosya);
+      liste = JSON.parse(metin);
+      if(!Array.isArray(liste)) throw new Error('Dosya bir dizi (array) içermiyor.');
     }catch(e){
-      console.warn('Toplu içe aktarmada bir kayıt atlandı:', e.message);
-      hatali++;
+      console.error('mevzuatTopluIceAktar - dosya okuma/parse hatası:', e);
+      toast('Dosya okunamadı: ' + e.message);
+      return;
     }
-  }
 
-  toast(`İçe aktarma tamamlandı: ${eklenen} eklendi, ${atlanan} zaten vardı, ${hatali} hatalı.`);
-  document.getElementById('mvTopluDosya').value = '';
-  await mevzuatKayitlariYenile();
+    const mevcutKaynaklar = new Set(mevzuatKayitlari.map(k => k.kaynak).filter(Boolean));
+    let eklenen = 0, atlanan = 0, hatali = 0;
+
+    for(const oge of liste){
+      try{
+        if(!oge.baslik || !oge.metin || !oge.metin.trim()){ hatali++; continue; }
+        if(oge.kaynak && mevcutKaynaklar.has(oge.kaynak)){ atlanan++; continue; }
+
+        const parcalar = _mevzuatMetniChunklaraBol(oge.metin);
+        if(parcalar.length === 0){ hatali++; continue; }
+
+        const mevzuatId = 'mv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        const kayit = {
+          id: mevzuatId, baslik: oge.baslik, kaynak: oge.kaynak || '', kategori: oge.kategori || 'Genel',
+          eklenmeTarihi: new Date().toISOString(), chunkSayisi: parcalar.length
+        };
+        const chunklar = parcalar.map((p, i)=> ({
+          id: mevzuatId + '_c' + i, mevzuatId, indeks: i, baslik: p.baslik, metin: p.metin, anahtarKelimeler: p.anahtarKelimeler
+        }));
+
+        await _mevzuatStoreIslem('kayitlar', 'readwrite', (store)=> store.put(kayit));
+        await _mevzuatStoreIslem('chunklar', 'readwrite', (store)=> chunklar.forEach(c=> store.put(c)));
+        if(oge.kaynak) mevcutKaynaklar.add(oge.kaynak);
+        eklenen++;
+      }catch(e){
+        console.error('Toplu içe aktarmada bir kayıt atlandı:', oge && oge.baslik, e);
+        hatali++;
+      }
+    }
+
+    toast(`İçe aktarma tamamlandı: ${eklenen} eklendi, ${atlanan} zaten vardı, ${hatali} hatalı.`);
+    const girdi = document.getElementById('mvTopluDosya');
+    if(girdi) girdi.value = '';
+    await mevzuatKayitlariYenile();
+  }catch(genelHata){
+    console.error('mevzuatTopluIceAktar - beklenmeyen hata:', genelHata);
+    toast('İçe aktarma sırasında beklenmeyen bir hata oluştu: ' + genelHata.message);
+  }
 }
 
 /* ---------- yeni mevzuat ekleme ---------- */
