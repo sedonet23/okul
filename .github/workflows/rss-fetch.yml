@@ -2,8 +2,8 @@ name: RSS Haber Taraması
 
 on:
   schedule:
-    # Her gece 00:00 UTC = 03:00 Türkiye saati
-    - cron: '0 0 * * *'
+    # Her saat başı (UTC) — Türkiye saatiyle de her saat başı
+    - cron: '0 * * * *'
   workflow_dispatch: {}
 
 jobs:
@@ -22,4 +22,4 @@ jobs:
       - name: RSS kaynaklarını tara ve bildirim gönder
         run: node scripts/rss-fetch.js
         env:
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}a
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
