@@ -2746,3 +2746,41 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 #globalAramaSonuclar .detay-row{ display:flex; align-items:center; gap:8px; cursor:default; }
 #globalAramaSonuclar .detay-row[onclick]{ cursor:pointer; }
 #globalAramaSonuclar .detay-row:hover[onclick]{ background:var(--nm-bg-dark,..) }
+
+/* =========================================================================
+   YENİ: STAT KARTI YENİ TASARIM (büyük ikon üstte, Tümü sağ altta)
+   ========================================================================= */
+#tab-panel.dash-modern .stat-card{
+  display:flex; flex-direction:column; align-items:flex-start; position:relative;
+  padding:16px 14px 12px; min-height:130px;
+}
+#tab-panel.dash-modern .stat-card-ico-lg{
+  width:52px; height:52px; border-radius:var(--icon-shape,16px);
+  display:flex; align-items:center; justify-content:center; font-size:24px;
+  margin-bottom:10px; flex-shrink:0;
+}
+#tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-blue{ background:#EFF4FF; color:#2563EB; }
+#tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-green{ background:#EAF7F0; color:#16A34A; }
+#tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-purple{ background:#F3EEFE; color:#7C3AED; }
+#tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-amber{ background:#FFF1E6; color:#F97316; }
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-blue{ background:#22324A; color:#7CA8FF; }
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-green{ background:#1E3A2C; color:#4ADE80; }
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-purple{ background:#2E2A45; color:#C4A6FF; }
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-amber{ background:#3A2A1A; color:#FDBA74; }
+#tab-panel.dash-modern .stat-card-tumu-bottom{
+  position:absolute; right:12px; bottom:10px;
+  font-family:'Inter'; font-size:11px; font-weight:700; color:var(--dm-accent);
+}
+#tab-panel.dash-modern .stat-card-cinsiyet{
+  display:block; font-size:10.5px; font-weight:600; color:var(--dm-ink-muted); margin-top:2px;
+}
+
+/* =========================================================================
+   YENİ: İÇERİK ALT MENÜNÜN ALTINDA KALMAZ
+   Tüm .content ve tab-panel'lere bottom padding eklendi
+   ========================================================================= */
+@media (max-width:1100px){
+  .content{ padding-bottom:80px !important; }
+  #tab-panel.dash-modern{ padding-bottom:110px; }
+  .tab-panel{ padding-bottom:80px; }
+}
