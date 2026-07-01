@@ -1,6 +1,7 @@
 package com.koruk.okul;
 
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -16,9 +17,36 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetPlugin.class);
         registerPlugin(PushNotificationsPlugin.class);
+        registerPlugin(PrintPlugin.class);
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
+        kenarJestiniAyir();
+    }
+
+    /* Android 10+ (API 29) sistem "geri" hareket algılaması, ekranın sol
+       kenarına yakın başlayan sağa kaydırmaları WebView'e ULAŞTIRMADAN
+       kendi başına yutuyor — bu yüzden uygulama içindeki "kaydırınca menü
+       aç" jesti hiç tetiklenmiyordu. setSystemGestureExclusionRects ile
+       sol kenardan ~36dp'lik bir şeridi sistem hareketinden muaf tutup
+       dokunuşun WebView'e (ve dolayısıyla JS'e) ulaşmasını sağlıyoruz. */
+    private void kenarJestiniAyir() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        final android.webkit.WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+        if (webView == null) return;
+
+        Runnable uygula = () -> {
+            int yukseklik = webView.getHeight();
+            if (yukseklik <= 0) return;
+            float yogunluk = getResources().getDisplayMetrics().density;
+            int genislikPx = Math.round(36 * yogunluk);
+            webView.setSystemGestureExclusionRects(
+                java.util.Collections.singletonList(new android.graphics.Rect(0, 0, genislikPx, yukseklik))
+            );
+        };
+
+        webView.post(uygula);
+        webView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or_, ob) -> uygula.run());
     }
 
     /* Donanım geri tuşu: önce web tarafındaki geriTusuIsle() fonksiyonuna
