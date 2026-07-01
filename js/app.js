@@ -1152,6 +1152,27 @@ async function tumVerileriYedekle(){
   // istediği yere gönderebilir (ayrı bir Google girişi gerekmeden).
   uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true);
 }
+/* ---------- Native confirm() yerine kullanılan özel onay modalı ----------
+   Bazı Android WebView'lerde native confirm(), kullanıcı dokunuşundan
+   birkaç saniye sonra (örn. uzun bir async işlem sonrası) sessizce
+   engelleniyor — dialog hiç görünmeden false dönüyor, kullanıcı hiçbir
+   şey olmamış gibi hissediyor. Bu, tamamen kendi DOM'umuzda render
+   edildiği için o kısıtlamaya tabi değil. */
+function uygulamaOnayAl(mesaj){
+  return new Promise(resolve=>{
+    const modal = document.getElementById('ozelOnayModal');
+    const mesajEl = document.getElementById('ozelOnayMesaj');
+    if(!modal || !mesajEl){ resolve(confirm(mesaj)); return; } // beklenmedik durumda son çare
+    mesajEl.textContent = mesaj;
+    modal.style.display = 'flex';
+    window._ozelOnaySonucVer = (sonuc)=>{
+      modal.style.display = 'none';
+      window._ozelOnaySonucVer = null;
+      resolve(sonuc);
+    };
+  });
+}
+
 function _dosyaMetniOku(dosya){
   // Bazı Android WebView sürümlerinde / bazı dosya kaynaklarında (SAF ile
   // seçilen content:// URI'ler gibi) tek bir okuma yöntemi HİÇ HATA
@@ -1219,7 +1240,8 @@ async function yedektenGeriYukle(file){
   try{
     const metin = await _dosyaMetniOku(file);
     const data = JSON.parse(metin);
-    if(!confirm("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?")) return;
+    const onaylandi = await uygulamaOnayAl("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?");
+    if(!onaylandi) return;
     const eslemeler = [
       [data.ogretmenler, COL.ogretmenler],[data.dersProgrami, COL.dersProgrami],
       [data.siniflar, COL.siniflar],[data.veliler, COL.veliler],
