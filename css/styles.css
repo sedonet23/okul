@@ -2795,3 +2795,43 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   display:block; font-size:11.5px; font-weight:600;
   color:var(--dm-ink-muted); margin-top:2px; letter-spacing:.01em;
 }
+
+/* =========================================================================
+   HABERLER / DUYURULAR MODÜLÜ
+   ========================================================================= */
+.haber-altsekmeler{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.haber-altsekme-btn{
+  padding:9px 16px; border-radius: var(--radius-md, 10px); border:1px solid var(--border-soft);
+  background: var(--bg-card); color: var(--ink-soft); font-weight:700; font-size:13px; cursor:pointer;
+}
+.haber-altsekme-btn.active{ background: var(--brand); color:#fff; border-color: var(--brand); }
+
+/* ---- Dashboard: kayan haber bandı (ticker) ---- */
+.haber-ticker{
+  overflow:hidden; white-space:nowrap; background: var(--bg-card); border:1px solid var(--border-soft);
+  border-radius: var(--radius-md, 10px); padding:9px 0; margin-bottom:14px; box-shadow: var(--nm-out, none);
+}
+.ticker-track{ display:inline-block; animation: haberTickerKaydir 40s linear infinite; }
+.haber-ticker:hover .ticker-track{ animation-play-state: paused; }
+.ticker-item{ display:inline-block; padding:0 18px; font-size:13px; font-weight:600; color: var(--ink); cursor:pointer; }
+.ticker-ayrac{ color: var(--ink-muted); }
+@keyframes haberTickerKaydir{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+/* ---- Dashboard: haber karuseli ---- */
+.karusel-viewport{ overflow:hidden; border-radius: var(--radius-md, 10px); }
+.karusel-track{ display:flex; transition: transform .4s ease; }
+.karusel-slide{
+  flex:0 0 100%; min-width:100%; padding:16px; cursor:pointer; box-sizing:border-box;
+  background: var(--bg-app-soft); border-radius: var(--radius-md, 10px);
+}
+.karusel-kategori{ display:inline-block; margin-bottom:8px; }
+.karusel-baslik{ font-weight:700; font-size:14.5px; line-height:1.4; }
+.karusel-meta{ font-size:12px; color: var(--ink-muted); margin-top:6px; font-family: var(--font-mono); }
+.karusel-noktalar{ display:flex; justify-content:center; gap:6px; margin-top:10px; }
+.karusel-nokta{ width:7px; height:7px; border-radius:50%; background: var(--border-soft); cursor:pointer; }
+.karusel-nokta.active{ background: var(--brand); }
+
+@media (max-width:600px){
+  .ticker-item{ font-size:12px; padding:0 12px; }
+  .karusel-baslik{ font-size:13.5px; }
+}
