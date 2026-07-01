@@ -1029,11 +1029,11 @@
 
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bn-item active" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
-      <button class="bn-item" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
+      <button class="bn-item active" data-tab="panel" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item" data-tab="evrak" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
       <button class="bn-item bn-plus" onclick="hizliEkleModalAc();" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
-      <button class="bn-item" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
-      <button class="bn-item" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
+      <button class="bn-item" data-tab="arama" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
+      <button class="bn-item" data-tab="ayarlar" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
     </nav>
 
     <!-- YENİ: Hızlı Ekle Modalı (+ butonu) — dışarı tıklayınca kapanır -->
