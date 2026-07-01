@@ -603,6 +603,14 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
 .notes-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
 .note-card{ border-radius: var(--radius-md); padding:16px; min-height:120px; display:flex; flex-direction:column; box-shadow: var(--nm-out); cursor:pointer; transition: transform .12s ease, box-shadow .15s ease; border:none; border-left: 3px solid var(--amber); }
 .note-card:hover{ transform: translateY(-2px) rotate(-0.3deg); box-shadow: var(--shadow-md); }
+/* Not kartlarının arka planı (renk.bg) her zaman açık pastel — tema
+   değişse bile böyle kalması tasarlanmış (yapışkan not/post-it görünümü).
+   Bu yüzden içindeki yazılar da temadan bağımsız, hep KOYU olmalı; aksi
+   halde koyu modda --ink açık renge dönüp açık zeminde okunmaz hale gelir. */
+.note-card .note-title{ color:#1F2937 !important; }
+.note-card .note-icerik{ color:#374151 !important; }
+.note-card .note-tarih{ color:#6B7280 !important; }
+.note-card .note-todo-satir{ color:#374151 !important; }
 .note-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:8px; }
 .note-title{ font-family: var(--font-display); font-weight:700; font-size:14px; flex:1; }
 .note-type-badge{ font-size:14px; flex-shrink:0; }
@@ -2838,3 +2846,18 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 @media (max-width:600px){
   .mebpersonel-widget-wrap{ height:380px; }
 }
+
+/* =========================================================================
+   KOYU MOD KONTRAST DÜZELTMESİ: --brand-light
+   Her aksan rengi (--brand-light) sadece AÇIK mod için tasarlanmış soluk
+   pastel tonlar (örn. teal: #DFF2F2) — koyu modda bu değişken hiç
+   değişmiyordu. Sonuç: "seçili/vurgulanmış" öğeler (kullanıcı seç modalı,
+   renk paketi seçici vb.) koyu modda AÇIK zemin + AÇIK yazı (--ink) ile
+   render oluyor, yani okunmuyor. !important ile, hangi aksan rengi seçili
+   olursa olsun koyu modda her zaman okunabilir bir vurgu zemini sağlanır.
+   ========================================================================= */
+[data-theme="dark"]{
+  --brand-light: rgba(255,255,255,0.10) !important;
+}
+
+[data-theme="dark"] .renk-paketi-secenek.aktif{ color: var(--ink) !important; }
