@@ -945,8 +945,8 @@
       <button class="bn-item" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
     </nav>
 
-    <!-- YENİ: Hızlı Ekle Modalı (+ butonu) -->
-    <div id="hizliEkleModal" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.5);align-items:flex-end;">
+    <!-- YENİ: Hızlı Ekle Modalı (+ butonu) — dışarı tıklayınca kapanır -->
+    <div id="hizliEkleModal" onclick="if(event.target===this)hizliEkleModalKapat()" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,.5);align-items:flex-end;">
       <div style="background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;padding:20px;">
         <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;">➕ Ne eklemek istersiniz?</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
