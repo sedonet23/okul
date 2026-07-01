@@ -448,7 +448,11 @@
     <section id="tab-mevzuat" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">⚖️ Mevzuat Asistanı</div><div class="page-sub">Mevzuat metinlerini ekle, cihazında sakla, soru sor — hiçbir veri Firestore'a gitmez</div></div>
-        <button class="btn btn-amber" onclick="mevzuatEkleModalAc()">➕ Yeni Mevzuat Ekle</button>
+        <div class="page-header-actions" style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('mvTopluDosya').click()">📥 Toplu İçe Aktar</button>
+          <input type="file" id="mvTopluDosya" accept="application/json" style="display:none;" onchange="mevzuatTopluIceAktar(this.files[0])">
+          <button class="btn btn-amber" onclick="mevzuatEkleModalAc()">➕ Yeni Mevzuat Ekle</button>
+        </div>
       </div>
 
       <div class="haber-altsekmeler">
