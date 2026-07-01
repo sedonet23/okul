@@ -71,6 +71,34 @@ function parseFeedItems(xml){
   return items;
 }
 
+/* Secret'a kopyala-yapıştır sırasında fazladan karakter/satır eklenmiş
+   olabilir (ör. JSON'ın sonuna kazara bir şey daha yapışmış). Önce ham
+   metni doğrudan ayrıştırmayı dene; olmazsa ilk '{' ile son '}' arasını
+   kırpıp tekrar dene. İkisi de olmazsa anlaşılır bir hata mesajı bas. */
+function serviceAccountJsonAyristir(ham){
+  if(!ham) return null;
+  const metin = ham.trim();
+  try{
+    return JSON.parse(metin);
+  }catch(ilkHata){
+    const basla = metin.indexOf('{');
+    const bitis = metin.lastIndexOf('}');
+    if(basla !== -1 && bitis > basla){
+      try{
+        return JSON.parse(metin.slice(basla, bitis + 1));
+      }catch(ikinciHata){
+        console.error('FIREBASE_SERVICE_ACCOUNT geçerli bir JSON değil.');
+        console.error('Muhtemel sebep: secret içeriğine fazladan karakter/satır karışmış (kopyala-yapıştır hatası).');
+        console.error('İlk hata:', ilkHata.message);
+        console.error('İkinci deneme hatası:', ikinciHata.message);
+        throw ikinciHata;
+      }
+    }
+    console.error('FIREBASE_SERVICE_ACCOUNT içinde { } bulunamadı — secret boş veya tamamen bozuk olabilir.');
+    throw ilkHata;
+  }
+}
+
 /* ---------- ana akış ---------- */
 async function main(){
   const json = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -79,7 +107,8 @@ async function main(){
     process.exit(1);
   }
 
-  admin.initializeApp({ credential: admin.credential.cert(JSON.parse(json)) });
+  const serviceAccount = serviceAccountJsonAyristir(json);
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
   const db = admin.firestore();
 
   const kaynakSnap = await db.collection('oy_haberKaynaklari').get();
