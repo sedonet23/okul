@@ -242,6 +242,10 @@ function kullaniciSec(id, tip){
     localStorage.removeItem('oyAktifKullaniciId');
     localStorage.removeItem('oyAktifKullaniciTip');
   }
+  // "Genel (kişiselleştirme yok)" seçilse bile bu, bir SEÇİM yapıldığını
+  // gösterir — bu işaret olmadan boş oyAktifKullaniciId ile "hiç
+  // sorulmadı" durumu ayırt edilemez, her açılışta tekrar sorardı.
+  localStorage.setItem('oyKullaniciSecimiYapildi', '1');
   aktifKullaniciyiGuncelle();
   if(typeof renderDashboard === 'function') renderDashboard();
   kullaniciSecModalKapat();

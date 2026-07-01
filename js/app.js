@@ -340,6 +340,22 @@ function uygulamaHtmlYazdir(rawHtml, isAdi){
 }
 window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
 
+/* ---------- İlk açılışta "Bu uygulamayı kim kullanıyor?" sorma ----------
+   Sadece HİÇ seçim yapılmamışsa (oyKullaniciSecimiYapildi işareti yoksa)
+   ve öğretmen/personel listesi Firestore'dan geldiyse (liste boşken
+   modal açmanın anlamı yok) bir kereliğine otomatik açılır. */
+let _ilkAcilistaKullaniciSorFlag = false;
+function _ilkAcilistaKullaniciSor(){
+  if(_ilkAcilistaKullaniciSorFlag) return; // bu oturumda zaten denendi
+  if(localStorage.getItem('oyKullaniciSecimiYapildi')) return; // daha önce cevaplanmış
+  const kisiSayisi = (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0) +
+    (typeof personelListesi !== 'undefined' ? personelListesi.length : 0);
+  if(kisiSayisi === 0) return; // liste henüz gelmedi, bekle (bir sonraki onSnapshot'ta tekrar denenir)
+
+  _ilkAcilistaKullaniciSorFlag = true;
+  setTimeout(()=>{ if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc(); }, 600);
+}
+
 /* ====================================================================
    ORTAK DOSYA KAYDETME/İNDİRME YARDIMCISI
    Android'in çıplak WebView bileşeni tarayıcıların standart blob indirme
@@ -827,12 +843,15 @@ function renderDashboard(){
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>
   `;
-  /* ---- Hızlı Bakış: Kadın/Erkek kaldırıldı (artık öğrenci kartında), diğerleri korundu ---- */
+  /* ---- Hızlı Bakış: Kadın/Erkek (Öğretmen) kaldırıldı — üstteki "Personel"
+     kartında zaten aynı 🚺/🚹 dağılımı gösteriliyordu, tekrar oluyordu.
+     Yerine "Bugünkü Ders" sayısı kondu. ---- */
+  const bugunkuDersSayisi = dersProgrami.filter(d=>d.gun===bugunGun).length;
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
     hizliBakisEl.innerHTML = `
       <div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>
-      <div class="hb-chip" onclick="sekmeAc('ogretmenler')"><span class="hb-ico">🚺🚹</span><div><div class="hb-num">${kadinOgretmen}/${erkekOgretmen}</div><div class="hb-label">Öğretmen</div></div></div>
+      <div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>
       <div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>
       <div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>
     `;
@@ -1092,7 +1111,7 @@ async function yedektenGeriYukle(file){
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
-  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
+  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } if(typeof renderOgrenciler==='function') renderOgrenciler(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);

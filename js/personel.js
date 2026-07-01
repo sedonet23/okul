@@ -139,5 +139,6 @@ function personelBaglantilariKur(){
     renderPersonelListesi();
     if(typeof globalAramaYap === 'function') globalAramaYap();
     if(typeof onbellekKaydet === 'function') onbellekKaydet();
+    if(typeof _ilkAcilistaKullaniciSor === 'function') _ilkAcilistaKullaniciSor();
   }, hataGoster);
 }
