@@ -2784,3 +2784,14 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   #tab-panel.dash-modern{ padding-bottom:110px; }
   .tab-panel{ padding-bottom:80px; }
 }
+
+/* =========================================================================
+   YENİ: STAT KARTI İKONU DAHA BÜYÜK + CİNSİYET SATIRI DÜZENLEMESİ
+   ========================================================================= */
+#tab-panel.dash-modern .stat-card-ico-lg{
+  width:64px !important; height:64px !important; font-size:30px !important;
+}
+#tab-panel.dash-modern .stat-card-cinsiyet{
+  display:block; font-size:11.5px; font-weight:600;
+  color:var(--dm-ink-muted); margin-top:2px; letter-spacing:.01em;
+}
