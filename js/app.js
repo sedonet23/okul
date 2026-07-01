@@ -983,15 +983,15 @@ async function yedektenGeriYukle(file){
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
-  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); }, hataGoster);
+  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
-  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } }, hataGoster);
-  db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } if(typeof renderOgrenciler==='function') renderOgrenciler(); }, hataGoster);
+  db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
+  db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } if(typeof renderOgrenciler==='function') renderOgrenciler(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   nobetBaglantilariKur();
   db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
   db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
-  db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); }, hataGoster);
-  db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); }, hataGoster);
+  db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
+  db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
 
   ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
     db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); if(tip==='sosyalKulupler') renderSosyalKuluplerListesi(); }, hataGoster);
@@ -1037,6 +1037,10 @@ function sekmeAc(tab){
   var km = document.getElementById('kullaniciSecModal');
   if(km) km.style.display = 'none';
   document.body.classList.remove('modal-open');
+  // Arama sekmesi açılınca sonuçları güncelle — veriler henüz yüklenmemiş
+  // olabilir, bu yüzden onSnapshot dinleyicileri de globalAramaYap()'ı
+  // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
+  if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
 }
 function haritaSekmesiAc(){
   sekmeAc('harita');
@@ -1057,7 +1061,65 @@ function uygulamaBaslat(){
   setInterval(()=>{ renderZilSayaci(GUNADI[new Date().getDay()]); }, 30000);
 }
 
+/* ================================================================
+   YEREL ÖNBELLEK (localStorage) — Firestore verileri cihazda saklanır,
+   uygulama açılır açılmaz (Firestore bağlantısı/IndexedDB beklenmeden)
+   en son bilinen veriyle anında dolu gelir. Firestore zaten IndexedDB
+   ile offline önbellek tutuyor (bkz. firebase-init.js enablePersistence)
+   ama bu ek katman DOMContentLoaded anında SENKRON çalıştığı için ilk
+   ekran, Firestore'un kendi önbelleğini açmasını bile beklemeden dolu
+   gelir — özellikle yavaş/kararsız bağlantılarda (ör. arama sekmesi)
+   fark yaratır.
+   ================================================================ */
+const _ONBELLEK_ANAHTARI = 'oyVeriOnbellek_v1';
+
+function onbellekYukle(){
+  try{
+    const ham = localStorage.getItem(_ONBELLEK_ANAHTARI);
+    if(!ham) return;
+    const v = JSON.parse(ham);
+    if(Array.isArray(v.ogretmenler)) ogretmenler = v.ogretmenler;
+    if(Array.isArray(v.veliler)) veliler = v.veliler;
+    if(Array.isArray(v.siniflar)) siniflar = v.siniflar;
+    if(Array.isArray(v.servisler)) servisler = v.servisler;
+    if(Array.isArray(v.personelListesi)) personelListesi = v.personelListesi;
+    if(Array.isArray(v.evrakTakibi)) evrakTakibi = v.evrakTakibi;
+    if(Array.isArray(v.notlar)) notlar = v.notlar;
+
+    // Önbellekten gelen veriyle ekranı hemen çiz — Firestore bağlanınca
+    // ilgili onSnapshot dinleyicileri zaten en güncel veriyle üzerine yazacak.
+    if(typeof renderOgretmenler==='function') renderOgretmenler();
+    if(typeof renderSiniflar==='function') renderSiniflar();
+    if(typeof renderOgrenciler==='function') renderOgrenciler();
+    if(typeof renderServisler==='function') renderServisler();
+    if(typeof renderPersonelListesi==='function') renderPersonelListesi();
+    if(typeof renderEvrakTakibi==='function') renderEvrakTakibi();
+    if(typeof renderNotlar==='function') renderNotlar();
+    if(typeof renderDashboard==='function') renderDashboard();
+    if(typeof globalAramaYap==='function') globalAramaYap();
+  }catch(e){ console.warn('Yerel önbellek okunamadı:', e); }
+}
+
+let _onbellekYaziZamanlayici = null;
+function onbellekKaydet(){
+  // Art arda gelen snapshot güncellemelerinde tek tek yazmamak için
+  // kısa bir gecikmeyle (debounce) topluca kaydeder.
+  clearTimeout(_onbellekYaziZamanlayici);
+  _onbellekYaziZamanlayici = setTimeout(()=>{
+    try{
+      localStorage.setItem(_ONBELLEK_ANAHTARI, JSON.stringify({
+        ogretmenler, veliler, siniflar, servisler,
+        personelListesi, evrakTakibi, notlar
+      }));
+    }catch(e){ console.warn('Yerel önbellek yazılamadı:', e); }
+  }, 400);
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
+  // Firestore/ağ beklenmeden, cihazda daha önce kaydedilmiş son veriyle
+  // ekranı anında doldur (bkz. yukarıdaki YEREL ÖNBELLEK bölümü).
+  onbellekYukle();
+
   document.querySelectorAll('.nav-tab').forEach(btn=>{
     btn.addEventListener('click', ()=> sekmeAc(btn.dataset.tab));
   });

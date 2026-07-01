@@ -137,5 +137,7 @@ function personelBaglantilariKur(){
   db.collection(COL.personel).onSnapshot(s=>{
     personelListesi = s.docs.map(d=>({id:d.id,...d.data()}));
     renderPersonelListesi();
+    if(typeof globalAramaYap === 'function') globalAramaYap();
+    if(typeof onbellekKaydet === 'function') onbellekKaydet();
   }, hataGoster);
 }
