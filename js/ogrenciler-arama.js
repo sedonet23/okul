@@ -255,19 +255,22 @@ function aramaGelismisFiltreDoldur() {
   const sinifEl  = document.getElementById('aramaSinifSecenekleri');
   if (!servisEl || !sinifEl) return;
 
-  if (servisEl.children.length === 0 && typeof servisler !== 'undefined') {
+  // Her seferinde yenile (veriler sonradan yüklenmiş olabilir)
+  if (typeof servisler !== 'undefined' && servisler.length > 0) {
+    servisEl.innerHTML = '';
     servisler.forEach(s => {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip';
+      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip' + (_seciliServisler.has(s.id) ? ' secili' : '');
       btn.textContent = '🚌 ' + (s.servisAdi || '—');
       btn.onclick = () => aramaFiltreTikla(_seciliServisler, s.id, btn);
       servisEl.appendChild(btn);
     });
   }
-  if (sinifEl.children.length === 0 && typeof siniflar !== 'undefined') {
+  if (typeof siniflar !== 'undefined' && siniflar.length > 0) {
+    sinifEl.innerHTML = '';
     siniflar.slice().sort((a,b)=>String(a.ad).localeCompare(String(b.ad),'tr')).forEach(s => {
       const btn = document.createElement('button');
-      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip';
+      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip' + (_seciliSiniflar.has(s.id) ? ' secili' : '');
       btn.textContent = '🏫 ' + (s.ad || '—');
       btn.onclick = () => aramaFiltreTikla(_seciliSiniflar, s.id, btn);
       sinifEl.appendChild(btn);
@@ -275,16 +278,14 @@ function aramaGelismisFiltreDoldur() {
   }
 }
 
-// Arama sekmesi açılınca filtre chip'lerini doldur
+// Arama sekmesi açılınca ve Gelişmiş Filtreler toggle'lanınca chip'leri doldur
 document.addEventListener('DOMContentLoaded', () => {
-  const obs = new MutationObserver(() => {
-    const el = document.getElementById('tab-arama');
-    if (el && el.classList.contains('active')) {
+  // details elementi toggle edilince yenile
+  document.addEventListener('toggle', (e) => {
+    if (e.target && e.target.id === 'gelistirmisFiltreler') {
       aramaGelismisFiltreDoldur();
-      obs.disconnect();
     }
-  });
-  obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+  }, true);
 });
 
 function globalAramaYap() {

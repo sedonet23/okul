@@ -57,7 +57,10 @@
       el.title = bilgi.t;
       el.style.display = 'flex';
     }
-    // YENİ: hero kartındaki hava satırı (tıklanınca detay açılır) + konum adı
+    // localStorage'dan önceki konum adını al (nominatim gelmeden önce göster)
+    var kayitliKonum = '';
+    try { kayitliKonum = localStorage.getItem('oyHavaKonum') || ''; } catch(e){}
+
     var heroSatir = document.getElementById('heroHavaSatir');
     if(heroSatir){
       heroSatir.innerHTML =
@@ -67,7 +70,9 @@
             '<span class="hero-hava-sicaklik">' + Math.round(sicaklik) + '°C</span>' +
             '<span class="hero-hava-aciklama">' + bilgi.t + '</span>' +
           '</div>' +
-          '<div id="heroKonumMetni" style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;"></div>' +
+          '<div id="heroKonumMetni" style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px;">' +
+            (kayitliKonum ? '📍 ' + kayitliKonum : '') +
+          '</div>' +
         '</div>' +
         '<span class="hero-hava-detay-ok">Detaylar ›</span>';
       heroSatir.style.display = 'flex';
@@ -153,6 +158,8 @@
               parts.push(geo.address.city || geo.address.town || geo.address.county);
           }
           var konumMetin = parts.length ? parts.join(', ') : (geo.display_name || '').split(',').slice(0,2).join(',');
+          // localStorage'a kaydet — bir sonraki açılışta hemen göster
+          try { localStorage.setItem('oyHavaKonum', konumMetin); } catch(e) {}
           if(el) el.textContent = konumMetin;
           // YENİ: Hero'daki konum satırını da güncelle
           var heroKonum = document.getElementById('heroKonumMetni');

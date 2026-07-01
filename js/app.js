@@ -1029,8 +1029,14 @@ function baglantilariKur(){
 function sekmeAc(tab){
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
-  // YENİ: Her sekme açılışında sayfayı en üste kaydır
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // YENİ: açık hava durumu detay panelini kapat
+  var wp = document.getElementById('havaDurumuDetayPanel');
+  if(wp) wp.remove();
+  // YENİ: açık kullanıcı seçim modalını kapat
+  var km = document.getElementById('kullaniciSecModal');
+  if(km) km.style.display = 'none';
+  document.body.classList.remove('modal-open');
 }
 function haritaSekmesiAc(){
   sekmeAc('harita');
