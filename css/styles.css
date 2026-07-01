@@ -2780,9 +2780,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    Tüm .content ve tab-panel'lere bottom padding eklendi
    ========================================================================= */
 @media (max-width:1100px){
-  .content{ padding-bottom:80px !important; }
-  #tab-panel.dash-modern{ padding-bottom:110px; }
-  .tab-panel{ padding-bottom:80px; }
+  .content{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+  #tab-panel.dash-modern{ padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+  .tab-panel{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 }
 
 /* =========================================================================
