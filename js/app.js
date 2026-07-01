@@ -392,6 +392,76 @@ function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru, paylas){
   }
 }
 window.uygulamaDosyaKaydet = uygulamaDosyaKaydet;
+
+/* ====================================================================
+   OKULA BAŞLAMA YAŞI HESAPLAMA
+   5/1/1961 tarihli ve 222 sayılı İlköğretim ve Eğitim Kanunu (madde 3) ve
+   Millî Eğitim Bakanlığı Okul Öncesi Eğitim ve İlköğretim Kurumları
+   Yönetmeliği (madde 4, 11) hükümlerine göre. "Ay sayısı", seçilen eğitim
+   yılının EYLÜL AYI SONU itibarıyla hesaplanır (resmi kural budur).
+   ==================================================================== */
+function okulaBaslamaYasiHesaplaModalAc(){
+  const buYil = new Date().getFullYear();
+  let yilSecenekleri = '';
+  for(let y = buYil - 1; y <= buYil + 4; y++){
+    yilSecenekleri += `<option value="${y}"${y===buYil?' selected':''}>${y} - ${y+1} Eğitim Yılı</option>`;
+  }
+
+  const body = `
+    <div class="form-group"><label>Çocuğun Doğum Tarihi</label><input type="date" id="f_obyDogum"></div>
+    <div class="form-group"><label>Eğitim Yılı</label><select id="f_obyYil">${yilSecenekleri}</select></div>
+    <div id="obySonuc" style="margin-top:16px;"></div>
+    <p class="page-sub" style="margin-top:14px;">Kaynak: 222 sayılı İlköğretim ve Eğitim Kanunu md.3, MEB Okul Öncesi Eğitim ve İlköğretim Kurumları Yönetmeliği md.4/11. Ay sayısı, seçilen eğitim yılının eylül ayı sonu itibarıyla hesaplanır.</p>
+  `;
+  modalAc('🎂 Okula Başlama Yaşı Hesapla', body, _okulaBaslamaYasiHesapla, null, 'Hesapla');
+}
+
+function _okulaBaslamaYasiHesapla(){
+  const dogumEl = document.getElementById('f_obyDogum');
+  const yilEl = document.getElementById('f_obyYil');
+  const sonucEl = document.getElementById('obySonuc');
+  if(!dogumEl.value){ toast('Doğum tarihi girin.'); return; }
+
+  const dogum = new Date(dogumEl.value + 'T00:00:00');
+  const egitimYili = parseInt(yilEl.value, 10);
+  // "Eylül ayı sonu" = o eğitim yılının 30 Eylül'ü (ay hesaplamasında referans nokta)
+  const referans = new Date(egitimYili, 8, 30); // ay index 8 = Eylül
+
+  let ay = (referans.getFullYear() - dogum.getFullYear()) * 12 + (referans.getMonth() - dogum.getMonth());
+  if(referans.getDate() < dogum.getDate()) ay--; // gün henüz dolmadıysa bir ay eksilt
+  if(ay < 0) ay = 0;
+
+  let durumlar = [];
+  if(ay >= 69){
+    durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>İlkokul 1. sınıfa kaydı zorunludur.</strong> (${egitimYili} Eylül sonu itibarıyla ${ay} aylık — 69 ay ve üzeri.)` });
+  } else if(ay >= 66){
+    durumlar.push({ ikon:'📝', renk:'amber', metin:`<strong>İlkokul 1. sınıfa velinin yazılı isteğiyle kaydedilebilir.</strong> (${ay} aylık — 66-68 ay arası, zorunlu değil, isteğe bağlı.) Veli istemezse okul öncesi eğitime yönlendirilebilir veya kaydı bir yıl ertelenebilir.` });
+  }
+
+  if(ay >= 57 && ay <= 68){
+    durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>Ana sınıfına kaydedilebilir.</strong> (${ay} aylık — 57-68 ay standart aralığı.)` });
+  } else if(ay >= 45 && ay <= 56){
+    durumlar.push({ ikon:'📝', renk:'amber', metin:`<strong>Ana sınıfına şartlı kaydedilebilir.</strong> (${ay} aylık — 45-56 ay arası. Okulun kayıt alanında ikamet eden ve bir sonraki yıl ilkokula başlayacak çocukların kaydı yapıldıktan sonra, fiziki imkân varsa kaydedilir.)` });
+  }
+
+  if(ay >= 36 && ay <= 68){
+    durumlar.push({ ikon:'✅', renk:'sage', metin:`<strong>Anaokuluna kaydedilebilir.</strong> (${ay} aylık — 36-68 ay aralığı.)` });
+  }
+
+  if(ay < 36){
+    durumlar.push({ ikon:'⏳', renk:'gray', metin:`Henüz okul öncesi eğitim yaşında değil (${ay} aylık, en erken 36 ay gerekir).` });
+  }
+  if(ay > 71){
+    durumlar.push({ ikon:'⚠️', renk:'brick', metin:`Not: 71 ayı geçmiş — normal şartlarda ilkokula başlamış olması beklenir, kayıt/nakil durumu okul idaresince ayrıca değerlendirilmelidir.` });
+  }
+
+  sonucEl.innerHTML = `
+    <div class="card" style="background:var(--bg-app-soft);margin:0;">
+      <div style="font-weight:700;margin-bottom:10px;">📅 ${egitimYili} Eylül sonu itibarıyla: <span style="color:var(--brand);">${ay} aylık</span></div>
+      ${durumlar.map(d=>`<div class="evrak-row" style="border:none;padding:8px 0;"><span class="badge badge-${d.renk}" style="flex-shrink:0;">${d.ikon}</span><div style="flex:1;padding-left:8px;font-size:13.5px;line-height:1.5;">${d.metin}</div></div>`).join('')}
+    </div>
+  `;
+}
 function ogretmenSecenekleri(seciliId){
   return '<option value="">Seçiniz</option>' + ogretmenler.map(o=>
     `<option value="${o.id}" ${o.id===seciliId?'selected':''}>${escapeHtml(o.ad+' '+o.soyad)}</option>`
