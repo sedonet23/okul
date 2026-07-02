@@ -16,10 +16,16 @@
         chunk'lara bölünür → IndexedDB'ye yazılır.
      2) Soru sorulduğunda, TÜM işlem cihazda: basit anahtar kelime
         skorlamasıyla en alakalı birkaç chunk seçilir.
-     3) Sadece o birkaç chunk, mevcut AI asistan altyapısına (Cloudflare
-        Worker — bkz. js/asistan.js ASISTAN_API_URL) "context" olarak
-        gönderilir, soru cevaplanır.
+     3) Sadece o birkaç chunk, MEVZUAT'A ÖZEL, Gemini tabanlı ayrı bir
+        Cloudflare Worker'a (bkz. MEVZUAT_ASISTAN_API_URL) "context"
+        olarak gönderilir, soru cevaplanır. Genel AI Asistan'ın kullandığı
+        Llama tabanlı Worker'dan (js/asistan.js ASISTAN_API_URL) TAMAMEN
+        AYRI — biri diğerini etkilemez. Gemini'ye geçilme sebebi: Llama,
+        "sadece verilen metne dayan, madde uydurma" talimatına yeterince
+        uymuyordu; Gemini bu konuda belirgin şekilde daha güvenilir.
    ==================================================================== */
+
+const MEVZUAT_ASISTAN_API_URL = 'https://koruk-mevzuat-asistan.sedonet23.workers.dev/';
 
 const MEVZUAT_DB_ADI = 'okulMevzuatDB';
 const MEVZUAT_DB_SURUM = 1;
@@ -378,18 +384,14 @@ async function mevzuatSoruGonder(){
       return `[Kaynak: ${ustKayit ? ustKayit.baslik : 'Bilinmeyen'} — ${c.baslik}]\n${c.metin}`;
     }).join('\n\n---\n\n');
 
-    const sistemYonergesi = 'Sen bir okul mevzuat asistanısın. Sana verilen mevzuat bölümlerine dayanarak soruyu cevapla. ' +
-      'ÖNEMLİ: Cevabında SADECE "hangi maddeye göre" deme — ilgili maddenin/fıkranın GEÇERLİ HÜKMÜNÜ (asıl metnini, ' +
-      'gerekiyorsa kısaltarak) da yaz, kullanıcı maddeyi tekrar açıp okumak zorunda kalmasın. ' +
-      'Cevabın sonunda hangi mevzuat/madde başlığından yararlandığını ayrıca belirt. ' +
-      'Verilen metinlerde cevap yoksa, bunu açıkça söyle, uydurma.';
-
-    const res = await fetch(ASISTAN_API_URL, {
+    // Sistem yönergesi artık worker'ın kendi içinde (SISTEM_YONERGESI) —
+    // burada tekrar göndermeye gerek yok, sadece ham soruyu + baglamı yolluyoruz.
+    const res = await fetch(MEVZUAT_ASISTAN_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [
-          { role: 'user', text: sistemYonergesi + '\n\nSoru: ' + soru }
+          { role: 'user', text: soru }
         ],
         context: baglam
       })
