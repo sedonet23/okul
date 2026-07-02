@@ -1116,6 +1116,19 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- YENİ: Uzun süren işlemler (yedek geri yükleme vb.) için kalıcı ilerleme
+     göstergesi — toast 3 saniyede kaybolduğu için uzun işlemlerde yetersiz
+     kalıyordu. Bu overlay işlem bitene kadar (veya hata/tamamlanana kadar
+     kullanıcı kapatana dek) ekranda kalır. -->
+<div id="ilerlemeOverlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg-card);border-radius:16px;max-width:360px;width:100%;padding:26px 22px;text-align:center;">
+    <div id="ilerlemeSpinner" style="width:36px;height:36px;border:3px solid var(--border-soft);border-top-color:var(--brand);border-radius:50%;margin:0 auto 16px;animation:ilerlemeDon .8s linear infinite;"></div>
+    <div id="ilerlemeIkon" style="display:none;font-size:34px;margin-bottom:12px;"></div>
+    <p id="ilerlemeMetin" style="font-size:14px;color:var(--ink);line-height:1.5;margin:0;"></p>
+    <button id="ilerlemeKapatBtn" class="btn btn-ghost" style="display:none;margin-top:16px;" onclick="ilerlemeGizle()">Kapat</button>
+  </div>
+</div>
+
 <!-- YENİ: Native confirm() bazı Android WebView'lerde, kullanıcı dokunuşundan
      belli bir süre sonra (uzun bir async işlem sonrası) sessizce
      engellenebiliyor (popup engelleme güvenliği). Bu yüzden onay gereken
