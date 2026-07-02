@@ -45,8 +45,30 @@ function onayBekleniyorGizle(){
 function googleIleGirisYap(){
   if(!auth){ alert('Firebase henüz hazır değil, lütfen sayfayı yenileyin.'); return; }
   const saglayici = new firebase.auth.GoogleAuthProvider();
+
+  // ÖNEMLİ: signInWithPopup, uygulama PWA (ana ekrana eklenmiş, standalone)
+  // olarak veya WebView içinde açıldığında popup ile ana pencere arasındaki
+  // bağlantıyı (opener) kuramıyor — Google'da giriş yapılıyor ama sonuç geri
+  // iletilemiyor, kullanıcı __/auth/handler adresinde BEYAZ SAYFADA kalıyor.
+  // Bu ortamlarda popup yerine REDIRECT (aynı sekmede git-gel) kullanılmalı.
+  const standaloneMi = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  const nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+
+  if(standaloneMi || nativeMi){
+    auth.signInWithRedirect(saglayici).catch(err=>{
+      console.error('Google giriş (redirect) hatası:', err);
+      alert('Giriş yapılamadı: ' + (err.message || err.code));
+    });
+    return;
+  }
+
   auth.signInWithPopup(saglayici).catch(err=>{
     console.error('Google giriş hatası:', err);
+    if(err.code === 'auth/popup-blocked'){
+      // Popup engellendi — redirect ile tekrar dene
+      auth.signInWithRedirect(saglayici);
+      return;
+    }
     if(err.code !== 'auth/popup-closed-by-user'){
       alert('Giriş yapılamadı: ' + (err.message || err.code));
     }
@@ -78,6 +100,14 @@ function sidebarHesapGuncelle(user){
 
 function authDinleyiciKur(){
   if(!auth){ girisEkraniGoster(); return; }
+  // Redirect ile dönüşte oluşan hataları görünür yap (aksi halde sessizce
+  // giriş ekranına döner, kullanıcı sebebini anlayamaz).
+  auth.getRedirectResult().catch(err=>{
+    if(err && err.code && err.code !== 'auth/no-auth-event'){
+      console.error('Redirect giriş hatası:', err);
+      alert('Giriş tamamlanamadı: ' + (err.message || err.code));
+    }
+  });
   auth.onAuthStateChanged(async (user) => {
     if(!user){
       sidebarHesapGuncelle(null);
