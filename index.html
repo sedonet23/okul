@@ -144,6 +144,12 @@
         <div class="dash-hero-hava-satir" id="heroHavaSatir" onclick="havaDurumuDetayAc()" style="display:none; cursor:pointer;"></div>
       </div>
 
+      <!-- Bugün İzinli/Raporlu Öğretmenler -->
+      <div class="card" id="bugunIzinliKart" style="display:none;">
+        <h3 class="dash-h3-row">🏥 Bugün İzinli Öğretmenler</h3>
+        <div id="bugunIzinliListesi"></div>
+      </div>
+
       <!-- Haberler kayan bandı -->
       <div class="haber-ticker" id="haberTicker" style="display:none;"></div>
 
@@ -388,7 +394,10 @@
     <section id="tab-haberler" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">📰 Haberler &amp; Duyurular</div><div class="page-sub">MEB, Resmî Gazete ve eklediğiniz kaynaklardan otomatik haber akışı</div></div>
-        <button class="btn btn-amber" onclick="haberModalAc(null)">➕ Yeni Duyuru</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" id="haberYenileBtn" onclick="haberleriSimdiTara()">🔄 Yenile</button>
+          <button class="btn btn-amber" onclick="haberModalAc(null)">➕ Yeni Duyuru</button>
+        </div>
       </div>
 
       <div class="haber-altsekmeler">
@@ -1152,6 +1161,7 @@
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
 <script src="js/ogretmen-detay.js"></script>
+<script src="js/ogretmen-izin.js"></script>
 <script src="js/ders-saatleri.js"></script>
 <script src="js/siniflar.js"></script>
 <script src="js/tasima.js"></script>
