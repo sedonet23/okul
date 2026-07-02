@@ -71,17 +71,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!el) return;
     const s = new Date().getHours();
     const selam = s < 6 ? 'İyi geceler' : s < 11 ? 'Günaydın' : s < 18 ? 'Tünaydın' : s < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    // YENİ: localStorage'daki aktif kullanıcıyı oku (ogretmenler henüz yüklenmemiş olabilir, sadece id var)
-    const kullaniciAdi = (function(){
-      const id = localStorage.getItem('oyAktifKullaniciId');
-      if(!id) return 'Sedat Bey';
-      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-      if(o) return (o.ad||'').split(' ')[0] + ' Bey';
-      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-      if(p) return ((p.ad||p.adSoyad||'').split(' ')[0]) + ' Bey';
-      return 'Sedat Bey';
-    })();
-    el.textContent = selam + ', ' + kullaniciAdi + ' 👋';
+    // DÜZELTME: artık gerçek giriş yapan hesabın kimliğini kullanıyor (bkz. _hesapKimligi),
+    // sabit "Sedat Bey" yazmıyor. Bu aşamada AKTIF_KULLANICI/ogretmenler henüz yüklenmemiş
+    // olabilir; o yüzden bilgi yoksa isim eklemeden sadece selamlıyor, renderDashboard()
+    // veriler gelince metni zaten güncelliyor.
+    const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
+    const kullaniciAdi = kimlik.ad ? kimlik.ad.split(' ')[0] + ' Bey' : '';
+    el.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   })();
 
   const temaBtn1 = document.getElementById('temaDugmesi');
@@ -251,19 +247,51 @@ function kullaniciSec(id, tip){
   kullaniciSecModalKapat();
 }
 
+/* ================================================================
+   DÜZELTME: Bu fonksiyon eskiden SADECE localStorage'daki elle seçilmiş
+   'oyAktifKullaniciId' değerine bakıyordu. Bu değer cihaza (tarayıcıya)
+   bağlıydı, Google hesabına değil — bu yüzden aynı cihazda farklı bir
+   Google hesabıyla giriş yapıldığında bile önceden seçilmiş kişinin
+   (ör. Sedat) adı/fotoğrafı görünmeye devam ediyordu.
+   Artık öncelik gerçek giriş yapan hesaba göre belirleniyor:
+     1) Yöneticinin "Kullanıcı Yönetimi"nden hesaba bağladığı öğretmen/
+        personel kaydı (Bağlı Öğretmen Kaydı alanı)
+     2) Google hesabının kendi adı/profil fotoğrafı
+     3) (yalnızca yukarıdakiler yoksa) cihazda eskiden elle seçilmiş kişi
+   ================================================================ */
+function _hesapKimligi(){
+  let ad = '', fotoUrl = '';
+  const bagliId = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.bagliOgretmenId : null;
+  if(bagliId){
+    const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===bagliId) : null;
+    if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = o.profilFotoUrl || ''; }
+    if(!ad){
+      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===bagliId) : null;
+      if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
+    }
+  }
+  if(!ad && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
+    ad = AKTIF_KULLANICI.ad || '';
+    fotoUrl = fotoUrl || AKTIF_KULLANICI.fotoUrl || '';
+  }
+  if(!ad){
+    const id = localStorage.getItem('oyAktifKullaniciId');
+    if(id){
+      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
+      if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = fotoUrl || o.profilFotoUrl || ''; }
+      if(!ad){
+        const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
+        if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
+      }
+    }
+  }
+  return { ad, fotoUrl };
+}
+
 function aktifKullaniciyiGuncelle(){
   const avatarEl = document.getElementById('topbarAvatar');
   if(!avatarEl) return;
-  const id = localStorage.getItem('oyAktifKullaniciId');
-  if(!id){ avatarEl.innerHTML = '👤'; return; }
-  let ad = '';
-  let fotoUrl = '';
-  const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-  if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = o.profilFotoUrl || ''; }
-  if(!ad){
-    const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-    if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
-  }
+  const { ad, fotoUrl } = _hesapKimligi();
   if(!ad){ avatarEl.innerHTML = '👤'; return; }
 
   if(fotoUrl){

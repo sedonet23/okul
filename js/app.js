@@ -347,14 +347,14 @@ window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
    modal açmanın anlamı yok) bir kereliğine otomatik açılır. */
 let _ilkAcilistaKullaniciSorFlag = false;
 function _ilkAcilistaKullaniciSor(){
-  if(_ilkAcilistaKullaniciSorFlag) return; // bu oturumda zaten denendi
-  if(localStorage.getItem('oyKullaniciSecimiYapildi')) return; // daha önce cevaplanmış
-  const kisiSayisi = (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0) +
-    (typeof personelListesi !== 'undefined' ? personelListesi.length : 0);
-  if(kisiSayisi === 0) return; // liste henüz gelmedi, bekle (bir sonraki onSnapshot'ta tekrar denenir)
-
-  _ilkAcilistaKullaniciSorFlag = true;
-  setTimeout(()=>{ if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc(); }, 600);
+  // DÜZELTME: Google girişi eklendiğinden beri kimlik zaten hesaptan biliniyor
+  // (bkz. js/ui.js _hesapKimligi), bu yüzden cihazda "sen kimsin?" diye soran
+  // bu eski pop-up artık otomatik açılmıyor — açık kalsaydı, her yeni cihaz/
+  // tarayıcıda tekrar "kim olduğunu seç" diye sorup o seçimi karşılama
+  // metnine sabitliyordu (bu da farklı hesaplarla girişte kafa karıştırıyordu).
+  // Manuel seçim isteyen kullanıcılar topbar avatarına tıklayarak hâlâ
+  // kullaniciSecModalAc() ile kişi seçebilir; sadece otomatik açılış kapatıldı.
+  return;
 }
 
 /* ====================================================================
@@ -882,17 +882,12 @@ function renderDashboard(){
   if(heroSelamlaEl){
     const saat = new Date().getHours();
     const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    // Aktif kullanıcı adını al — hiç kullanıcı seçilmemişse isim eklemeden
-    // sadece selamla (önceden burada sabit "Sedat Bey" yazıyordu, kullanıcı
-    // seçilmemiş olsa bile hep bu isim görünüyordu).
+    // DÜZELTME: Aktif kullanıcı adını artık gerçek giriş yapan Google hesabının
+    // kimliğinden alıyor (bkz. js/ui.js _hesapKimligi) — cihazda eskiden elle
+    // seçilmiş kişiye (ör. "Sedat") değil, o an oturum açmış hesaba göre gösterir.
     const kullaniciAdi = (function(){
-      const id = localStorage.getItem('oyAktifKullaniciId');
-      if(!id) return '';
-      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-      if(o && o.ad) return o.ad.split(' ')[0] + ' Bey';
-      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-      if(p){ const ad = p.ad || p.adSoyad || ''; if(ad) return ad.split(' ')[0] + ' Bey'; }
-      return '';
+      const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
+      return kimlik.ad ? kimlik.ad.split(' ')[0] + ' Bey' : '';
     })();
     heroSelamlaEl.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   }
