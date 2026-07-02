@@ -296,15 +296,16 @@ function toast(msg){
    etkileşimiyle window.print() tetiklenir (otomatik/timer ile tetiklenen
    print() çağrıları bazı tarayıcılarda engellenebiliyor).
    ==================================================================== */
-function uygulamaHtmlYazdir(rawHtml, isAdi){
+function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
   isAdi = isAdi || 'Koruk_Okul_Belge';
+  yon = yon === 'yatay' ? 'yatay' : 'dikey';
 
   const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
     window.Capacitor.Plugins && window.Capacitor.Plugins.PrintPlugin);
 
   if(nativeVarMi){
     try{
-      window.Capacitor.Plugins.PrintPlugin.yazdir({ html: rawHtml, isAdi });
+      window.Capacitor.Plugins.PrintPlugin.yazdir({ html: rawHtml, isAdi, yon });
       return;
     }catch(e){ console.warn('Native yazdırma başarısız, tarayıcı yöntemine dönülüyor:', e.message); }
   }

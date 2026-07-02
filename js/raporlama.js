@@ -29,6 +29,11 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   const logoGoster   = secenekler.logoGoster !== false;
   const ortaliBaslik = !!secenekler.ortaliBaslik;
   const servisRaporu = !!secenekler.servisRaporu;
+  // 'yatay' | 'dikey' — sadece Android yazdırma diyaloğunda HANGİSİNİN
+  // öntanımlı seçili geleceğini belirler, kullanıcı diyalogda istediği an
+  // değiştirebilir (CSS'te ARTIK yön SABİTLENMİYOR — eskiden "A4 portrait"
+  // sabitti, bu yüzden kullanıcı ne seçerse seçsin hep dikey basıyordu).
+  const yon = secenekler.yon === 'yatay' ? 'yatay' : 'dikey';
 
   const okulAdi  = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const tarih    = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
@@ -43,14 +48,14 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    @page { size: A4 portrait; margin: 0; }
+    @page { size: A4; margin: 0; }
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
     ${servisRaporu ? `
-    @page { size: A4 portrait; margin: 8mm; }
+    @page { size: A4; margin: 8mm; }
     body { background: #fff; }
     ` : `
-    @page { size: A4 portrait; margin: 5mm 7mm; }
+    @page { size: A4; margin: 5mm 7mm; }
     `}
 
     .rapor-header { display:flex; align-items:center; gap:6px; border-bottom:1.5px solid #0A6E6E; padding-bottom:3px; margin-bottom:4px; }
@@ -146,6 +151,25 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 </body>
 </html>`;
 
+  // ---- Native (APK) ortamda: ara pencere HİÇ açılmaz ----
+  // window.open(blob) bu WebView'de gerçek/tam ekran bir pencere
+  // oluşturmuyor — ana uygulamanın üzerine, alt menünün ALTINDA kalan bir
+  // katman gibi biniyor; o pencere içindeki window.print()/window.close()
+  // de çalışmıyor (Capacitor köprüsü o alt pencereye erişemiyor). Bu
+  // yüzden native ortamda doğrudan zaten kanıtlanmış olan native yazdırma
+  // mekanizmasını (uygulamaHtmlYazdir → PrintPlugin) kullanıyoruz — o da
+  // işletim sisteminin kendi tam ekran yazdırma/önizleme ekranını açar,
+  // bizim uygulamamızın hiçbir parçası (alt menü dahil) onun üzerine
+  // binemez.
+  const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.PrintPlugin);
+  if(nativeVarMi && typeof uygulamaHtmlYazdir === 'function'){
+    const dosyaAdi = (baslik || 'Rapor').replace(/[^\w\sÇĞİÖŞÜçğıöşü-]/g, '').trim().replace(/\s+/g, '_') || 'Rapor';
+    uygulamaHtmlYazdir(tamHtml, dosyaAdi, yon);
+    return null;
+  }
+
+  // ---- Web/PWA ortamında: eskisi gibi gerçek popup (burada gerçekten çalışıyor) ----
   // Blob URL ile aç — gerçek origin, share API çalışır
   try {
     const blob = new Blob([tamHtml], { type: 'text/html;charset=utf-8' });
@@ -605,7 +629,8 @@ function _raporNobetGoster(gecerlilikTarihiISO) {
   _raporPenceresiniAc(html, '', {
     logoGoster: false,
     ortaliBaslik: false,
-    sayfaKenar: '8mm'
+    sayfaKenar: '8mm',
+    yon: 'yatay'
   });
 }
 
@@ -694,7 +719,7 @@ function _raporDersProgramiGoster(sinifIdFiltre) {
     html += `</tbody></table>`;
   });
 
-  _raporPenceresiniAc(html, '📅 Ders Programı');
+  _raporPenceresiniAc(html, '📅 Ders Programı', { yon: 'yatay' });
 }
 
 /* ================================================================

@@ -532,7 +532,7 @@
         (state.adSoyad || 'personel').replace(/\s+/g, '_');
 
       if (typeof uygulamaHtmlYazdir === 'function') {
-        uygulamaHtmlYazdir(html, isAdi);
+        uygulamaHtmlYazdir(html, isAdi, 'yatay');
         return;
       }
 
