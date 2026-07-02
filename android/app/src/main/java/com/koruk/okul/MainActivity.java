@@ -83,7 +83,15 @@ public class MainActivity extends BridgeActivity {
         android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
         if (parent == null) return;
 
-        swipeRefresh = new SwipeRefreshLayout(this);
+        // ÖNEMLİ: Standart SwipeRefreshLayout, sayfanın en üstte olup
+        // olmadığını Android'in genel View kaydırma sistemine göre
+        // (canScrollVertically) kontrol eder. WebView'in kendi iç kaydırma
+        // durumu bu genel sistemle her zaman senkron olmuyor — bu yüzden
+        // sayfa ortasındayken bile "en üstteyim" sanıp yenileme jestini
+        // tetikliyor, kullanıcı yukarı kaydıramıyor. Bunun yerine
+        // WebView'in GERÇEK scrollY değerini doğrudan okuyan özel bir
+        // SwipeRefreshLayout kullanıyoruz.
+        swipeRefresh = new WebViewAwareSwipeRefreshLayout(this, webView);
         swipeRefresh.setColorSchemeColors(0xFF0A6E6E, 0xFF1A9E9E);
 
         int index = parent.indexOfChild(webView);
@@ -101,6 +109,26 @@ public class MainActivity extends BridgeActivity {
             webView.reload();
             swipeRefresh.setRefreshing(false);
         });
+    }
+
+    /* WebView'in scrollY'sini doğrudan kontrol eden SwipeRefreshLayout —
+       "sayfa ortasındayken yenileme tetiklenmesin" sorununu çözer. */
+    private static class WebViewAwareSwipeRefreshLayout extends SwipeRefreshLayout {
+        private final WebView izlenenWebView;
+
+        WebViewAwareSwipeRefreshLayout(android.content.Context context, WebView webView) {
+            super(context);
+            this.izlenenWebView = webView;
+        }
+
+        @Override
+        public boolean canChildScrollUp() {
+            if (izlenenWebView == null) return super.canChildScrollUp();
+            // WebView en üstteyken (scrollY <= 0) yenileme jestine izin ver;
+            // aksi halde (sayfanın herhangi bir yerindeyken) WebView'in
+            // kendi kaydırmasına bırak, yenileme tetiklenmesin.
+            return izlenenWebView.getScrollY() > 0;
+        }
     }
 
     @Override
