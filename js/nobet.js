@@ -1,6 +1,11 @@
 /* ====================================================================
    js/nobet.js
-   YENİ NÖBET MODÜLÜ — tarih bazlı aylık sistem (haftalık yapının yerine).
+   NÖBET MODÜLÜ — UI KATMANI (tarih bazlı aylık sistem)
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + NobetService çağrısı, db bilmez
+     js/core/services/nobet.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/nobet.repository.js → TEK Firestore erişim noktası
+
    Veri modeli (bkz. firebase-init.js COL):
      nobetYerleri    : {ad, sira}                                  — dinamik nöbet konumları (sütunlar)
      nobetAtamalari  : {tarih:'YYYY-MM-DD', yerId, ogretmenAdSoyad} — bir hücre = bir atama
@@ -19,20 +24,13 @@ let nobetGoruntulenenYil, nobetGoruntulenenAy; // 0-11
   nobetGoruntulenenAy = d.getMonth();
 })();
 
-/* ---------- yardımcılar ---------- */
-function nobetTarihISO(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-function nobetHaftasonuMu(y,m,d){ const g = new Date(y,m,d).getDay(); return g===0 || g===6; }
-function nobetTatilMi(iso){ return resmiTatiller.find(t=>t.tarih===iso); }
+/* ---------- yardımcılar (saf mantık NobetService'e devredilir, imzalar korunur) ---------- */
+function nobetTarihISO(y,m,d){ return NobetService.tarihISO(y,m,d); }
+function nobetHaftasonuMu(y,m,d){ return NobetService.haftasonuMu(y,m,d); }
+function nobetTatilMi(iso){ return NobetService.tatilMi(resmiTatiller, iso); }
 function nobetAyAdiUzun(y,m){ return `${AYLAR[m]} ${y}`; }
-function nobetYerSirali(){ return [...nobetYerleri].sort((a,b)=>(a.sira||0)-(b.sira||0)); }
-function nobetHaftaAraligi(tarihISO){
-  const d = new Date(tarihISO+'T00:00:00');
-  const gun = d.getDay() || 7; // Pazartesi=1 ... Pazar=7
-  const pazartesi = new Date(d); pazartesi.setDate(d.getDate()-gun+1);
-  const gunler = [];
-  for(let i=0;i<5;i++){ const x=new Date(pazartesi); x.setDate(pazartesi.getDate()+i); gunler.push(nobetTarihISO(x.getFullYear(), x.getMonth(), x.getDate())); }
-  return gunler;
-}
+function nobetYerSirali(){ return NobetService.yerSirali(nobetYerleri); }
+function nobetHaftaAraligi(tarihISO){ return NobetService.haftaAraligi(tarihISO); }
 
 /* ---------- AY GEZİNME ---------- */
 function nobetAyDegistir(delta){
@@ -46,30 +44,27 @@ function nobetAyDegistir(delta){
 function nobetYeriEkle(){
   const ad = prompt('Yeni nöbet yeri adı (örn: Bahçe):');
   if(!ad || !ad.trim()) return;
-  db.collection(COL.nobetYerleri).add({ ad: ad.trim(), sira: nobetYerleri.length+1, eklenmeTarihi:new Date().toISOString() })
-    .then(()=>toast('Nöbet yeri eklendi.')).catch(err=>toast('Hata: '+err.message));
+  NobetService.yeriEkle(ad.trim())
+    .then(()=>toast('Nöbet yeri eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function nobetYeriDuzenle(id){
   const yer = nobetYerleri.find(y=>y.id===id); if(!yer) return;
   const yeniAd = prompt('Nöbet yerini yeniden adlandır:', yer.ad);
   if(!yeniAd || !yeniAd.trim() || yeniAd.trim()===yer.ad) return;
-  db.collection(COL.nobetYerleri).doc(id).update({ ad: yeniAd.trim() })
-    .then(()=>toast('Nöbet yeri güncellendi.')).catch(err=>toast('Hata: '+err.message));
+  NobetService.yeriGuncelle(id, yeniAd.trim())
+    .then(()=>toast('Nöbet yeri güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 async function nobetYeriSil(id){
   const yer = nobetYerleri.find(y=>y.id===id); if(!yer) return;
-  const bagliSayisi = nobetAtamalari.filter(a=>a.yerId===id).length;
-  const mesaj = bagliSayisi>0
-    ? `"${yer.ad}" silinsin mi? Bu yere bağlı ${bagliSayisi} nöbet ataması da silinecek.`
+  const baglıAtamalar = nobetAtamalari.filter(a=>a.yerId===id);
+  const mesaj = baglıAtamalar.length>0
+    ? `"${yer.ad}" silinsin mi? Bu yere bağlı ${baglıAtamalar.length} nöbet ataması da silinecek.`
     : `"${yer.ad}" nöbet yerini silmek istediğinize emin misiniz?`;
   if(!confirm(mesaj)) return;
   try{
-    const batch = db.batch();
-    batch.delete(db.collection(COL.nobetYerleri).doc(id));
-    nobetAtamalari.filter(a=>a.yerId===id).forEach(a=> batch.delete(db.collection(COL.nobetAtamalari).doc(a.id)) );
-    await batch.commit();
+    await NobetService.yeriSil(id, baglıAtamalar);
     toast('Nöbet yeri ve bağlı atamalar silindi.');
-  }catch(err){ toast('Hata: '+err.message); }
+  }catch(err){ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }
 }
 
 /* ---------- RESMİ TATİL LİSTESİ ---------- */
@@ -83,13 +78,13 @@ function nobetTatilEkle(){
     const aciklama = document.getElementById('f_tatilAciklama').value.trim();
     if(!tarih){ toast('Tarih zorunludur.'); return; }
     if(nobetTatilMi(tarih)){ toast('Bu tarih zaten tatil listesinde.'); return; }
-    db.collection(COL.resmiTatiller).add({ tarih, aciklama })
-      .then(()=>{ toast('Tatil eklendi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
+    NobetService.tatilEkle({ tarih, aciklama })
+      .then(()=>{ toast('Tatil eklendi.'); modalKapat(); }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
   }, null);
 }
 function nobetTatilSil(id){
   if(!confirm('Bu tatili listeden kaldırmak istiyor musunuz? (Nöbet ataması yapılabilir hale gelir.)')) return;
-  db.collection(COL.resmiTatiller).doc(id).delete().then(()=>toast('Tatil kaldırıldı.')).catch(err=>toast('Hata: '+err.message));
+  NobetService.tatilSil(id).then(()=>toast('Tatil kaldırıldı.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function renderNobetTatilListesi(){
   const hedef = document.getElementById('nobetTatilListesi');
@@ -124,10 +119,9 @@ function nobetAtamaModalAc(tarihISO, yerId){
     if(!sel || !sel.value){ toast('Öğretmen seçimi zorunludur.'); return; }
     const ogretmenObj = ogretmenler.find(o=>o.id===sel.value);
     const veri = { tarih: tarihISO, yerId, ogretmenAdSoyad: `${ogretmenObj.ad} ${ogretmenObj.soyad}`, ogretmenId: ogretmenObj.id };
-    const islem = mevcut ? db.collection(COL.nobetAtamalari).doc(mevcut.id).update(veri)
-                          : db.collection(COL.nobetAtamalari).add(veri);
-    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
-  }, mevcut ? ()=>{ if(confirm('Bu atamayı kaldırmak istiyor musunuz?')){ db.collection(COL.nobetAtamalari).doc(mevcut.id).delete(); modalKapat(); } } : null);
+    NobetService.atamaKaydet(mevcut?mevcut.id:null, veri)
+      .then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+  }, mevcut ? ()=>{ if(confirm('Bu atamayı kaldırmak istiyor musunuz?')){ NobetService.atamaSil(mevcut.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 function nobetAmirModalAc(tarihISO){
   const mevcut = nobetciAmirleri.find(a=>a.tarih===tarihISO);
@@ -149,10 +143,9 @@ function nobetAmirModalAc(tarihISO){
     if(!sel || !sel.value){ toast('Nöbetçi amir seçimi zorunludur.'); return; }
     const secili = sel.selectedOptions[0];
     const veri = { tarih: tarihISO, ad: secili.dataset.ad, telefon: (document.getElementById('f_amirTel')||{value:''}).value.trim()||secili.dataset.tel||'', ogretmenId: sel.value };
-    const islem = mevcut ? db.collection(COL.nobetciAmirleri).doc(mevcut.id).update(veri)
-                          : db.collection(COL.nobetciAmirleri).add(veri);
-    islem.then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>toast('Hata: '+err.message));
-  }, mevcut ? ()=>{ if(confirm('Bu amir atamasını kaldırmak istiyor musunuz?')){ db.collection(COL.nobetciAmirleri).doc(mevcut.id).delete(); modalKapat(); } } : null);
+    NobetService.amirKaydet(mevcut?mevcut.id:null, veri)
+      .then(()=>{ toast('Kaydedildi.'); modalKapat(); }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+  }, mevcut ? ()=>{ if(confirm('Bu amir atamasını kaldırmak istiyor musunuz?')){ NobetService.amirSil(mevcut.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ---------- AYLIK TAKVİM RENDER ---------- */
@@ -262,12 +255,13 @@ function renderNobetBugunVeHafta(){
   }
 }
 
-/* ---------- FIRESTORE BAĞLANTILARI (app.js baglantilariKur içinden çağrılır) ---------- */
+/* ---------- FIRESTORE BAĞLANTILARI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — NobetRepository üzerinden dinleniyor. */
 function nobetBaglantilariKur(){
-  db.collection(COL.nobetYerleri).onSnapshot(s=>{ nobetYerleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
-  db.collection(COL.nobetAtamalari).onSnapshot(s=>{ nobetAtamalari = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
-  db.collection(COL.nobetciAmirleri).onSnapshot(s=>{ nobetciAmirleri = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetBugunVeHafta(); }, hataGoster);
-  db.collection(COL.resmiTatiller).onSnapshot(s=>{ resmiTatiller = s.docs.map(d=>({id:d.id,...d.data()})); renderNobetTakvimi(); renderNobetTatilListesi(); renderNobetBugunVeHafta(); }, hataGoster);
+  NobetRepository.yerleriDinle(v=>{ nobetYerleri = v; renderNobetTakvimi(); renderNobetBugunVeHafta(); });
+  NobetRepository.atamalariDinle(v=>{ nobetAtamalari = v; renderNobetTakvimi(); renderNobetBugunVeHafta(); if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); });
+  NobetRepository.amirleriDinle(v=>{ nobetciAmirleri = v; renderNobetTakvimi(); renderNobetBugunVeHafta(); });
+  NobetRepository.tatilleriDinle(v=>{ resmiTatiller = v; renderNobetTakvimi(); renderNobetTatilListesi(); renderNobetBugunVeHafta(); });
   nobetRotasyonDinle();
 }
 
@@ -279,11 +273,9 @@ function nobetBaglantilariKur(){
    excel-import.js'teki diğer 3 fonksiyon (öğretmen / ders programı /
    çizelgeler) dokunulmadan aynen çalışmaya devam eder.
 
-   excelOkuDosya / excelTarihHucresiISO / excelAdiSadelestir /
-   excelOgretmenEslestir yardımcıları, sütun başlığı tamamen sabit
-   olmayan diğer modül içe aktarmalarında da (Öğretmenler, Ders
-   Programı, Sınıflar/Öğrenciler, Kulüpler, Belirli Gün/Haftalar,
-   Evrak Takip) yeniden kullanılabilir — niyetle genel tutuldu.
+   Dosya okuma (FileReader) ve sayfa/sütun ayrıştırma UI'a yakın kabul
+   edildiği için burada kaldı; ad sadeleştirme / tarih dönüştürme /
+   öğretmen eşleştirme gibi saf mantık NobetService'e taşındı.
    ==================================================================== */
 
 function excelOkuDosya(file){
@@ -299,27 +291,9 @@ function excelOkuDosya(file){
     reader.readAsArrayBuffer(file);
   });
 }
-
-function excelTarihHucresiISO(deger){
-  if(deger instanceof Date && !isNaN(deger)) return deger.toISOString().slice(0,10);
-  if(typeof deger === 'number'){
-    const ms = Math.round((deger - 25569) * 86400 * 1000); // Excel 1900 tarih sistemi
-    const d = new Date(ms);
-    if(!isNaN(d)) return d.toISOString().slice(0,10);
-  }
-  return null;
-}
-
-/* "(BAHÇE-GİRİŞ K.)" */
-function excelAdiSadelestir(metin){
-  return String(metin||'').replace(/\(.*?\)/g,'').trim();
-}
-
-function excelOgretmenEslestir(adSoyad){
-  const aranan = excelAdiSadelestir(adSoyad).toLocaleLowerCase('tr');
-  if(!aranan) return null;
-  return ogretmenler.find(o=> `${o.ad} ${o.soyad}`.toLocaleLowerCase('tr').trim() === aranan) || null;
-}
+function excelTarihHucresiISO(deger){ return NobetService.excelTarihHucresiISO(deger); }
+function excelAdiSadelestir(metin){ return NobetService.excelAdiSadelestir(metin); }
+function excelOgretmenEslestir(adSoyad){ return NobetService.excelOgretmenEslestir(ogretmenler, adSoyad); }
 
 /* ---------- NÖBET: dosya seçilince çalışır ---------- */
 async function nobetExceliIceAktar(file){
@@ -401,85 +375,31 @@ function nobetIceAktarOnayModalAc(sayfaAdi, satirlar, baslikIdx, tarihCol, amirC
   }, null);
 }
 
-/* ---------- Eşlemeler onaylandıktan sonra Firestore'a yazar ---------- */
+/* ---------- Eşlemeler onaylandıktan sonra Firestore'a yazar (NobetService üzerinden) ---------- */
 async function nobetVerisiniUygula(satirlar, baslikIdx, tarihCol, amirCol, eslemeler){
   toast('İçe aktarılıyor, lütfen bekleyin...');
-
-  // 1) Eşlenen etiketlere karşılık gelen nöbet yerlerini bul/oluştur.
-  const yerIdMap = {};
-  let yeniSira = nobetYerleri.length;
-  for(const e of eslemeler){
-    const mevcutYer = nobetYerleri.find(y=> y.ad.toLocaleLowerCase('tr')===e.etiket.toLocaleLowerCase('tr'));
-    if(mevcutYer){
-      yerIdMap[e.index] = mevcutYer.id;
-    } else {
-      yeniSira++;
-      const ref = await db.collection(COL.nobetYerleri).add({ ad:e.etiket, sira:yeniSira, eklenmeTarihi:new Date().toISOString() });
-      yerIdMap[e.index] = ref.id;
-    }
+  try{
+    const sonuc = await NobetService.exceliUygula({
+      satirlar, baslikIdx, tarihCol, amirCol, eslemeler,
+      nobetYerleri, nobetAtamalari, nobetciAmirleri, ogretmenler
+    });
+    toast(`İçe aktarıldı: ${sonuc.gunSayisi} gün · ${sonuc.atamaSayisi} nöbet ataması · ${sonuc.amirSayisi} amir ataması.`);
+  }catch(err){
+    if(err.message!=='yetkisiz') toast('Hata: '+err.message);
   }
-
-  let atamaSayisi=0, amirSayisi=0, gunSayisi=0;
-  let batch = db.batch();
-  let batchSayac = 0;
-
-  for(let r=baslikIdx+2; r<satirlar.length; r++){
-    const satir = satirlar[r] || [];
-    if(!satir.length || satir.every(v=>v==='')) continue;
-    const iso = excelTarihHucresiISO(satir[tarihCol]);
-    if(!iso) continue;
-    gunSayisi++;
-
-    for(const e of eslemeler){
-      const ham = satir[e.index];
-      if(!ham || String(ham).trim()==='') continue;
-      const adSoyad = excelAdiSadelestir(ham);
-      const ogretmenObj = excelOgretmenEslestir(adSoyad);
-      const yerId = yerIdMap[e.index];
-      const mevcut = nobetAtamalari.find(a=>a.tarih===iso && a.yerId===yerId);
-      const veri = { tarih: iso, yerId, ogretmenAdSoyad: ogretmenObj?`${ogretmenObj.ad} ${ogretmenObj.soyad}`:adSoyad, ogretmenId: ogretmenObj?ogretmenObj.id:null };
-      const ref = mevcut ? db.collection(COL.nobetAtamalari).doc(mevcut.id) : db.collection(COL.nobetAtamalari).doc();
-      batch.set(ref, veri); batchSayac++; atamaSayisi++;
-    }
-
-    const amirHam = satir[amirCol];
-    if(amirHam && String(amirHam).trim()!==''){
-      const adSoyad = excelAdiSadelestir(amirHam);
-      const ogretmenObj = excelOgretmenEslestir(adSoyad);
-      const mevcutAmir = nobetciAmirleri.find(a=>a.tarih===iso);
-      const veri = { tarih: iso, ad: adSoyad, telefon: ogretmenObj?(ogretmenObj.telefon||''):'', ogretmenId: ogretmenObj?ogretmenObj.id:null };
-      const ref = mevcutAmir ? db.collection(COL.nobetciAmirleri).doc(mevcutAmir.id) : db.collection(COL.nobetciAmirleri).doc();
-      batch.set(ref, veri); batchSayac++; amirSayisi++;
-    }
-
-    if(batchSayac>=400){ await batch.commit(); batch = db.batch(); batchSayac=0; }
-  }
-  if(batchSayac>0) await batch.commit();
-
-  toast(`İçe aktarıldı: ${gunSayisi} gün · ${atamaSayisi} nöbet ataması · ${amirSayisi} amir ataması.`);
 }
 
 /* ====================================================================
    OTOMATİK HAFTALIK ROTASYON DAĞITIMI  (v7 — şablon bazlı, güncel)
-   ====================================================================
-   MANTIK:
-   - Kullanıcı referans haftayı 1 kez girer ve kaydedilir
-   - Referans hafta = "bu hafta kim nerede" bilgisi
-   - Sistem üretirken: her öğretmenin referanstaki yerinden başlar
-   - Her nöbet tutulduğunda yer tersine çevrilir
-   - Tatil: o günü atla, yer tersine çevir (tatilden sonra yer değişmiş olur)
-   - Ay üretiminde: Firestore'dan önceki son atamaya bakılır
-     → Önceki son atama referanstaki yerle aynıysa: bu ay ters başlar
-     → Farklıysa: bu ay referanstaki yerden başlar
+   Rotasyon algoritması ve yazma işlemleri NobetService.otomatikDagitimUygula
+   içinde; burada sadece modal/form toplama + sonuç bildirimi var.
    ==================================================================== */
 
 let _nobetRotasyonSablon = null;
 
 function nobetRotasyonDinle() {
   if (!db || !COL.nobetRotasyon) return;
-  db.collection(COL.nobetRotasyon).doc('sablon').onSnapshot(snap => {
-    _nobetRotasyonSablon = snap.exists ? snap.data() : null;
-  }, err => console.warn('nobetRotasyon:', err));
+  NobetRepository.rotasyonDinle(v => { _nobetRotasyonSablon = v; });
 }
 
 function nobetOtoAySecimHTML(seciliYil, seciliAy) {
@@ -612,170 +532,19 @@ async function nobetOtomatikDagitimUygula() {
   modalKapat();
   toast('Mevcut atamalar siliniyor…');
 
-  const ayBasISO = `${hedefYil}-${String(hedefAy+1).padStart(2,'0')}-01`;
-  const ayBitGun = new Date(hedefYil, hedefAy+1, 0).getDate();
-  const ayBitISO = `${hedefYil}-${String(hedefAy+1).padStart(2,'0')}-${String(ayBitGun).padStart(2,'0')}`;
-
-  // Seçilen ayı temizle
-  const silAtamalar = nobetAtamalari.filter(a =>
-    a.tarih >= ayBasISO && a.tarih <= ayBitISO &&
-    (a.yerId === bahceYerId || a.yerId === binaYerId));
-  const silAmirler = nobetciAmirleri.filter(a =>
-    a.tarih >= ayBasISO && a.tarih <= ayBitISO);
-
-  let silBatch = db.batch(), silSayac = 0;
-  for (const a of [...silAtamalar, ...silAmirler]) {
-    const col = silAtamalar.includes(a) ? COL.nobetAtamalari : COL.nobetciAmirleri;
-    silBatch.delete(db.collection(col).doc(a.id));
-    if (++silSayac >= 400) { await silBatch.commit(); silBatch = db.batch(); silSayac = 0; }
+  try{
+    const sonuc = await NobetService.otomatikDagitimUygula({
+      hedefYil, hedefAy, bahceYerId, binaYerId, referansHafta, amirListesi,
+      mevcutAmirSayac: _nobetRotasyonSablon?.amirSayac || 0,
+      nobetAtamalari, nobetciAmirleri, ogretmenler,
+      nobetTatilMiFn: nobetTatilMi
+    });
+    const parcalar = [`${sonuc.toplamAtama} nöbet ataması`];
+    if (sonuc.toplamAmir > 0)   parcalar.push(`${sonuc.toplamAmir} nöbetçi amir`);
+    if (sonuc.atlananTatil > 0) parcalar.push(`${sonuc.atlananTatil} tatil günü atlandı`);
+    toast('✅ Tamamlandı: ' + parcalar.join(' · ') + '.');
+    renderNobetTakvimi();
+  }catch(err){
+    if(err.message!=='yetkisiz') toast('Hata: '+err.message);
   }
-  if (silSayac > 0) await silBatch.commit();
-
-  toast('Nöbet programı oluşturuluyor…');
-
-  /* ── HER ÖĞRETMENİN BAŞLANGIÇ YERİNİ BELIRLE ──
-     Firestore'dan hedef aydan önceki en son atamayı çek.
-     Referans haftada o öğretmen Bahçe'deyse ve son atama da Bahçe'yse
-     → bu ay Bina'dan başla (yer değişmeli).
-     Referans Bahçe ama son atama Bina'ysa → bu ay Bahçe'den başla (referansla aynı).
-     Hiç atama yoksa → referanstaki yerden başla.
-  */
-  const ogrSonAtama = {};
-  try {
-    const sorgu = await db.collection(COL.nobetAtamalari)
-      .where('tarih', '<', ayBasISO)
-      .get();
-    for (const doc of sorgu.docs) {
-      const a = doc.data();
-      if (!a.ogretmenId) continue;
-      if (a.yerId !== bahceYerId && a.yerId !== binaYerId) continue;
-      if (!ogrSonAtama[a.ogretmenId] || a.tarih > ogrSonAtama[a.ogretmenId].tarih) {
-        ogrSonAtama[a.ogretmenId] = { tarih: a.tarih, yerId: a.yerId };
-      }
-    }
-  } catch(e) { console.warn('Önceki atamalar:', e); }
-
-  // Her öğretmen için başlangıç yerini belirle
-  const ogrAktifYer = {}; // ogretmenId → yerId (bu ay ilk nöbette nerede olacak)
-  for (let g = 1; g <= 5; g++) {
-    const ref = referansHafta[g];
-    for (const [ogrId, refYerId] of [[ref.bahce, bahceYerId], [ref.bina, binaYerId]]) {
-      if (ogrId in ogrAktifYer) continue;
-      const son = ogrSonAtama[ogrId];
-      if (!son) {
-        // Hiç atama yok → referanstaki yerden başla
-        ogrAktifYer[ogrId] = refYerId;
-      } else {
-        // Son atama referanstaki yerle aynıysa → ters başla
-        // Son atama farklıysa → referanstaki yerden başla
-        ogrAktifYer[ogrId] = (son.yerId === refYerId) ? (refYerId === bahceYerId ? binaYerId : bahceYerId) : refYerId;
-      }
-    }
-  }
-
-  /* ── AY BOYUNCA ÜRETİM ──
-     Her iş günü için öğretmenin aktif yerini kullan.
-     Nöbet tutulunca → yer tersine çevir.
-     Tatil → atama yok, yer tersine çevir (tatilden sonra yer değişmiş olur).
-  */
-  const ayIlkGun = new Date(hedefYil, hedefAy, 1);
-  const g0 = ayIlkGun.getDay() || 7;
-  const gercekIlkPzt = new Date(hedefYil, hedefAy, 1 - g0 + 1);
-
-  let amirSayac = _nobetRotasyonSablon?.amirSayac || 0;
-  let yazBatch  = db.batch(), yazSayac = 0;
-  let toplamAtama = 0, toplamAmir = 0, atlananTatil = 0;
-
-  /* Her öğretmen için:
-     - ogrNobetSayisi[id]: bu ay kaç kez nöbet tuttu (tatil haftaları sayılmaz)
-     - Başlangıç yeri: ogrIlkYer[id]
-     - n. nöbette yer: n%2==0 → ilkYer, n%2==1 → ters
-     Bu şekilde tatil haftaları sayılmadığı için 11→Bina, 18=tatil(sayılmaz), 25→Bina ✓
-  */
-  const ogrIlkYer2 = {}; // ogretmenId → yerId (bu aydaki ilk nöbet yeri)
-  for (let g = 1; g <= 5; g++) {
-    const ref = referansHafta[g];
-    for (const [ogrId, refYerId] of [[ref.bahce, bahceYerId],[ref.bina, binaYerId]]) {
-      if (ogrId in ogrIlkYer2) continue;
-      const son = ogrSonAtama[ogrId];
-      if (!son) {
-        ogrIlkYer2[ogrId] = refYerId;
-      } else {
-        ogrIlkYer2[ogrId] = (son.yerId === refYerId) ? (refYerId === bahceYerId ? binaYerId : bahceYerId) : refYerId;
-      }
-    }
-  }
-  const ogrNobetSayisi = {}; // ogretmenId → kaç nöbet tuttu
-
-  const haftaPzt = new Date(gercekIlkPzt);
-  while (true) {
-    for (let g = 1; g <= 5; g++) {
-      const d = new Date(haftaPzt);
-      d.setDate(haftaPzt.getDate() + g - 1);
-      const iso = nobetTarihISO(d.getFullYear(), d.getMonth(), d.getDate());
-
-      if (d.getMonth() !== hedefAy || d.getFullYear() !== hedefYil) continue;
-      if (nobetTatilMi(iso)) { atlananTatil++; continue; }
-
-      const ref      = referansHafta[g];
-      const bahceOgr = ogretmenler.find(o => o.id === ref.bahce);
-      const binaOgr  = ogretmenler.find(o => o.id === ref.bina);
-
-      if (bahceOgr) {
-        const n     = ogrNobetSayisi[bahceOgr.id] || 0;
-        const ilk   = ogrIlkYer2[bahceOgr.id] || bahceYerId;
-        const ters  = ilk === bahceYerId ? binaYerId : bahceYerId;
-        const yerId = n % 2 === 0 ? ilk : ters;
-        const docRef = db.collection(COL.nobetAtamalari).doc();
-        yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: bahceOgr.ad+' '+bahceOgr.soyad, ogretmenId: bahceOgr.id });
-        yazSayac++; toplamAtama++;
-        ogrNobetSayisi[bahceOgr.id] = n + 1;
-      }
-
-      if (binaOgr) {
-        const n     = ogrNobetSayisi[binaOgr.id] || 0;
-        const ilk   = ogrIlkYer2[binaOgr.id] || binaYerId;
-        const ters  = ilk === bahceYerId ? binaYerId : bahceYerId;
-        const yerId = n % 2 === 0 ? ilk : ters;
-        const docRef = db.collection(COL.nobetAtamalari).doc();
-        yazBatch.set(docRef, { tarih: iso, yerId, ogretmenAdSoyad: binaOgr.ad+' '+binaOgr.soyad, ogretmenId: binaOgr.id });
-        yazSayac++; toplamAtama++;
-        ogrNobetSayisi[binaOgr.id] = n + 1;
-      }
-
-      if (amirListesi.length > 0) {
-        const amirId  = amirListesi[amirSayac % amirListesi.length];
-        const amirOgr = ogretmenler.find(o => o.id === amirId);
-        if (amirOgr) {
-          const docRef = db.collection(COL.nobetciAmirleri).doc();
-          yazBatch.set(docRef, { tarih: iso, ad: amirOgr.ad+' '+amirOgr.soyad, telefon: amirOgr.telefon||'', ogretmenId: amirOgr.id });
-          yazSayac++; toplamAmir++;
-        }
-        amirSayac++;
-      }
-
-      if (yazSayac >= 400) { await yazBatch.commit(); yazBatch = db.batch(); yazSayac = 0; }
-    }
-
-    haftaPzt.setDate(haftaPzt.getDate() + 7);
-    if (haftaPzt.getMonth() > hedefAy && haftaPzt.getFullYear() >= hedefYil) break;
-    if (haftaPzt.getFullYear() > hedefYil) break;
-  }
-
-  if (yazSayac > 0) await yazBatch.commit();
-
-  // Şablonu kaydet
-  await db.collection(COL.nobetRotasyon).doc('sablon').set({
-    yerler: { bahce: bahceYerId, bina: binaYerId },
-    referansHafta,
-    amirListesi,
-    amirSayac,
-    guncelleme: new Date().toISOString().slice(0, 10)
-  });
-
-  const parcalar = [`${toplamAtama} nöbet ataması`];
-  if (toplamAmir > 0)   parcalar.push(`${toplamAmir} nöbetçi amir`);
-  if (atlananTatil > 0) parcalar.push(`${atlananTatil} tatil günü atlandı`);
-  toast('✅ Tamamlandı: ' + parcalar.join(' · ') + '.');
-  renderNobetTakvimi();
 }
