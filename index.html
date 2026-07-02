@@ -151,7 +151,7 @@
       <button class="topbar-bell" onclick="sekmeAc('takvim')" title="Hatırlatıcılar" aria-label="Hatırlatıcılar">
         🔔<span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
       </button>
-      <button class="topbar-avatar" id="topbarAvatar" onclick="kullaniciSecModalAc()" title="Kullanıcı Profili">👤</button>
+      <button class="topbar-avatar" id="topbarAvatar" onclick="profilVeyaSecimAc()" title="Profilim">👤</button>
     </div>
 
     <main class="content">
@@ -475,7 +475,7 @@
         <div id="asistanMesajlar" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:10px;"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <textarea id="asistanInput" rows="2" placeholder="Örn: 5/A için yarınki nöbet hatırlatıcısı oluştur" style="flex:1;resize:none;"></textarea>
-          <button class="btn btn-amber" id="asistanGonderBtn">Gönder</button>
+          <button class="btn btn-amber salt-okuma-serbest" id="asistanGonderBtn">Gönder</button>
         </div>
       </div>
     </section>
@@ -507,7 +507,7 @@
           <div id="mevzuatMesajlar" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:10px;"></div>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <textarea id="mevzuatInput" rows="2" placeholder="Örn: Yıllık izin kaç gündür?" style="flex:1;resize:none;" onkeydown="mevzuatInputEnter(event)"></textarea>
-            <button class="btn btn-amber" onclick="mevzuatSoruGonder()">Sor</button>
+            <button class="btn btn-amber salt-okuma-serbest" onclick="mevzuatSoruGonder()">Sor</button>
           </div>
         </div>
       </div>
