@@ -30,18 +30,20 @@ public class PrintPlugin extends Plugin {
     public void yazdir(PluginCall call) {
         String html = call.getString("html");
         String isAdi = call.getString("isAdi", "Koruk_Okul_Belge");
+        String yon = call.getString("yon", "dikey");
         if (html == null || html.isEmpty()) {
             call.reject("html parametresi gerekli");
             return;
         }
         final String belgeAdi = isAdi;
+        final boolean yatayMi = "yatay".equals(yon);
 
         getActivity().runOnUiThread(() -> {
             WebView yazdirmaWebView = new WebView(getContext());
             yazdirmaWebView.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageFinished(WebView view, String url) {
-                    yazdirDiyaloguAc(view, belgeAdi);
+                    yazdirDiyaloguAc(view, belgeAdi, yatayMi);
                 }
             });
             yazdirmaWebView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
@@ -50,10 +52,17 @@ public class PrintPlugin extends Plugin {
         call.resolve();
     }
 
-    private void yazdirDiyaloguAc(WebView webView, String isAdi) {
+    private void yazdirDiyaloguAc(WebView webView, String isAdi, boolean yatayMi) {
         PrintManager printManager = (PrintManager) getContext().getSystemService(Context.PRINT_SERVICE);
         if (printManager == null) return;
         PrintDocumentAdapter adapter = webView.createPrintDocumentAdapter(isAdi);
-        printManager.print(isAdi, adapter, new PrintAttributes.Builder().build());
+        PrintAttributes.Builder ozellikler = new PrintAttributes.Builder();
+        // Not: Bu sadece Android'in yazdırma diyaloğunda hangi yönün ÖNTANIMLI
+        // seçili geleceğini belirler — kullanıcı diyalogda istediği an
+        // "Yönlendirme" seçeneğinden değiştirebilir, kilitli değildir.
+        ozellikler.setMediaSize(yatayMi
+            ? android.print.PrintAttributes.MediaSize.ISO_A4.asLandscape()
+            : android.print.PrintAttributes.MediaSize.ISO_A4);
+        printManager.print(isAdi, adapter, ozellikler.build());
     }
 }
