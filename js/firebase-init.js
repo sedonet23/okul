@@ -78,7 +78,9 @@ const COL = {
   haberler:'oy_haberler',               // {baslik, ozet, link, kaynakAdi, kategori, tarih:ISO, manuel:true|false}
   haberKaynaklari:'oy_haberKaynaklari', // {ad, url, kategori, aktif:true|false} — RSS kaynağı, admin panelinden dinamik yönetilir
   // --- YENİ: Çok kullanıcılı erişim / Google girişi (Aşama 1) ---
-  kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, yetkiler:{modul:'yok'|'goruntule'|'duzenle'}}
+  kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, rolId, bagliOgretmenId}
+  // --- YENİ: Rol tabanlı yetkilendirme (Aşama 2) ---
+  roller:'oy_roller',                   // {ad, kullaniciYonetimi:bool, yetkiler:{modulAdi:'gizle'|'goruntule'|'duzenle'}}
 };
 
 let db = null;

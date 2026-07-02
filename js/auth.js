@@ -20,7 +20,8 @@
    4) Sayfayı yenile — artık admin olarak giriş yapmış olacaksın.
    ================================================================ */
 
-let AKTIF_KULLANICI = null; // { uid, email, ad, fotoUrl, admin, aktif, yetkiler }
+let AKTIF_KULLANICI = null; // { uid, email, ad, fotoUrl, admin, aktif, rolId, bagliOgretmenId }
+let AKTIF_ROL = null;       // { id, ad, kullaniciYonetimi, yetkiler:{modul:'gizle'|'goruntule'|'duzenle'} }
 
 function girisEkraniGoster(){
   document.getElementById('girisEkrani')?.classList.add('active');
@@ -107,6 +108,18 @@ function authDinleyiciKur(){
         onayBekleniyorGoster();
         return;
       }
+
+      // Kullanıcının rolünü oku (varsa) — sidebar ve modül yetkileri buna göre ayarlanır.
+      AKTIF_ROL = null;
+      if(AKTIF_KULLANICI.rolId){
+        try{
+          const rolSnap = await db.collection(COL.roller).doc(AKTIF_KULLANICI.rolId).get();
+          if(rolSnap.exists) AKTIF_ROL = { id: rolSnap.id, ...rolSnap.data() };
+        }catch(e){ console.warn('Rol okunamadı:', e); }
+      }
+      if(typeof sidebarYetkiUygula === 'function') sidebarYetkiUygula();
+      if(typeof kullaniciYonetimiYetkisiVar === 'function' && kullaniciYonetimiYetkisiVar()
+         && typeof kullaniciYonetimiDinleyiciKur === 'function') kullaniciYonetimiDinleyiciKur();
 
       onayBekleniyorGizle();
       girisEkraniGizle();
