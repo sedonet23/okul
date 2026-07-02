@@ -134,6 +134,7 @@
       <button class="nav-tab" data-tab="okulBilgileri"><span class="nt-ico ni-okul">🏫</span><span class="nt-label">Okul Bilgileri</span></button>
       <button class="nav-tab" data-tab="veri"><span class="nt-ico ni-veri">💾</span><span class="nt-label">Veri</span></button>
       <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico ni-ayarlar">⚙️</span><span class="nt-label">Ayarlar</span></button>
+      <button class="nav-tab" data-tab="kullaniciYonetimi" style="display:none;"><span class="nt-ico">👑</span><span class="nt-label">Kullanıcı Yönetimi</span></button>
     </nav>
     <button class="nav-cikis-btn" id="cikisBtn" title="Uygulamadan çık"><span class="nt-ico">⏻</span><span class="nt-label">Çıkış</span></button>
     </aside>
@@ -1065,6 +1066,39 @@
       </div>
     </section>
 
+    <!-- AŞAMA 2: Kullanıcı Yönetimi (rol tabanlı yetkilendirme) — bkz. js/kullanici-yonetimi.js -->
+    <section id="tab-kullaniciYonetimi" class="tab-panel">
+      <style>
+        .rol-grup-baslik{font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-muted);margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+        .rol-satir{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+        .rol-satir-ad{font-size:13.5px;font-weight:600;flex:1;min-width:140px;}
+        .rol-satir-secim{display:flex;gap:6px;flex-wrap:wrap;}
+        .rol-radio{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;white-space:nowrap;}
+        .rol-radio input{margin:0;}
+      </style>
+      <div class="page-header">
+        <div><div class="page-title">👑 Kullanıcı Yönetimi</div><div class="page-sub">Roller tanımlayın, kullanıcıları onaylayıp rol atayın</div></div>
+      </div>
+
+      <!-- Alt sekmeler -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm filtre-btn active" data-ky-sekme="roller" onclick="kullaniciYonetimiAltSekmeSec('roller')">🗂️ Roller</button>
+        <button class="btn btn-ghost btn-sm filtre-btn" data-ky-sekme="kullanicilar" onclick="kullaniciYonetimiAltSekmeSec('kullanicilar')">👥 Kullanıcılar</button>
+      </div>
+
+      <!-- Roller bölümü -->
+      <div id="ky-bolum-roller">
+        <button class="btn btn-amber btn-sm" style="margin-bottom:12px;" onclick="rolFormAc('yeni')">+ Yeni Rol</button>
+        <div id="rolListesi"></div>
+        <div id="rolFormAlani"></div>
+      </div>
+
+      <!-- Kullanıcılar bölümü -->
+      <div id="ky-bolum-kullanicilar" style="display:none;">
+        <div id="kullaniciYonetimListesi"></div>
+      </div>
+    </section>
+
     </main>
 
     <button id="asistanFab" class="asistan-fab" onclick="sekmeAc('asistan')" title="AI Asistan" aria-label="AI Asistan">🤖</button>
@@ -1182,6 +1216,7 @@
 
 <script src="js/firebase-init.js"></script>
 <script src="js/auth.js"></script>
+<script src="js/kullanici-yonetimi.js"></script>
 <script src="js/push.js"></script>
 <script src="js/cizelgeler.js"></script>
 <script src="js/excel-import.js"></script>
