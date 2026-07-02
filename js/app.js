@@ -1158,6 +1158,39 @@ async function tumVerileriYedekle(){
    engelleniyor — dialog hiç görünmeden false dönüyor, kullanıcı hiçbir
    şey olmamış gibi hissediyor. Bu, tamamen kendi DOM'umuzda render
    edildiği için o kısıtlamaya tabi değil. */
+/* ---------- Kalıcı ilerleme göstergesi (uzun işlemler için) ---------- */
+function ilerlemeGoster(mesaj){
+  const overlay = document.getElementById('ilerlemeOverlay');
+  if(!overlay) return;
+  document.getElementById('ilerlemeSpinner').style.display = '';
+  document.getElementById('ilerlemeIkon').style.display = 'none';
+  document.getElementById('ilerlemeKapatBtn').style.display = 'none';
+  document.getElementById('ilerlemeMetin').textContent = mesaj;
+  overlay.style.display = 'flex';
+}
+function ilerlemeGuncelle(mesaj){
+  const el = document.getElementById('ilerlemeMetin');
+  if(el) el.textContent = mesaj;
+}
+function ilerlemeTamamlandi(mesaj){
+  document.getElementById('ilerlemeSpinner').style.display = 'none';
+  const ikon = document.getElementById('ilerlemeIkon');
+  ikon.textContent = '✅'; ikon.style.display = '';
+  document.getElementById('ilerlemeMetin').textContent = mesaj;
+  document.getElementById('ilerlemeKapatBtn').style.display = '';
+}
+function ilerlemeHataGoster(mesaj){
+  document.getElementById('ilerlemeSpinner').style.display = 'none';
+  const ikon = document.getElementById('ilerlemeIkon');
+  ikon.textContent = '⚠️'; ikon.style.display = '';
+  document.getElementById('ilerlemeMetin').textContent = mesaj;
+  document.getElementById('ilerlemeKapatBtn').style.display = '';
+}
+function ilerlemeGizle(){
+  const overlay = document.getElementById('ilerlemeOverlay');
+  if(overlay) overlay.style.display = 'none';
+}
+
 function uygulamaOnayAl(mesaj){
   return new Promise(resolve=>{
     const modal = document.getElementById('ozelOnayModal');
@@ -1236,12 +1269,14 @@ function _dosyaMetniOku(dosya){
 
 async function yedektenGeriYukle(file){
   if(!file){ console.warn('yedektenGeriYukle: dosya seçilmedi.'); return; }
-  toast('Yedek okunuyor, lütfen bekleyin…');
+  ilerlemeGoster('Yedek dosyası okunuyor…');
   try{
     const metin = await _dosyaMetniOku(file);
     const data = JSON.parse(metin);
+    ilerlemeGizle();
     const onaylandi = await uygulamaOnayAl("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?");
     if(!onaylandi) return;
+    ilerlemeGoster('Geri yükleniyor… (0 kayıt)');
     const eslemeler = [
       [data.ogretmenler, COL.ogretmenler],[data.dersProgrami, COL.dersProgrami],
       [data.siniflar, COL.siniflar],[data.veliler, COL.veliler],
@@ -1257,16 +1292,39 @@ async function yedektenGeriYukle(file){
       [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi],
       [data.personel, COL.personel]
     ];
+
+    // Tek tek (await ... await ...) yazmak yerine Firestore BATCH kullan —
+    // hem çok daha hızlı (tek ağ gidiş-gelişinde yüzlerce yazma) hem de
+    // "hiçbir şey olmuyor" hissi vermeden ilerleme bildirimi eklenebiliyor.
+    // Firestore tek batch'te en fazla 500 işlem kabul eder, güvenli pay
+    // için 400'de bir commit ediyoruz.
     let toplamKayit = 0;
+    let batch = db.batch();
+    let batchIcindeki = 0;
+
+    async function batchıCommitEt(){
+      if(batchIcindeki === 0) return;
+      await batch.commit();
+      batch = db.batch();
+      batchIcindeki = 0;
+    }
+
     for(const [liste, koleksiyon] of eslemeler){
       if(!Array.isArray(liste)) continue;
       for(const oge of liste){
         const {id, ...veri} = oge;
-        if(id){ await db.collection(koleksiyon).doc(id).set(veri); }
-        else { await db.collection(koleksiyon).add(veri); }
+        const ref = id ? db.collection(koleksiyon).doc(id) : db.collection(koleksiyon).doc();
+        batch.set(ref, veri, { merge: true });
+        batchIcindeki++;
         toplamKayit++;
+        if(batchIcindeki >= 400){
+          await batchıCommitEt();
+          ilerlemeGuncelle(`Geri yükleniyor… (${toplamKayit} kayıt)`);
+        }
       }
     }
+    await batchıCommitEt();
+    ilerlemeGuncelle('Ek ayarlar geri yükleniyor…');
     if(data.dersSaatleriAyarlari){
       await db.collection(COL.dersSaatleri).doc('ayarlar').set(data.dersSaatleriAyarlari);
     }
@@ -1277,15 +1335,16 @@ async function yedektenGeriYukle(file){
       await db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler: data.periyodikSablon });
     }
     if(data.mevzuat && typeof mevzuatYedektenYukle === 'function'){
+      ilerlemeGuncelle('Mevzuat verileri geri yükleniyor…');
       try{ await mevzuatYedektenYukle(data.mevzuat); }
       catch(e){ console.warn('Mevzuat geri yüklenemedi:', e.message); }
     }
     const yedekDosyaEl = document.getElementById('yedekDosya');
     if(yedekDosyaEl) yedekDosyaEl.value = '';
-    toast(`Geri yükleme tamamlandı (${toplamKayit} kayıt işlendi).`);
+    ilerlemeTamamlandi(`Geri yükleme tamamlandı — ${toplamKayit} kayıt işlendi.`);
   }catch(err){
     console.error('yedektenGeriYukle hatası:', err);
-    toast('Geri yükleme hatası: '+err.message);
+    ilerlemeHataGoster('Geri yükleme hatası: '+err.message);
   }
 }
 
