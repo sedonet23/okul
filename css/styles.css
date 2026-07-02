@@ -2868,3 +2868,5 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 }
 
 [data-theme="dark"] .renk-paketi-secenek.aktif{ color: var(--ink) !important; }
+
+@keyframes ilerlemeDon{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
