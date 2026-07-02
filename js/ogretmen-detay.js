@@ -199,6 +199,7 @@ function ogretmenDetayAc(id){
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof detayPanelYetkiUygula === 'function') detayPanelYetkiUygula(id);
   if(typeof renderOgretmenIzinBolumu === 'function') renderOgretmenIzinBolumu(id);
   if (typeof detayPanelineProfilFotoEkle === 'function') setTimeout(() => detayPanelineProfilFotoEkle(id), 10);
 }

@@ -68,8 +68,11 @@ function sidebarHesapGuncelle(user){
   const avatar = document.getElementById('hesapAvatar');
   const ad = document.getElementById('hesapAd');
   const email = document.getElementById('hesapEmail');
-  if(avatar) avatar.src = user.photoURL || 'assets/icon-192.png';
-  if(ad) ad.textContent = user.displayName || 'Kullanıcı';
+  // Hesaba bağlı öğretmen kaydı varsa Google adının yerine ONUN adı ve
+  // fotoğrafı gösterilir (ör. gmail'deki "sedo net" yerine "Sedat KARAGÖZ").
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  if(avatar) avatar.src = (ben && ben.profilFotoUrl) || user.photoURL || 'assets/icon-192.png';
+  if(ad) ad.textContent = ben ? `${ben.ad||''} ${ben.soyad||''}`.trim() : (user.displayName || 'Kullanıcı');
   if(email) email.textContent = user.email || '';
 }
 
@@ -118,6 +121,17 @@ function authDinleyiciKur(){
         }catch(e){ console.warn('Rol okunamadı:', e); }
       }
       if(typeof sidebarYetkiUygula === 'function') sidebarYetkiUygula();
+
+      // Bağlı öğretmen kaydı varsa, eski "aktif kullanıcı" mekanizmasını
+      // (localStorage) otomatik doldur — dashboard selamlaması, topbar
+      // avatarı ve isim gösterimi kendiliğinden bu öğretmene göre şekillenir,
+      // kullanıcıya ayrıca "kim kullanıyor" diye sorulmaz.
+      if(AKTIF_KULLANICI.bagliOgretmenId){
+        localStorage.setItem('oyAktifKullaniciId', AKTIF_KULLANICI.bagliOgretmenId);
+        localStorage.setItem('oyAktifKullaniciTip', 'ogretmen');
+        localStorage.setItem('oyKullaniciSecimiYapildi', '1');
+        if(typeof aktifKullaniciyiGuncelle === 'function') aktifKullaniciyiGuncelle();
+      }
       if(typeof kullaniciYonetimiYetkisiVar === 'function' && kullaniciYonetimiYetkisiVar()
          && typeof kullaniciYonetimiDinleyiciKur === 'function') kullaniciYonetimiDinleyiciKur();
 

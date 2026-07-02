@@ -270,3 +270,70 @@ function kullaniciKaydet(uid){
     .then(()=>{ toast('Kullanıcı güncellendi.'); modalKapat(); })
     .catch(hataGoster);
 }
+
+/* ================================================================
+   AŞAMA 3: Sayfa içi yetki uygulaması + Profilim
+   ================================================================ */
+
+/* 'goruntule' yetkili modüllerde bölüme .salt-okuma sınıfı ekler —
+   CSS bu sınıf altındaki ekle/kaydet/sil butonlarını gizler
+   (bkz. styles.css .salt-okuma kuralları). */
+function saltOkumaUygula(tab){
+  const panel = document.getElementById('tab-'+tab);
+  if(!panel) return;
+  panel.classList.toggle('salt-okuma', !duzenleyebilir(tab));
+}
+
+/* Girişli kullanıcının bağlı olduğu öğretmen kaydı */
+function bagliOgretmenimGetir(){
+  if(!AKTIF_KULLANICI || !AKTIF_KULLANICI.bagliOgretmenId) return null;
+  return (typeof ogretmenler !== 'undefined' ? ogretmenler : []).find(o=>o.id===AKTIF_KULLANICI.bagliOgretmenId) || null;
+}
+
+/* Topbar avatar tıklaması: bağlı öğretmeni olan kullanıcı kendi profilini
+   görür; admin/bağsız kullanıcı eski kullanıcı seçme modalını görür. */
+function profilVeyaSecimAc(){
+  const ben = bagliOgretmenimGetir();
+  if(ben && typeof ogretmenDetayAc === 'function'){ ogretmenDetayAc(ben.id); return; }
+  if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc();
+}
+
+/* Kendi profilinde SADECE foto/telefon/e-posta güncellenebilir. */
+function profilimDuzenleAc(){
+  const ben = bagliOgretmenimGetir();
+  if(!ben){ toast('Hesabınıza bağlı öğretmen kaydı yok.'); return; }
+  const body = `
+    <div class="form-group"><label>Profil Fotoğrafı URL</label><input id="f_pfFoto" value="${escapeHtml(ben.profilFotoUrl||'')}" placeholder="https://..."></div>
+    <div class="form-group"><label>Telefon</label><input id="f_pfTel" value="${escapeHtml(ben.telefon||'')}"></div>
+    <div class="form-group"><label>E-Posta</label><input id="f_pfMail" value="${escapeHtml(ben.eposta||'')}"></div>
+    <p class="page-sub">Diğer bilgileriniz (branş, ünvan, evrak durumları vb.) yalnızca okul yönetimi tarafından güncellenebilir.</p>`;
+  modalAc('Bilgilerimi Güncelle', body, ()=>{
+    db.collection(COL.ogretmenler).doc(ben.id).update({
+      profilFotoUrl: document.getElementById('f_pfFoto').value.trim(),
+      telefon: document.getElementById('f_pfTel').value.trim(),
+      eposta: document.getElementById('f_pfMail').value.trim()
+    }).then(()=>{ toast('Bilgileriniz güncellendi.'); modalKapat(); }).catch(hataGoster);
+  }, null, 'Kaydet');
+}
+
+/* Detay paneli açılırken çağrılır: düzenleme yetkisi yoksa panel
+   salt-okuma olur; kendi profiliyse sınırlı düzenleme butonu görünür. */
+function detayPanelYetkiUygula(ogretmenId){
+  const duzBtn = document.getElementById('detayDuzenleBtn');
+  const overlay = document.getElementById('detayOverlay');
+  if(!overlay) return;
+  const tamYetki = duzenleyebilir('ogretmenler');
+  const kendisiMi = !!(AKTIF_KULLANICI && AKTIF_KULLANICI.bagliOgretmenId === ogretmenId);
+  overlay.classList.toggle('salt-okuma', !tamYetki);
+  if(duzBtn){
+    if(tamYetki){
+      duzBtn.style.display=''; duzBtn.textContent='Düzenle';
+      duzBtn.onclick = ()=>{ detayPanelKapat(); ogretmenModalAc(ogretmenId); };
+    } else if(kendisiMi){
+      duzBtn.style.display=''; duzBtn.textContent='Bilgilerimi Güncelle';
+      duzBtn.onclick = ()=> profilimDuzenleAc();
+    } else {
+      duzBtn.style.display='none';
+    }
+  }
+}

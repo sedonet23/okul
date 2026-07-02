@@ -347,14 +347,14 @@ window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
    modal açmanın anlamı yok) bir kereliğine otomatik açılır. */
 let _ilkAcilistaKullaniciSorFlag = false;
 function _ilkAcilistaKullaniciSor(){
-  // DÜZELTME: Google girişi eklendiğinden beri kimlik zaten hesaptan biliniyor
-  // (bkz. js/ui.js _hesapKimligi), bu yüzden cihazda "sen kimsin?" diye soran
-  // bu eski pop-up artık otomatik açılmıyor — açık kalsaydı, her yeni cihaz/
-  // tarayıcıda tekrar "kim olduğunu seç" diye sorup o seçimi karşılama
-  // metnine sabitliyordu (bu da farklı hesaplarla girişte kafa karıştırıyordu).
-  // Manuel seçim isteyen kullanıcılar topbar avatarına tıklayarak hâlâ
-  // kullaniciSecModalAc() ile kişi seçebilir; sadece otomatik açılış kapatıldı.
-  return;
+  if(_ilkAcilistaKullaniciSorFlag) return; // bu oturumda zaten denendi
+  if(localStorage.getItem('oyKullaniciSecimiYapildi')) return; // daha önce cevaplanmış
+  const kisiSayisi = (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0) +
+    (typeof personelListesi !== 'undefined' ? personelListesi.length : 0);
+  if(kisiSayisi === 0) return; // liste henüz gelmedi, bekle (bir sonraki onSnapshot'ta tekrar denenir)
+
+  _ilkAcilistaKullaniciSorFlag = true;
+  setTimeout(()=>{ if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc(); }, 600);
 }
 
 /* ====================================================================
@@ -494,9 +494,25 @@ function ogretmenSecenekleri(seciliId){
 function ogretmenAdi(id){ const o = ogretmenler.find(x=>x.id===id); return o ? `${o.ad} ${o.soyad}` : '—'; }
 function kaydet(koleksiyon, id, veri){
   if(!db){ toast('Firebase bağlantısı yok.'); return; }
+  // AŞAMA 3: Tam yetkili olmayan (admin dışı) kullanıcının eklediği
+  // not/hatırlatıcı/görev kayıtları KİŞİSEL sayılır — sahipUid damgası
+  // vurulur; listelerde yalnız sahibine ve adminlere gösterilir
+  // (bkz. kisiselKayitGorunurMu).
+  if(!id && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && !AKTIF_KULLANICI.admin &&
+     [COL.notlar, COL.hatirlaticilar, COL.gorevler].includes(koleksiyon)){
+    veri = { ...veri, sahipUid: AKTIF_KULLANICI.uid };
+  }
   const ref = db.collection(koleksiyon);
   const islem = id ? ref.doc(id).update(veri) : ref.add({...veri, eklenmeTarihi: new Date().toISOString()});
   islem.then(()=>toast('Kaydedildi.')).catch(err=>toast('Hata: '+err.message));
+}
+
+/* Kişisel (sahipUid'li) kayıt görünürlük filtresi: damgasız kayıtlar
+   (okul geneli) herkese; damgalılar sahibine ve adminlere görünür. */
+function kisiselKayitGorunurMu(k){
+  if(!k || !k.sahipUid) return true;
+  if(typeof AKTIF_KULLANICI === 'undefined' || !AKTIF_KULLANICI) return true;
+  return AKTIF_KULLANICI.admin === true || k.sahipUid === AKTIF_KULLANICI.uid;
 }
 function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message); }
 
@@ -882,12 +898,17 @@ function renderDashboard(){
   if(heroSelamlaEl){
     const saat = new Date().getHours();
     const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    // DÜZELTME: Aktif kullanıcı adını artık gerçek giriş yapan Google hesabının
-    // kimliğinden alıyor (bkz. js/ui.js _hesapKimligi) — cihazda eskiden elle
-    // seçilmiş kişiye (ör. "Sedat") değil, o an oturum açmış hesaba göre gösterir.
+    // Aktif kullanıcı adını al — hiç kullanıcı seçilmemişse isim eklemeden
+    // sadece selamla (önceden burada sabit "Sedat Bey" yazıyordu, kullanıcı
+    // seçilmemiş olsa bile hep bu isim görünüyordu).
     const kullaniciAdi = (function(){
-      const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
-      return kimlik.ad ? (kimlik.ad.split(' ')[0] + (kimlik.hitap ? ' ' + kimlik.hitap : '')) : '';
+      const id = localStorage.getItem('oyAktifKullaniciId');
+      if(!id) return '';
+      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
+      if(o && o.ad) return o.ad.split(' ')[0] + ' Bey';
+      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
+      if(p){ const ad = p.ad || p.adSoyad || ''; if(ad) return ad.split(' ')[0] + ' Bey'; }
+      return '';
     })();
     heroSelamlaEl.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   }
@@ -1348,15 +1369,15 @@ async function yedektenGeriYukle(file){
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
-  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); if(typeof renderBugunIzinliOgretmenler==='function') renderBugunIzinliOgretmenler(); }, hataGoster);
+  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); if(typeof renderBugunIzinliOgretmenler==='function') renderBugunIzinliOgretmenler(); if(typeof sidebarHesapGuncelle==='function' && typeof auth!=='undefined' && auth && auth.currentUser) sidebarHesapGuncelle(auth.currentUser); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } if(typeof renderOgrenciler==='function') renderOgrenciler(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   nobetBaglantilariKur();
-  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
-  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})); renderGorevler(); renderDashboard(); }, hataGoster);
+  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})).filter(kisiselKayitGorunurMu); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
+  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})).filter(kisiselKayitGorunurMu); renderGorevler(); renderDashboard(); }, hataGoster);
   db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
-  db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
+  db.collection(COL.notlar).onSnapshot(s=>{ notlar = s.docs.map(d=>({id:d.id,...d.data()})).filter(kisiselKayitGorunurMu); renderNotlar(); if(typeof renderDashboardNotlar==='function') renderDashboardNotlar(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
 
   ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
     db.collection(COL[tip]).onSnapshot(s=>{ cizelgeVerileri[tip] = s.docs.map(d=>({id:d.id,...d.data()})); renderCizelge(tip); if(tip==='sosyalKulupler') renderSosyalKuluplerListesi(); }, hataGoster);
@@ -1418,6 +1439,7 @@ function sekmeAc(tab){
   // olabilir, bu yüzden onSnapshot dinleyicileri de globalAramaYap()'ı
   // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
   if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
+  if(typeof saltOkumaUygula === 'function') saltOkumaUygula(tab);
 
   // Geçmiş yığını: geri tuşuyla gelinen bir geçiş değilse ve aynı sekme
   // tekrar açılmıyorsa geçmişe ekle (Android donanım geri tuşu için).
