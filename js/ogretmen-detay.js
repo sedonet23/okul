@@ -20,10 +20,11 @@ function detayPanelKapat(){
 function ogretmenDetayAc(id){
   const o = ogretmenler.find(x=>x.id===id);
   if(!o) return;
+  window._acikOgretmenDetayId = id;
   const adSoyad = `${o.ad} ${o.soyad}`;
 
   document.getElementById('detayBaslik').textContent = adSoyad;
-  document.getElementById('detayAltBaslik').textContent = [o.unvan||'Öğretmen', o.brans].filter(Boolean).join(' · ');
+  document.getElementById('detayAltBaslik').innerHTML = `${escapeHtml([o.unvan||'Öğretmen', o.brans].filter(Boolean).join(' · '))}${typeof ogretmenIzinRozeti==='function' ? ogretmenIzinRozeti(id) : ''}`;
   document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); ogretmenModalAc(id); };
   document.getElementById('detayRaporBtn').onclick = ()=>{ ogretmenRaporOlustur(id); };
 
@@ -190,10 +191,15 @@ function ogretmenDetayAc(id){
     <div class="detay-card"><h4>Nöbetler</h4>${nobetHtml}</div>
     <div class="detay-card"><h4>Kulüp Danışmanlığı</h4>${kulupHtml}${rehberlikHtml}${bepHtml}</div>
     <div class="detay-card"><h4>Belirli Gün ve Haftalar</h4>${belirliGunHtml}</div>
+    <div class="detay-card">
+      <h4 style="display:flex;align-items:center;justify-content:space-between;">İzinler / Raporlar <button class="btn btn-amber btn-sm" onclick="ogretmenIzinModalAc('${id}', null)">+ Ekle</button></h4>
+      <div id="oiListesi"></div>
+    </div>
     <div class="detay-card"><h4>Diğer Evrak</h4>${evrakHtml}</div>
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof renderOgretmenIzinBolumu === 'function') renderOgretmenIzinBolumu(id);
   if (typeof detayPanelineProfilFotoEkle === 'function') setTimeout(() => detayPanelineProfilFotoEkle(id), 10);
 }
 

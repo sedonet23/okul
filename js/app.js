@@ -529,7 +529,7 @@ function renderOgretmenler(){
   liste.sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
   document.getElementById('ogretmenlerTablo').innerHTML = liste.length ? liste.map(o=>`
     <tr class="row-clickable" onclick="ogretmenDetayAc('${o.id}')">
-      <td>${escapeHtml(o.ad+' '+o.soyad)}</td>
+      <td>${escapeHtml(o.ad+' '+o.soyad)}${typeof ogretmenIzinRozeti==='function' ? ogretmenIzinRozeti(o.id) : ''}</td>
       <td>${escapeHtml(o.unvan||'Öğretmen')}${o.kariyerBasamagi && o.kariyerBasamagi!=='Öğretmen' ? ` <span class="status-badge status-${kariyerBasamagiRengi(o.kariyerBasamagi)}">${escapeHtml(o.kariyerBasamagi)}</span>` : ''}</td>
       <td>${escapeHtml(o.brans||'—')}</td>
       <td>${escapeHtml(o.telefon||'—')}</td>
@@ -1352,7 +1352,7 @@ async function yedektenGeriYukle(file){
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
-  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); }, hataGoster);
+  db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); if(typeof renderBugunIzinliOgretmenler==='function') renderBugunIzinliOgretmenler(); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
   db.collection(COL.siniflar).onSnapshot(s=>{ siniflar = s.docs.map(d=>({id:d.id,...d.data()})); renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); } if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   db.collection(COL.veliler).onSnapshot(s=>{ veliler = s.docs.map(d=>({id:d.id,...d.data()})); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } } if(typeof renderOgrenciler==='function') renderOgrenciler(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
@@ -1369,6 +1369,7 @@ function baglantilariKur(){
   db.collection(COL.digerEvrak).onSnapshot(s=>{ digerEvrakListesi = s.docs.map(d=>({id:d.id,...d.data()})); if(typeof renderDigerEvrak==='function') renderDigerEvrak(); }, hataGoster);
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
+  if(typeof ogretmenIzinBaglantilariKur === 'function') ogretmenIzinBaglantilariKur();
   if(typeof haberlerBaglantilariKur === 'function') haberlerBaglantilariKur();
   if(typeof servisOturmaBaglantisiKur === "function") servisOturmaBaglantisiKur();
   sinavBaglantilariKur();

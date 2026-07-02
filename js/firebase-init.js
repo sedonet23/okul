@@ -73,6 +73,7 @@ const COL = {
   dilekceler:'oy_dilekceler',           // {personelId, izinTuru, baslangicTarihi, sure, olusturmaTarihi}
   // --- YENİ: Personel Puantaj / İzin Kayıtları (v7.0) ---
   personelIzinler:'oy_personelIzinler', // {personelId, baslangic:'YYYY-MM-DD', bitis:'YYYY-MM-DD', tur:'YILLIK İZİNLİ'|'RAPORLU'|'ÜCRETSİZ MAZERET İZİNİ'|'CUMARTESİ ÇALIŞMASI'|'PAZAR TAM ÇALIŞMASI'|'UBGT TAM ÇALIŞMASI', aciklama, dilekceId?}
+  ogretmenIzinleri:'oy_ogretmenIzinleri', // {ogretmenId, tur, baslangic:'YYYY-MM-DD', bitis:'YYYY-MM-DD', gunSayisi, aciklama, belgeNo, mebbisIslendiMi:bool, hatirlaticiId?}
   // --- YENİ: Haberler / Duyurular modülü (v8.0) ---
   haberler:'oy_haberler',               // {baslik, ozet, link, kaynakAdi, kategori, tarih:ISO, manuel:true|false}
   haberKaynaklari:'oy_haberKaynaklari', // {ad, url, kategori, aktif:true|false} — RSS kaynağı, admin panelinden dinamik yönetilir

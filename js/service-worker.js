@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v52';
+const CACHE_ADI = 'oy-cache-v54';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -34,6 +34,7 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/notlar.js',
   './js/siniflar.js',
   './js/ogretmen-detay.js',
+  './js/ogretmen-izin.js',
   './js/ders-saatleri.js',
   './js/excel-import.js',
   './js/yedekleme.js',
