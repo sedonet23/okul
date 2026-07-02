@@ -77,6 +77,8 @@ const COL = {
   // --- YENİ: Haberler / Duyurular modülü (v8.0) ---
   haberler:'oy_haberler',               // {baslik, ozet, link, kaynakAdi, kategori, tarih:ISO, manuel:true|false}
   haberKaynaklari:'oy_haberKaynaklari', // {ad, url, kategori, aktif:true|false} — RSS kaynağı, admin panelinden dinamik yönetilir
+  // --- YENİ: Çok kullanıcılı erişim / Google girişi (Aşama 1) ---
+  kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, yetkiler:{modul:'yok'|'goruntule'|'duzenle'}}
 };
 
 let db = null;
