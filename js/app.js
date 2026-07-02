@@ -887,7 +887,7 @@ function renderDashboard(){
     // seçilmiş kişiye (ör. "Sedat") değil, o an oturum açmış hesaba göre gösterir.
     const kullaniciAdi = (function(){
       const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
-      return kimlik.ad ? kimlik.ad.split(' ')[0] + ' Bey' : '';
+      return kimlik.ad ? (kimlik.ad.split(' ')[0] + (kimlik.hitap ? ' ' + kimlik.hitap : '')) : '';
     })();
     heroSelamlaEl.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   }

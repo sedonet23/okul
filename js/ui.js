@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // olabilir; o yüzden bilgi yoksa isim eklemeden sadece selamlıyor, renderDashboard()
     // veriler gelince metni zaten güncelliyor.
     const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
-    const kullaniciAdi = kimlik.ad ? kimlik.ad.split(' ')[0] + ' Bey' : '';
+    const kullaniciAdi = kimlik.ad ? (kimlik.ad.split(' ')[0] + (kimlik.hitap ? ' ' + kimlik.hitap : '')) : '';
     el.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   })();
 
@@ -255,19 +255,27 @@ function kullaniciSec(id, tip){
    (ör. Sedat) adı/fotoğrafı görünmeye devam ediyordu.
    Artık öncelik gerçek giriş yapan hesaba göre belirleniyor:
      1) Yöneticinin "Kullanıcı Yönetimi"nden hesaba bağladığı öğretmen/
-        personel kaydı (Bağlı Öğretmen Kaydı alanı)
-     2) Google hesabının kendi adı/profil fotoğrafı
+        personel kaydı (Bağlı Öğretmen Kaydı alanı) — bu kayıttaki
+        cinsiyete göre "Bey"/"Hanım" hitabı da otomatik belirlenir.
+     2) Google hesabının kendi adı/profil fotoğrafı (cinsiyet bilinmediği
+        için hitap eklenmez, sadece isim gösterilir)
      3) (yalnızca yukarıdakiler yoksa) cihazda eskiden elle seçilmiş kişi
    ================================================================ */
+function _hitapUret(cinsiyet){
+  const c = (cinsiyet||'').toLowerCase();
+  if(c === 'kadin' || c === 'kadın') return 'Hanım';
+  if(c === 'erkek') return 'Bey';
+  return '';
+}
 function _hesapKimligi(){
-  let ad = '', fotoUrl = '';
+  let ad = '', fotoUrl = '', hitap = '';
   const bagliId = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.bagliOgretmenId : null;
   if(bagliId){
     const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===bagliId) : null;
-    if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = o.profilFotoUrl || ''; }
+    if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = o.profilFotoUrl || ''; hitap = _hitapUret(o.cinsiyet); }
     if(!ad){
       const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===bagliId) : null;
-      if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
+      if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; hitap = _hitapUret(p.cinsiyet); }
     }
   }
   if(!ad && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
@@ -278,14 +286,14 @@ function _hesapKimligi(){
     const id = localStorage.getItem('oyAktifKullaniciId');
     if(id){
       const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-      if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = fotoUrl || o.profilFotoUrl || ''; }
+      if(o){ ad = ((o.ad||'')+' '+(o.soyad||'')).trim(); fotoUrl = fotoUrl || o.profilFotoUrl || ''; hitap = hitap || _hitapUret(o.cinsiyet); }
       if(!ad){
         const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-        if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; }
+        if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; hitap = hitap || _hitapUret(p.cinsiyet); }
       }
     }
   }
-  return { ad, fotoUrl };
+  return { ad, fotoUrl, hitap };
 }
 
 function aktifKullaniciyiGuncelle(){
