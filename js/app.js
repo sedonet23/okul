@@ -895,18 +895,12 @@ function renderDashboard(){
   if(heroSelamlaEl){
     const saat = new Date().getHours();
     const selam = saat < 6 ? 'İyi geceler' : saat < 11 ? 'Günaydın' : saat < 18 ? 'Tünaydın' : saat < 22 ? 'İyi akşamlar' : 'İyi geceler';
-    // Aktif kullanıcı adını al — hiç kullanıcı seçilmemişse isim eklemeden
-    // sadece selamla (önceden burada sabit "Sedat Bey" yazıyordu, kullanıcı
-    // seçilmemiş olsa bile hep bu isim görünüyordu).
-    const kullaniciAdi = (function(){
-      const id = localStorage.getItem('oyAktifKullaniciId');
-      if(!id) return '';
-      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x=>x.id===id) : null;
-      if(o && o.ad) return o.ad.split(' ')[0] + ' Bey';
-      const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===id) : null;
-      if(p){ const ad = p.ad || p.adSoyad || ''; if(ad) return ad.split(' ')[0] + ' Bey'; }
-      return '';
-    })();
+    // DÜZELTME: isim/hitap çözümlemesi artık TEK bir yerden (js/ui.js > _hesapKimligi())
+    // yapılıyor — burada AYRI ve hatalı (cinsiyeti hiç kontrol etmeyen, her zaman
+    // "Bey" ekleyen) bir kopya vardı. İki farklı kod aynı elemanı güncelleyip
+    // birbirini eziyor, "önce doğru sonra yanlış" titremesine sebep oluyordu.
+    const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : {ad:''};
+    const kullaniciAdi = kimlik.ad ? (kimlik.ad.split(' ')[0] + (kimlik.hitap ? ' ' + kimlik.hitap : '')) : '';
     heroSelamlaEl.textContent = kullaniciAdi ? `${selam}, ${kullaniciAdi} 👋` : `${selam} 👋`;
   }
   const bugunGun = GUNADI[new Date().getDay()];

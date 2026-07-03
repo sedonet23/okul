@@ -277,6 +277,19 @@ function _hesapKimligi(){
       const p = (typeof personelListesi !== 'undefined') ? personelListesi.find(x=>x.id===bagliId) : null;
       if(p){ ad = (p.ad || p.adSoyad || '').trim(); fotoUrl = fotoUrl || p.profilFotoUrl || ''; hitap = _hitapUret(p.cinsiyet); }
     }
+    // DÜZELTME: Hesaba bağlı bir öğretmen/personel kaydı VARSA ama bu kayıt
+    // henüz yüklenmediyse (ogretmenler/personelListesi dizileri boşsa —
+    // Firestore verisi henüz gelmedi), aşağıdaki Google hesabı fallback'ine
+    // DÜŞMEMELİ. Aksi halde önce doğru isim/fotoğraf, veri henüz gelmeden
+    // tekrar çağrılan bir yerde Google adı/fotoğrafına "geri dönüp" sonra
+    // tekrar doğrusuna dönme (görünür bir "titreme/flip") olur. Diziler
+    // henüz hiç dolmadıysa nötr (boş) döneriz; UI bunu placeholder ile
+    // gösterir, veriler gelince zaten doğru değer otomatik yazılır.
+    if(!ad){
+      const ogretmenlerYuklendiMi = typeof ogretmenler !== 'undefined' && ogretmenler.length > 0;
+      const personelYuklendiMi = typeof personelListesi !== 'undefined' && personelListesi.length > 0;
+      if(!ogretmenlerYuklendiMi && !personelYuklendiMi) return { ad:'', fotoUrl:'', hitap:'' };
+    }
   }
   if(!ad && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
     ad = AKTIF_KULLANICI.ad || '';

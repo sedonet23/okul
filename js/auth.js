@@ -92,7 +92,16 @@ function sidebarHesapGuncelle(user){
   const email = document.getElementById('hesapEmail');
   // Hesaba bağlı öğretmen kaydı varsa Google adının yerine ONUN adı ve
   // fotoğrafı gösterilir (ör. gmail'deki "sedo net" yerine "Sedat KARAGÖZ").
+  const bagliVarMi = !!(AKTIF_KULLANICI && AKTIF_KULLANICI.bagliOgretmenId);
   const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  // DÜZELTME: Bağlı bir öğretmen kaydı VARSA ama ogretmenler dizisi henüz
+  // yüklenmediyse (ben===null geçici olarak), Google adı/fotoğrafına GEÇİCİ
+  // OLARAK düşülmez — bu, doğru veri gelince görünen "önce doğru isim,
+  // sonra Google adına dönüp tekrar doğrusuna dönme" titremesine sebep
+  // oluyordu. Veri henüz yoksa mevcut görünüm korunur (bir sonraki
+  // sidebarHesapGuncelle çağrısında, veriler gelince otomatik güncellenir).
+  const ogretmenlerYuklendiMi = typeof ogretmenler !== 'undefined' && ogretmenler.length > 0;
+  if(bagliVarMi && !ben && !ogretmenlerYuklendiMi) return;
   if(avatar) avatar.src = (ben && ben.profilFotoUrl) || user.photoURL || 'assets/icon-192.png';
   if(ad) ad.textContent = ben ? `${ben.ad||''} ${ben.soyad||''}`.trim() : (user.displayName || 'Kullanıcı');
   if(email) email.textContent = user.email || '';
