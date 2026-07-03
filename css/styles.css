@@ -2938,3 +2938,12 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   color: var(--brand);
   margin-left: 8px;
 }
+
+/* =========================================================================
+   ÖĞRETMENE ÖZEL ANASAYFA — Bugünkü Derslerim / Bu Haftaki Nöbetim
+   (bkz. js/app.js renderOgretmenOzelKartlar)
+   ========================================================================= */
+.ogretmen-bugun-nobetci{
+  border: 2px solid var(--brand);
+  background: var(--brand-light);
+}
