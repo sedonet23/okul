@@ -38,13 +38,13 @@ const OgretmenIzinService = {
   async izinKaydet(mevcutId, eskiHatirlaticiId, adSoyad, veri){
     if(!this._yetkiKontrol()) throw new Error('yetkisiz');
 
-    if(eskiHatirlaticiId) await OgretmenIzinRepository.hatirlaticiSil(eskiHatirlaticiId);
+    if(eskiHatirlaticiId) await TakvimRepository.hatirlaticiSil(eskiHatirlaticiId);
 
     let hatirlaticiId = null;
     const bitisTarihi = new Date(veri.bitis + 'T00:00:00');
     const hatirlaticiTarihi = new Date(bitisTarihi.getTime() - 86400000);
     if(hatirlaticiTarihi >= new Date(todayISO()+'T00:00:00')){
-      const hRef = await OgretmenIzinRepository.hatirlaticiEkle({
+      const hRef = await TakvimRepository.hatirlaticiEkle({
         baslik: `🏥 ${adSoyad} — ${veri.tur} bitiyor`,
         tarih: this._isoTarihYaz(hatirlaticiTarihi),
         saat: '',
@@ -62,7 +62,7 @@ const OgretmenIzinService = {
 
   async izinSil(id, hatirlaticiId){
     if(!this._yetkiKontrol()) throw new Error('yetkisiz');
-    if(hatirlaticiId) await OgretmenIzinRepository.hatirlaticiSil(hatirlaticiId);
+    if(hatirlaticiId) await TakvimRepository.hatirlaticiSil(hatirlaticiId);
     return OgretmenIzinRepository.izinSil(id);
   }
 };
