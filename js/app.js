@@ -1637,7 +1637,12 @@ function haritaSekmesiAc(){
   }, 50);
 }
 function uygulamaBaslat(){
-  document.getElementById('bugunMetni').textContent = bugunMetni();
+  // DÜZELTME: #bugunMetni elementi sidebar yeniden tasarımıyla kaldırıldı
+  // (logo+okul adı yerine profil kartı kondu) — element artık DOM'da yok,
+  // bu yüzden null kontrolü eklendi (aksi halde hata fırlatıp
+  // baglantilariKur()'un hiç çalışmamasına sebep olurdu).
+  const _bgm = document.getElementById('bugunMetni');
+  if(_bgm) _bgm.textContent = bugunMetni();
   baglantilariKur();
   // Capacitor'ın initialize olmasını bekle, sonra push durumunu kontrol et
   setTimeout(()=>{
