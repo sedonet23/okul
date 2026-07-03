@@ -25,6 +25,7 @@ const MesajlasmaRepository = {
   },
   konusmaOlustur(veri){ return db.collection(COL.konusmalar).add({ ...veri, guncellenmeTarihi: new Date().toISOString() }); },
   konusmaGuncelle(id, veri){ return db.collection(COL.konusmalar).doc(id).update(veri); },
+  konusmaSil(id){ return db.collection(COL.konusmalar).doc(id).delete(); },
 
   /* ---------- Mesajlar ---------- */
   mesajlariDinle(konusmaId, callback, hataCb){
@@ -34,6 +35,15 @@ const MesajlasmaRepository = {
     );
   },
   mesajEkle(veri){ return db.collection(COL.mesajlar).add({ ...veri, tarih: new Date().toISOString() }); },
+  mesajSil(id){ return db.collection(COL.mesajlar).doc(id).delete(); },
+  /* Bir konuşmaya ait TÜM mesajları toplu siler (konuşma silinirken kullanılır). */
+  async mesajlariTopluSil(konusmaId){
+    const snap = await db.collection(COL.mesajlar).where('konusmaId', '==', konusmaId).get();
+    if(snap.empty) return;
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    return batch.commit();
+  },
 
   /* ---------- Kullanıcı dizini (mesajlaşılacak kişiyi bulmak için) ----------
      Not: Bu tek seferlik (canlı dinleme değil) bir sorgu — herkesin TÜM
