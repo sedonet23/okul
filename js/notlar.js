@@ -106,7 +106,7 @@ function _notKartHtml(n, sahipEtiketiGoster){
     ? `<div class="note-sahip-etiket">👤 ${escapeHtml(_sahipAdiGetir(n.sahipUid))} · ${isoYereleCevir(n.eklenmeTarihi).tarih}</div>`
     : '';
   return `
-    <div class="note-card" onclick="notlarDuzenle('${n.id}')"
+    <div class="note-card" onclick="notDetayAc('${n.id}')"
          style="background:${renk.bg};border-left:3px solid ${renk.border};">
       <div class="note-header">
         <div class="note-title">${escapeHtml(n.baslik || '(Başlıksız)')}</div>
@@ -188,12 +188,73 @@ function renderDashboardNotlar() {
     ? sonNotlar.map(n => {
         const renk = NOT_RENKLERI.find(r => r.id === n.renk) || NOT_RENKLERI[0];
         return `<div class="dash-row" style="cursor:pointer;border-left:3px solid ${renk.border};padding-left:8px;"
-          onclick="notlarDuzenle('${n.id}')">
+          onclick="notDetayAc('${n.id}')">
           <strong>${escapeHtml(n.baslik || '(Başlıksız)')}</strong>
           <span style="font-size:11px;color:var(--ink-muted);margin-left:6px;">${_notTipIkonu(n.tip)}</span>
         </div>`;
       }).join('')
     : '<p class="empty-state">Henüz not eklenmedi.</p>';
+}
+
+/* ====================================================
+   NOT DETAYI (kart/satır tıklanınca açılır — Duyurular ile aynı desen)
+   Salt-okunur tam içerik + Düzenle/Sil butonları buradan.
+   ==================================================== */
+function notDetayAc(id) {
+  const n = notlar.find(x => x.id === id);
+  if (!n) return;
+
+  const ben = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI ? AKTIF_KULLANICI.uid : null;
+  const baskasininMi = n.sahipUid && n.sahipUid !== ben;
+  const etiketler = (n.etiketler || []).map(e => `<span class="not-etiket">${escapeHtml(e)}</span>`).join('');
+  const sahipSatiri = baskasininMi
+    ? `<div class="note-sahip-etiket" style="margin-top:10px;">👤 ${escapeHtml(_sahipAdiGetir(n.sahipUid))} tarafından eklendi</div>`
+    : '';
+
+  const body = `
+    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">${_notTipIkonu(n.tip)} ${formatTarih(n.tarih || (n.eklenmeTarihi || '').slice(0, 10))}</div>
+    ${_notTamIcerik(n)}
+    ${etiketler ? `<div class="note-etiketler" style="margin-top:10px;">${etiketler}</div>` : ''}
+    ${sahipSatiri}
+  `;
+
+  modalAc(n.baslik || '(Başlıksız)', body,
+    () => { modalKapat(); setTimeout(() => notlarDuzenle(id), 150); },
+    () => { if (confirm('Bu notu silmek istiyor musunuz?')) { NotlarService.notSil(id).catch(err => { if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); }); modalKapat(); } },
+    '✏️ Düzenle'
+  );
+}
+
+/* Not tipine göre TAM (kırpılmamış) içerik — detay sayfasında kullanılır. */
+function _notTamIcerik(n) {
+  switch (n.tip) {
+    case 'todo': {
+      const maddeler = n.maddeler || [];
+      return maddeler.length
+        ? maddeler.map((m, i) => `
+          <div class="note-todo-satir${m.tamamlandi ? ' tamamlandi' : ''}" style="cursor:pointer;" onclick="notTodoToggle('${n.id}', ${i})">
+            ${m.tamamlandi ? '☑' : '☐'} ${escapeHtml(m.metin || '')}
+          </div>`).join('')
+        : '<p class="empty-state">Madde yok.</p>';
+    }
+    case 'cizim':
+      return n.cizimData
+        ? `<img src="${n.cizimData}" style="max-width:100%;border-radius:8px;">`
+        : '<p class="empty-state">Çizim yok.</p>';
+    case 'goruntu':
+      return n.goruntu
+        ? `<img src="${n.goruntu}" style="max-width:100%;border-radius:8px;">`
+        : '<p class="empty-state">Görüntü yok.</p>';
+    case 'tablo': {
+      const satirlar = n.tabloVeri || [];
+      if (!satirlar.length) return '<p class="empty-state">Tablo boş.</p>';
+      return `<table class="note-onizleme-tablo" style="width:100%;">${satirlar.map((s, i) =>
+        `<tr>${(s || []).map(h => `<${i === 0 ? 'th' : 'td'}>${escapeHtml(h || '')}</${i === 0 ? 'th' : 'td'}>`).join('')}</tr>`
+      ).join('')}</table>`;
+    }
+    default:
+      return `<div class="note-icerik-onizleme" style="font-size:14px;line-height:1.6;">${n.icerik || ''}</div>`;
+  }
 }
 
 /* ====================================================
