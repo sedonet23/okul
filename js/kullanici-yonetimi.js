@@ -340,7 +340,7 @@ const _SALT_OKUMA_GIZLE_DESENLERI = [
   /ModalAc\(/, /ModalAcById\(/, /EkleModal\(/,
   /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/,
   /Ekle\(/, /Cikar\(/, /CikarNegatif\(/, /Olustur\(/, /Ata\(/,
-  /IceAktar\(/, /Import\(/,
+  /IceAktar\(/, /Import\(/, /Isle\(/, /FotoYukle\(/,
 ];
 /* Rapor/yazdırma/görüntüleme amaçlı, veri YAZMAYAN fonksiyonlar — yanlışlıkla
    gizlenmesin diye yukarıdaki desenlerden istisna tutulur. */
@@ -363,16 +363,39 @@ function saltOkumaButonlariUygula(panel){
   });
   // Checkbox/select gibi onchange ile kayıt tetikleyen kontroller (örn. tamamlandı
   // tikleri, "aktif" seçimi) — bunlar gizlenmez, devre dışı bırakılır (disabled).
+  // Dosya seçici (input type=file, örn. "Fotoğraf yükle") ise görünen eleman
+  // gerçekte kendisine bağlı <label for="..."> olduğundan, o da ayrıca gizlenir.
   panel.querySelectorAll('[onchange]').forEach(el=>{
-    if(_saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onchange'))){
+    const yazmaTetikleyici = _saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onchange'));
+    if(yazmaTetikleyici){
       el.dataset.saltOkumaDisabled = '1';
       el.disabled = true;
+      if(el.tagName==='INPUT' && el.type==='file' && el.id){
+        const etiket = panel.querySelector(`label[for="${el.id}"]`);
+        if(etiket) etiket.classList.add('salt-okuma-gizli');
+      }
     } else if(el.dataset.saltOkumaDisabled){
       delete el.dataset.saltOkumaDisabled;
       el.disabled = false;
+      if(el.tagName==='INPUT' && el.type==='file' && el.id){
+        const etiket = panel.querySelector(`label[for="${el.id}"]`);
+        if(etiket) etiket.classList.remove('salt-okuma-gizli');
+      }
     }
   });
 }
+/* ---------- Detay panelleri (öğretmen/personel/sınıf/servis) için salt-okuma ----------
+   #detayOverlay tab-panel'lerin DIŞINDA, paylaşılan tek bir overlay olduğu için
+   saltOkumaUygula(tab) buraya hiç ulaşmıyordu. Detay panelini açan her modül
+   (ogretmen-detay.js, personel.js, siniflar.js, tasima.js) panel açıldıktan
+   hemen sonra bunu kendi modül adıyla çağırır. */
+function saltOkumaDetayUygula(modul){
+  const overlay = document.getElementById('detayOverlay');
+  if(!overlay) return;
+  overlay.classList.toggle('salt-okuma', !duzenleyebilir(modul));
+  saltOkumaButonlariUygula(overlay);
+}
+
 function saltOkumaUygula(tab){
   const panel = document.getElementById('tab-'+tab);
   if(!panel) return;

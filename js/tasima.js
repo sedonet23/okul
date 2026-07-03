@@ -133,6 +133,7 @@ function servisDetayAc(id){
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof saltOkumaDetayUygula === 'function') saltOkumaDetayUygula('tasima');
 }
 
 /* ---------- servise öğrenci ekleme modalı ---------- */

@@ -41,7 +41,7 @@ function renderSinavlar(){
         <div class="evrak-title">${escapeHtml(s.ders||'Ders')} — ${escapeHtml(s.sinif||'')} <span class="badge badge-${sinavTurRengi(s.tur)}">${escapeHtml(s.tur||'Yazılı')}</span></div>
         <div class="evrak-meta">${formatTarih(s.tarih)}${s.dersSaati?' · '+escapeHtml(s.dersSaati)+'. ders':''}${s.ogretmenId?' · '+escapeHtml(ogretmenAdi(s.ogretmenId)):''}${s.senaryoNo?' · '+escapeHtml(s.senaryoNo)+'. Senaryo':''}${s.yayinevi?' ('+escapeHtml(s.yayinevi)+')':''}${s.notlar?' · '+escapeHtml(s.notlar):''}</div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="sinavModalAc('${s.id}')">Düzenle</button>
+      ${SinavlarService.sinavDuzenlenebilirMi(s) ? `<button class="btn btn-ghost btn-sm" onclick="sinavModalAc('${s.id}')">Düzenle</button>` : ''}
     </div>
   `).join('') : '<div class="empty-state">Henüz yazılı sınavı eklenmedi. "+ Yazılı Ekle" ile başlayın.</div>';
 }
@@ -126,9 +126,15 @@ function sinavModalAc(id){
       notlar:      gd('f_snNotlar').trim(),
     };
     modalKapat();
-    SinavlarService.sinavKaydet(s?s.id:null, veri)
-      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Kayıt hatası: '+err.message); });
-  }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ SinavlarService.sinavSil(s.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
+    SinavlarService.sinavKaydet(s?s.id:null, s, veri)
+      .then(()=>toast('Kaydedildi.')).catch(err=>{
+        if(err.message==='sahip-degil'){ toast('Bu sınav kaydını yalnızca ekleyen kişi düzenleyebilir.'); return; }
+        if(err.message!=='yetkisiz') toast('Kayıt hatası: '+err.message);
+      });
+  }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ SinavlarService.sinavSil(s.id, s).catch(err=>{
+      if(err.message==='sahip-degil'){ toast('Bu sınav kaydını yalnızca ekleyen kişi silebilir.'); return; }
+      if(err.message!=='yetkisiz') toast('Hata: '+err.message);
+    }); modalKapat(); } } : null);
 }
 
 /* ============== DENEME SINAVLARI ============== */
