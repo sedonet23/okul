@@ -204,24 +204,24 @@ function asistanTaslakGoster(toolCall) {
     baslikAlani = args.baslik || '';
     icerikAlani = (args.tarih ? `Tarih: ${args.tarih}\n` : '') + (args.aciklama || '');
     kaydetFn = () => {
-      kaydet(COL.gorevler, null, {
+      TakvimService.gorevKaydet(null, {
         baslik: document.getElementById('asistanTaslakBaslik').value,
         aciklama: document.getElementById('asistanTaslakIcerik').value,
         tarih: args.tarih || _isoToday(),
         tamamlandi: false,
         durum: 'yapilacak'
-      });
+      }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     };
   } else if (name === 'taslak_hatirlatici') {
     baslikAlani = args.baslik || '';
     icerikAlani = (args.tarih ? `Tarih: ${args.tarih}\n` : '') + (args.aciklama || '');
     kaydetFn = () => {
-      kaydet(COL.hatirlaticilar, null, {
+      TakvimService.hatirlaticiKaydet(null, {
         baslik: document.getElementById('asistanTaslakBaslik').value,
         aciklama: document.getElementById('asistanTaslakIcerik').value,
         tarih: args.tarih || _isoToday(),
         tamamlandi: false
-      });
+      }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     };
   } else if (name === 'taslak_metin') {
     baslikAlani = args.baslik || '';

@@ -1,11 +1,16 @@
 /* ====================================================================
    js/periyodik.js
-   PERİYODİK İŞLER — okul taşıma, ek ders, puantaj, işkur gibi her ay
-   tekrarlayan idari işler. İş türleri tamamen serbest (kullanıcı kendi
-   oluşturur). Her kayıt: iş adı + başlangıç/bitiş tarihi + tamamlandı
-   tiki + opsiyonel not. Liste, bitiş (yoksa başlangıç) tarihinin
-   ay/yılına göre gruplanır. Bitiş tarihi yaklaşınca/geçince
+   PERİYODİK İŞLER — UI KATMANI — okul taşıma, ek ders, puantaj, işkur
+   gibi her ay tekrarlayan idari işler. İş türleri tamamen serbest
+   (kullanıcı kendi oluşturur). Her kayıt: iş adı + başlangıç/bitiş tarihi
+   + tamamlandı tiki + opsiyonel not. Liste, bitiş (yoksa başlangıç)
+   tarihinin ay/yılına göre gruplanır. Bitiş tarihi yaklaşınca/geçince
    check-and-notify.js üzerinden push bildirimi gönderilir.
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + PeriyodikService çağrısı, db bilmez
+     js/core/services/periyodik.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/periyodik.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let periyodikIsler = [];
@@ -23,10 +28,7 @@ const PERIYODIK_SABLON_VARSAYILAN = [
   { isAdi:'Nöbet İşlemleri',            baslangicGun:25, bitisGun:30 },
 ];
 
-function gunToISO(yil, ay0, gun){
-  const sonGun = new Date(yil, ay0+1, 0).getDate();
-  return `${yil}-${pad2(ay0+1)}-${pad2(Math.min(Math.max(gun,1), sonGun))}`;
-}
+/* not: gün→ISO tarih dönüşümü artık PeriyodikService._gunToISO() içinde (buAyinGorevleriniOlustur akışı) */
 
 function periyodikGrupAnahtari(p){
   const t = p.bitis || p.baslangic;
@@ -72,7 +74,7 @@ function renderPeriyodikIsler(){
 }
 
 function periyodikToggle(id, deger){
-  db.collection(COL.periyodikIsler).doc(id).update({tamamlandi:deger}).catch(err=>toast('Hata: '+err.message));
+  PeriyodikService.tamamlandiGuncelle(id, deger).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 function periyodikModalAc(id){
@@ -96,26 +98,26 @@ function periyodikModalAc(id){
     if(!isAdi || !baslangic){ toast('İş adı ve başlangıç tarihi zorunludur.'); return; }
     const bitis = document.getElementById('f_pBitis').value;
     const bitisDegisti = p && (p.bitis||'') !== bitis;
-    kaydet(COL.periyodikIsler, p?p.id:null, {
+    PeriyodikService.isKaydet(p?p.id:null, {
       isAdi, baslangic, bitis,
       not: document.getElementById('f_pNot').value.trim(),
       tamamlandi: p ? !!p.tamamlandi : false,
       bildirimGonderildi: p ? (bitisDegisti ? false : !!p.bildirimGonderildi) : false
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, p ? ()=>{ if(confirm('Bu işi silmek istiyor musunuz?')){ db.collection(COL.periyodikIsler).doc(p.id).delete(); modalKapat(); } } : null);
+  }, p ? ()=>{ if(confirm('Bu işi silmek istiyor musunuz?')){ PeriyodikService.isSil(p.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 function periyodikBaglantilariKur(){
-  db.collection(COL.periyodikIsler).onSnapshot(s=>{
-    periyodikIsler = s.docs.map(d=>({id:d.id,...d.data()}));
+  PeriyodikRepository.islerDinle(v=>{
+    periyodikIsler = v;
     renderPeriyodikIsler();
     if(typeof takvimVeriGuncelle==='function') takvimVeriGuncelle();
-  }, hataGoster);
-  db.collection(COL.periyodikSablon).doc('sablon').onSnapshot(doc=>{
-    periyodikSablonu = doc.exists ? (doc.data().gorevler||[]) : [];
+  });
+  PeriyodikRepository.sabloniDinle(v=>{
+    periyodikSablonu = v;
     renderPeriyodikSablonOzet();
-  }, hataGoster);
+  });
 }
 
 /* ============== AYLIK ŞABLON ============== */
@@ -155,28 +157,18 @@ function periyodikSablonModalAc(){
       baslangicGun: parseInt(satir.querySelector('.sb_bas').value)||1,
       bitisGun: parseInt(satir.querySelector('.sb_bit').value)||1,
     })).filter(g=>g.isAdi);
-    db.collection(COL.periyodikSablon).doc('sablon').set({ gorevler })
+    PeriyodikService.sabloniKaydet(gorevler)
       .then(()=>{ toast('Şablon kaydedildi.'); modalKapat(); })
-      .catch(err=>toast('Hata: '+err.message));
+      .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
   }, null);
 }
 
 async function periyodikAyOlustur(){
   if(!periyodikSablonu.length){ toast('Önce "Şablonu Düzenle" ile görevlerinizi tanımlayın.'); return; }
-  const d = new Date();
-  const yil = d.getFullYear(), ay0 = d.getMonth();
-  let olusturulan = 0, atlanan = 0;
-  for(const g of periyodikSablonu){
-    if(!g.isAdi) continue;
-    const baslangic = gunToISO(yil, ay0, g.baslangicGun);
-    const bitis = gunToISO(yil, ay0, g.bitisGun);
-    const ayAnahtari = bitis.slice(0,7);
-    const zatenVar = periyodikIsler.some(p=>p.isAdi===g.isAdi && periyodikGrupAnahtari(p)===ayAnahtari);
-    if(zatenVar){ atlanan++; continue; }
-    try{
-      await db.collection(COL.periyodikIsler).add({ isAdi:g.isAdi, baslangic, bitis, tamamlandi:false, not:'', bildirimGonderildi:false });
-      olusturulan++;
-    }catch(err){ toast('Hata: '+err.message); return; }
+  try{
+    const { olusturulan, atlanan } = await PeriyodikService.buAyinGorevleriniOlustur(periyodikSablonu, periyodikIsler);
+    toast(olusturulan ? `${olusturulan} görev oluşturuldu${atlanan?`, ${atlanan} zaten vardı`:''}.` : 'Bu ayın tüm şablon görevleri zaten mevcut.');
+  }catch(err){
+    if(err.message!=='yetkisiz' && err.message!=='sablon-bos') toast('Hata: '+err.message);
   }
-  toast(olusturulan ? `${olusturulan} görev oluşturuldu${atlanan?`, ${atlanan} zaten vardı`:''}.` : 'Bu ayın tüm şablon görevleri zaten mevcut.');
 }

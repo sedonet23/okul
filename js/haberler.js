@@ -1,6 +1,6 @@
 /* ====================================================================
    js/haberler.js
-   HABERLER / DUYURULAR MODÜLÜ
+   HABERLER / DUYURULAR MODÜLÜ — UI KATMANI
    Veri modeli (bkz. firebase-init.js COL):
      haberler        : {baslik, ozet, link, kaynakAdi, kategori, tarih:ISO, manuel:true|false}
      haberKaynaklari : {ad, url, kategori, aktif:true|false}  -- RSS kaynağı, admin panelinden
@@ -10,6 +10,11 @@
    oy_cihazTokenleri dokümanında `kategoriler:[]` alanında tutulur.
    Alan hiç yoksa (eski kayıtlar / henüz seçim yapılmamış cihazlar) TÜM
    kategorilerden bildirim gönderilir (opt-out mantığı — bkz. rss-fetch.js).
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + HaberlerService çağrısı, db bilmez
+     js/core/services/haberler.service.js    → yetki kontrolü
+     js/core/repositories/haberler.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let haberler = [];
@@ -19,22 +24,23 @@ let haberAltGorunum = 'liste'; // 'liste' | 'kaynaklar' | 'bildirimler'
 
 const HABER_VARSAYILAN_KATEGORILER = ['MEB', 'Elazığ', 'Resmî Gazete', 'Genel'];
 
-/* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ---------- */
+/* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — HaberlerRepository üzerinden dinleniyor. */
 function haberlerBaglantilariKur(){
-  db.collection(COL.haberler).orderBy('tarih', 'desc').limit(200).onSnapshot(s=>{
-    haberler = s.docs.map(d=>({id:d.id, ...d.data()}));
+  HaberlerRepository.haberleriDinle(v=>{
+    haberler = v;
     renderHaberler();
     renderHaberFiltreler();
     if(typeof renderHaberTicker === 'function') renderHaberTicker();
     if(typeof renderHaberKarusel === 'function') renderHaberKarusel();
     if(typeof globalAramaYap === 'function') globalAramaYap();
-  }, hataGoster);
+  });
 
-  db.collection(COL.haberKaynaklari).onSnapshot(s=>{
-    haberKaynaklari = s.docs.map(d=>({id:d.id, ...d.data()}));
+  HaberlerRepository.kaynaklariDinle(v=>{
+    haberKaynaklari = v;
     haberKaynaklari.sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
     renderHaberKaynaklari();
-  }, hataGoster);
+  });
 }
 
 /* ---------- yardımcılar ---------- */
@@ -132,7 +138,7 @@ function haberModalAc(id){
   modalAc(h ? 'Duyuruyu Düzenle' : '+ Yeni Duyuru', body, ()=>{
     const baslik = document.getElementById('f_hbBaslik').value.trim();
     if(!baslik){ toast('Başlık zorunlu.'); return; }
-    kaydet(COL.haberler, h?h.id:null, {
+    HaberlerService.haberKaydet(h?h.id:null, {
       baslik,
       ozet: document.getElementById('f_hbOzet').value.trim(),
       link: document.getElementById('f_hbLink').value.trim(),
@@ -140,9 +146,9 @@ function haberModalAc(id){
       kaynakAdi: h ? (h.kaynakAdi || 'Okul (Manuel)') : 'Okul (Manuel)',
       tarih: h ? h.tarih : new Date().toISOString(),
       manuel: true
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, h ? ()=>{ if(confirm('Bu duyuruyu silmek istediğinize emin misiniz?')){ db.collection(COL.haberler).doc(h.id).delete(); modalKapat(); } } : null);
+  }, h ? ()=>{ if(confirm('Bu duyuruyu silmek istediğinize emin misiniz?')){ HaberlerService.haberSil(h.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ================= KAYNAK YÖNETİMİ (dinamik RSS kaynakları) ================= */
@@ -184,13 +190,13 @@ function haberKaynagiModalAc(id){
     const ad = document.getElementById('f_hkAd').value.trim();
     const url = document.getElementById('f_hkUrl').value.trim();
     if(!ad || !url){ toast('Kaynak adı ve bağlantı zorunlu.'); return; }
-    kaydet(COL.haberKaynaklari, k?k.id:null, {
+    HaberlerService.kaynakKaydet(k?k.id:null, {
       ad, url,
       kategori: document.getElementById('f_hkKategori').value.trim() || 'Genel',
       aktif: document.getElementById('f_hkAktif').checked
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, k ? ()=>{ if(confirm('Bu kaynağı silmek istediğinize emin misiniz? (Daha önce çekilmiş haberler silinmez.)')){ db.collection(COL.haberKaynaklari).doc(k.id).delete(); modalKapat(); } } : null);
+  }, k ? ()=>{ if(confirm('Bu kaynağı silmek istediğinize emin misiniz? (Daha önce çekilmiş haberler silinmez.)')){ HaberlerService.kaynakSil(k.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ================= KATEGORİ BAZLI BİLDİRİM TERCİHİ ================= */
@@ -221,7 +227,7 @@ async function haberKategoriTercihleriKaydet(){
   const token = typeof cihazTokenGetir === 'function' ? cihazTokenGetir() : null;
   if(token && db){
     try{
-      await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({ kategoriler: secili }, { merge:true });
+      await HaberlerService.cihazKategoriTercihiKaydet(token, secili);
       toast('Bildirim tercihleri kaydedildi.');
     }catch(e){ toast('Hata: ' + e.message); }
   } else {

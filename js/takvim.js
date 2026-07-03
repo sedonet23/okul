@@ -1,11 +1,16 @@
 /* ====================================================================
-   TAKVİM MODÜLÜ  — takvim.js
+   TAKVİM MODÜLÜ — takvim.js — UI KATMANI
    · Aylık takvim grid (güne tıkla → etkinlik veya görev ekle)
    · Etkinlik  = eski hatırlatıcı + tekrarlama (haftalık/aylık)
    · Görev     = son tarihli iş, basit tamamlandı toggle
    · Ajanda    = bugünden itibaren 30 gün liste
    · Dashboard: renderDashHatirlaticilar, renderDashMiniTakvim,
                 renderDashYillikGorunum
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + TakvimService çağrısı, db bilmez
+     js/core/services/takvim.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/takvim.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 /* ---- durum ---- */
@@ -400,9 +405,10 @@ function _takvimEtkinlikModal(h, varsayilanGun){
       tekrar: tekrarVal ? { tip: tekrarVal, bitisISOtarihi: tekrarBitisVal || null } : null
     };
     if(!bildirim) veri.bildirimGonderildi = true; // bildirimi kapat → gönderilmiş say
-    kaydet(COL.hatirlaticilar, h?h.id:null, veri);
+    TakvimService.hatirlaticiKaydet(h?h.id:null, veri)
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, h ? ()=>{ if(confirm('Bu etkinliği silmek istiyor musunuz?')){ db.collection(COL.hatirlaticilar).doc(h.id).delete(); modalKapat(); } } : null);
+  }, h ? ()=>{ if(confirm('Bu etkinliği silmek istiyor musunuz?')){ TakvimService.hatirlaticiSil(h.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 function takvimTekrarDegisti(){
@@ -412,7 +418,7 @@ function takvimTekrarDegisti(){
 }
 
 function hatirlaticiToggleAjanda(id, deger){
-  db.collection(COL.hatirlaticilar).doc(id).update({tamamlandi: deger});
+  TakvimService.hatirlaticiTamamlandiGuncelle(id, deger).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* ================================================================
@@ -447,19 +453,19 @@ function _takvimGorevModal(g, varsayilanGun){
     const sonTarih = document.getElementById('f_sonTarih').value;
     const tamamlandi = document.getElementById('f_tamam').checked;
     const sonTarihDegisti = g && (g.sonTarih||'') !== sonTarih;
-    kaydet(COL.gorevler, g?g.id:null, {
+    TakvimService.gorevKaydet(g?g.id:null, {
       baslik, aciklama: document.getElementById('f_aciklama').value.trim(),
       sonTarih, oncelik: document.getElementById('f_oncelik').value,
       tamamlandi,
       durum: tamamlandi ? 'tamamlandi' : 'yapilacak', // geriye dönük uyumluluk
       bildirimGonderildi: g ? (sonTarihDegisti ? false : !!g.bildirimGonderildi) : false
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, g ? ()=>{ if(confirm('Bu görevi silmek istiyor musunuz?')){ db.collection(COL.gorevler).doc(g.id).delete(); modalKapat(); } } : null);
+  }, g ? ()=>{ if(confirm('Bu görevi silmek istiyor musunuz?')){ TakvimService.gorevSil(g.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 function gorevToggleAjanda(id, deger){
-  db.collection(COL.gorevler).doc(id).update({ tamamlandi: deger, durum: deger?'tamamlandi':'yapilacak' });
+  TakvimService.gorevTamamlandiGuncelle(id, deger).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* ================================================================
@@ -673,3 +679,19 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   }, 2000);
 });
+
+/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — TakvimRepository üzerinden dinleniyor.
+   Görünürlük filtresi (kişisel kayıtlar) TakvimService.gorunurListele() ile uygulanır. */
+function takvimBaglantilariKur(){
+  TakvimRepository.hatirlaticilariDinle(v=>{
+    hatirlaticilar = TakvimService.gorunurListele(v);
+    if(typeof renderHatirlaticilar==='function') renderHatirlaticilar();
+    renderDashboard();
+  });
+  TakvimRepository.gorevleriDinle(v=>{
+    gorevler = TakvimService.gorunurListele(v);
+    if(typeof renderGorevler==='function') renderGorevler();
+    renderDashboard();
+  });
+}

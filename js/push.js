@@ -1,5 +1,10 @@
 /* ====================================================================
-   PUSH BİLDİRİM İZNİ VE CİHAZ KAYDI
+   PUSH BİLDİRİM İZNİ VE CİHAZ KAYDI — UI KATMANI
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → PushService çağrısı, db bilmez
+     js/core/services/push.service.js    → (yetki gerekmez, bkz. dosya notu)
+     js/core/repositories/push.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 function isNative(){
@@ -18,7 +23,7 @@ async function _cihazKategoriTercihleriSenkronla(token){
   try{
     const ham = localStorage.getItem('haberKategoriTercihleri');
     const kategoriler = ham ? JSON.parse(ham) : null;
-    if(kategoriler) await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({ kategoriler }, { merge:true });
+    if(kategoriler) await PushService.kategorileriGuncelle(token, kategoriler);
   }catch(e){ console.warn('Kategori tercihi senkronize edilemedi:', e.message); }
 }
 
@@ -100,7 +105,7 @@ async function bildirimleriAc(){
     const token = await messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: kayit });
     if(!token){ toast('Token alinamadi.'); return; }
     _cihazTokenGlobal = token;
-    await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({
+    await PushService.cihazKaydet(token, {
       token, eklenmeTarihi: new Date().toISOString(), tarayici: navigator.userAgent
     });
     await _cihazKategoriTercihleriSenkronla(token);
@@ -128,7 +133,7 @@ async function _nativeBildirimleriAc(){
       const token = tokenObj.value;
       try {
         _cihazTokenGlobal = token;
-        await db.collection(COL.cihazlar).doc(encodeURIComponent(token)).set({
+        await PushService.cihazKaydet(token, {
           token, eklenmeTarihi: new Date().toISOString(), tarayici: 'Android-Native'
         });
         await _cihazKategoriTercihleriSenkronla(token);

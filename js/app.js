@@ -494,18 +494,11 @@ function ogretmenSecenekleri(seciliId){
 function ogretmenAdi(id){ const o = ogretmenler.find(x=>x.id===id); return o ? `${o.ad} ${o.soyad}` : '—'; }
 function kaydet(koleksiyon, id, veri){
   if(!db){ toast('Firebase bağlantısı yok.'); return; }
-  // AŞAMA 3: Tam yetkili olmayan (admin dışı) kullanıcının eklediği
-  // hatırlatıcı/görev kayıtları KİŞİSEL sayılır — sahipUid damgası
-  // vurulur; listelerde yalnız sahibine ve adminlere gösterilir
-  // (bkz. kisiselKayitGorunurMu). Not: "notlar" koleksiyonu için aynı
-  // damgalama artık NotlarService.notKaydet() içinde yapılıyor
-  // (bkz. js/core/services/notlar.service.js) — bu genel fonksiyon
-  // sadece henüz kendi modül dosyası olmayan hatirlaticilar/gorevler
-  // için kullanılıyor.
-  if(!id && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && !AKTIF_KULLANICI.admin &&
-     [COL.hatirlaticilar, COL.gorevler].includes(koleksiyon)){
-    veri = { ...veri, sahipUid: AKTIF_KULLANICI.uid };
-  }
+  // not: "kişisel kayıt" (sahipUid) damgalama kuralı artık bu genel fonksiyonda
+  // değil — notlar için NotlarService, hatırlatıcı/görev için TakvimService
+  // içinde modüle özel olarak uygulanıyor (bkz. Pragmatik-Mimari-Tasarimi.md §5).
+  // Bu fonksiyon artık sadece henüz repository/service katmanına taşınmamış
+  // eski/az kullanılan koleksiyonlar için bir geçiş yardımcısıdır.
   const ref = db.collection(koleksiyon);
   const islem = id ? ref.doc(id).update(veri) : ref.add({...veri, eklenmeTarihi: new Date().toISOString()});
   islem.then(()=>toast('Kaydedildi.')).catch(err=>toast('Hata: '+err.message));
@@ -760,7 +753,7 @@ function renderHatirlaticilar(){
     </div>`;
   }).join('') : '<p class="empty-state">Hatırlatıcı bulunamadı.</p>';
 }
-function hatirlaticiTamamlandiToggle(id, deger){ db.collection(COL.hatirlaticilar).doc(id).update({tamamlandi:deger}); }
+function hatirlaticiTamamlandiToggle(id, deger){ TakvimService.hatirlaticiTamamlandiGuncelle(id, deger).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); }
 function hatirlaticiModalAc(id){
   const h = id ? hatirlaticilar.find(x=>x.id===id) : null;
   const body = `
@@ -777,15 +770,15 @@ function hatirlaticiModalAc(id){
     if(!baslik || !tarih){ toast('Başlık ve tarih zorunludur.'); return; }
     const saat = document.getElementById('f_saat').value;
     const tarihSaatDegisti = h && (h.tarih !== tarih || (h.saat||'') !== saat);
-    kaydet(COL.hatirlaticilar, h?h.id:null, {
+    TakvimService.hatirlaticiKaydet(h?h.id:null, {
       baslik, tarih, saat,
       oncelik: document.getElementById('f_oncelik').value,
       aciklama: document.getElementById('f_aciklama').value.trim(),
       tamamlandi: h ? !!h.tamamlandi : false,
       bildirimGonderildi: h ? (tarihSaatDegisti ? false : !!h.bildirimGonderildi) : false
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, h ? ()=>{ if(confirm('Bu hatırlatıcıyı silmek istiyor musunuz?')){ db.collection(COL.hatirlaticilar).doc(h.id).delete(); modalKapat(); } } : null);
+  }, h ? ()=>{ if(confirm('Bu hatırlatıcıyı silmek istiyor musunuz?')){ TakvimService.hatirlaticiSil(h.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ============== GÖREVLER ============== */
@@ -820,7 +813,7 @@ function renderGorevler(){
 function gorevBirak(e, yeniDurum){
   e.preventDefault();
   const id = e.dataTransfer.getData('text/plain');
-  if(id) db.collection(COL.gorevler).doc(id).update({durum:yeniDurum});
+  if(id) TakvimService.gorevDurumGuncelle(id, yeniDurum).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function gorevModalAc(id){
   const g = id ? gorevler.find(x=>x.id===id) : null;
@@ -837,14 +830,14 @@ function gorevModalAc(id){
     if(!baslik){ toast('Başlık zorunludur.'); return; }
     const sonTarih = document.getElementById('f_sonTarih').value;
     const sonTarihDegisti = g && (g.sonTarih||'') !== sonTarih;
-    kaydet(COL.gorevler, g?g.id:null, {
+    TakvimService.gorevKaydet(g?g.id:null, {
       baslik, aciklama: document.getElementById('f_aciklama').value.trim(),
       sonTarih, oncelik: document.getElementById('f_oncelik').value,
       durum: document.getElementById('f_durum').value,
       bildirimGonderildi: g ? (sonTarihDegisti ? false : !!g.bildirimGonderildi) : false
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, g ? ()=>{ if(confirm('Bu görevi silmek istiyor musunuz?')){ db.collection(COL.gorevler).doc(g.id).delete(); modalKapat(); } } : null);
+  }, g ? ()=>{ if(confirm('Bu görevi silmek istiyor musunuz?')){ TakvimService.gorevSil(g.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ============== EVRAK TAKİBİ ============== */
@@ -1377,8 +1370,7 @@ function baglantilariKur(){
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
   sinifBaglantilariKur();
   nobetBaglantilariKur();
-  db.collection(COL.hatirlaticilar).onSnapshot(s=>{ hatirlaticilar = s.docs.map(d=>({id:d.id,...d.data()})).filter(kisiselKayitGorunurMu); renderHatirlaticilar(); renderDashboard(); }, hataGoster);
-  db.collection(COL.gorevler).onSnapshot(s=>{ gorevler = s.docs.map(d=>({id:d.id,...d.data()})).filter(kisiselKayitGorunurMu); renderGorevler(); renderDashboard(); }, hataGoster);
+  if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
   db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   if(typeof notlarBaglantilariKur === 'function') notlarBaglantilariKur();
 
