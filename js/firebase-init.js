@@ -91,6 +91,7 @@ const COL = {
 let db = null;
 let auth = null;
 let messaging = null;
+let storage = null;
 let firebaseHazir = false;
 
 function yapilandirmaEksikMi(){
@@ -106,6 +107,7 @@ function firebaseyiBaslat(){
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     auth = firebase.auth();
+    storage = firebase.storage();
     firebaseHazir = true;
     // Veriler cihaz hafızasında (IndexedDB) tutulsun, uygulama offline açılabilsin.
     db.enablePersistence({ synchronizeTabs: true }).catch((err) => {

@@ -177,11 +177,12 @@ function _mesajlariRenderEt(){
     ? siralanmis.map(m=>{
         const kendisiMi = m.gonderenUid === ben;
         const silinebilirMi = MesajlasmaService.mesajSilinebilirMi(m);
+        const icerikHtml = m.dosya ? _dosyaBalonuHtml(m.dosya, kendisiMi) : `<div style="max-width:${kendisiMi?'calc(100% - 26px)':'78%'};padding:8px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};font-size:14px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(m.metin)}</div>`;
         return `<div style="display:flex;flex-direction:column;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:8px;">
           ${!kendisiMi ? `<div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
           <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
             ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
-            <div style="max-width:${kendisiMi?'calc(100% - 26px)':'78%'};padding:8px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};font-size:14px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(m.metin)}</div>
+            ${icerikHtml}
             ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
           </div>
           <div style="font-size:10px;color:var(--ink-muted);margin-top:2px;">${_mesajSaatYaz(m.tarih)}</div>
@@ -191,12 +192,67 @@ function _mesajlariRenderEt(){
 
   body.innerHTML = `
     <div id="mesajAkisKutusu" style="display:flex;flex-direction:column;min-height:200px;">${kabarcikHtml}</div>
-    <div style="position:sticky;bottom:0;background:var(--bg-card);padding-top:10px;margin-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <div id="mesajYuklemeDurumu" style="display:none;font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
+    <div style="position:sticky;bottom:0;background:var(--bg-card);padding-top:10px;margin-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+      <input type="file" id="mesajDosyaInput" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" style="display:none;" onchange="mesajDosyaSecildi(this.files[0]); this.value='';">
+      <button class="btn btn-ghost btn-sm" title="Dosya ekle" onclick="document.getElementById('mesajDosyaInput').click()">📎</button>
       <input id="mesajMetinInput" placeholder="Mesaj yazın…" style="flex:1;" onkeydown="if(event.key==='Enter'){mesajGonderTikla();}">
       <button class="btn btn-primary btn-sm" onclick="mesajGonderTikla()">Gönder</button>
     </div>`;
   const kutu = document.getElementById('mesajAkisKutusu');
   if(kutu) kutu.scrollIntoView({block:'end'});
+}
+
+/* Bir dosya ekini balon içinde gösterir: resimse önizleme (tıklayınca
+   büyütür), PDF ise gömülü görüntüleyici, Word/Excel ise indirme kartı. */
+function _dosyaBalonuHtml(dosya, kendisiMi){
+  const boyutMetin = dosya.boyut ? (dosya.boyut/1024/1024).toFixed(1)+' MB' : '';
+  if(dosya.gorselMi){
+    return `<div style="max-width:220px;">
+      <img src="${dosya.url}" alt="${escapeHtml(dosya.ad)}" style="width:100%;border-radius:12px;cursor:pointer;display:block;" onclick="window.open('${dosya.url}','_blank')">
+    </div>`;
+  }
+  if(dosya.tur === 'application/pdf'){
+    return `<div style="max-width:280px;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--bg-card);">
+      <iframe src="${dosya.url}" style="width:100%;height:180px;border:none;"></iframe>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;">
+        <span style="font-size:18px;">📕</span>
+        <div style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(dosya.ad)}</div>
+        <a href="${dosya.url}" target="_blank" download="${escapeHtml(dosya.ad)}" class="btn btn-ghost btn-sm">İndir</a>
+      </div>
+    </div>`;
+  }
+  // Word / Excel — sadece indirme kartı (tarayıcıda görüntülenemiyor)
+  return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};max-width:240px;">
+    <span style="font-size:22px;">${dosya.etiket==='Excel'?'📗':'📘'}</span>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:12.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(dosya.ad)}</div>
+      <div style="font-size:10.5px;opacity:.8;">${dosya.etiket}${boyutMetin?' · '+boyutMetin:''}</div>
+    </div>
+    <a href="${dosya.url}" target="_blank" download="${escapeHtml(dosya.ad)}" style="color:inherit;font-size:18px;">⬇️</a>
+  </div>`;
+}
+
+function mesajDosyaSecildi(dosya){
+  if(!dosya || !_aktifKonusmaId) return;
+  const turBilgisi = MesajlasmaService.dosyaTuruBilgisi(dosya.type);
+  if(!turBilgisi){ toast('Desteklenmeyen dosya türü. Sadece PDF, Word, Excel ve resim gönderebilirsiniz.'); return; }
+  if(dosya.size > MesajlasmaService._MAKS_DOSYA_BOYUTU){ toast('Dosya çok büyük (maks. 10 MB).'); return; }
+
+  const durumEl = document.getElementById('mesajYuklemeDurumu');
+  if(durumEl){ durumEl.style.display=''; durumEl.textContent = `${turBilgisi.ikon} ${dosya.name} yükleniyor… %0`; }
+
+  const k = konusmalar.find(x=>x.id===_aktifKonusmaId);
+  MesajlasmaService.mesajGonderDosyaIle(_aktifKonusmaId, dosya, k, (yuzde)=>{
+    if(durumEl) durumEl.textContent = `${turBilgisi.ikon} ${dosya.name} yükleniyor… %${yuzde}`;
+  }).then(()=>{
+    if(durumEl) durumEl.style.display='none';
+  }).catch(err=>{
+    if(durumEl) durumEl.style.display='none';
+    if(err.message==='desteklenmeyen-tur'){ toast('Desteklenmeyen dosya türü.'); return; }
+    if(err.message==='dosya-cok-buyuk'){ toast('Dosya çok büyük (maks. 10 MB).'); return; }
+    if(err.message!=='yetkisiz') toast('Yükleme hatası: '+err.message);
+  });
 }
 
 function mesajTekSil(mesajId){
