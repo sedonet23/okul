@@ -3006,3 +3006,10 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   50% { opacity: .55; box-shadow: 0 0 0 6px rgba(220,38,38,0); }
 }
 .duyuru-okunmamis{ background: var(--brand-light); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
+
+/* Mesaj balonu silme ikonu (bkz. js/mesajlasma.js _mesajlariRenderEt) */
+.btn-mesaj-sil{
+  background: none; border: none; cursor: pointer; font-size: 12px;
+  opacity: .45; padding: 4px; flex-shrink: 0; line-height: 1;
+}
+.btn-mesaj-sil:hover{ opacity: 1; }
