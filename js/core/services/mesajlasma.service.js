@@ -120,5 +120,33 @@ const MesajlasmaService = {
     const ben = this._kendiKimlik();
     if(!ben.uid) return 0;
     return (konusmalar||[]).reduce((top,k)=> top + ((k.okunmayanlar && k.okunmayanlar[ben.uid]) || 0), 0);
+  },
+
+  /* Bir mesajı bu kullanıcının silip silemeyeceğini belirler: admin her
+     zaman silebilir; mesajın sahibi de kendi mesajını silebilir. */
+  mesajSilinebilirMi(mesaj){
+    if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin) return true;
+    const ben = this._kendiKimlik();
+    return !!(ben.uid && mesaj && mesaj.gonderenUid === ben.uid);
+  },
+
+  /* Tek bir mesajı siler. Not: konuşma listesindeki "son mesaj" önizlemesi
+     bilinçli olarak GÜNCELLENMEZ (basitlik için) — silinen mesaj son
+     mesajsa, yeni bir mesaj gelene kadar önizlemede görünmeye devam eder. */
+  async mesajSil(mesaj){
+    if(!this.mesajSilinebilirMi(mesaj)) throw new Error('sahip-degil');
+    return MesajlasmaRepository.mesajSil(mesaj.id);
+  },
+
+  /* Bir konuşmayı (ve TÜM mesajlarını) tamamen siler — hem kendisi hem
+     karşı taraf için. Katılımcılardan biri (veya admin) silebilir. */
+  async konusmaSil(konusmaId, mevcutKonusma){
+    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    const ben = this._kendiKimlik();
+    const katilimciMi = mevcutKonusma && (mevcutKonusma.katilimciUidler||[]).includes(ben.uid);
+    const adminMi = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin;
+    if(!katilimciMi && !adminMi) throw new Error('sahip-degil');
+    await MesajlasmaRepository.mesajlariTopluSil(konusmaId);
+    return MesajlasmaRepository.konusmaSil(konusmaId);
   }
 };
