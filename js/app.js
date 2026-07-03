@@ -497,10 +497,15 @@ function kaydet(koleksiyon, id, veri){
 
 /* Kişisel (sahipUid'li) kayıt görünürlük filtresi: damgasız kayıtlar
    (okul geneli) herkese; damgalılar sahibine ve adminlere görünür. */
+/* Kişisel (sahipUid'li) kayıt görünürlük filtresi (notlar, hatırlatıcılar,
+   görevler için ortak): Süper admin HER ZAMAN her kaydı görür. Admin
+   olmayan bir kullanıcı ise SADECE KENDİ eklediği kayıtları görür —
+   başka birinin (veya sahipsiz/eski) kaydı ona hiç gösterilmez. */
 function kisiselKayitGorunurMu(k){
-  if(!k || !k.sahipUid) return true;
   if(typeof AKTIF_KULLANICI === 'undefined' || !AKTIF_KULLANICI) return true;
-  return AKTIF_KULLANICI.admin === true || k.sahipUid === AKTIF_KULLANICI.uid;
+  if(AKTIF_KULLANICI.admin === true) return true;
+  if(!k || !k.sahipUid) return false; // sahipsiz/eski kayıt — artık sadece admin görür
+  return k.sahipUid === AKTIF_KULLANICI.uid;
 }
 function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message); }
 
