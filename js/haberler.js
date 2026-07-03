@@ -31,6 +31,7 @@ function haberlerBaglantilariKur(){
     haberler = v;
     renderHaberler();
     renderHaberFiltreler();
+    renderDuyuruPanosu();
     if(typeof renderHaberTicker === 'function') renderHaberTicker();
     if(typeof renderHaberKarusel === 'function') renderHaberKarusel();
     if(typeof globalAramaYap === 'function') globalAramaYap();
@@ -96,6 +97,23 @@ function haberFiltreSec(f){
   haberFiltre = f;
   document.querySelectorAll('#tab-haberler .filtre-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
   renderHaberler();
+}
+
+/* YENİ: Anasayfadaki ayrı Duyuru Panosu kartı — sadece manuel (admin
+   eklediği) duyurular, en yeni 5 tanesi. Genel haber akışından bağımsız. */
+function renderDuyuruPanosu(){
+  const kart = document.getElementById('duyuruPanosuKart');
+  const icerik = document.getElementById('duyuruPanosuIcerik');
+  if(!kart || !icerik) return;
+  const duyurular = haberler.filter(h=>h.manuel).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||'')).slice(0,5);
+  if(!duyurular.length){ kart.style.display='none'; return; }
+  kart.style.display = '';
+  icerik.innerHTML = duyurular.map(h=>`
+    <div class="dash-row" style="align-items:flex-start;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;">${escapeHtml(h.baslik)}</div>
+      ${h.ozet ? `<div style="font-size:12.5px;color:var(--ink-muted);">${escapeHtml(h.ozet)}</div>` : ''}
+      <div style="font-size:11px;color:var(--ink-muted);">${formatTarih((h.tarih||'').slice(0,10))}</div>
+    </div>`).join('');
 }
 
 function renderHaberler(){

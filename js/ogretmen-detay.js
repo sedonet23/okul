@@ -15,6 +15,7 @@ function detayPanelKapat(){
   document.getElementById('detayOverlay').classList.remove('active');
   document.body.classList.remove('modal-open');
   detaySinifId = null;
+  if(typeof _mesajPaneliTemizle === 'function') _mesajPaneliTemizle();
 }
 
 function ogretmenDetayAc(id){

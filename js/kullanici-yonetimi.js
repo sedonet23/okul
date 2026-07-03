@@ -39,6 +39,7 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'haberler', ad:'Haberler'},
   {grup:'Genel', modul:'mevzuat', ad:'Mevzuat'},
   {grup:'Genel', modul:'asistan', ad:'AI Asistan'},
+  {grup:'Genel', modul:'mesajlasma', ad:'Mesajlaşma'},
   {grup:'Genel', modul:'sistemAyarlari', ad:'Sistem Ayarları (Ders Saatleri, Ders/Branş Listesi)'},
   {grup:'Çizelgeler', modul:'sosyalKulupler', ad:'Sosyal Kulüpler'},
   {grup:'Çizelgeler', modul:'belirliGunler', ad:'Belirli Gün & Haftalar'},
@@ -404,7 +405,7 @@ function kullaniciKaydet(uid){
    burada kabul edilebilir; amaç kullanıcı deneyimini düzeltmek. */
 const _SALT_OKUMA_GIZLE_DESENLERI = [
   /ModalAc\(/, /ModalAcById\(/, /EkleModal\(/,
-  /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/, /Duzenle\(/,
+  /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/, /Duzenle\(/, /Gonder\(/,
   /Ekle\(/, /Cikar\(/, /CikarNegatif\(/, /Olustur\(/, /Ata\(/,
   /IceAktar\(/, /Import\(/, /Isle\(/, /FotoYukle\(/,
 ];

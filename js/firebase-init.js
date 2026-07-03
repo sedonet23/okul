@@ -81,6 +81,9 @@ const COL = {
   kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, rolId, bagliOgretmenId}
   // --- YENİ: Rol tabanlı yetkilendirme (Aşama 2) ---
   roller:'oy_roller',                   // {ad, kullaniciYonetimi:bool, yetkiler:{modulAdi:'gizle'|'goruntule'|'duzenle'}}
+  // --- YENİ: Uygulama İçi Mesajlaşma (v9.0) ---
+  konusmalar:'oy_konusmalar',           // {katilimciUidler:[uid,...], katilimciAdlari:{uid:ad}, grupMu:bool, grupAdi?, sonMesaj:{metin,gonderenUid,tarih}, guncellenmeTarihi, okunmayanlar:{uid:sayi}}
+  mesajlar:'oy_mesajlar',               // {konusmaId, gonderenUid, gonderenAdi, metin, tarih}
 };
 
 let db = null;
