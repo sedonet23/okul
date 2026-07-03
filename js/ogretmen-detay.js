@@ -23,6 +23,18 @@ function ogretmenDetayAc(id){
   window._acikOgretmenDetayId = id;
   const adSoyad = `${o.ad} ${o.soyad}`;
 
+  // DÜZELTME: "Hassas bilgiler" (İzin/Rapor kayıtları, Belge Durumu) sadece
+  // kendi profiline bakan kişiye VEYA 'ogretmenHassasBilgi' yetkisi olan
+  // kullanıcıya gösterilir — başka bir öğretmenin profiline giren normal
+  // bir kullanıcı sadece temel bilgileri (ad, branş, telefon, ders programı,
+  // nöbetler) görür. Kendi profilinde ise belge tikleri ayrıca kilitlenir
+  // (bkz. cizelgeler.js enjeksiyonu — kendi belgesini kendi işaretleyemez).
+  const bagliOgretmen = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  const kendiProfiliMi = !!(bagliOgretmen && bagliOgretmen.id === id);
+  const hassasGorebilir = kendiProfiliMi || (typeof gorebilir === 'function' ? gorebilir('ogretmenHassasBilgi') : true);
+  window._acikOgretmenKendiProfilMi = kendiProfiliMi;
+  window._acikOgretmenHassasGorebilir = hassasGorebilir;
+
   document.getElementById('detayBaslik').textContent = adSoyad;
   document.getElementById('detayAltBaslik').innerHTML = `${escapeHtml([o.unvan||'Öğretmen', o.brans].filter(Boolean).join(' · '))}${typeof ogretmenIzinRozeti==='function' ? ogretmenIzinRozeti(id) : ''}`;
   document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); ogretmenModalAc(id); };
@@ -191,17 +203,17 @@ function ogretmenDetayAc(id){
     <div class="detay-card"><h4>Nöbetler</h4>${nobetHtml}</div>
     <div class="detay-card"><h4>Kulüp Danışmanlığı</h4>${kulupHtml}${rehberlikHtml}${bepHtml}</div>
     <div class="detay-card"><h4>Belirli Gün ve Haftalar</h4>${belirliGunHtml}</div>
-    <div class="detay-card">
+    ${hassasGorebilir ? `<div class="detay-card">
       <h4 style="display:flex;align-items:center;justify-content:space-between;">İzinler / Raporlar <button class="btn btn-amber btn-sm" onclick="ogretmenIzinModalAc('${id}', null)">+ Ekle</button></h4>
       <div id="oiListesi"></div>
-    </div>
+    </div>` : ''}
     <div class="detay-card"><h4>Diğer Evrak</h4>${evrakHtml}</div>
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
   if(typeof saltOkumaDetayUygula === 'function') saltOkumaDetayUygula('ogretmenler');
   if(typeof detayPanelYetkiUygula === 'function') detayPanelYetkiUygula(id);
-  if(typeof renderOgretmenIzinBolumu === 'function') renderOgretmenIzinBolumu(id);
+  if(hassasGorebilir && typeof renderOgretmenIzinBolumu === 'function') renderOgretmenIzinBolumu(id);
   if (typeof detayPanelineProfilFotoEkle === 'function') setTimeout(() => detayPanelineProfilFotoEkle(id), 10);
 }
 

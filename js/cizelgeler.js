@@ -476,6 +476,10 @@ function renderOgretmenBelgeDurumu(ogretmenId){
     window.ogretmenDetayAc=function(id){
       _orig(id);
       setTimeout(()=>{
+        // DÜZELTME: Belge Durumu "hassas bilgi" sayılır — sadece kendi profiline
+        // bakan kişiye veya 'ogretmenHassasBilgi' yetkisi olan kullanıcıya gösterilir
+        // (bkz. ogretmen-detay.js > ogretmenDetayAc, window._acikOgretmenHassasGorebilir).
+        if(!window._acikOgretmenHassasGorebilir) return;
         const panel=document.getElementById('detayBody'); if(!panel) return;
         if(panel.querySelector('.belge-detay-bolum')) return;
         const bolum=document.createElement('div');
@@ -483,6 +487,19 @@ function renderOgretmenBelgeDurumu(ogretmenId){
         bolum.style.cssText='margin-top:18px;padding-top:14px;border-top:1px solid var(--border);';
         bolum.innerHTML=`<h3 style="margin-bottom:12px;">📋 Belge Durumu</h3>`+(renderOgretmenBelgeDurumu(id)||'<p class="empty-state">Kayıt yok.</p>');
         panel.appendChild(bolum);
+        // DÜZELTME: Kendi profilini görüntüleyen kişi kendi belge tiklerini
+        // işaretleyemez (bütünlük/tarafsızlık kuralı) — "ogretmenler"
+        // düzenleme yetkisi olsa bile bu geçerlidir. İletişim bilgileri
+        // (telefon/e-posta/foto) bu kısıtlamadan etkilenmez, ayrı bir akıştır.
+        if(window._acikOgretmenKendiProfilMi){
+          bolum.querySelectorAll('input[type="checkbox"]').forEach(cb=>{ cb.disabled = true; });
+          bolum.querySelectorAll('.belge-kontrol-item').forEach(el=>{ el.style.opacity = '.6'; el.style.cursor = 'not-allowed'; });
+          const uyari = document.createElement('p');
+          uyari.className = 'empty-state';
+          uyari.style.cssText = 'margin-top:8px;font-style:italic;';
+          uyari.textContent = 'Kendi belge durumunuzu siz işaretleyemezsiniz — bu alan başka bir yetkili tarafından güncellenir.';
+          bolum.appendChild(uyari);
+        }
       },80);
     };
   },100);

@@ -22,6 +22,7 @@
 
 const MODUL_LISTESI = [
   {grup:'Genel', modul:'ogretmenler', ad:'Öğretmenler'},
+  {grup:'Genel', modul:'ogretmenHassasBilgi', ad:'Öğretmen Hassas Bilgileri (İzin/Rapor, Belge Durumu)'},
   {grup:'Genel', modul:'siniflar', ad:'Sınıflar'},
   {grup:'Genel', modul:'ogrenciler', ad:'Öğrenciler'},
   {grup:'Genel', modul:'arama', ad:'Arama'},
