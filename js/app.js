@@ -1628,6 +1628,37 @@ function geriTusuIsle(){
 }
 window.geriTusuIsle = geriTusuIsle;
 
+/* ---------- Web/PWA: donanım/tarayıcı geri tuşu köprüsü ----------
+   DÜZELTME: geriTusuIsle() ve _sekmeGecmisi mekanizması sadece NATİF
+   (Capacitor/APK) ortamda çalışıyordu — orada android/.../MainActivity.java
+   > onBackPressed() bu fonksiyonu JS köprüsüyle çağırıyor. Web sürümünde
+   (Chrome'da PWA/sekme) bu köprünün karşılığı hiç yoktu, bu yüzden geri
+   tuşu/hareketi doğrudan sekmeyi/uygulamayı kapatıyordu. Burada aynı
+   "önce içeride geri git, en üstteyse çift basışla çık" mantığını
+   tarayıcının history.pushState/popstate API'siyle taklit ediyoruz. */
+(function(){
+  const nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if(nativeMi) return; // native ortamda MainActivity.java zaten hallediyor
+
+  let _webGeriSonCikisZamani = 0;
+  const _buferPushEt = () => { try{ history.pushState({oyGeriBuferi:true}, '', location.href); }catch(e){} };
+
+  _buferPushEt(); // başlangıç "tampon" kaydı — ilk geri basışın sayfadan tamamen çıkmasını engeller
+
+  window.addEventListener('popstate', function(){
+    const sonuc = (typeof geriTusuIsle === 'function') ? geriTusuIsle() : 'exit';
+    if(sonuc === 'handled'){ _buferPushEt(); return; }
+
+    const simdi = Date.now();
+    if(simdi - _webGeriSonCikisZamani < 2000){
+      return; // ikinci basış — tamponu yeniden kurmuyoruz, tarayıcı gerçekten geri gitsin/sekme kapansın
+    }
+    _webGeriSonCikisZamani = simdi;
+    if(typeof toast === 'function') toast('Çıkmak için tekrar geri tuşuna basın');
+    _buferPushEt();
+  });
+})();
+
 function haritaSekmesiAc(){
   sekmeAc('harita');
   // Harita başlatmayı bir sonraki tick'e bırak (DOM görünür olduktan sonra)
