@@ -995,6 +995,7 @@ function renderDashboard(){
   if(typeof renderDashYillikGorunum   === 'function') renderDashYillikGorunum();
 
   tatilModuKartlariniUygula();
+  if(typeof renderOgretmenOzelKartlar === 'function') renderOgretmenOzelKartlar();
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
 }
 
@@ -1078,6 +1079,17 @@ function renderZilSayaci(bugunGun){
   const etiketler = { ders:`📖 Şu an ${durum.etiket}`, teneffus:'☕ Teneffüste / derse hazırlanılıyor', ogle:'🍽️ Öğle arasında', bitti:'🏁 Ders saatleri sona erdi', baslamadi:'🔔 Okul henüz başlamadı' };
   const durumPilleri = { ders:'Devam ediyor', teneffus:'Teneffüs', ogle:'Öğle Arası', baslamadi:'Henüz başlamadı', bitti:'Sona erdi' };
   zilDurumSinifAyarla(durum.durum==='ogle' ? 'teneffus' : durum.durum);
+  // YENİ: Hesabına bağlı bir öğretmen kaydı olan kullanıcı için, şu anki ders
+  // saatinde KENDİ dersi varsa "5/A sınıfına Din Kültürü dersin var" gibi
+  // kişiye özel bilgiyi zil etiketine ekler.
+  let kendiDersEtiketi = '';
+  if(durum.durum==='ders'){
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    if(ben){
+      const kendiDersi = dersProgrami.find(d=>d.ogretmenId===ben.id && d.gun===bugunGun && d.saat===durum.saat);
+      if(kendiDersi) kendiDersEtiketi = ` — <strong>${escapeHtml(kendiDersi.sinif)}</strong> sınıfına <strong>${escapeHtml(kendiDersi.ders)}</strong> dersin var`;
+    }
+  }
   if(durum.durum==='bitti'){
     zilEl.innerHTML = `<div class="zil-durum">🏁 Bugünün ders saatleri sona erdi.</div>`;
   } else {
@@ -1101,7 +1113,7 @@ function renderZilSayaci(bugunGun){
         <div class="zil-ikon-daire">🔔</div>
         <div>
           <div class="zil-baslik-kucuk">Zil Durumu</div>
-          <div class="zil-etiket">${durum.etiket || etiketler[durum.durum]}</div>
+          <div class="zil-etiket">${durum.etiket || etiketler[durum.durum]}${kendiDersEtiketi}</div>
           <span class="zil-pill">${durumPilleri[durum.durum]||''}</span>
         </div>
       </div>
@@ -1127,7 +1139,107 @@ function renderZilSayaci(bugunGun){
   }
 }
 
-/* ============== YEDEKLEME ============== */
+/* ============== DERS VE NÖBET PROGRAMIM (öğretmene özel sayfa) ==============
+   Alt menüdeki "Programım" butonuyla açılır. Haftalık ders programını (gün gün)
+   ve yaklaşan nöbet atamalarını (bugünden itibaren) tek sayfada gösterir. */
+function renderDersNobetProgramim(){
+  const el = document.getElementById('dnpIcerik');
+  if(!el) return;
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  if(!ben){
+    el.innerHTML = '<p class="empty-state">Hesabınıza bağlı bir öğretmen kaydı yok — bu sayfa sadece öğretmen hesapları içindir.</p>';
+    return;
+  }
+
+  const bugunGun = GUNADI[new Date().getDay()];
+  const bugunISO = todayISO();
+
+  // ---- Haftalık Ders Programı (gün gün) ----
+  let dersHtml = '';
+  GUNLER.forEach(gun=>{
+    const gununDersleri = dersProgrami.filter(d=>d.ogretmenId===ben.id && d.gun===gun).sort((a,b)=>a.saat-b.saat);
+    dersHtml += `<div class="card" style="margin-bottom:12px;">
+      <h4 style="margin:0 0 8px;">${gun===bugunGun ? '📌 ' : ''}${escapeHtml(gun)}${gun===bugunGun ? ' <span class="badge badge-sage">Bugün</span>' : ''}</h4>
+      ${gununDersleri.length
+        ? gununDersleri.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)}</div>`).join('')
+        : '<p class="empty-state">Bu gün dersiniz yok.</p>'}
+    </div>`;
+  });
+
+  // ---- Yaklaşan Nöbetlerim (bugünden itibaren, en fazla 14 kayıt) ----
+  const nobetlerim = (typeof nobetAtamalari!=='undefined' ? nobetAtamalari : [])
+    .filter(a=>a.ogretmenId===ben.id && a.tarih>=bugunISO)
+    .sort((a,b)=>a.tarih.localeCompare(b.tarih))
+    .slice(0,14);
+  const nobetHtml = nobetlerim.length
+    ? nobetlerim.map(a=>{
+        const yer = (typeof nobetYerleri!=='undefined' ? nobetYerleri.find(y=>y.id===a.yerId) : null);
+        const ikon = typeof nobetYeriIkon==='function' ? nobetYeriIkon(yer?yer.ad:'') : '📍';
+        return `<div class="dash-row">${a.tarih===bugunISO?'📌 <strong>Bugün</strong> — ':formatTarih(a.tarih)+' — '}${ikon} ${escapeHtml(yer?yer.ad:'?')}</div>`;
+      }).join('')
+    : '<p class="empty-state">Yaklaşan bir nöbet atamanız yok.</p>';
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:18px;">
+      <h3 style="margin:0 0 10px;">🛡️ Yaklaşan Nöbetlerim</h3>
+      ${nobetHtml}
+    </div>
+    <h3 style="margin:0 0 12px;">📚 Haftalık Ders Programım</h3>
+    ${dersHtml}
+  `;
+}
+
+/* ============== ÖĞRETMENE ÖZEL ANASAYFA KARTLARI ==============
+   Hesabına bağlı bir öğretmen kaydı olan HERKESTE (admin dahil, eğer
+   bağlıysa) gösterilir: bugünkü dersleri + bu haftaki nöbeti. Bağlı kayıt
+   yoksa (ör. sadece idari bir admin hesabıysa) bölüm tamamen gizlenir. */
+function renderOgretmenOzelKartlar(){
+  const kutu = document.getElementById('ogretmenOzelKartlar');
+  if(!kutu) return;
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  if(!ben){ kutu.style.display = 'none'; return; }
+  kutu.style.display = '';
+
+  const bugunGun = GUNADI[new Date().getDay()];
+  const bugunISO = todayISO();
+
+  // ---- Bugünkü Derslerim ----
+  const dersEl = document.getElementById('ogretmenBugunDersleri');
+  if(dersEl){
+    if(!GUNLER.includes(bugunGun)){
+      dersEl.innerHTML = '<p class="empty-state">Bugün hafta sonu — dersiniz yok.</p>';
+    } else {
+      const bugunDersleri = dersProgrami.filter(d=>d.ogretmenId===ben.id && d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
+      dersEl.innerHTML = bugunDersleri.length
+        ? bugunDersleri.map(d=>`<div class="dash-row"><span class="badge badge-blue">${d.saat}.</span> ${escapeHtml(d.sinif)} — ${escapeHtml(d.ders)}</div>`).join('')
+        : '<p class="empty-state">Bugün ders programınızda kaydınız yok.</p>';
+    }
+  }
+
+  // ---- Bu Haftaki Nöbetim ----
+  const nobetEl = document.getElementById('ogretmenHaftaNobeti');
+  const nobetKarti = document.getElementById('ogretmenNobetKarti');
+  if(nobetEl && typeof nobetHaftaAraligi === 'function'){
+    const gunler = nobetHaftaAraligi(bugunISO);
+    let buguntNobetciMi = false;
+    const satirlar = gunler.map(iso=>{
+      const ozet = (typeof nobetGununOzeti === 'function') ? nobetGununOzeti(iso) : {atamalar:[], tatil:false};
+      const benimAtamalarim = (ozet.atamalar||[]).filter(a=>a.ogretmenId===ben.id);
+      if(!benimAtamalarim.length) return '';
+      if(iso===bugunISO) buguntNobetciMi = true;
+      const gunAdiKisa = GUNADI[new Date(iso+'T00:00:00').getDay()];
+      const yerleriYaz = benimAtamalarim.map(a=>{
+        const yer = (typeof nobetYerleri!=='undefined' ? nobetYerleri.find(y=>y.id===a.yerId) : null);
+        return (typeof nobetYeriIkon==='function'?nobetYeriIkon(yer?yer.ad:''):'📍') + ' ' + escapeHtml(yer?yer.ad:'?');
+      }).join(', ');
+      return `<div class="dash-row"${iso===bugunISO?' style="font-weight:700;"':''}>${iso===bugunISO?'📌 <strong>Bugün</strong> — ':gunAdiKisa+' — '}${yerleriYaz}</div>`;
+    }).filter(Boolean).join('');
+    nobetEl.innerHTML = satirlar || '<p class="empty-state">Bu hafta nöbet atamanız yok.</p>';
+    if(nobetKarti) nobetKarti.classList.toggle('ogretmen-bugun-nobetci', buguntNobetciMi);
+  }
+}
+
+
 async function yedekVerisiOlustur(){
   let mevzuat;
   try{ mevzuat = typeof mevzuatTumVeriyiOku === 'function' ? await mevzuatTumVeriyiOku() : undefined; }
@@ -1418,6 +1530,7 @@ function sekmeAc(tab){
   // olabilir, bu yüzden onSnapshot dinleyicileri de globalAramaYap()'ı
   // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
   if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
+  if(tab === 'dersNobetProgramim' && typeof renderDersNobetProgramim === 'function') renderDersNobetProgramim();
   if(typeof saltOkumaUygula === 'function') saltOkumaUygula(tab);
 
   // Geçmiş yığını: geri tuşuyla gelinen bir geçiş değilse ve aynı sekme

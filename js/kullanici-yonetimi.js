@@ -78,11 +78,14 @@ function sidebarYetkiUygula(){
   // Alt mobil menü çubuğu (.bn-item) — masaüstü yan menüyle aynı mantık.
   // 'panel' (Ana Sayfa) her zaman görünür; '+' (Hızlı Ekle) butonu modül
   // etiketi taşımadığı için buradan etkilenmez, içeriği ayrıca filtrelenir.
+  // 'dersNobetProgramim' bir yetki modülü DEĞİL — hesaba bağlı öğretmen kaydı
+  // olup olmamasına göre gösterilir (bkz. aşağıdaki _bnIkinciItemAyarla).
   document.querySelectorAll('.bn-item[data-tab]').forEach(btn=>{
     const modul = btn.dataset.tab;
-    if(modul === 'panel') return;
+    if(modul === 'panel' || modul === 'dersNobetProgramim') return;
     btn.style.display = gorebilir(modul) ? '' : 'none';
   });
+  if(typeof _bnIkinciItemAyarla === 'function') _bnIkinciItemAyarla();
 
   // "Çizelgeler" alt grubundaki modüllerin tamamı gizliyse üst başlığı/ayırıcıyı da gizle.
   const hepsiGizli = _CIZELGELER_MODULLERI.every(m => !gorebilir(m));
@@ -93,6 +96,32 @@ function sidebarYetkiUygula(){
   if(kyBtn) kyBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
 
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
+}
+
+/* Alt menünün 2. butonu: hesaba bağlı bir öğretmen kaydı varsa "Ders ve Nöbet
+   Programım" (öğretmenin günlük ihtiyacına daha yakın), yoksa normal
+   "Evraklar" gösterilir. bagliOgretmenimGetir() veri henüz yüklenmediyse null
+   dönebilir — sidebarYetkiUygula() veri güncellemelerinde tekrar çağrıldığı
+   için bu kendiliğinden düzelir (bkz. avatar/selamlama ile aynı desen). */
+function _bnIkinciItemAyarla(){
+  const btn = document.getElementById('bnIkinciItem');
+  if(!btn) return;
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  const ikon = btn.querySelector('.bn-ico');
+  const etiket = btn.querySelector('.bn-label');
+  if(ben){
+    btn.dataset.tab = 'dersNobetProgramim';
+    btn.setAttribute('onclick', "sekmeAc('dersNobetProgramim'); bottomNavAktifYap(this);");
+    if(ikon) ikon.textContent = '📚';
+    if(etiket) etiket.textContent = 'Programım';
+    btn.style.display = '';
+  } else {
+    btn.dataset.tab = 'evrak';
+    btn.setAttribute('onclick', "sekmeAc('evrak'); bottomNavAktifYap(this);");
+    if(ikon) ikon.textContent = '📄';
+    if(etiket) etiket.textContent = 'Evraklar';
+    btn.style.display = gorebilir('evrak') ? '' : 'none';
+  }
 }
 
 /* ---------- Anasayfa (Genel Bakış) kişiselleştirme ----------
