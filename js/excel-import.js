@@ -414,6 +414,7 @@ async function ieDigerEvrak(aoa, sonuc){
 /* ============== ÖĞRENCİ / VELİ LİSTESİ (SINIFLAR MODÜLÜ İÇİN) ============== */
 async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
   if(!file) return;
+  if(!duzenleyebilir('siniflar')){ toast('Bu işlem için yetkiniz yok.'); return; }
   try{
     const wb = await workbookOku(file);
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
@@ -450,7 +451,7 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
       let sinifId = hedefSinifId || '';
       if(!sinifId && cSinif!==-1){
         const sinifAdi = String(row[cSinif]||'').trim();
-        const sinifObj = siniflar.find(s=>s.ad.localeCompare(sinifAdi,'tr',{sensitivity:'base'})===0);
+        const sinifObj = SiniflarService.sinifBul(siniflar, sinifAdi);
         if(sinifObj) sinifId = sinifObj.id;
       }
 
@@ -479,12 +480,9 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
         servisAdi: servisAdiStr,
         notlar: cNotlar!==-1 ? String(row[cNotlar]||'').trim() : '',
       };
-      const mevcut = veliler.find(v=>
-        v.ogrenciAdi.localeCompare(ogrenciAdi,'tr',{sensitivity:'base'})===0 &&
-        (!sinifId || v.sinifId===sinifId)
-      );
-      if(mevcut){ await db.collection(COL.veliler).doc(mevcut.id).update(veri); guncellenen++; }
-      else { await db.collection(COL.veliler).add({...veri, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
+      const mevcut = SiniflarService.veliEslesenBul(veliler, sinifId, ogrenciAdi);
+      if(mevcut){ await SiniflarRepository.veliGuncelle(mevcut.id, veri); guncellenen++; }
+      else { await SiniflarRepository.veliEkle(veri); eklenen++; }
     }
     toast(`Öğrenci listesi içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
@@ -493,6 +491,7 @@ async function ogrenciVeliExceliIceAktar(file, hedefSinifId){
 /* ============== SERVİS ÖĞRENCİ LİSTESİ EXCEL'DEN ============== */
 async function servisOgrenciExceliIceAktar(file, servisId, servisAdiStr){
   if(!file) return;
+  if(!duzenleyebilir('tasima')){ toast('Bu işlem için yetkiniz yok.'); return; }
   try{
     const wb = await workbookOku(file);
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
@@ -517,25 +516,21 @@ async function servisOgrenciExceliIceAktar(file, servisId, servisAdiStr){
       let sinifId = '';
       if(cSinif!==-1){
         const sinifAdi = String(row[cSinif]||'').trim();
-        const sinifObj = siniflar.find(s=>s.ad.localeCompare(sinifAdi,'tr',{sensitivity:'base'})===0);
+        const sinifObj = SiniflarService.sinifBul(siniflar, sinifAdi);
         if(sinifObj) sinifId = sinifObj.id;
       }
 
-      const mevcut = veliler.find(v=>
-        v.ogrenciAdi.localeCompare(ogrenciAdi,'tr',{sensitivity:'base'})===0 &&
-        (!sinifId || v.sinifId===sinifId)
-      );
+      const mevcut = SiniflarService.veliEslesenBul(veliler, sinifId, ogrenciAdi);
       if(mevcut){
-        await db.collection(COL.veliler).doc(mevcut.id).update({ servisId, servisAdi: servisAdiStr });
+        await SiniflarRepository.veliGuncelle(mevcut.id, { servisId, servisAdi: servisAdiStr });
         eklenen++;
       } else {
         // Öğrenci yoksa yeni kayıt oluştur
-        await db.collection(COL.veliler).add({
+        await SiniflarRepository.veliEkle({
           ogrenciAdi, sinifId,
           ogrenciNo: cNo!==-1 ? String(row[cNo]||'').trim() : '',
           servisId, servisAdi: servisAdiStr,
           veliAdi:'', yakinlik:'', telefon:'', telefon1:'', telefon2:'', telefon3:'', adres:'', notlar:'',
-          eklenmeTarihi: new Date().toISOString()
         });
         eklenen++;
       }
@@ -547,6 +542,7 @@ async function servisOgrenciExceliIceAktar(file, servisId, servisAdiStr){
 /* ============== SINIFLAR (Veri sekmesi) ============== */
 async function siniflarExceliIceAktar(file){
   if(!file) return;
+  if(!duzenleyebilir('siniflar')){ toast('Bu işlem için yetkiniz yok.'); return; }
   try{
     const wb = await workbookOku(file);
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
@@ -567,7 +563,7 @@ async function siniflarExceliIceAktar(file){
       let sinifOgretmeniId = '';
       if(cOgretmen!==-1 && row[cOgretmen]){
         const adSoyad = String(row[cOgretmen]).trim();
-        const o = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(adSoyad,'tr',{sensitivity:'base'})===0);
+        const o = SiniflarService.ogretmenBul(ogretmenler, adSoyad);
         if(o) sinifOgretmeniId = o.id;
       }
       const veri = {
@@ -577,9 +573,9 @@ async function siniflarExceliIceAktar(file){
         derslik: cDerslik!==-1 ? String(row[cDerslik]||'').trim() : '',
         sinifOgretmeniId
       };
-      const mevcut = siniflar.find(s=>s.ad.localeCompare(ad,'tr',{sensitivity:'base'})===0);
-      if(mevcut){ await db.collection(COL.siniflar).doc(mevcut.id).update(veri); guncellenen++; }
-      else { await db.collection(COL.siniflar).add({...veri, ogrenciSayisi:0, kizSayisi:0, erkekSayisi:0, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
+      const mevcut = SiniflarService.sinifBul(siniflar, ad);
+      if(mevcut){ await SiniflarRepository.sinifGuncelle(mevcut.id, veri); guncellenen++; }
+      else { await SiniflarRepository.sinifEkle({...veri, ogrenciSayisi:0, kizSayisi:0, erkekSayisi:0}); eklenen++; }
     }
     toast(`Sınıflar içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
@@ -623,15 +619,11 @@ async function dersListesiExceliIceAktar(file){
    onay ekranında PDF'teki sıraya bakarak hangi bloğun hangi sınıfa ait
    olduğunu kendisi seçer.
    ==================================================================== */
-function eOkulCinsiyetNormallestir(deger){
-  const v = String(deger||'').toLocaleLowerCase('tr');
-  if(v.includes('kız') || v.includes('kiz')) return 'Kız';
-  if(v.includes('erkek')) return 'Erkek';
-  return '';
-}
+function eOkulCinsiyetNormallestir(deger){ return SiniflarService.eOkulCinsiyetNormallestir(deger); }
 
 async function eOkulListesiOku(file, onSinifId){
   if(!file) return;
+  if(!duzenleyebilir('siniflar')){ toast('Bu işlem için yetkiniz yok.'); return; }
   try{
     const wb = await workbookOku(file);
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
@@ -707,13 +699,7 @@ function eOkulOnayModalAc(bloklar, onSinifId){
     let eklenecek=0, guncellenecek=0, silinecek=0;
     const planlar = eslemeler.map(e=>{
       const mevcutOgrenciler = veliler.filter(v=>v.sinifId===e.sinifId);
-      const eslesmeler = e.blok.map(o=>{
-        const eslesen = mevcutOgrenciler.find(v=>
-          (o.ogrenciNo && v.ogrenciNo===o.ogrenciNo) ||
-          (!o.ogrenciNo && (v.ogrenciAdi||'').toLocaleLowerCase('tr')===o.ogrenciAdi.toLocaleLowerCase('tr'))
-        );
-        return { o, eslesen };
-      });
+      const eslesmeler = e.blok.map(o=>({ o, eslesen: SiniflarService.eOkulEslesenBul(mevcutOgrenciler, o.ogrenciNo, o.ogrenciAdi) }));
       eklenecek += eslesmeler.filter(x=>!x.eslesen).length;
       guncellenecek += eslesmeler.filter(x=>x.eslesen).length;
       const eslesenIdSeti = new Set(eslesmeler.filter(x=>x.eslesen).map(x=>x.eslesen.id));
@@ -728,39 +714,11 @@ function eOkulOnayModalAc(bloklar, onSinifId){
     toast('İçe aktarılıyor, lütfen bekleyin...');
 
     try{
-      let batch = db.batch(); let sayac=0;
-      const commitVeDevamEt = async ()=>{ await batch.commit(); batch = db.batch(); sayac=0; };
-      for(const plan of planlar){
-        for(const {o, eslesen} of plan.eslesmeler){
-          const veri = { sinifId: plan.sinifId, ogrenciAdi: o.ogrenciAdi, ogrenciNo: o.ogrenciNo, cinsiyet: o.cinsiyet };
-          if(eslesen){
-            batch.set(db.collection(COL.veliler).doc(eslesen.id), veri, {merge:true});
-          } else {
-            batch.set(db.collection(COL.veliler).doc(), {
-              ...veri, veliAdi:'', yakinlik1:'', yakinlik2:'', yakinlik3:'',
-              telefon1:'', telefon2:'', telefon3:'', adres:'', servisId:'', servisAdi:'', notlar:'',
-              eklenmeTarihi: new Date().toISOString()
-            });
-          }
-          sayac++;
-          if(sayac>=400) await commitVeDevamEt();
-        }
-        for(const v of plan.silinecekler){
-          batch.delete(db.collection(COL.veliler).doc(v.id));
-          sayac++;
-          if(sayac>=400) await commitVeDevamEt();
-        }
-        const kiz = plan.eslesmeler.filter(x=>x.o.cinsiyet==='Kız').length;
-        const erkek = plan.eslesmeler.filter(x=>x.o.cinsiyet==='Erkek').length;
-        batch.update(db.collection(COL.siniflar).doc(plan.sinifId), { kizSayisi: kiz, erkekSayisi: erkek, ogrenciSayisi: kiz+erkek });
-        sayac++;
-        if(sayac>=400) await commitVeDevamEt();
-      }
-      if(sayac>0) await batch.commit();
-      toast(`İçe aktarıldı: ${eklenecek} eklendi, ${guncellenecek} güncellendi, ${silinecek} silindi.`);
+      const sonuc = await SiniflarService.eOkulPlanlariniUygula(planlar);
+      toast(`İçe aktarıldı: ${sonuc.eklenecek} eklendi, ${sonuc.guncellenecek} güncellendi, ${sonuc.silinecek} silindi.`);
     }catch(err){
       console.error(err);
-      toast('İçe aktarma hatası: '+err.message);
+      if(err.message!=='yetkisiz') toast('İçe aktarma hatası: '+err.message);
     }
   }, null);
 }

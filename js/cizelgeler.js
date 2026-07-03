@@ -1,10 +1,15 @@
 /* ====================================================================
-   ÇİZELGELER MODÜLÜ — cizelgeler.js  v4
+   ÇİZELGELER MODÜLÜ — cizelgeler.js  v4 — UI KATMANI
    · Maarif: çoklu sınıf seçimi → her sınıf AYRI Firestore kaydı
    · Sosyal Kulüpler: tik alanı (1.Dönem, 2.Dönem, Yıl Sonu)
    · Belirli Gün Ve Haftalar: sadece "Yapıldı" tiki
    · Zümre / ŞÖK / Yıllık+BEP / Rehberlik: 3 dönem tiki
    · Öğretmen profilinde tüm belgeler görünür
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + CizelgelerService çağrısı, db bilmez
+     js/core/services/cizelgeler.service.js    → iş kuralı + yetki kontrolü (tip parametreli)
+     js/core/repositories/cizelgeler.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let cizelgeVerileri = { sosyalKulupler:[], sok:[], zumre:[], bepPlani:[], rehberlik:[], maarifRapor:[] };
@@ -13,7 +18,7 @@ let cizelgeVerileri = { sosyalKulupler:[], sok:[], zumre:[], bepPlani:[], rehber
 function _pad2(n){ return String(n).padStart(2,'0'); }
 function _isoToday(){ const d=new Date(); return `${d.getFullYear()}-${_pad2(d.getMonth()+1)}-${_pad2(d.getDate())}`; }
 function _trTarih(iso){ if(!iso) return ''; const p=iso.split('-'); return p.length===3?`${p[2]}.${p[1]}.${p[0]}`:iso; }
-function _cCol(tip){ return COL[tip]; }
+/* not: koleksiyon adı çözümlemesi artık CizelgelerRepository/Service içinde (tip parametresiyle) */
 function _ogretmenAdi(id){ if(!id) return '—'; const o=(typeof ogretmenler!=='undefined'?ogretmenler:[]).find(x=>x.id===id); return o?`${o.ad} ${o.soyad}`:'—'; }
 function _ogretmenAdlari(idler){ if(!Array.isArray(idler)||!idler.length) return '—'; return idler.map(_ogretmenAdi).join(', '); }
 function _ogretmenListesiHtml(seciliIdler, inputId){
@@ -46,8 +51,7 @@ function belgeKontrolToggle(tip,id,index,deger){
   const kontroller=[...(kayit.kontroller||Array(uzunluk).fill(false))];
   while(kontroller.length<uzunluk) kontroller.push(false);
   kontroller[index]=deger;
-  const kol=tip==='belirliGunler'?COL.belirliGunler:_cCol(tip);
-  db.collection(kol).doc(id).update({kontroller}).then(()=>{
+  CizelgelerService.kontrolToggle(tip,id,kontroller).then(()=>{
     if(tip==='maarifRapor'){
       document.querySelectorAll(`[onchange*="'maarifRapor','${id}',${index},"]`).forEach(cb=>{
         const lbl=cb.closest('label'); if(!lbl) return;
@@ -62,7 +66,7 @@ function belgeKontrolToggle(tip,id,index,deger){
     if(items[index]) items[index].classList.toggle('tamamlandi',deger);
     const sayac=wrap.querySelector('.belge-mini-sayac');
     if(sayac){ const y=kontroller.filter(Boolean).length; sayac.textContent=`${y}/${uzunluk}`; sayac.className=`belge-mini-sayac ${y===uzunluk?'tamam':y>0?'kismi':''}`; }
-  }).catch(err=>toast('Hata: '+err.message));
+  }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* ================================================================
@@ -92,9 +96,10 @@ function sosyalKulupModalAc(id){
   modalAc(k?'Kulüp Düzenle':'Yeni Kulüp',body,()=>{
     const ad=document.getElementById('f_kulupAdi').value.trim();
     if(!ad){toast('Kulüp adı zorunludur.');return;}
-    kaydet(COL.sosyalKulupler,k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)});
+    CizelgelerService.kayitKaydet('sosyalKulupler',k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)})
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  },k?()=>{if(confirm('Bu kulübü silmek istiyor musunuz?')){db.collection(COL.sosyalKulupler).doc(k.id).delete();modalKapat();}}:null);
+  },k?()=>{if(confirm('Bu kulübü silmek istiyor musunuz?')){CizelgelerService.kayitSil('sosyalKulupler',k.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
 }
 function sosyalKuluplerKaydet(){ toast('Değişiklikler otomatik kaydediliyor.'); }
 function renderSosyalKuluplerListesi(){ renderCizelge('sosyalKulupler'); }
@@ -233,9 +238,10 @@ function cizelgeSatirModalAc(tip,id){
     const veri={};
     meta.alanlar.forEach(alan=>{const el2=document.getElementById(`f_${alan.key}`);veri[alan.key]=el2?el2.value.trim():'';});
     veri.kontroller=kayit?(kayit.kontroller||[false,false,false]):[false,false,false];
-    kaydet(_cCol(tip),kayit?kayit.id:null,veri);
+    CizelgelerService.kayitKaydet(tip,kayit?kayit.id:null,veri)
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(_cCol(tip)).doc(kayit.id).delete();modalKapat();}}:null);
+  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){CizelgelerService.kayitSil(tip,kayit.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
 }
 
 /* ================================================================
@@ -269,21 +275,20 @@ function _bepModal(id){
     if(kayit){
       // Düzenleme: sınıf değişmişse tek kayıt güncelle
       const yeniSinif = seciliSinifler[0]||kayit.sinif||'';
-      kaydet(COL.bepPlani,kayit.id,{ogretmenId,brans,sinif:yeniSinif,aciklama,kontroller:kayit.kontroller||[false,false]});
+      CizelgelerService.kayitKaydet('bepPlani',kayit.id,{ogretmenId,brans,sinif:yeniSinif,aciklama,kontroller:kayit.kontroller||[false,false]})
+        .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     } else {
       if(!seciliSinifler.length){
         // Sınıf seçilmemişse sınıfsız tek kayıt
-        db.collection(COL.bepPlani).add({ogretmenId,brans,sinif:'',aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
-        toast('Kayıt oluşturuldu.');
+        CizelgelerService.kayitKaydet('bepPlani',null,{ogretmenId,brans,sinif:'',aciklama,kontroller:[false,false]})
+          .then(()=>toast('Kayıt oluşturuldu.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
       } else {
-        seciliSinifler.forEach(sinif=>{
-          db.collection(COL.bepPlani).add({ogretmenId,brans,sinif,aciklama,kontroller:[false,false],eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
-        });
-        toast(`${seciliSinifler.length} sınıf için kayıt oluşturuldu.`);
+        CizelgelerService.cokluKayitOlustur('bepPlani',{ogretmenId,brans,aciklama,kontroller:[false,false]},'sinif',seciliSinifler)
+          .then(n=>toast(`${n} sınıf için kayıt oluşturuldu.`)).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
       }
     }
     modalKapat();
-  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(COL.bepPlani).doc(kayit.id).delete();modalKapat();}}:null);
+  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){CizelgelerService.kayitSil('bepPlani',kayit.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
 }
 function _maarifModal(id){
   const kayit=id?(cizelgeVerileri.maarifRapor||[]).find(x=>x.id===id):null;
@@ -308,17 +313,16 @@ function _maarifModal(id){
     if(kayit){
       const sinif=document.getElementById('f_sinif').value;
       if(!sinif){toast('Sınıf seçiniz.');return;}
-      kaydet(COL.maarifRapor,kayit.id,{ogretmenId,ders,sinif,aciklama,kontroller:kayit.kontroller||Array(10).fill(false)});
+      CizelgelerService.kayitKaydet('maarifRapor',kayit.id,{ogretmenId,ders,sinif,aciklama,kontroller:kayit.kontroller||Array(10).fill(false)})
+        .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     } else {
       const seciliSinifler=_secilenIdler('f_sinifler');
       if(!seciliSinifler.length){toast('En az bir sınıf seçiniz.');return;}
-      seciliSinifler.forEach(sinif=>{
-        db.collection(COL.maarifRapor).add({ogretmenId,ders,sinif,aciklama,kontroller:Array(10).fill(false),eklenmeTarihi:new Date().toISOString()}).catch(err=>toast('Hata: '+err.message));
-      });
-      toast(`${seciliSinifler.length} sınıf için kayıt oluşturuldu.`);
+      CizelgelerService.cokluKayitOlustur('maarifRapor',{ogretmenId,ders,aciklama,kontroller:Array(10).fill(false)},'sinif',seciliSinifler)
+        .then(n=>toast(`${n} sınıf için kayıt oluşturuldu.`)).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     }
     modalKapat();
-  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){db.collection(COL.maarifRapor).doc(kayit.id).delete();modalKapat();}}:null);
+  },kayit?()=>{if(confirm('Bu kaydı silmek istiyor musunuz?')){CizelgelerService.kayitSil('maarifRapor',kayit.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
 }
 
 function _renderMaarifMatris(el,veri){
@@ -361,9 +365,10 @@ function belirliGunModalAc(id){
     const ad=document.getElementById('f_ad').value.trim();
     const tarihBaslangic=document.getElementById('f_tarihBaslangic').value;
     if(!ad||!tarihBaslangic){toast('Ad ve tarih zorunludur.');return;}
-    kaydet(COL.belirliGunler,e?e.id:null,{ad,tarihBaslangic,tarihBitis:document.getElementById('f_tarihBitis').value,ogretmenIdler:_secilenIdler('f_bgOgr'),aciklama:document.getElementById('f_aciklama').value.trim(),kontroller:e?(e.kontroller||[false]):[false]});
+    CizelgelerService.kayitKaydet('belirliGunler',e?e.id:null,{ad,tarihBaslangic,tarihBitis:document.getElementById('f_tarihBitis').value,ogretmenIdler:_secilenIdler('f_bgOgr'),aciklama:document.getElementById('f_aciklama').value.trim(),kontroller:e?(e.kontroller||[false]):[false]})
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  },e?()=>{if(confirm('Silmek istiyor musunuz?')){db.collection(COL.belirliGunler).doc(e.id).delete();modalKapat();}}:null);
+  },e?()=>{if(confirm('Silmek istiyor musunuz?')){CizelgelerService.kayitSil('belirliGunler',e.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
 }
 
 function renderBelirliGunler(){
@@ -595,16 +600,16 @@ function digerEvrakModalAc(id){
     const evrakAdi = document.getElementById('f_evrakAdi').value.trim();
     const tarih    = document.getElementById('f_tarih').value;
     if(!evrakAdi){ toast('Evrak adı zorunludur.'); return; }
-    kaydet(COL.digerEvrak, e?e.id:null, {
+    CizelgelerService.kayitKaydet('digerEvrak', e?e.id:null, {
       evrakAdi,
       tur:         document.getElementById('f_tur').value,
       sinif:       document.getElementById('f_sinif').value,
       tarih,
       aciklama:    document.getElementById('f_aciklama').value.trim(),
       teslimEdildi:document.getElementById('f_teslim').checked
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, e?()=>{ if(confirm('Bu evrakı silmek istiyor musunuz?')){ db.collection(COL.digerEvrak).doc(e.id).delete(); modalKapat(); } }:null);
+  }, e?()=>{ if(confirm('Bu evrakı silmek istiyor musunuz?')){ CizelgelerService.kayitSil('digerEvrak', e.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } }:null);
 }
 
 function renderDigerEvrak(){
@@ -624,4 +629,25 @@ function renderDigerEvrak(){
         </div>
       </div>
     </div>`).join('')}</div>`;
+}
+
+/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — CizelgelerRepository üzerinden dinleniyor. */
+function cizelgelerBaglantilariKur(){
+  ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
+    CizelgelerRepository.kayitlariDinle(tip, v=>{
+      cizelgeVerileri[tip] = v;
+      renderCizelge(tip);
+      if(tip==='sosyalKulupler') renderSosyalKuluplerListesi();
+    });
+  });
+  CizelgelerRepository.kayitlariDinle('belirliGunler', v=>{
+    belirliGunlerListesi = v;
+    renderBelirliGunler();
+    renderYaklasanEtkinlikler();
+  });
+  CizelgelerRepository.kayitlariDinle('digerEvrak', v=>{
+    digerEvrakListesi = v;
+    if(typeof renderDigerEvrak==='function') renderDigerEvrak();
+  });
 }

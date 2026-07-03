@@ -3,9 +3,24 @@
    Zil çalma saatleri (7 ders + öğle arası) — tamamen esnek/düzenlenebilir.
    Ders Programı tablosundaki saat etiketlerini, teneffüs sürelerini ve
    Genel Bakış sayfasındaki "zile kaç dakika kaldı" canlı sayacını besler.
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + DersSaatleriService çağrısı, db bilmez
+     js/core/services/ders-saatleri.service.js    → yetki kontrolü
+     js/core/repositories/ders-saatleri.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let dersSaatleriAyarlari = null; // Firestore'dan gelen { donemler:[...], ogleArasi:{...} } ya da null (henüz kaydedilmemiş)
+
+/* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — DersSaatleriRepository üzerinden dinleniyor. */
+function dersSaatleriBaglantisiKur(){
+  DersSaatleriRepository.ayarlariDinle(v=>{
+    dersSaatleriAyarlari = v;
+    renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
+    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
+  });
+}
 
 function pad2(n){ return n.toString().padStart(2,'0'); }
 function dakikaToSaat(dk){ dk=((dk%1440)+1440)%1440; return `${pad2(Math.floor(dk/60))}:${pad2(dk%60)}`; }
@@ -234,13 +249,13 @@ function dersSaatleriKaydet(){
   const tatilModu = !!document.getElementById('dsr_tatilModu').checked;
   const tatilModuNotu = (document.getElementById('dsr_tatilModuNot').value||'').trim();
   const okulAcilisTarihi = (document.getElementById('dsr_okulAcilisTarihi')?document.getElementById('dsr_okulAcilisTarihi').value||'':'');
-  db.collection(COL.dersSaatleri).doc('ayarlar').set({ donemler, ogleArasi, ogleArasiVarMi, tatilModu, tatilModuNotu, okulAcilisTarihi })
+  DersSaatleriService.ayarlariKaydet({ donemler, ogleArasi, ogleArasiVarMi, tatilModu, tatilModuNotu, okulAcilisTarihi })
     .then(()=>toast('Ders saatleri kaydedildi.'))
-    .catch(err=>toast('Hata: '+err.message));
+    .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function dersSaatleriVarsayilanaSifirla(){
   if(!confirm('Ders saatlerini varsayılana (40 dk ders, 10 dk teneffüs) sıfırlamak istiyor musunuz?')) return;
-  db.collection(COL.dersSaatleri).doc('ayarlar').set(dersSaatleriVarsayilan())
+  DersSaatleriService.ayarlariKaydet(dersSaatleriVarsayilan())
     .then(()=>toast('Varsayılana sıfırlandı.'))
-    .catch(err=>toast('Hata: '+err.message));
+    .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }

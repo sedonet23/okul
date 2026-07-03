@@ -1,10 +1,15 @@
 /* ====================================================================
    js/ogretmen-izin.js
-   ÖĞRETMEN İZİN / RAPOR TAKİP MODÜLÜ
+   ÖĞRETMEN İZİN / RAPOR TAKİP MODÜLÜ — UI KATMANI
    Personel İşleri'ndeki (hizmetli/memur) puantaj-bağlantılı izin
    sisteminden TAMAMEN AYRI — öğretmenler puantaj/bordro koduna
    dahil değil, bu modül sadece takip amaçlıdır. Kayıtlar öğretmenin
    profiline (öğretmen detay paneli) bağlıdır.
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + OgretmenIzinService çağrısı, db bilmez
+     js/core/services/ogretmen-izin.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/ogretmen-izin.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 const OGRETMEN_IZIN_TURLERI = [
@@ -14,16 +19,17 @@ const OGRETMEN_IZIN_TURLERI = [
 
 let ogretmenIzinleri = [];
 
-/* ---------- Firestore bağlantısı ---------- */
+/* ---------- Firestore bağlantısı ----------
+   Artık doğrudan db.collection() çağrılmıyor — OgretmenIzinRepository üzerinden dinleniyor. */
 function ogretmenIzinBaglantilariKur(){
-  db.collection(COL.ogretmenIzinleri).onSnapshot(s=>{
-    ogretmenIzinleri = s.docs.map(d=>({id:d.id, ...d.data()}));
+  OgretmenIzinRepository.izinleriDinle(v=>{
+    ogretmenIzinleri = v;
     if(typeof renderOgretmenler === 'function') renderOgretmenler();
     if(typeof renderBugunIzinliOgretmenler === 'function') renderBugunIzinliOgretmenler();
     if(document.getElementById('detayOverlay')?.classList.contains('active') && window._acikOgretmenDetayId){
       renderOgretmenIzinBolumu(window._acikOgretmenDetayId);
     }
-  }, hataGoster);
+  });
 }
 
 /* ---------- yardımcılar ---------- */
@@ -39,11 +45,7 @@ function _bugunIzinliMi(ogretmenId){
   return ogretmenIzinleri.find(k => k.ogretmenId === ogretmenId && k.baslangic <= bugun && bugun <= k.bitis) || null;
 }
 
-function _gunSayisiHesapla(baslangic, bitis){
-  const b1 = new Date(baslangic + 'T00:00:00');
-  const b2 = new Date(bitis + 'T00:00:00');
-  return Math.round((b2 - b1) / 86400000) + 1;
-}
+/* not: gün sayısı hesaplama artık OgretmenIzinService.gunSayisiHesapla() içinde */
 
 /* ---------- öğretmen listesi / detay paneli rozeti ---------- */
 function ogretmenIzinRozeti(ogretmenId){
@@ -87,8 +89,7 @@ function ogretmenIzinModalAc(ogretmenId, izinId){
     const baslangic = document.getElementById('f_oiBaslangic').value;
     const bitis = document.getElementById('f_oiBitis').value;
     if(!tur){ toast('İzin türü zorunlu.'); return; }
-    if(!baslangic || !bitis){ toast('Başlangıç ve bitiş tarihi zorunlu.'); return; }
-    if(bitis < baslangic){ toast('Bitiş tarihi başlangıçtan önce olamaz.'); return; }
+    if(!OgretmenIzinService.tarihAraligiGecerliMi(baslangic, bitis)){ toast('Başlangıç ve bitiş tarihi zorunlu, bitiş başlangıçtan önce olamaz.'); return; }
 
     const ogretmen = ogretmenler.find(o => o.id === ogretmenId);
     const adSoyad = ogretmen ? `${ogretmen.ad} ${ogretmen.soyad}` : 'Öğretmen';
@@ -97,47 +98,24 @@ function ogretmenIzinModalAc(ogretmenId, izinId){
       ogretmenId,
       tur,
       baslangic, bitis,
-      gunSayisi: _gunSayisiHesapla(baslangic, bitis),
+      gunSayisi: OgretmenIzinService.gunSayisiHesapla(baslangic, bitis),
       belgeNo: document.getElementById('f_oiBelgeNo').value.trim(),
       aciklama: document.getElementById('f_oiAciklama').value.trim(),
       mebbisIslendiMi: document.getElementById('f_oiMebbis').checked
     };
 
-    // Rapor/izin bitiş hatırlatıcısı: bitiş gününden bir gün önce otomatik
-    // hatırlatıcı oluştur/güncelle (varsa eskisini sil, yeniden oluştur).
-    if(k && k.hatirlaticiId){
-      try{ await db.collection(COL.hatirlaticilar).doc(k.hatirlaticiId).delete(); }catch(e){}
-    }
-    let hatirlaticiId = null;
-    const bitisTarihi = new Date(bitis + 'T00:00:00');
-    const hatirlaticiTarihi = new Date(bitisTarihi.getTime() - 86400000);
-    if(hatirlaticiTarihi >= new Date(todayISO()+'T00:00:00')){
-      const hRef = await db.collection(COL.hatirlaticilar).add({
-        baslik: `🏥 ${adSoyad} — ${tur} bitiyor`,
-        tarih: _isoTarihYaz(hatirlaticiTarihi),
-        saat: '',
-        oncelik: 'Orta',
-        aciklama: `${tur} kaydı ${formatTarih(bitis)} tarihinde sona eriyor.`,
-        tamamlandi: false,
-        bildirimGonderildi: false
-      });
-      hatirlaticiId = hRef.id;
-    }
-    veri.hatirlaticiId = hatirlaticiId;
-
-    kaydet(COL.ogretmenIzinleri, k ? k.id : null, veri);
     modalKapat();
-  }, k ? async ()=>{
+    OgretmenIzinService.izinKaydet(k?k.id:null, k?k.hatirlaticiId:null, adSoyad, veri)
+      .then(()=>toast('Kaydedildi.'))
+      .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+  }, k ? ()=>{
     if(!confirm('Bu izin kaydını silmek istediğinize emin misiniz?')) return;
-    if(k.hatirlaticiId){ try{ await db.collection(COL.hatirlaticilar).doc(k.hatirlaticiId).delete(); }catch(e){} }
-    db.collection(COL.ogretmenIzinleri).doc(k.id).delete();
+    OgretmenIzinService.izinSil(k.id, k.hatirlaticiId).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   } : null);
 }
 
-function _isoTarihYaz(d){
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
+/* not: ISO tarih biçimlendirme artık OgretmenIzinService._isoTarihYaz() içinde */
 
 /* ---------- öğretmen detay panelindeki İzinler bölümü ---------- */
 function renderOgretmenIzinBolumu(ogretmenId){

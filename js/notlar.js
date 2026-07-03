@@ -1,5 +1,5 @@
 /* ============================================================
-   NOTLAR.JS — Gelişmiş Not Defteri Modülü v1.0
+   NOTLAR.JS — Gelişmiş Not Defteri Modülü v1.0 — UI KATMANI
    Özellikler:
    - Zengin metin editörü (kalın, italik, başlık, liste)
    - Yapılacaklar listesi (checkbox todo)
@@ -7,6 +7,11 @@
    - Görüntü ekleme (base64)
    - Tablo ekleme
    - Renk/etiket sistemi
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + NotlarService çağrısı, db bilmez
+     js/core/services/notlar.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/notlar.repository.js → TEK Firestore erişim noktası
    ============================================================ */
 
 /* ---- Renk Etiketleri ---- */
@@ -286,7 +291,7 @@ function _notEditModalAc(n) {
     () => _notKaydet(mevcutId, tip),
     mevcutId ? () => {
       if (confirm('Bu notu silmek istiyor musunuz?')) {
-        db.collection(COL.notlar).doc(mevcutId).delete();
+        NotlarService.notSil(mevcutId).catch(err => { if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
         modalKapat();
       }
     } : null
@@ -1195,7 +1200,7 @@ function _notKaydet(mevcutId, tip) {
     }
   }
 
-  kaydet(COL.notlar, mevcutId, veri);
+  NotlarService.notKaydet(mevcutId, veri).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
   modalKapat();
 }
 
@@ -1206,5 +1211,18 @@ function notTodoToggle(notId, maddeIdx) {
   const n = notlar.find(x => x.id === notId);
   if (!n || !n.maddeler) return;
   n.maddeler[maddeIdx].tamamlandi = !n.maddeler[maddeIdx].tamamlandi;
-  db.collection(COL.notlar).doc(notId).update({ maddeler: n.maddeler });
+  NotlarService.notMaddeleriGuncelle(notId, n.maddeler).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+}
+
+/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — NotlarRepository üzerinden dinleniyor.
+   Görünürlük filtresi (kişisel notlar) NotlarService.gorunurListele() ile uygulanır. */
+function notlarBaglantilariKur(){
+  NotlarRepository.notlariDinle(v=>{
+    notlar = NotlarService.gorunurListele(v);
+    renderNotlar();
+    if(typeof renderDashboardNotlar==='function') renderDashboardNotlar();
+    if(typeof globalAramaYap==='function') globalAramaYap();
+    if(typeof onbellekKaydet==='function') onbellekKaydet();
+  });
 }
