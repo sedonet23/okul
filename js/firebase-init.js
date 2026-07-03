@@ -84,6 +84,8 @@ const COL = {
   // --- YENİ: Uygulama İçi Mesajlaşma (v9.0) ---
   konusmalar:'oy_konusmalar',           // {katilimciUidler:[uid,...], katilimciAdlari:{uid:ad}, grupMu:bool, grupAdi?, sonMesaj:{metin,gonderenUid,tarih}, guncellenmeTarihi, okunmayanlar:{uid:sayi}}
   mesajlar:'oy_mesajlar',               // {konusmaId, gonderenUid, gonderenAdi, metin, tarih}
+  // --- YENİ: Duyuru Panosu (v10.0) — Haberler modülünden BAĞIMSIZ ---
+  duyurular:'oy_duyurular',             // {baslik, icerik, tarih:ISO, olusturanUid, olusturanAdi, okuyanlar:{uid:{ad,tarih}}}
 };
 
 let db = null;

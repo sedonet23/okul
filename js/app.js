@@ -1502,6 +1502,7 @@ function baglantilariKur(){
 
   if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur();
   if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur();
+  if(typeof duyurularBaglantilariKur === 'function') duyurularBaglantilariKur();
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
   if(typeof ogretmenIzinBaglantilariKur === 'function') ogretmenIzinBaglantilariKur();
