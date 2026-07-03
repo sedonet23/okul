@@ -76,22 +76,20 @@
   <aside class="sidebar">
     <div class="sidebar-head">
       <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
-      <div class="brand" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">
-        <div class="brand-mark"><img src="assets/icon-192.png" alt="Koruk İlk-Ortaokulu logosu"></div>
-        <div style="min-width:0;">
-          <div class="brand-title">Koruk İlk-Ortaokulu</div>
-          <div class="brand-sub" id="bugunMetni"></div>
+      <!-- DÜZELTME: Üstteki logo+okul adı kaldırıldı, yerine kullanıcı profili
+           kondu — tıklayınca kendi profil sayfası açılır (bkz. profilVeyaSecimAc,
+           js/kullanici-yonetimi.js). Hesaptan çıkış butonu da buraya taşındı. -->
+      <div id="sidebarHesap" style="display:none;align-items:center;gap:8px;flex:1;min-width:0;">
+        <div onclick="profilVeyaSecimAc()" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;" title="Profilimi Aç">
+          <img id="hesapAvatar" src="assets/icon-192.png" alt="" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;object-fit:cover;">
+          <div style="flex:1;min-width:0;">
+            <div id="hesapAd" style="font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="hesapEmail" style="font-size:10.5px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          </div>
         </div>
+        <button id="hesapCikisBtn" title="Hesaptan çıkış yap" aria-label="Hesaptan çıkış yap" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;flex-shrink:0;display:flex;align-items:center;gap:4px;color:var(--ink-muted);">🚪</button>
       </div>
       <button class="theme-toggle in-sidebar" id="temaDugmesi" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
-    </div>
-    <div id="sidebarHesap" style="display:none;align-items:center;gap:8px;padding:8px 14px;margin:0 8px 6px;border-radius:12px;background:var(--nm-bg);">
-      <img id="hesapAvatar" src="assets/icon-192.png" alt="" style="width:30px;height:30px;border-radius:50%;flex-shrink:0;object-fit:cover;">
-      <div style="flex:1;min-width:0;">
-        <div id="hesapAd" style="font-weight:700;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-        <div id="hesapEmail" style="font-size:10.5px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
-      </div>
-      <button id="hesapCikisBtn" title="Hesaptan çıkış yap" aria-label="Hesaptan çıkış yap" style="background:none;border:none;cursor:pointer;font-size:16px;flex-shrink:0;">🚪</button>
     </div>
     <nav class="nav">
       <button class="nav-tab active" data-tab="panel"><span class="nt-ico ni-panel">🏠</span><span class="nt-label">Genel Bakış</span></button>
