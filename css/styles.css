@@ -2988,3 +2988,21 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   background: none; border: none; color: var(--ink-muted); font-size: 14px;
   cursor: pointer; flex-shrink: 0; padding: 4px;
 }
+
+/* =========================================================================
+   DUYURU PANOSU — okunmamış duyuru ikonu yanıp söner
+   (bkz. js/duyurular.js renderDuyuruPanosu)
+   ========================================================================= */
+.duyuru-ikon{
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%; font-size: 14px;
+  background: var(--brand-light); flex-shrink: 0;
+}
+.duyuru-ikon-yanip-soner{
+  animation: duyuruYanipSon 1.4s ease-in-out infinite;
+}
+@keyframes duyuruYanipSon{
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(220,38,38,.45); }
+  50% { opacity: .55; box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+}
+.duyuru-okunmamis{ background: var(--brand-light); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
