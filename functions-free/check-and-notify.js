@@ -85,18 +85,13 @@ async function kontrolEt() {
   });
 
   if (gonderilecekler.length === 0) {
-    console.log('Gönderilecek bildirim yok.');
-    return { gonderilen: 0 };
+    console.log('Genel bildirim yok.');
   }
 
-  // FCM Tokenları
+  // FCM Tokenları (genel — hatırlatıcı/görev/periyodik için TÜM cihazlara gider)
   const cSnap = await db.collection('oy_cihazTokenleri').get();
-  const tokenDocs = cSnap.docs.map(d => ({ id: d.id, token: d.data().token }));
+  const tokenDocs = cSnap.docs.map(d => ({ id: d.id, token: d.data().token, uid: d.data().uid || null }));
   const tokens = tokenDocs.map(t => t.token).filter(Boolean);
-
-  if (tokens.length === 0) {
-    console.log('Kayıtlı cihaz yok — yine de işaretleniyor.');
-  }
 
   const gecersiz = new Set();
 
@@ -124,13 +119,50 @@ async function kontrolEt() {
     await db.collection(item.koleksiyon).doc(item.docId).update({ bildirimGonderildi: true });
   }
 
+  // ---- Mesajlaşma bildirimleri (HEDEFLİ — sadece o konuşmanın katılımcılarına) ----
+  // DÜZELTME: Diğer bildirimlerin aksine mesajlar TÜM cihazlara değil, SADECE
+  // ilgili konuşmanın katılımcılarına (gönderen hariç) gönderilir — bu yüzden
+  // oy_cihazTokenleri artık uid alanı taşıyor (bkz. js/push.js).
+  let mesajGonderilen = 0;
+  const kSnap = await db.collection('oy_konusmalar').get();
+  for (const kDoc of kSnap.docs) {
+    const k = kDoc.data();
+    if (!k.sonMesaj || !k.sonMesaj.tarih) continue;
+    const sonBildirilen = k.sonBildirilenMesajTarihi || '';
+    if (k.sonMesaj.tarih <= sonBildirilen) continue; // bu mesaj için zaten bildirim gönderildi
+
+    const aliciUidler = (k.katilimciUidler || []).filter(uid => uid !== k.sonMesaj.gonderenUid);
+    const aliciTokenlari = tokenDocs.filter(t => t.uid && aliciUidler.includes(t.uid)).map(t => t.token);
+
+    if (aliciTokenlari.length > 0) {
+      const baslik = k.grupMu ? `${k.grupAdi || 'Grup'} — ${k.katilimciAdlari?.[k.sonMesaj.gonderenUid] || 'Biri'}` : (k.katilimciAdlari?.[k.sonMesaj.gonderenUid] || 'Yeni mesaj');
+      try {
+        const yanit = await admin.messaging().sendEachForMulticast({
+          tokens: aliciTokenlari,
+          notification: { title: `💬 ${baslik}`, body: k.sonMesaj.metin.slice(0, 120) }
+        });
+        yanit.responses.forEach((r, i) => {
+          if (!r.success) {
+            const kod = r.error?.code || '';
+            if (kod.includes('not-registered') || kod.includes('invalid-registration')) gecersiz.add(aliciTokenlari[i]);
+          }
+        });
+        mesajGonderilen++;
+        console.log(`Mesaj bildirimi gönderildi: konuşma ${kDoc.id} (${yanit.successCount}/${aliciTokenlari.length})`);
+      } catch (err) {
+        console.error('Mesaj FCM hatası:', err.message);
+      }
+    }
+    await db.collection('oy_konusmalar').doc(kDoc.id).update({ sonBildirilenMesajTarihi: k.sonMesaj.tarih });
+  }
+
   // Geçersiz tokenları temizle
   for (const t of gecersiz) {
     const eslesen = tokenDocs.find(d => d.token === t);
     if (eslesen) await db.collection('oy_cihazTokenleri').doc(eslesen.id).delete();
   }
 
-  return { gonderilen: gonderilecekler.length };
+  return { gonderilen: gonderilecekler.length, mesajBildirimGonderilen: mesajGonderilen };
 }
 
 // ── Sağlık kontrolü ──────────────────────────────────────────────────
