@@ -346,7 +346,7 @@ const _SALT_OKUMA_GIZLE_DESENLERI = [
    gizlenmesin diye yukarıdaki desenlerden istisna tutulur. */
 const _SALT_OKUMA_ISTISNA_DESENLERI = [
   /Rapor/i, /Yazdir/i, /Sirku/i, /DetayAc\(/, /DetayModalAc\(/,
-  /hizliEkleModalAc/, /kullaniciSecModalAc/, /profilVeyaSecimAc/,
+  /hizliEkleModalAc/, /profilVeyaSecimAc/,
   /ListeOlustur/i, /OnayModalAc\(/,
 ];
 function _saltOkumaYazmaTetikleyicisiMi(oc){
@@ -412,10 +412,18 @@ function bagliOgretmenimGetir(){
 
 /* Topbar avatar tıklaması: bağlı öğretmeni olan kullanıcı kendi profilini
    görür; admin/bağsız kullanıcı eski kullanıcı seçme modalını görür. */
+/* DÜZELTME: Eskiden bağlı öğretmen kaydı yoksa "Kullanıcı Seç" modalı
+   açılırdı — bu özellik tamamen kaldırıldı (bkz. js/ui.js notu). Artık
+   bağlantısız hesaplar (genelde admin/idari hesap) için sadece bilgi
+   mesajı gösterilir; süper adminler Kullanıcı Yönetimi'ne yönlendirilir. */
 function profilVeyaSecimAc(){
   const ben = bagliOgretmenimGetir();
   if(ben && typeof ogretmenDetayAc === 'function'){ ogretmenDetayAc(ben.id); return; }
-  if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc();
+  if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin){
+    toast('Hesabınıza bağlı bir öğretmen kaydı yok. (Süper admin hesabı)');
+  } else {
+    toast('Hesabınıza bağlı bir öğretmen kaydı yok. Yöneticinizden Kullanıcı Yönetimi\'nden bağlamasını isteyin.');
+  }
 }
 
 /* Kendi profilinde SADECE foto/telefon/e-posta güncellenebilir. */

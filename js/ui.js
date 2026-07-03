@@ -175,77 +175,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 /* ================================================================
-   KULLANICI SEÇİMİ (aktif profil) — topbar avatarına tıklayınca açılır.
-   Bu modal ve topbar avatar butonu index.html'de zaten vardı ama bu
-   fonksiyonlar hiç yazılmamıştı; bu yüzden butona basınca hiçbir şey
-   olmuyordu ve karşılama metni her zaman sabit "Sedat Bey" yazıyordu.
-   Seçim localStorage'da 'oyAktifKullaniciId' / 'oyAktifKullaniciTip'
-   olarak tutulur ('ogretmen' | 'personel').
+/* ================================================================
+   DÜZELTME: "Kullanıcı Seç" (aktif profil, çoklu kişi tek cihaz) modalı
+   TAMAMEN KALDIRILDI — artık herkes kendi Google hesabıyla giriş yapıyor
+   ve hesap-öğretmen bağlantısı Kullanıcı Yönetimi'nden (admin tarafından,
+   bkz. js/kullanici-yonetimi.js AKTIF_KULLANICI.bagliOgretmenId) kuruluyor.
+   Kimlik artık HİÇBİR ZAMAN elle seçilmiyor; js/auth.js girişte otomatik
+   çözüyor (bkz. _hesapKimligi() / profilVeyaSecimAc()).
    ================================================================ */
-function kullaniciSecModalAc(){
-  const modal = document.getElementById('kullaniciSecModal');
-  const liste = document.getElementById('kullaniciSecListe');
-  if(!modal || !liste) return;
-
-  const aktifId = localStorage.getItem('oyAktifKullaniciId') || '';
-  const kisiler = [];
-  (typeof ogretmenler !== 'undefined' ? ogretmenler : []).forEach(o=>{
-    const ad = ((o.ad||'')+' '+(o.soyad||'')).trim();
-    if(ad) kisiler.push({ id:o.id, tip:'ogretmen', ad, rol: o.unvan || o.brans || 'Öğretmen' });
-  });
-  (typeof personelListesi !== 'undefined' ? personelListesi : []).forEach(p=>{
-    const ad = (p.ad || p.adSoyad || '').trim();
-    if(ad) kisiler.push({ id:p.id, tip:'personel', ad, rol: p.gorev || 'Personel' });
-  });
-  kisiler.sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
-
-  let html = `<button onclick="kullaniciSec('','')" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid ${!aktifId?'var(--brand)':'var(--border)'};background:${!aktifId?'var(--brand-light)':'none'};cursor:pointer;">
-    <div style="width:34px;height:34px;border-radius:50%;background:var(--nm-bg);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
-    <div style="flex:1;"><div style="font-weight:700;color:var(--ink);font-size:14px;">Genel (kişiselleştirme yok)</div></div>
-    ${!aktifId ? '<span style="color:var(--brand);font-size:18px;">✓</span>' : ''}
-  </button>`;
-
-  if(!kisiler.length){
-    html += '<p class="empty-state" style="margin-top:10px;">Henüz öğretmen/personel kaydı yok.</p>';
-  } else {
-    html += kisiler.map(k => `
-      <button onclick="kullaniciSec('${k.id}','${k.tip}')" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;border:1px solid ${k.id===aktifId?'var(--brand)':'var(--border)'};background:${k.id===aktifId?'var(--brand-light)':'none'};cursor:pointer;">
-        <div style="width:34px;height:34px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${escapeHtml((k.ad[0]||'?').toUpperCase())}</div>
-        <div style="flex:1;">
-          <div style="font-weight:700;color:var(--ink);font-size:14px;">${escapeHtml(k.ad)}</div>
-          <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.rol)}</div>
-        </div>
-        ${k.id===aktifId ? '<span style="color:var(--brand);font-size:18px;">✓</span>' : ''}
-      </button>`).join('');
-  }
-
-  liste.innerHTML = html;
-  modal.style.display = 'flex';
-  document.body.classList.add('modal-open');
-}
-
-function kullaniciSecModalKapat(){
-  const modal = document.getElementById('kullaniciSecModal');
-  if(modal) modal.style.display = 'none';
-  document.body.classList.remove('modal-open');
-}
-
-function kullaniciSec(id, tip){
-  if(id){
-    localStorage.setItem('oyAktifKullaniciId', id);
-    localStorage.setItem('oyAktifKullaniciTip', tip);
-  } else {
-    localStorage.removeItem('oyAktifKullaniciId');
-    localStorage.removeItem('oyAktifKullaniciTip');
-  }
-  // "Genel (kişiselleştirme yok)" seçilse bile bu, bir SEÇİM yapıldığını
-  // gösterir — bu işaret olmadan boş oyAktifKullaniciId ile "hiç
-  // sorulmadı" durumu ayırt edilemez, her açılışta tekrar sorardı.
-  localStorage.setItem('oyKullaniciSecimiYapildi', '1');
-  aktifKullaniciyiGuncelle();
-  if(typeof renderDashboard === 'function') renderDashboard();
-  kullaniciSecModalKapat();
-}
 
 /* ================================================================
    DÜZELTME: Bu fonksiyon eskiden SADECE localStorage'daki elle seçilmiş

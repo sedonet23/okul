@@ -341,21 +341,12 @@ function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
 }
 window.uygulamaHtmlYazdir = uygulamaHtmlYazdir;
 
-/* ---------- İlk açılışta "Bu uygulamayı kim kullanıyor?" sorma ----------
-   Sadece HİÇ seçim yapılmamışsa (oyKullaniciSecimiYapildi işareti yoksa)
-   ve öğretmen/personel listesi Firestore'dan geldiyse (liste boşken
-   modal açmanın anlamı yok) bir kereliğine otomatik açılır. */
+/* ---------- DÜZELTME: "Bu uygulamayı kim kullanıyor?" sorma özelliği KALDIRILDI ----------
+   Artık herkes kendi Google hesabıyla giriş yapıyor, kimlik Kullanıcı
+   Yönetimi'nden kurulan hesap-öğretmen bağlantısıyla (bkz. js/auth.js
+   AKTIF_KULLANICI.bagliOgretmenId) otomatik çözülüyor — elle seçim yok. */
 let _ilkAcilistaKullaniciSorFlag = false;
-function _ilkAcilistaKullaniciSor(){
-  if(_ilkAcilistaKullaniciSorFlag) return; // bu oturumda zaten denendi
-  if(localStorage.getItem('oyKullaniciSecimiYapildi')) return; // daha önce cevaplanmış
-  const kisiSayisi = (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0) +
-    (typeof personelListesi !== 'undefined' ? personelListesi.length : 0);
-  if(kisiSayisi === 0) return; // liste henüz gelmedi, bekle (bir sonraki onSnapshot'ta tekrar denenir)
-
-  _ilkAcilistaKullaniciSorFlag = true;
-  setTimeout(()=>{ if(typeof kullaniciSecModalAc === 'function') kullaniciSecModalAc(); }, 600);
-}
+function _ilkAcilistaKullaniciSor(){}
 
 /* ====================================================================
    ORTAK DOSYA KAYDETME/İNDİRME YARDIMCISI
@@ -1417,9 +1408,6 @@ function sekmeAc(tab){
   // YENİ: açık hava durumu detay panelini kapat
   var wp = document.getElementById('havaDurumuDetayPanel');
   if(wp) wp.remove();
-  // YENİ: açık kullanıcı seçim modalını kapat
-  var km = document.getElementById('kullaniciSecModal');
-  if(km) km.style.display = 'none';
   document.body.classList.remove('modal-open');
   // Arama sekmesi açılınca sonuçları güncelle — veriler henüz yüklenmemiş
   // olabilir, bu yüzden onSnapshot dinleyicileri de globalAramaYap()'ı
@@ -1446,12 +1434,6 @@ function geriTusuIsle(){
 
   var deo = document.getElementById('detayOverlay');
   if(deo && deo.classList.contains('active')){ detayPanelKapat(); return 'handled'; }
-
-  var ksm = document.getElementById('kullaniciSecModal');
-  if(ksm && ksm.style.display && ksm.style.display !== 'none'){
-    if(typeof kullaniciSecModalKapat === 'function') kullaniciSecModalKapat(); else ksm.style.display = 'none';
-    return 'handled';
-  }
 
   var hp = document.getElementById('havaDurumuDetayPanel');
   if(hp){ hp.remove(); return 'handled'; }
