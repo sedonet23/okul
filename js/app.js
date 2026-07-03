@@ -717,10 +717,24 @@ function dersModalAc(gun, saat, mevcut){
     const sinif = document.getElementById('f_sinif').value.trim();
     const ders = document.getElementById('f_ders').value.trim();
     if(!sinif || !ders){ toast('Sınıf ve ders alanı zorunludur.'); return; }
+    const yeniGun = document.getElementById('f_gun').value;
+    const yeniSaat = parseInt(document.getElementById('f_saat').value);
+    const yeniOgretmenId = document.getElementById('f_ogretmen').value;
+    // DÜZELTME: Aynı öğretmen aynı gün+saatte başka bir sınıfa da atanabiliyordu
+    // (çakışma kontrolü hiç yoktu). Kaydetmeden önce, bu öğretmenin aynı
+    // gün+saatte BAŞKA bir sınıfta zaten dersi olup olmadığını kontrol et.
+    if(yeniOgretmenId){
+      const cakisan = dersProgrami.find(d=>
+        d.ogretmenId === yeniOgretmenId && d.gun === yeniGun && d.saat === yeniSaat &&
+        d.sinif !== sinif && (!mevcut || d.id !== mevcut.id)
+      );
+      if(cakisan){
+        toast(`Çakışma: ${ogretmenAdi(yeniOgretmenId)}, ${yeniGun} günü ${yeniSaat}. derste zaten ${cakisan.sinif} sınıfına giriyor.`);
+        return;
+      }
+    }
     kaydet(COL.dersProgrami, mevcut?mevcut.id:null, {
-      sinif, gun: document.getElementById('f_gun').value,
-      saat: parseInt(document.getElementById('f_saat').value),
-      ders, ogretmenId: document.getElementById('f_ogretmen').value
+      sinif, gun: yeniGun, saat: yeniSaat, ders, ogretmenId: yeniOgretmenId
     });
     seciliSinif = sinif;
     modalKapat();

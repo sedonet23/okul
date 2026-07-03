@@ -78,7 +78,16 @@ async function dersProgramiExceliIceAktar(file){
     const col = (...adlar)=>{ for(const a of adlar){ const i = header.indexOf(a); if(i!==-1) return i; } return -1; };
     const cSinif=col('SINIF'), cGun=col('GÜN','GUN'), cSaat=col('SAAT','DERS SAATİ'), cDers=col('DERS'), cOgretmen=col('ÖĞRETMEN','OGRETMEN');
 
-    let eklenen=0, guncellenen=0;
+    let eklenen=0, guncellenen=0, cakisan=0;
+    // DÜZELTME: Excel içe aktarma da tekil ders girişiyle aynı çakışma kontrolünden
+    // geçmeli — aynı öğretmen aynı gün+saatte iki farklı sınıfa atanmasın.
+    // Bu import'ta henüz kaydedilmemiş (ama işlenmiş) satırları da hesaba katmak
+    // için mevcut dersProgrami'nin üzerine kendi ilerleyen bir harita kuruyoruz.
+    const ogretmenGunSaatHaritasi = new Map();
+    dersProgrami.forEach(d=>{
+      if(!d.ogretmenId) return;
+      ogretmenGunSaatHaritasi.set(`${d.ogretmenId}__${d.gun}__${d.saat}`, d.sinif);
+    });
     for(let i=headerIdx+1;i<aoa.length;i++){
       const row = aoa[i]; if(!row) continue;
       const sinif = cSinif!==-1 ? String(row[cSinif]||'').trim() : '';
@@ -88,12 +97,22 @@ async function dersProgramiExceliIceAktar(file){
       if(!sinif || !gun || !ders || isNaN(saat)) continue;
       const ogretmenAdSoyad = cOgretmen!==-1 ? String(row[cOgretmen]||'').trim() : '';
       const ogretmenObj = ogretmenler.find(o=>(`${o.ad} ${o.soyad}`).localeCompare(ogretmenAdSoyad,'tr',{sensitivity:'base'})===0);
-      const veri = { sinif, gun, saat, ders, ogretmenId: ogretmenObj ? ogretmenObj.id : '' };
+      const ogretmenId = ogretmenObj ? ogretmenObj.id : '';
+      if(ogretmenId){
+        const anahtar = `${ogretmenId}__${gun}__${saat}`;
+        const mevcutSinif = ogretmenGunSaatHaritasi.get(anahtar);
+        if(mevcutSinif && mevcutSinif !== sinif){
+          cakisan++;
+          continue; // Bu satırı atla — öğretmen aynı gün+saatte başka sınıfta zaten var.
+        }
+        ogretmenGunSaatHaritasi.set(anahtar, sinif);
+      }
+      const veri = { sinif, gun, saat, ders, ogretmenId };
       const mevcut = dersProgrami.find(d=>d.sinif===sinif && d.gun===gun && d.saat===saat);
       if(mevcut){ await db.collection(COL.dersProgrami).doc(mevcut.id).update(veri); guncellenen++; }
       else { await db.collection(COL.dersProgrami).add({...veri, eklenmeTarihi:new Date().toISOString()}); eklenen++; }
     }
-    toast(`Ders programı içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.`);
+    toast(`Ders programı içe aktarıldı: ${eklenen} eklendi, ${guncellenen} güncellendi.${cakisan?` ⚠️ ${cakisan} satır öğretmen çakışması nedeniyle atlandı.`:''}`);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
 
