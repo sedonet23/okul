@@ -1,11 +1,35 @@
 /* ====================================================================
-   SINIFLAR MODÜLÜ
+   js/siniflar.js
+   SINIFLAR MODÜLÜ — UI KATMANI
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + SiniflarService çağrısı, db bilmez
+     js/core/services/siniflar.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/siniflar.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let siniflar = [];
 let veliler = [];
 let detaySinifId = null;
 let detaySinifSekme = 'bilgi';
+
+/* ---------- FIRESTORE BAĞLANTILARI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — SiniflarRepository üzerinden dinleniyor. */
+function sinifBaglantilariKur(){
+  SiniflarRepository.siniflariDinle(v=>{
+    siniflar = v;
+    renderSiniflar(); renderDersGrid(); renderDashboard(); renderVeriSekmesi();
+    if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayBilgiRender(sn); }
+    if(typeof globalAramaYap==='function') globalAramaYap();
+    onbellekKaydet();
+  });
+  SiniflarRepository.velileriDinle(v=>{
+    veliler = v;
+    if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn){ sinifDetayBilgiRender(sn); sinifDetayOgrenciRender(sn); } }
+    if(typeof renderOgrenciler==='function') renderOgrenciler();
+    if(typeof globalAramaYap==='function') globalAramaYap();
+    onbellekKaydet();
+  });
+}
 
 function sinifAdiSirala(a,b){ return String(a.ad||'').localeCompare(String(b.ad||''), 'tr'); }
 
@@ -61,11 +85,10 @@ function sinifModalAc(id){
   modalAc(s?'Sınıf Düzenle':'Yeni Sınıf', body, ()=>{
     const ad = document.getElementById('f_sAd').value.trim();
     if(!ad){ toast('Sınıf adı zorunludur.'); return; }
-    const varMi = siniflar.find(x=>x.ad===ad && (!s || x.id!==s.id));
-    if(varMi){ toast('Bu isimde bir sınıf zaten var.'); return; }
+    if(!SiniflarService.adBenzersizMi(siniflar, ad, s?s.id:null)){ toast('Bu isimde bir sınıf zaten var.'); return; }
     const kiz = parseInt(document.getElementById('f_sKiz').value)||0;
     const erkek = parseInt(document.getElementById('f_sErkek').value)||0;
-    kaydet(COL.siniflar, s?s.id:null, {
+    SiniflarService.sinifKaydet(s?s.id:null, {
       ad,
       seviye: document.getElementById('f_sSeviye').value,
       derslik: document.getElementById('f_sDerslik').value.trim(),
@@ -74,9 +97,9 @@ function sinifModalAc(id){
       erkekSayisi: erkek,
       ogrenciSayisi: kiz+erkek,
       notlar: document.getElementById('f_sNotlar').value.trim(),
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, s ? ()=>{ if(confirm('Bu sınıfı silmek istediğinize emin misiniz? (Ders programındaki kayıtlar silinmez.)')){ db.collection(COL.siniflar).doc(s.id).delete(); modalKapat(); } } : null);
+  }, s ? ()=>{ if(confirm('Bu sınıfı silmek istediğinize emin misiniz? (Ders programındaki kayıtlar silinmez.)')){ SiniflarService.sinifSil(s.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ---------- detay panel sekme ---------- */
@@ -279,7 +302,7 @@ function sinifVeliModalAc(id){
     const ogrenciAdi = document.getElementById('f_vOgrenci').value.trim();
     if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
     const servisId = document.getElementById('f_vServis').value;
-    kaydet(COL.veliler, v?v.id:null, {
+    SiniflarService.veliKaydet(v?v.id:null, {
       sinifId: detaySinifId,
       ogrenciAdi,
       ogrenciNo: document.getElementById('f_vOgrenciNo').value.trim(),
@@ -297,9 +320,9 @@ function sinifVeliModalAc(id){
       servisId,
       servisAdi: servisId ? (servisler.find(sv=>sv.id===servisId)||{}).servisAdi||'' : '',
       notlar: document.getElementById('f_vNotlar').value.trim(),
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, v ? ()=>{ if(confirm('Bu öğrenci kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.veliler).doc(v.id).delete(); modalKapat(); } } : null);
+  }, v ? ()=>{ if(confirm('Bu öğrenci kaydını silmek istediğinize emin misiniz?')){ SiniflarService.veliSil(v.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ---------- öğrenci detay modalı (görüntüleme) ---------- */
