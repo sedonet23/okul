@@ -983,6 +983,12 @@ function renderDashboard(){
      kartında zaten aynı 🚺/🚹 dağılımı gösteriliyordu, tekrar oluyordu.
      Yerine "Bugünkü Ders" sayısı kondu. ---- */
   const bugunkuDersSayisi = dersProgrami.filter(d=>d.gun===bugunGun).length;
+  // YENİ: Öğretmene özel — hesabına bağlı bir öğretmen kaydı varsa,
+  // yaklaşan (bugün dahil, bugünden ileri) kendi sınav sayısını gösterir.
+  const _hbBenOgretmen = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  const yaklasanSinavSayisi = _hbBenOgretmen
+    ? (typeof sinavlar!=='undefined' ? sinavlar : []).filter(s=>s.ogretmenId===_hbBenOgretmen.id && s.tarih>=todayISO()).length
+    : 0;
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
     hizliBakisEl.innerHTML = [
@@ -990,6 +996,7 @@ function renderDashboard(){
       gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>` : '',
       gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>` : '',
       gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
+      (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div></div>` : '',
     ].join('');
   }
   /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı + okunmamış duyuru sayısı) ---- */

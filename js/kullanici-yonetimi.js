@@ -85,7 +85,7 @@ function sidebarYetkiUygula(){
   // olup olmamasına göre gösterilir (bkz. aşağıdaki _bnIkinciItemAyarla).
   document.querySelectorAll('.bn-item[data-tab]').forEach(btn=>{
     const modul = btn.dataset.tab;
-    if(modul === 'panel' || modul === 'dersNobetProgramim') return;
+    if(modul === 'panel' || modul === 'dersNobetProgramim' || btn.id === 'bnIkinciItem') return;
     btn.style.display = gorebilir(modul) ? '' : 'none';
   });
   if(typeof _bnIkinciItemAyarla === 'function') _bnIkinciItemAyarla();
@@ -106,13 +106,27 @@ function sidebarYetkiUygula(){
    "Evraklar" gösterilir. bagliOgretmenimGetir() veri henüz yüklenmediyse null
    dönebilir — sidebarYetkiUygula() veri güncellemelerinde tekrar çağrıldığı
    için bu kendiliğinden düzelir (bkz. avatar/selamlama ile aynı desen). */
+/* Alt menünün 2. butonu: SÜPER ADMİN'de "Çizelgeler", hesabına bağlı bir
+   öğretmen kaydı olan (ve admin olmayan) kullanıcıda "Ders ve Nöbet
+   Programım", ikisi de değilse normal "Evraklar" gösterilir. Admin
+   kontrolü öğretmen bağlantısından ÖNCELİKLİDİR — bir admin hesabı aynı
+   zamanda bir öğretmene bağlıysa bile admin için "Çizelgeler" gösterilir
+   (öğretmenlik bilgisi burada değil "Programım" sayfasında zaten mevcut). */
 function _bnIkinciItemAyarla(){
   const btn = document.getElementById('bnIkinciItem');
   if(!btn) return;
-  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
   const ikon = btn.querySelector('.bn-ico');
   const etiket = btn.querySelector('.bn-label');
-  if(ben){
+  const adminMi = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin === true;
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+
+  if(adminMi){
+    btn.dataset.tab = 'sosyalKulupler';
+    btn.setAttribute('onclick', "sekmeAc('sosyalKulupler'); bottomNavAktifYap(this);");
+    if(ikon) ikon.textContent = '📊';
+    if(etiket) etiket.textContent = 'Çizelgeler';
+    btn.style.display = '';
+  } else if(ben){
     btn.dataset.tab = 'dersNobetProgramim';
     btn.setAttribute('onclick', "sekmeAc('dersNobetProgramim'); bottomNavAktifYap(this);");
     if(ikon) ikon.textContent = '📚';
