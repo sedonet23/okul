@@ -36,6 +36,42 @@ const MesajlasmaRepository = {
   },
   mesajEkle(veri){ return db.collection(COL.mesajlar).add({ ...veri, tarih: new Date().toISOString() }); },
   mesajSil(id){ return db.collection(COL.mesajlar).doc(id).delete(); },
+  /* Bir konuşmaya ait TÜM mesajları (ve varsa dosya eklerini) toplu siler
+     (konuşma silinirken kullanılır). */
+  async mesajlariTopluSil(konusmaId){
+    const snap = await db.collection(COL.mesajlar).where('konusmaId', '==', konusmaId).get();
+    if(snap.empty) return;
+    await Promise.all(snap.docs.map(d=>{
+      const veri = d.data();
+      return veri.dosya && veri.dosya.storagePath ? this.dosyaSil(veri.dosya.storagePath).catch(()=>{}) : Promise.resolve();
+    }));
+    const batch = db.batch();
+    snap.docs.forEach(d => batch.delete(d.ref));
+    return batch.commit();
+  },
+
+  /* ---------- Dosya eki (Firebase Storage) ----------
+     Yol: mesajDosyalari/{konusmaId}/{zamanDamgasi}_{dosyaAdi}
+     Not: Storage, bu koleksiyonların aksine Firestore DEĞİLDİR — ayrı bir
+     Firebase ürünüdür, kendi güvenlik kuralları (Storage Rules) gerekir. */
+  dosyaYukle(konusmaId, dosya, ilerlemeCb){
+    return new Promise((resolve, reject)=>{
+      const yol = `mesajDosyalari/${konusmaId}/${Date.now()}_${dosya.name}`;
+      const ref = storage.ref().child(yol);
+      const gorev = ref.put(dosya);
+      gorev.on('state_changed',
+        (snap)=>{ if(ilerlemeCb) ilerlemeCb(Math.round((snap.bytesTransferred/snap.totalBytes)*100)); },
+        (err)=> reject(err),
+        async ()=>{
+          try{
+            const url = await gorev.snapshot.ref.getDownloadURL();
+            resolve({ url, storagePath: yol });
+          }catch(err){ reject(err); }
+        }
+      );
+    });
+  },
+  dosyaSil(storagePath){ return storage.ref().child(storagePath).delete(); },
   /* Bir konuşmaya ait TÜM mesajları toplu siler (konuşma silinirken kullanılır). */
   async mesajlariTopluSil(konusmaId){
     const snap = await db.collection(COL.mesajlar).where('konusmaId', '==', konusmaId).get();
