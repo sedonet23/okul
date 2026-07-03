@@ -20,6 +20,8 @@ let konusmalar = [];
 let mesajlar = [];
 let _aktifKonusmaId = null;
 let _mesajDinleyiciKaldir = null;
+let _sonBilinenMesajTarihleri = {}; // konusmaId -> son görülen sonMesaj.tarih (yeni mesaj algılamak için)
+let _mesajBaloncukIlkYuklemeAtlandi = false; // sayfa ilk açıldığında zaten var olan mesajlar için baloncuk göstermesin
 
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ---------- */
 function mesajlasmaBaglantilariKur(){
@@ -27,6 +29,7 @@ function mesajlasmaBaglantilariKur(){
   const uid = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null;
   if(!uid) return;
   MesajlasmaRepository.konusmalariDinle(uid, v=>{
+    _yeniMesajVarMiKontrolEt(v, uid);
     konusmalar = v;
     renderKonusmaListesi();
     if(typeof renderMesajRozeti === 'function') renderMesajRozeti();
@@ -36,6 +39,54 @@ function mesajlasmaBaglantilariKur(){
     }
   });
 }
+
+/* Önceki durumla karşılaştırıp YENİ gelen (kendi göndermediğimiz, şu an
+   açık olmayan bir konuşmadaki) mesajları tespit eder ve baloncuk gösterir.
+   İlk yüklemede (uygulama daha yeni açıldığında) baloncuk göstermez —
+   sadece bundan SONRA gelen gerçek yeni mesajlarda tetiklenir. */
+function _yeniMesajVarMiKontrolEt(yeniKonusmalar, benUid){
+  if(!_mesajBaloncukIlkYuklemeAtlandi){
+    yeniKonusmalar.forEach(k=>{ if(k.sonMesaj) _sonBilinenMesajTarihleri[k.id] = k.sonMesaj.tarih; });
+    _mesajBaloncukIlkYuklemeAtlandi = true;
+    return;
+  }
+  yeniKonusmalar.forEach(k=>{
+    if(!k.sonMesaj) return;
+    const oncekiTarih = _sonBilinenMesajTarihleri[k.id];
+    const yeniMi = k.sonMesaj.tarih !== oncekiTarih;
+    _sonBilinenMesajTarihleri[k.id] = k.sonMesaj.tarih;
+    if(!yeniMi) return;
+    if(k.sonMesaj.gonderenUid === benUid) return; // kendi mesajımız
+    if(_aktifKonusmaId === k.id) return; // zaten bu konuşmayı açık okuyor
+    const baslik = k.grupMu ? (k.grupAdi || 'Grup') : (k.katilimciAdlari?.[k.sonMesaj.gonderenUid] || 'Yeni mesaj');
+    mesajBaloncuguGoster(k.id, baslik, k.sonMesaj.metin);
+  });
+}
+
+let _mesajBaloncukZamanlayici = null;
+let _mesajBaloncukKonusmaId = null;
+function mesajBaloncuguGoster(konusmaId, baslik, metin){
+  const el = document.getElementById('mesajBaloncugu');
+  if(!el) return;
+  _mesajBaloncukKonusmaId = konusmaId;
+  document.getElementById('mesajBaloncukAvatar').textContent = (baslik[0]||'💬').toUpperCase();
+  document.getElementById('mesajBaloncukBaslik').textContent = baslik;
+  document.getElementById('mesajBaloncukMetin').textContent = metin;
+  el.style.display = 'flex';
+  if(_mesajBaloncukZamanlayici) clearTimeout(_mesajBaloncukZamanlayici);
+  _mesajBaloncukZamanlayici = setTimeout(mesajBaloncuguKapat, 6000);
+}
+function mesajBaloncuguKapat(){
+  const el = document.getElementById('mesajBaloncugu');
+  if(el) el.style.display = 'none';
+  if(_mesajBaloncukZamanlayici){ clearTimeout(_mesajBaloncukZamanlayici); _mesajBaloncukZamanlayici = null; }
+}
+function mesajBaloncuguTiklandi(){
+  const konusmaId = _mesajBaloncukKonusmaId;
+  mesajBaloncuguKapat();
+  if(konusmaId){ sekmeAc('mesajlasma'); setTimeout(()=>mesajKonusmaAc(konusmaId), 150); }
+}
+
 
 /* Bildirim çanı / alt menüde toplam okunmamış mesaj sayısı gösterir. */
 function renderMesajRozeti(){

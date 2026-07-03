@@ -106,7 +106,8 @@ async function bildirimleriAc(){
     if(!token){ toast('Token alinamadi.'); return; }
     _cihazTokenGlobal = token;
     await PushService.cihazKaydet(token, {
-      token, eklenmeTarihi: new Date().toISOString(), tarayici: navigator.userAgent
+      token, eklenmeTarihi: new Date().toISOString(), tarayici: navigator.userAgent,
+      uid: (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null
     });
     await _cihazKategoriTercihleriSenkronla(token);
     toast('Bildirimler acildi.');
@@ -134,7 +135,8 @@ async function _nativeBildirimleriAc(){
       try {
         _cihazTokenGlobal = token;
         await PushService.cihazKaydet(token, {
-          token, eklenmeTarihi: new Date().toISOString(), tarayici: 'Android-Native'
+          token, eklenmeTarihi: new Date().toISOString(), tarayici: 'Android-Native',
+          uid: (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null
         });
         await _cihazKategoriTercihleriSenkronla(token);
         toast('Bildirimler acildi, cihaz kaydedildi.');
