@@ -118,8 +118,24 @@ function renderKonusmaListesi(){
         <div style="font-size:12.5px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(sonMetin)}</div>
       </div>
       ${okunmayan ? `<span class="badge badge-red" style="border-radius:999px;flex-shrink:0;">${okunmayan>9?'9+':okunmayan}</span>` : ''}
+      <button class="btn btn-ghost btn-sm" style="flex-shrink:0;color:#c0392b;" title="Sohbeti sil" onclick="event.stopPropagation(); mesajKonusmaSil('${k.id}')">🗑️</button>
     </div>`;
   }).join('');
+}
+
+function mesajKonusmaSil(konusmaId){
+  const k = konusmalar.find(x=>x.id===konusmaId);
+  if(!k) return;
+  if(!confirm('Bu sohbeti ve içindeki TÜM mesajları silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) return;
+  MesajlasmaService.konusmaSil(konusmaId, k)
+    .then(()=>{
+      toast('Sohbet silindi.');
+      if(_aktifKonusmaId === konusmaId) detayPanelKapat();
+    })
+    .catch(err=>{
+      if(err.message==='sahip-degil'){ toast('Bu sohbeti silme yetkiniz yok.'); return; }
+      if(err.message!=='yetkisiz') toast('Hata: '+err.message);
+    });
 }
 
 /* ---------- Mesaj akışı (paylaşılan detay panelinde açılır) ---------- */
@@ -160,9 +176,14 @@ function _mesajlariRenderEt(){
   const kabarcikHtml = siralanmis.length
     ? siralanmis.map(m=>{
         const kendisiMi = m.gonderenUid === ben;
+        const silinebilirMi = MesajlasmaService.mesajSilinebilirMi(m);
         return `<div style="display:flex;flex-direction:column;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:8px;">
           ${!kendisiMi ? `<div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
-          <div style="max-width:78%;padding:8px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};font-size:14px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(m.metin)}</div>
+          <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
+            ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
+            <div style="max-width:${kendisiMi?'calc(100% - 26px)':'78%'};padding:8px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};font-size:14px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(m.metin)}</div>
+            ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
+          </div>
           <div style="font-size:10px;color:var(--ink-muted);margin-top:2px;">${_mesajSaatYaz(m.tarih)}</div>
         </div>`;
       }).join('')
@@ -176,6 +197,16 @@ function _mesajlariRenderEt(){
     </div>`;
   const kutu = document.getElementById('mesajAkisKutusu');
   if(kutu) kutu.scrollIntoView({block:'end'});
+}
+
+function mesajTekSil(mesajId){
+  const m = mesajlar.find(x=>x.id===mesajId);
+  if(!m) return;
+  if(!confirm('Bu mesajı silmek istediğinize emin misiniz?')) return;
+  MesajlasmaService.mesajSil(m).catch(err=>{
+    if(err.message==='sahip-degil'){ toast('Bu mesajı silme yetkiniz yok.'); return; }
+    toast('Hata: '+err.message);
+  });
 }
 
 function _mesajSaatYaz(iso){
