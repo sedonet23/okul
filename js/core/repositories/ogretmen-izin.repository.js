@@ -10,9 +10,8 @@
 
    Not: İzin bitişinden bir gün önce otomatik hatırlatıcı oluşturma/silme
    iş akışının parçası olarak "hatirlaticilar" koleksiyonuna da yazılır.
-   Bu koleksiyonün henüz kendi modül/repository'si yok (bkz. notlar.repository.js
-   notu — hatirlaticilar/gorevler şu an js/app.js'te genel yönetiliyor);
-   bu iş akışına özgü minimal erişim burada tanımlandı.
+   Bu koleksiyonün TEK Firestore erişim noktası TakvimRepository'dir
+   (bkz. takvim.repository.js) — bu yüzden burada tekrarlanmadı.
    ================================================================ */
 
 const OgretmenIzinRepository = {
@@ -25,9 +24,5 @@ const OgretmenIzinRepository = {
   },
   izinEkle(veri){ return db.collection(COL.ogretmenIzinleri).add({ ...veri, eklenmeTarihi: new Date().toISOString() }); },
   izinGuncelle(id, veri){ return db.collection(COL.ogretmenIzinleri).doc(id).update(veri); },
-  izinSil(id){ return db.collection(COL.ogretmenIzinleri).doc(id).delete(); },
-
-  /* ---------- Otomatik bitiş hatırlatıcısı (hatirlaticilar koleksiyonu) ---------- */
-  hatirlaticiEkle(veri){ return db.collection(COL.hatirlaticilar).add({ ...veri, eklenmeTarihi: new Date().toISOString() }); },
-  hatirlaticiSil(id){ return db.collection(COL.hatirlaticilar).doc(id).delete().catch(()=>{}); }
+  izinSil(id){ return db.collection(COL.ogretmenIzinleri).doc(id).delete(); }
 };
