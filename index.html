@@ -103,6 +103,7 @@
       <button class="nav-tab" data-tab="takvim"><span class="nt-ico ni-takvim">📅</span><span class="nt-label">Takvim</span></button>
       <button class="nav-tab" data-tab="evrak"><span class="nt-ico ni-evrak">📋</span><span class="nt-label">Evrak Takibi</span></button>
       <button class="nav-tab" data-tab="notlar"><span class="nt-ico ni-notlar">📝</span><span class="nt-label">Notlar</span></button>
+      <button class="nav-tab" data-tab="mesajlasma"><span class="nt-ico">💬</span><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
       <button class="nav-tab" data-tab="tasima"><span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Taşıma</span></button>
       <button class="nav-tab" data-tab="personel"><span class="nt-ico ni-ogretmen">🧑‍💼</span><span class="nt-label">Personel İşleri</span></button>
       <button class="nav-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
@@ -180,6 +181,13 @@
 
       <!-- Haberler kayan bandı -->
       <div class="haber-ticker" id="haberTicker" data-yetki-modul="haberler" style="display:none;"></div>
+
+      <!-- YENİ: Duyuru Panosu — sadece manuel (admin/yönetici eklediği) duyurular,
+           genel haber akışından ayrı, kendi kartında. -->
+      <div class="card" id="duyuruPanosuKart" data-yetki-modul="haberler" style="display:none;">
+        <h3 class="dash-h3-row">📢 Duyuru Panosu <span class="dash-tumu-link" onclick="sekmeAc('haberler')">Tümü ›</span></h3>
+        <div id="duyuruPanosuIcerik"></div>
+      </div>
 
       <!-- Hava durumu hero kartında gösterildiğinden buradaki kart gizlendi -->
       <div id="havaDurumuKartWrap" style="display:none!important;">
@@ -821,6 +829,15 @@
       <div id="dnpIcerik"></div>
     </section>
 
+    <!-- MESAJLAR -->
+    <section id="tab-mesajlasma" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Mesajlar</div><div class="page-sub">Okul içi mesajlaşma</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" onclick="yeniKonusmaModalAc()">+ Yeni Mesaj</button></div>
+      </div>
+      <div id="mesajKonusmaListesi"></div>
+    </section>
+
     <!-- OKUL BİLGİLERİ -->
     <section id="tab-okulBilgileri" class="tab-panel">
       <div class="page-header"><div><div class="page-title">Okul Bilgileri</div><div class="page-sub">Okul adı, müdür ve müdür yardımcıları</div></div></div>
@@ -1264,8 +1281,11 @@
 <script src="js/core/services/haberler.service.js"></script>
 <script src="js/core/repositories/periyodik.repository.js"></script>
 <script src="js/core/services/periyodik.service.js"></script>
+<script src="js/core/repositories/mesajlasma.repository.js"></script>
+<script src="js/core/services/mesajlasma.service.js"></script>
 <script src="js/push.js"></script>
 <script src="js/cizelgeler.js"></script>
+<script src="js/mesajlasma.js"></script>
 <script src="js/excel-import.js"></script>
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
