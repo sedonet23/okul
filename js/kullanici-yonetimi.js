@@ -1,5 +1,5 @@
 /* ================================================================
-   js/kullanici-yonetimi.js
+   js/kullanici-yonetimi.js — UI KATMANI
    AŞAMA 2: Rol tabanlı yetkilendirme + Kullanıcı Yönetimi ekranı.
 
    Admin, sabit rol adları yerine kendi rollerini tanımlar (ör. "Yönetici",
@@ -10,6 +10,14 @@
    uygulanır. Sayfa içindeki tekil ekle/düzenle/sil butonlarının ve
    Firestore güvenlik kurallarının rol bazında sıkılaştırılması
    AŞAMA 3'te yapılacak.
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + KullaniciYonetimiService çağrısı
+     js/core/services/kullanici-yonetimi.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/kullanici-yonetimi.repository.js → TEK Firestore erişim noktası
+   Not: js/auth.js'teki İLK giriş belgesi oluşturma/okuma (bkz. authDinleyiciKur)
+   bilinçli olarak dışarıda bırakıldı — kullanıcının henüz hiçbir yetkisi
+   olmadığı bootstrap anıdır, repository/service katmanına uygun değildir.
    ================================================================ */
 
 const MODUL_LISTESI = [
@@ -82,16 +90,15 @@ let _duzenlenenRolId = null;
 
 function kullaniciYonetimiDinleyiciKur(){
   if(!db) return;
-  db.collection(COL.roller).onSnapshot(snap=>{
-    ROLLER_CACHE = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  KullaniciYonetimiRepository.rolleriDinle(v=>{
+    ROLLER_CACHE = v;
     renderRoller();
     renderYonetimKullanicilari();
-  }, err=>console.warn('Roller dinlenemedi:', err));
-
-  db.collection(COL.kullanicilar).onSnapshot(snap=>{
-    YONETIM_KULLANICILAR_CACHE = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  });
+  KullaniciYonetimiRepository.kullanicilariDinle(v=>{
+    YONETIM_KULLANICILAR_CACHE = v;
     renderYonetimKullanicilari();
-  }, err=>console.warn('Kullanıcılar dinlenemedi:', err));
+  });
 }
 
 function kullaniciYonetimiAltSekmeSec(sekme){
@@ -189,10 +196,10 @@ function rolKaydet(){
   });
   if(!db){ toast('Firebase bağlantısı yok.'); return; }
   const veri = { ad, kullaniciYonetimi, yetkiler };
-  const islem = (_duzenlenenRolId && _duzenlenenRolId !== 'yeni')
-    ? db.collection(COL.roller).doc(_duzenlenenRolId).update(veri)
-    : db.collection(COL.roller).add(veri);
-  islem.then(()=>{ toast('Rol kaydedildi.'); rolFormKapat(); }).catch(hataGoster);
+  const mevcutId = (_duzenlenenRolId && _duzenlenenRolId !== 'yeni') ? _duzenlenenRolId : null;
+  KullaniciYonetimiService.rolKaydet(mevcutId, veri)
+    .then(()=>{ toast('Rol kaydedildi.'); rolFormKapat(); })
+    .catch(err=>{ if(err.message!=='yetkisiz') hataGoster(err); });
 }
 
 function rolSil(id){
@@ -202,7 +209,9 @@ function rolSil(id){
     return;
   }
   if(!confirm('Bu rolü silmek istediğinize emin misiniz?')) return;
-  db.collection(COL.roller).doc(id).delete().then(()=>{ toast('Rol silindi.'); rolFormKapat(); }).catch(hataGoster);
+  KullaniciYonetimiService.rolSil(id, kullaniciSayisi)
+    .then(()=>{ toast('Rol silindi.'); rolFormKapat(); })
+    .catch(err=>{ if(err.message!=='yetkisiz' && !err.message.startsWith('rol-kullanimda:')) hataGoster(err); });
 }
 
 /* ---------- Kullanıcılar ---------- */
@@ -262,13 +271,12 @@ function kullaniciKaydet(uid){
   const aktif = !!document.getElementById('fKullaniciAktif')?.checked;
   const admin = !!document.getElementById('fKullaniciAdmin')?.checked;
   if(!db){ toast('Firebase bağlantısı yok.'); return; }
-  if(uid === AKTIF_KULLANICI?.uid && !aktif){
-    toast('Kendi hesabınızı pasif yapamazsınız.');
-    return;
-  }
-  db.collection(COL.kullanicilar).doc(uid).update({ rolId, bagliOgretmenId, aktif, admin })
+  KullaniciYonetimiService.kullaniciKaydet(uid, { rolId, bagliOgretmenId, aktif, admin }, AKTIF_KULLANICI?.uid)
     .then(()=>{ toast('Kullanıcı güncellendi.'); modalKapat(); })
-    .catch(hataGoster);
+    .catch(err=>{
+      if(err.message==='kendini-pasif-yapamaz'){ toast('Kendi hesabınızı pasif yapamazsınız.'); return; }
+      if(err.message!=='yetkisiz') hataGoster(err);
+    });
 }
 
 /* ================================================================
@@ -308,6 +316,10 @@ function profilimDuzenleAc(){
     <div class="form-group"><label>E-Posta</label><input id="f_pfMail" value="${escapeHtml(ben.eposta||'')}"></div>
     <p class="page-sub">Diğer bilgileriniz (branş, ünvan, evrak durumları vb.) yalnızca okul yönetimi tarafından güncellenebilir.</p>`;
   modalAc('Bilgilerimi Güncelle', body, ()=>{
+    // not: COL.ogretmenler henüz kendi repository/service katmanına taşınmadı
+    // (bkz. Pragmatik-Mimari-Tasarimi.md §8 — "ogretmenler" ayrı bir migration
+    // adımı gerektiriyor, bilinçli olarak ertelendi), bu yüzden burada
+    // doğrudan db erişimi bırakıldı.
     db.collection(COL.ogretmenler).doc(ben.id).update({
       profilFotoUrl: document.getElementById('f_pfFoto').value.trim(),
       telefon: document.getElementById('f_pfTel').value.trim(),

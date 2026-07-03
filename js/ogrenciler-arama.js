@@ -6,6 +6,12 @@
    ====================================================================
    Mevcut koleksiyon yapısı değiştirilmedi; veliler[], ogretmenler[],
    servisler[], evrakTakibi[], notlar[], personelListesi[] kullanılır.
+
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2, §8): Bu dosyadaki
+   TEK Firestore erişimi (profil fotoğrafı yükleme) COL.ogretmenler'e
+   yazıyor — bu koleksiyon henüz kendi repository/service katmanına
+   taşınmadı ("ogretmenler" ayrı bir migration adımı gerektiriyor,
+   bilinçli olarak ertelendi), bu yüzden doğrudan db erişimi bırakıldı.
    ==================================================================== */
 
 /* label>input onchange tarafından çağrılır */
