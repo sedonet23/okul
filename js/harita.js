@@ -394,14 +394,15 @@ async function haritaKaydet() {
   const mesafeKm = parseFloat((_osrmToplamMesafe / 1000).toFixed(2));
 
   try {
-    await db.collection(COL.servisler).doc(servisId).update({
-      guzergahMesafe: mesafeKm,
-      guzergahKoordinatlar: haritaKoordinatlar.map(k => ({ lat: k.lat, lng: k.lng, ad: k.ad })),
-    });
+    await HaritaService.guzergahKaydet(
+      servisId,
+      mesafeKm,
+      haritaKoordinatlar.map(k => ({ lat: k.lat, lng: k.lng, ad: k.ad }))
+    );
     toast(`Güzergah kaydedildi: ${mesafeKm} km`);
     haritaServisSecildiRender(servisId);
   } catch (e) {
-    toast('Kayıt hatası: ' + e.message);
+    toast('Kayıt hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
   }
 }
 
@@ -460,11 +461,11 @@ let haritaFavoriMarkerlar = {};  // id → L.Marker
 
 /* ---------- Firestore bağlantısı ---------- */
 function haritaFavorilerBaglantisiKur() {
-  db.collection(COL.haritaFavoriler).orderBy('olusturmaTarihi', 'desc').onSnapshot(snap => {
-    haritaFavoriler = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  HaritaRepository.favorileriDinle(v => {
+    haritaFavoriler = v;
     renderHaritaFavoriler();
     haritaFavoriMarkerlariGuncelle();
-  }, err => console.warn('Favori bağlantı hatası:', err));
+  });
 }
 
 /* ---------- Favori marker ikonları ---------- */
@@ -530,14 +531,17 @@ function haritaFavoriEkleModal(lat, lng, adOneri) {
   modalAc('⭐ Favoriye Ekle', body, async () => {
     const ad = document.getElementById('fav_ad').value.trim();
     if (!ad) { toast('Konum adı zorunludur.'); return; }
-    await db.collection(COL.haritaFavoriler).add({
-      ad,
-      aciklama: document.getElementById('fav_aciklama').value.trim(),
-      lat, lng,
-      olusturmaTarihi: firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    toast(`"${ad}" favorilere eklendi.`);
-    modalKapat();
+    try {
+      await HaritaService.favoriEkle({
+        ad,
+        aciklama: document.getElementById('fav_aciklama').value.trim(),
+        lat, lng,
+      });
+      toast(`"${ad}" favorilere eklendi.`);
+      modalKapat();
+    } catch (e) {
+      toast(e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : 'Hata: ' + e.message);
+    }
   }, null);
 }
 
@@ -545,12 +549,16 @@ function haritaFavoriEkleModal(lat, lng, adOneri) {
 async function haritaFavoriSil(id) {
   const f = haritaFavoriler.find(x => x.id === id);
   if (!confirm(`"${f?.ad || 'Bu konum'}" favorilerden silinsin mi?`)) return;
-  if (haritaFavoriMarkerlar[id]) {
-    haritaOrnek.removeLayer(haritaFavoriMarkerlar[id]);
-    delete haritaFavoriMarkerlar[id];
+  try {
+    await HaritaService.favoriSil(id);
+    if (haritaFavoriMarkerlar[id]) {
+      haritaOrnek.removeLayer(haritaFavoriMarkerlar[id]);
+      delete haritaFavoriMarkerlar[id];
+    }
+    toast('Favori silindi.');
+  } catch (e) {
+    toast(e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : 'Hata: ' + e.message);
   }
-  await db.collection(COL.haritaFavoriler).doc(id).delete();
-  toast('Favori silindi.');
 }
 
 /* ---------- Favoriden güzergaha ekle ---------- */

@@ -1,9 +1,14 @@
 /* ====================================================================
    js/dokumanlar.js
-   DÖKÜMANLAR MODÜLÜ
+   DÖKÜMANLAR MODÜLÜ — UI KATMANI
    - Dosya içeriği: IndexedDB (cihaz hafızası)
    - Metadata: Firestore (oy_dokumanlar)
    - Opsiyonel: harici URL (Google Drive vb.)
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → DOM + IndexedDB + DokumanlarService çağrısı
+     js/core/services/dokumanlar.service.js    → yetki kontrolü
+     js/core/repositories/dokumanlar.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let dokumanlarListesi = [];
@@ -73,11 +78,11 @@ async function idbVarMi(id) {
    Firestore bağlantısı
    ================================================================ */
 function dokumanlarBaglantisiKur() {
-  db.collection(COL.dokumanlar).orderBy('yuklenmeTarihi', 'desc').onSnapshot(snap => {
-    dokumanlarListesi = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  DokumanlarRepository.dokumanlariDinle(v => {
+    dokumanlarListesi = v;
     renderDokumanlar();
     renderDokumanKategoriFiltre();
-  }, hataGoster);
+  });
 }
 
 /* ================================================================
@@ -296,7 +301,7 @@ async function dokumanKaydet() {
       meta.dosyaTipi   = dosya.type;
     }
 
-    const docRef = await db.collection(COL.dokumanlar).add(meta);
+    const docRef = await DokumanlarService.dokumanEkle(meta);
 
     // Dosya varsa IndexedDB'ye kaydet
     if (dosya) {
@@ -306,7 +311,7 @@ async function dokumanKaydet() {
     toast(`"${ad}" kaydedildi.`);
     modalKapat();
   } catch (e) {
-    toast('Kayıt hatası: ' + e.message);
+    toast('Kayıt hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
     if (kaydetBtn) { kaydetBtn.disabled = false; kaydetBtn.textContent = '💾 Kaydet'; }
   }
 }
@@ -322,10 +327,10 @@ function dokumanSilOnay(id, ad) {
 async function dokumanSil(id) {
   try {
     await idbSil(id);
-    await db.collection(COL.dokumanlar).doc(id).delete();
+    await DokumanlarService.dokumanSil(id);
     toast('Döküman silindi.');
   } catch (e) {
-    toast('Silme hatası: ' + e.message);
+    toast('Silme hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
   }
 }
 
