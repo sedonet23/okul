@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v59';
+const CACHE_ADI = 'oy-cache-v60';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -17,18 +17,48 @@ const ONBELLEGE_ALINACAKLAR = [
   /* JS — çekirdek */
   './js/firebase-init.js',
   './js/auth.js',
+  './js/kullanici-yonetimi.js',
   './js/app.js',
   './js/ui.js',
   './js/push.js',
+  /* JS — core (repository / service katmanı) */
+  './js/core/utils.js',
+  './js/core/store.js',
+  './js/core/event-bus.js',
+  './js/core/repositories/nobet.repository.js',
+  './js/core/services/nobet.service.js',
+  './js/core/repositories/siniflar.repository.js',
+  './js/core/services/siniflar.service.js',
+  './js/core/repositories/personel.repository.js',
+  './js/core/services/personel.service.js',
+  './js/core/repositories/tasima.repository.js',
+  './js/core/services/tasima.service.js',
+  './js/core/repositories/servis-oturma.repository.js',
+  './js/core/services/servis-oturma.service.js',
+  './js/core/repositories/notlar.repository.js',
+  './js/core/services/notlar.service.js',
+  './js/core/repositories/sinavlar.repository.js',
+  './js/core/services/sinavlar.service.js',
+  './js/core/repositories/ogretmen-izin.repository.js',
+  './js/core/services/ogretmen-izin.service.js',
+  './js/core/repositories/ders-saatleri.repository.js',
+  './js/core/services/ders-saatleri.service.js',
+  './js/core/repositories/dokumanlar.repository.js',
+  './js/core/services/dokumanlar.service.js',
+  './js/core/repositories/harita.repository.js',
+  './js/core/services/harita.service.js',
+  './js/core/repositories/cizelgeler.repository.js',
+  './js/core/services/cizelgeler.service.js',
   /* JS — modüller */
   './js/cizelgeler.js',
   './js/takvim.js',
   './js/nobet.js',
   './js/periyodik.js',
   './js/tasima.js',
+  './js/tasima-takip.js',
+  './js/servis-oturma.js',
   './js/haberler.js',
   './js/mevzuat-asistan.js',
-  './js/servis-oturma.js',
   './js/raporlama.js',
   './js/sinavlar.js',
   './js/notlar.js',
@@ -36,11 +66,17 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/ogretmen-detay.js',
   './js/ogretmen-izin.js',
   './js/ders-saatleri.js',
+  './js/personel.js',
+  './js/puantaj.js',
+  './js/dilekce.js',
+  './js/dokumanlar.js',
+  './js/harita.js',
   './js/excel-import.js',
   './js/yedekleme.js',
   './js/hava-durumu.js',
   './js/asistan.js',
   './js/ogrenciler-arama.js',
+  './js/widget-bridge.js',
   /* Varlıklar */
   './assets/icon-192.png',
   './assets/icon-512.png',
