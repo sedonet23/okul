@@ -604,7 +604,7 @@ function digerEvrakModalAc(id){
       </select>
     </div>
     <div class="form-group"><label>Tarih</label>
-      <input type="date" id="f_tarih" value="${e?e.tarih:new Date().toISOString().slice(0,10)}">
+      <input type="date" id="f_tarih" value="${e?e.tarih:_isoToday()}">
     </div>
     <div class="form-group"><label>Açıklama</label>
       <textarea id="f_aciklama" rows="2">${e?escapeHtml(e.aciklama||''):''}</textarea>

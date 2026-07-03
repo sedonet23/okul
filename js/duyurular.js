@@ -35,7 +35,7 @@ function renderDuyurular(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;">📢 ${escapeHtml(d.baslik)}</div>
-          <div style="font-size:11.5px;color:var(--ink-muted);margin-top:2px;">${escapeHtml(d.olusturanAdi||'Yönetici')} · ${formatTarih((d.tarih||'').slice(0,10))} ${(d.tarih||'').slice(11,16)}</div>
+          <div style="font-size:11.5px;color:var(--ink-muted);margin-top:2px;">${escapeHtml(d.olusturanAdi||'Yönetici')} · ${isoYereleCevir(d.tarih).tarih} ${isoYereleCevir(d.tarih).saat}</div>
         </div>
         ${benOkudumMu
           ? `<span class="badge badge-sage" style="flex-shrink:0;">✓ Okudunuz</span>`
@@ -93,7 +93,7 @@ function renderDuyuruPanosu(){
         <span class="duyuru-ikon ${benOkudumMu?'':'duyuru-ikon-yanip-soner'}">📢</span>
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;">${escapeHtml(d.baslik)}</div>
-          <div style="font-size:11px;color:var(--ink-muted);">${formatTarih((d.tarih||'').slice(0,10))}</div>
+          <div style="font-size:11px;color:var(--ink-muted);">${isoYereleCevir(d.tarih).tarih}</div>
         </div>
         ${benOkudumMu
           ? `<span class="badge badge-sage" style="flex-shrink:0;">✓ Okundu</span>`
@@ -115,7 +115,7 @@ function duyuruDetayAc(id){
   const okuyanlar = Object.values(d.okuyanlar||{}).sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''));
 
   const body = `
-    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">${escapeHtml(d.olusturanAdi||'Yönetici')} · ${formatTarih((d.tarih||'').slice(0,10))} ${(d.tarih||'').slice(11,16)}</div>
+    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">${escapeHtml(d.olusturanAdi||'Yönetici')} · ${isoYereleCevir(d.tarih).tarih} ${isoYereleCevir(d.tarih).saat}</div>
     <div style="font-size:14.5px;white-space:pre-wrap;line-height:1.5;">${escapeHtml(d.icerik||'')}</div>
     ${duzenleyebilirMi ? `
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
@@ -123,7 +123,7 @@ function duyuruDetayAc(id){
         ${okuyanlar.length ? `<div style="max-height:220px;overflow-y:auto;">${okuyanlar.map(o=>`
           <div class="detay-row" style="display:flex;justify-content:space-between;">
             <span>${escapeHtml(o.ad)}</span>
-            <span class="detay-row-muted">${formatTarih((o.tarih||'').slice(0,10))} ${(o.tarih||'').slice(11,16)}</span>
+            <span class="detay-row-muted">${isoYereleCevir(o.tarih).tarih} ${isoYereleCevir(o.tarih).saat}</span>
           </div>`).join('')}</div>` : '<p class="empty-state">Henüz kimse okumadı.</p>'}
       </div>` : ''}
   `;

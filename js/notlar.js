@@ -103,7 +103,7 @@ function _notKartHtml(n, sahipEtiketiGoster){
     `<span class="not-etiket">${escapeHtml(e)}</span>`
   ).join('');
   const sahipEtiket = sahipEtiketiGoster
-    ? `<div class="note-sahip-etiket">👤 ${escapeHtml(_sahipAdiGetir(n.sahipUid))} · ${formatTarih((n.eklenmeTarihi||'').slice(0,10))}</div>`
+    ? `<div class="note-sahip-etiket">👤 ${escapeHtml(_sahipAdiGetir(n.sahipUid))} · ${isoYereleCevir(n.eklenmeTarihi).tarih}</div>`
     : '';
   return `
     <div class="note-card" onclick="notlarDuzenle('${n.id}')"

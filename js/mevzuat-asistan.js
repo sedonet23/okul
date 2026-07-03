@@ -298,7 +298,7 @@ function renderMevzuatKayitlari(){
     <div class="evrak-row">
       <div class="evrak-body">
         <div class="evrak-title">${escapeHtml(k.baslik)} <span class="badge badge-blue">${escapeHtml(k.kategori||'Genel')}</span></div>
-        <div class="evrak-meta">${k.kaynak ? escapeHtml(k.kaynak) + ' · ' : ''}${k.chunkSayisi||0} bölüm · ${formatTarih((k.eklenmeTarihi||'').slice(0,10))}</div>
+        <div class="evrak-meta">${k.kaynak ? escapeHtml(k.kaynak) + ' · ' : ''}${k.chunkSayisi||0} bölüm · ${isoYereleCevir(k.eklenmeTarihi).tarih}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="mevzuatSil('${k.id}')">Sil</button>
     </div>

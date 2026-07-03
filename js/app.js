@@ -274,6 +274,22 @@ function bransSelectDegisti(id){
 }
 function todayISO(){ const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
 function formatTarih(iso){ if(!iso) return ''; const p = iso.split('-'); return p.length===3 ? `${p[2]}.${p[1]}.${p[0]}` : iso; }
+/* DÜZELTME: Tam bir ISO zaman damgasını (UTC, ör. new Date().toISOString()
+   ile üretilmiş "2026-07-03T14:30:00.000Z") TARAYICI YEREL saatine göre
+   "DD.MM.YYYY" ve "HH:MM" olarak ayırır. Ham .slice(0,10)/.slice(11,16)
+   kullanmak UTC'yi olduğu gibi gösterir — Türkiye'de (UTC+3) bu her zaman
+   3 saat geriden gösterir ve gece yarısına yakın saatlerde YANLIŞ GÜNÜ
+   bile gösterebilir. formatTarih() sadece SAF tarih (saatsiz, ör.
+   "2026-07-03") değerleri için kullanılmalı; tam zaman damgaları için
+   bu fonksiyon kullanılmalı. */
+function isoYereleCevir(iso){
+  if(!iso) return { tarih:'', saat:'' };
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return { tarih:'', saat:'' };
+  const tarih = `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()}`;
+  const saat = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return { tarih, saat };
+}
 function bugunMetni(){ const d=new Date(); return `${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}, ${GUNADI[d.getDay()]}`; }
 function oncelikRengi(o){ if(o==='Yüksek') return 'brick'; if(o==='Orta') return 'amber'; return 'sage'; }
 function evrakRengi(durum){ if(durum==='Tamamlandı') return 'sage'; if(durum==='İşlemde') return 'amber'; if(durum==='Arşivlendi') return 'gray'; return 'blue'; }
@@ -304,7 +320,6 @@ function toast(msg){
 function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
   isAdi = isAdi || 'Koruk_Okul_Belge';
   yon = yon === 'yatay' ? 'yatay' : 'dikey';
-  const a4Boyut = yon === 'yatay' ? 'A4 landscape' : 'A4 portrait';
 
   const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
     window.Capacitor.Plugins && window.Capacitor.Plugins.PrintPlugin);
@@ -319,18 +334,11 @@ function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
   const stilMatch   = rawHtml.match(/<style>([\s\S]*?)<\/style>/);
   const govdeMatch  = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
   const baslikMatch = rawHtml.match(/<title>([\s\S]*?)<\/title>/);
-  // @page kuralını orijinal stilde temizle, doğru yönü biz inject edeceğiz
-  const stilHam = stilMatch ? stilMatch[1] : '';
-  const stil = stilHam.replace(/@page\s*\{[^}]*\}/g, '');
+  const stil  = stilMatch  ? stilMatch[1]  : '';
   const govde = govdeMatch ? govdeMatch[1] : rawHtml;
   const baslik = baslikMatch ? baslikMatch[1] : isAdi;
 
-  // Kapat butonu: window.close() mobil Chrome'da çalışmayabiliyor.
-  // Script ile açılan pencereler kapatılabiliyor, ama history.back() daha güvenilir fallback.
-  const kapatScript = 'var w=window;try{w.close();setTimeout(function(){if(!w.closed)w.history.back();},150);}catch(e){w.history.back();}';
-
   const tamHtml = '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>' + baslik + '</title><style>' +
-    '@page { size: ' + a4Boyut + '; margin: 8mm; }\n' +
     stil +
     '\n .kk-yazdir-toolbar{ display:flex; gap:8px; padding:10px 14px; background:#f3f2ff; align-items:center; }' +
     '\n .kk-yazdir-toolbar button{ padding:7px 16px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }' +
@@ -338,7 +346,7 @@ function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
     '\n .kk-btn-kapat{ background:#e5e7eb; color:#374151; }' +
     '\n @media print{ .kk-yazdir-toolbar{ display:none !important; } }' +
     '</style></head><body>' +
-    '<div class="kk-yazdir-toolbar"><button class="kk-btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button><button class="kk-btn-kapat" onclick="' + kapatScript + '">✕ Kapat</button></div>' +
+    '<div class="kk-yazdir-toolbar"><button class="kk-btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button><button class="kk-btn-kapat" onclick="window.close()">✕ Kapat</button></div>' +
     govde +
     '</body></html>';
 
