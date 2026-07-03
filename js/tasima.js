@@ -1,9 +1,14 @@
 /* ====================================================================
    js/tasima.js
-   TAŞIMA MODÜLÜ — servis araçları, şoför adı/telefonu ve güzergah
-   bilgilerinin takibi. Veri modeli (bkz. firebase-init.js COL):
+   TAŞIMA MODÜLÜ — UI KATMANI — servis araçları, şoför adı/telefonu ve
+   güzergah bilgilerinin takibi. Veri modeli (bkz. firebase-init.js COL):
      servisler : {servisAdi, guzergah, soforAdi, soforTelefon,
                   ogrenciSayisi, durum:'Aktif'|'Pasif', notlar}
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + TasimaService çağrısı, db bilmez
+     js/core/services/tasima.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/tasima.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let servisler = [];
@@ -162,19 +167,12 @@ function servisOgrenciEkleModalAc(servisId){
     const checkboxlar = document.querySelectorAll('#sv_ogrenciListeDiv input[type=checkbox]:checked');
     if(!checkboxlar.length){ toast('En az bir öğrenci seçin.'); return; }
 
-    const batch = [];
-    checkboxlar.forEach(cb=>{
-      const vId = cb.value;
-      batch.push(db.collection(COL.veliler).doc(vId).update({
-        servisId: servisId,
-        servisAdi: s.servisAdi
-      }));
-    });
-    Promise.all(batch).then(()=>{
-      toast(`${checkboxlar.length} öğrenci servise eklendi.`);
+    const secilenIdler = Array.from(checkboxlar).map(cb=>cb.value);
+    TasimaService.ogrencileriServiseAta(secilenIdler, servisId, s.servisAdi).then(()=>{
+      toast(`${secilenIdler.length} öğrenci servise eklendi.`);
       modalKapat();
       servisDetayAc(servisId);
-    }).catch(err=>toast('Hata: '+err.message));
+    }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
   });
 }
 
@@ -296,7 +294,7 @@ function servisModalAc(id){
     if(!servisAdi){ toast('Servis adı zorunludur.'); return; }
     const baskanCheckboxlar = document.querySelectorAll('#f_svBaskanListesi input[type=checkbox]:checked');
     const seciliBaskanlar = Array.from(baskanCheckboxlar).map(cb=>cb.value);
-    kaydet(COL.servisler, s?s.id:null, {
+    TasimaService.servisKaydet(s?s.id:null, {
       servisAdi,
       guzergah: document.getElementById('f_svGuzergah').value.trim(),
       soforAdi: document.getElementById('f_svSofor').value.trim(),
@@ -306,21 +304,22 @@ function servisModalAc(id){
       durum: document.getElementById('f_svDurum').value,
       baskanlar: seciliBaskanlar,
       notlar: document.getElementById('f_svNotlar').value.trim(),
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, s ? ()=>{ if(confirm('Bu servis kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.servisler).doc(s.id).delete(); modalKapat(); } } : null);
+  }, s ? ()=>{ if(confirm('Bu servis kaydını silmek istediğinize emin misiniz?')){ TasimaService.servisSil(s.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
-/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ---------- */
+/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — TasimaRepository üzerinden dinleniyor. */
 function tasimaBaglantilariKur(){
-  db.collection(COL.servisler).onSnapshot(s=>{
-    servisler = s.docs.map(d=>({id:d.id,...d.data()}));
+  TasimaRepository.servisleriDinle(s=>{
+    servisler = s;
     renderServisler();
     renderVeriSekmesi();
     if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
     if(typeof globalAramaYap === 'function') globalAramaYap();
     if(typeof onbellekKaydet === 'function') onbellekKaydet();
-  }, hataGoster);
+  });
 }
 
 /* ================================================================

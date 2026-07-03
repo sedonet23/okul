@@ -1,6 +1,6 @@
 /* ====================================================================
    js/servis-oturma.js  (v5.0)
-   Servis Oturma Planı — Dikey Araç Şeması
+   Servis Oturma Planı — Dikey Araç Şeması — UI KATMANI
    ────────────────────────────────────────────────────────────────────
    Firestore: COL.servisOturma → 'oy_servisOturma'
    Belge ID  = servisId
@@ -13,6 +13,14 @@
    Düzen kuralları:
    ducato → 2+1: şoför yanı sağda 2, kapı sırası, sonra sol çift+sağ tek, arka 4'lü
    buyuk  → 2+2: giriş kapısı sırası, 2+2 sıraları, ikinci kapı, arka 4'lü
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2, §7
+     UI (bu dosya)          → DOM + ServisOturmaService çağrısı, db bilmez
+       (yerleşim/koltuk şablon mantığı render'a sıkı bağlı olduğu için
+        bilinçli olarak burada bırakıldı — nöbet Excel içe aktarmadaki
+        pragmatik ayrımla aynı ilke)
+     js/core/services/servis-oturma.service.js    → yetki kontrolü
+     js/core/repositories/servis-oturma.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let servisOturmaPlani = [];
@@ -66,12 +74,12 @@ const SO_SABLONLAR = {
    ================================================================ */
 function servisOturmaBaglantisiKur() {
   if (!db) return;
-  db.collection(COL.servisOturma).onSnapshot(snap => {
-    servisOturmaPlani = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  ServisOturmaRepository.planlariDinle(v => {
+    servisOturmaPlani = v;
     const aktifId = document.getElementById('soServisId')?.value;
     if (aktifId) _soRenderArac(aktifId);
     if (document.getElementById('oturmaServislerListesi')) renderOturmaServisler();
-  }, err => console.warn('servisOturma:', err));
+  });
 }
 
 /* ================================================================
@@ -163,12 +171,12 @@ function soSablonSec(sablon, servisId) {
   document.querySelectorAll('.so-sablon-btn').forEach(b =>
     b.classList.toggle('so-sablon-aktif', b.dataset.sablon === sablon));
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon,
     yerlesim: SO_SABLONLAR[sablon].yerlesimUret(),
     koltuklar: [],
     guncellendi: new Date().toISOString(),
-  }).catch(err => toast('Hata: ' + err.message));
+  }, false).catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -395,13 +403,13 @@ function soSiraEkle(servisId, sablon) {
     yerlesim.push({ sira: eklemeSira, konum: 'sag-dis', aktif: true });
   }
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon: sb, yerlesim,
     koltuklar: mevcut?.koltuklar || [],
     guncellendi: new Date().toISOString(),
-  }, { merge: false })
+  }, false)
     .then(() => toast('Sıra eklendi.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -449,12 +457,12 @@ function soSiraSil(servisId, sablon) {
   const koltuklar      = (mevcut?.koltuklar || []).filter(k => !silinecekNolar.has(k.no));
   const yerlesimFinal  = yerlesimYeni.map(y => y.sira > silinecekSira ? { ...y, sira: y.sira - 1 } : y);
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon: sb, yerlesim: yerlesimFinal, koltuklar,
     guncellendi: new Date().toISOString(),
-  }, { merge: false })
+  }, false)
     .then(() => toast('Sıra silindi.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -525,13 +533,13 @@ function soYuvaAktifEt(no, servisId, sablon) {
   if (!yerlesim[idx]) return;
   yerlesim[idx] = { ...yerlesim[idx], aktif: true };
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon: sb, yerlesim,
     koltuklar: mevcut?.koltuklar || [],
     guncellendi: new Date().toISOString(),
-  }, { merge: false })
+  }, false)
     .then(() => toast('Koltuk eklendi.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -626,12 +634,12 @@ function soKoltukDeaktifEt(koltukNo, servisId, sablon) {
   const panelEl = document.getElementById('soKoltukPanel');
   if (panelEl) panelEl.style.display = 'none';
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon: sb, yerlesim, koltuklar,
     guncellendi: new Date().toISOString(),
-  }, { merge: false })
+  }, false)
     .then(() => toast('Koltuk kaldırıldı. "+" ile geri ekleyebilirsiniz.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -647,12 +655,12 @@ function soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve, sablon) {
   const idx  = koltuklar.findIndex(k => k.no === koltukNo);
   if (idx >= 0) koltuklar[idx] = yeni; else koltuklar.push(yeni);
 
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon: sb,
     yerlesim:  mevcut?.yerlesim || SO_SABLONLAR[sb].yerlesimUret(),
     koltuklar,
     guncellendi: new Date().toISOString(),
-  }, { merge: false }).catch(err => toast('Hata: ' + err.message));
+  }, false).catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
@@ -661,24 +669,23 @@ function soKoltukGuncelle(servisId, koltukNo, ogrenciId, rezerve, sablon) {
 function soKaydet(servisId) {
   const sablon = document.getElementById('soSecilenSablon')?.value || 'ducato';
   const mevcut = servisOturmaPlani.find(p => p.servisId === servisId);
-  db.collection(COL.servisOturma).doc(servisId).set({
+  ServisOturmaService.planKaydet(servisId, {
     servisId, sablon,
     yerlesim:  mevcut?.yerlesim  || SO_SABLONLAR[sablon].yerlesimUret(),
     koltuklar: mevcut?.koltuklar || [],
     guncellendi: new Date().toISOString(),
-  }, { merge: true })
+  }, true)
     .then(() => toast('Oturma planı kaydedildi.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 function soTumunuTemizle() {
   const servisId = document.getElementById('soServisId')?.value;
   if (!servisId) return;
   if (!confirm('Tüm öğrenci atamaları silinecek. Koltuk düzeni korunacak. Emin misiniz?')) return;
-  db.collection(COL.servisOturma).doc(servisId)
-    .update({ koltuklar: [], guncellendi: new Date().toISOString() })
+  ServisOturmaService.planGuncelle(servisId, { koltuklar: [], guncellendi: new Date().toISOString() })
     .then(() => toast('Atamalar temizlendi.'))
-    .catch(err => toast('Hata: ' + err.message));
+    .catch(err => { if(err.message!=='yetkisiz') toast('Hata: ' + err.message); });
 }
 
 function _soOzetGuncelle(koltuklar, toplam) {

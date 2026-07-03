@@ -2,6 +2,11 @@
    js/tasima-takip.js
    TAŞIMA TAKİP ÇİZELGESİ MODÜLÜ (salt görüntü / yazdırma)
    Bağımlılıklar: firebase-init.js, tasima.js, nobet.js, app.js
+
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Bu modül yalnızca
+   OKUMA yapar (yazma yok), bu yüzden servis/yetki katmanı gerekmiyor.
+   Yedek veri kaynağı sorgusu js/core/repositories/servis-oturma.repository.js
+   üzerinden yapılır (COL.servisOturma TEK erişim noktası).
    ============================================= */
 
 (function() {
@@ -67,8 +72,7 @@
     // 2. veliler boşsa, yedek kaynak olarak oy_servisOturma koleksiyonuna bak
     if (!liste.length) {
       try {
-        const snap = await db.collection(COL.servisOturma)
-          .where('servisId','==', servisId).get();
+        const snap = await ServisOturmaRepository.planServisIdIleGetir(servisId);
         if (!snap.empty) {
           snap.docs.forEach(doc => {
             const koltuklar = doc.data().koltuklar || {};

@@ -2,6 +2,12 @@
    js/raporlama.js  (v2.0)
    Seçimli raporlama: Modal ile servis/sınıf seçimi, alan özelleştirmesi,
    Servis raporunda araç koltuk düzeni visual grid, A4 optimizasyonu.
+
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Bu modül hiçbir
+   Firestore okuma/yazma işlemi yapmaz — yalnızca diğer modüllerin (siniflar,
+   tasima, servis-oturma, personel...) zaten dinlemekte olduğu global
+   verilerden istemci tarafında yazdırılabilir rapor HTML'i üretir. Bu
+   nedenle repository/service katmanı gerektirmiyor.
    ==================================================================== */
 
 /* ---------- Yardımcı: Modal Seçim Dialog Aç ---------- */

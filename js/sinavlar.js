@@ -1,12 +1,17 @@
 /* ====================================================================
    js/sinavlar.js
-   SINAV İŞLEMLERİ MODÜLÜ
+   SINAV İŞLEMLERİ MODÜLÜ — UI KATMANI
    1) Yazılı Sınavlar: yazılı tarihleri ve yazılı sınav yolları (telafi)
       Veri modeli: oy_sinavlar {sinif, ders, ogretmenId, tarih, saat, tur, notlar}
    2) Deneme Sınavları: tek oturum / iki oturum, başlama-bitiş saati, süre,
       sayısal/sözel bölüm saatleri
       Veri modeli: oy_denemeSinavlari {ad, tarih, oturumTuru, baslamaSaati,
       bitisSaati, sure, sayisalBaslama, sayisalBitis, sozelBaslama, sozelBitis, notlar}
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + SinavlarService çağrısı, db bilmez
+     js/core/services/sinavlar.service.js    → yetki kontrolü
+     js/core/repositories/sinavlar.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 const SINAV_TURLERI = ['Yazılı', 'Sınav', 'Proje'];
@@ -121,10 +126,9 @@ function sinavModalAc(id){
       notlar:      gd('f_snNotlar').trim(),
     };
     modalKapat();
-    const ref = db.collection(COL.sinavlar);
-    const islem = s ? ref.doc(s.id).update(veri) : ref.add({...veri, eklenmeTarihi: new Date().toISOString()});
-    islem.then(()=>toast('Kaydedildi.')).catch(err=>toast('Kayıt hatası: '+err.message));
-  }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ db.collection(COL.sinavlar).doc(s.id).delete(); modalKapat(); } } : null);
+    SinavlarService.sinavKaydet(s?s.id:null, veri)
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Kayıt hatası: '+err.message); });
+  }, s ? ()=>{ if(confirm('Bu sınav kaydını silmek istiyor musunuz?')){ SinavlarService.sinavSil(s.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
 /* ============== DENEME SINAVLARI ============== */
@@ -307,21 +311,23 @@ function denemeModalAc(id){
         sozelBaslama:'', sozelSuresiDk:'', sozelBitis:'', araSureDk:'', sayisalBaslama:'', sayisalSuresiDk:'', sayisalBitis:''
       };
     }
-    kaydet(COL.denemeSinavlari, d?d.id:null, veri);
+    SinavlarService.denemeKaydet(d?d.id:null, veri)
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, d ? ()=>{ if(confirm('Bu deneme sınavı kaydını silmek istiyor musunuz?')){ db.collection(COL.denemeSinavlari).doc(d.id).delete(); modalKapat(); } } : null);
+  }, d ? ()=>{ if(confirm('Bu deneme sınavı kaydını silmek istiyor musunuz?')){ SinavlarService.denemeSil(d.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
-/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ---------- */
+/* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
+   Artık doğrudan db.collection() çağrılmıyor — SinavlarRepository üzerinden dinleniyor. */
 function sinavBaglantilariKur(){
-  db.collection(COL.sinavlar).onSnapshot(s=>{
-    sinavlar = s.docs.map(d=>({id:d.id,...d.data()}));
+  SinavlarRepository.sinavlariDinle(v=>{
+    sinavlar = v;
     renderSinavlar();
-  }, hataGoster);
-  db.collection(COL.denemeSinavlari).onSnapshot(s=>{
-    denemeSinavlari = s.docs.map(d=>({id:d.id,...d.data()}));
+  });
+  SinavlarRepository.denemeSinavlariniDinle(v=>{
+    denemeSinavlari = v;
     renderDenemeSinavlari();
-  }, hataGoster);
+  });
 }
 
 /* ================================================================

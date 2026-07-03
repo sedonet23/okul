@@ -193,12 +193,12 @@ function asistanTaslakGoster(toolCall) {
     baslikAlani = args.baslik || '';
     icerikAlani = args.icerik || '';
     kaydetFn = () => {
-      kaydet(COL.notlar, null, {
+      NotlarService.notKaydet(null, {
         baslik: document.getElementById('asistanTaslakBaslik').value,
         tip: 'metin',
         icerik: document.getElementById('asistanTaslakIcerik').value,
         renk: 'sari'
-      });
+      }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     };
   } else if (name === 'taslak_gorev') {
     baslikAlani = args.baslik || '';
@@ -227,12 +227,12 @@ function asistanTaslakGoster(toolCall) {
     baslikAlani = args.baslik || '';
     icerikAlani = args.icerik || '';
     kaydetFn = () => {
-      kaydet(COL.notlar, null, {
+      NotlarService.notKaydet(null, {
         baslik: document.getElementById('asistanTaslakBaslik').value,
         tip: 'metin',
         icerik: document.getElementById('asistanTaslakIcerik').value,
         renk: 'mavi'
-      });
+      }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     };
   } else {
     return;
