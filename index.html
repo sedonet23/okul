@@ -1181,6 +1181,16 @@
 </div>
 
 <!-- YENİ: Kullanıcı Seçim Modalı — topbar avatarına tıklayınca açılır -->
+      <!-- YENİ: Yeni mesaj baloncuğu — bkz. js/mesajlasma.js mesajBaloncuguGoster() -->
+      <div id="mesajBaloncugu" class="mesaj-baloncuk" style="display:none;" onclick="mesajBaloncuguTiklandi()">
+        <div class="mesaj-baloncuk-avatar" id="mesajBaloncukAvatar">💬</div>
+        <div class="mesaj-baloncuk-icerik">
+          <div class="mesaj-baloncuk-baslik" id="mesajBaloncukBaslik"></div>
+          <div class="mesaj-baloncuk-metin" id="mesajBaloncukMetin"></div>
+        </div>
+        <button class="mesaj-baloncuk-kapat" onclick="event.stopPropagation(); mesajBaloncuguKapat();">✕</button>
+      </div>
+
 <div class="detay-overlay" id="detayOverlay">
   <div class="detay-panel">
     <div class="detay-head">
