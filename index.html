@@ -110,6 +110,7 @@
       <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
       <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
       <button class="nav-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
+      <button class="nav-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
       <button class="nav-tab" data-tab="mevzuat"><span class="nt-ico">⚖️</span><span class="nt-label">Mevzuat</span></button>
       <button class="nav-tab" data-tab="asistan"><span class="nt-ico ni-asistan">🤖</span><span class="nt-label">AI Asistan</span></button>
       
@@ -182,10 +183,10 @@
       <!-- Haberler kayan bandı -->
       <div class="haber-ticker" id="haberTicker" data-yetki-modul="haberler" style="display:none;"></div>
 
-      <!-- YENİ: Duyuru Panosu — sadece manuel (admin/yönetici eklediği) duyurular,
-           genel haber akışından ayrı, kendi kartında. -->
-      <div class="card" id="duyuruPanosuKart" data-yetki-modul="haberler" style="display:none;">
-        <h3 class="dash-h3-row">📢 Duyuru Panosu <span class="dash-tumu-link" onclick="sekmeAc('haberler')">Tümü ›</span></h3>
+      <!-- YENİ: Duyuru Panosu — Haberler modülünden BAĞIMSIZ, kendi yetkisi
+           ve okundu-takip sistemi olan ayrı modül (bkz. js/duyurular.js). -->
+      <div class="card" id="duyuruPanosuKart" data-yetki-modul="duyurular" style="display:none;">
+        <h3 class="dash-h3-row">📢 Duyuru Panosu <span class="dash-tumu-link" onclick="sekmeAc('duyurular')">Tümü ›</span></h3>
         <div id="duyuruPanosuIcerik"></div>
       </div>
 
@@ -478,6 +479,15 @@
           <button class="btn btn-amber" style="margin-top:14px;" onclick="haberKategoriTercihleriKaydet()">Kaydet</button>
         </div>
       </div>
+    </section>
+
+    <!-- DUYURULAR (Haberler'den bağımsız) -->
+    <section id="tab-duyurular" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📢 Duyurular</div><div class="page-sub">Yönetimin okul geneline duyuruları</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" onclick="duyuruModalAc()">+ Yeni Duyuru</button></div>
+      </div>
+      <div id="duyurularListesi"></div>
     </section>
 
     <section id="tab-notlar" class="tab-panel">
@@ -1293,9 +1303,12 @@
 <script src="js/core/services/periyodik.service.js"></script>
 <script src="js/core/repositories/mesajlasma.repository.js"></script>
 <script src="js/core/services/mesajlasma.service.js"></script>
+<script src="js/core/repositories/duyurular.repository.js"></script>
+<script src="js/core/services/duyurular.service.js"></script>
 <script src="js/push.js"></script>
 <script src="js/cizelgeler.js"></script>
 <script src="js/mesajlasma.js"></script>
+<script src="js/duyurular.js"></script>
 <script src="js/excel-import.js"></script>
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
