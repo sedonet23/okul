@@ -33,7 +33,7 @@ const DOKUMAN_KATEGORILER = [
    ================================================================ */
 function dokumanlarBaglantisiKur() {
   DokumanlarRepository.dokumanlariDinle(v => {
-    dokumanlarListesi = v;
+    dokumanlarListesi = DokumanlarService.gorunurListele(v);
     renderDokumanlar();
     renderDokumanKategoriFiltre();
   });
@@ -84,9 +84,10 @@ function renderDokumanlar() {
 }
 
 function dokumanSatirHtml(d) {
-  const tarih   = d.yuklenmeTarihi
-    ? new Date(d.yuklenmeTarihi.seconds ? d.yuklenmeTarihi.seconds * 1000 : d.yuklenmeTarihi).toLocaleDateString('tr-TR')
-    : '—';
+  const tarihObj = d.yuklenmeTarihi
+    ? new Date(d.yuklenmeTarihi.seconds ? d.yuklenmeTarihi.seconds * 1000 : d.yuklenmeTarihi)
+    : null;
+  const tarih   = tarihObj ? tarihObj.toLocaleDateString('tr-TR') + ' ' + tarihObj.toLocaleTimeString('tr-TR', {hour:'2-digit', minute:'2-digit'}) : '—';
   const boyut   = d.dosyaBoyutu ? dosyaBoyutuFormat(d.dosyaBoyutu) : '';
   const uzanti  = (d.dosyaAdi || d.hariciUrl || '').split('.').pop().toLowerCase();
   const ikon    = dosyaIkonu(uzanti);
@@ -95,6 +96,12 @@ function dokumanSatirHtml(d) {
   const depolamaBadge = harici
     ? `<span style="font-size:10px;color:#888;background:#f0f0f0;padding:1px 5px;border-radius:4px;">🔗 URL</span>`
     : `<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:1px 5px;border-radius:4px;">☁️ Bulutta</span>`;
+  const gorunurlukBadge = d.gorunurluk === 'kisisel'
+    ? `<span style="font-size:10px;color:#8a4b00;background:#fff3e0;padding:1px 5px;border-radius:4px;">🔒 Kişisel</span>`
+    : `<span style="font-size:10px;color:#1565c0;background:#e3f2fd;padding:1px 5px;border-radius:4px;">🌐 Herkese Açık</span>`;
+  // Kimin eklediği sadece admin için (veya "herkese açık" değilse zaten sahibi görüyordur) anlamlı — admin'e göster.
+  const ekleyenGoster = (typeof AKTIF_KULLANICI!=='undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin && d.olusturanAdi)
+    ? ` · 👤 ${escapeHtml(d.olusturanAdi)}` : '';
 
   return `
     <div class="evrak-row">
@@ -103,8 +110,8 @@ function dokumanSatirHtml(d) {
         <div style="min-width:0;flex:1;">
           <div class="evrak-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.ad || d.dosyaAdi || 'Belge')}</div>
           <div class="evrak-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            ${depolamaBadge}
-            <span>${tarih}${boyut ? ' · ' + boyut : ''}${d.aciklama ? ' · ' + escapeHtml(d.aciklama) : ''}</span>
+            ${depolamaBadge}${gorunurlukBadge}
+            <span>${tarih}${boyut ? ' · ' + boyut : ''}${ekleyenGoster}${d.aciklama ? ' · ' + escapeHtml(d.aciklama) : ''}</span>
           </div>
         </div>
       </div>
@@ -149,6 +156,7 @@ function dokumanIndir(id) {
 function dokumanYukleModalAc() {
   const kategoriSecenekleri = DOKUMAN_KATEGORILER
     .map(k => `<option value="${k}">${k}</option>`).join('');
+  const adminMi = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin === true;
 
   const body = `
     <div class="form-group">
@@ -163,6 +171,18 @@ function dokumanYukleModalAc() {
       <label>Açıklama (isteğe bağlı)</label>
       <input id="dok_aciklama" placeholder="Kısa açıklama..." style="width:100%;">
     </div>
+
+    ${adminMi ? `
+    <div class="form-group">
+      <label>Görünürlük</label>
+      <select id="dok_gorunurluk" style="width:100%;">
+        <option value="herkes">🌐 Herkese Açık — tüm kullanıcılar görür</option>
+        <option value="kisisel">🔒 Sadece Bana Özel</option>
+      </select>
+    </div>` : `
+    <div style="font-size:12px;color:var(--ink-muted);background:var(--nm-bg);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
+      🔒 Bu döküman sadece <strong>size</strong> ve <strong>yöneticiye</strong> görünür olacak.
+    </div>`}
 
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-top:4px;">
       <div style="display:flex;">
@@ -231,6 +251,8 @@ async function dokumanKaydet() {
       ad, kategori, aciklama,
       yuklenmeTarihi: firebase.firestore.FieldValue.serverTimestamp(),
     };
+    const gorunurlukEl = document.getElementById('dok_gorunurluk');
+    if (gorunurlukEl) metaTaban.gorunurluk = gorunurlukEl.value; // sadece admin'de var; DokumanlarService yine de doğrular
 
     if (hariciUrl) {
       metaTaban.hariciUrl = hariciUrl;
