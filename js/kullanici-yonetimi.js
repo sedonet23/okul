@@ -245,6 +245,18 @@ function rolSil(id){
 }
 
 /* ---------- Kullanıcılar ---------- */
+/* Google hesap adı yerine, hesaba bağlı öğretmen kaydı varsa ONUN adı ve
+   fotoğrafı gösterilir (bkz. js/auth.js sidebarHesapGuncelle'deki aynı mantık). */
+function _kullaniciGoruntulenecekAd(k){
+  const o = k.bagliOgretmenId ? (typeof ogretmenler!=='undefined' ? ogretmenler.find(x=>x.id===k.bagliOgretmenId) : null) : null;
+  if(o) return `${o.ad||''} ${o.soyad||''}`.trim() || (k.ad || 'İsimsiz');
+  return k.ad || 'İsimsiz';
+}
+function _kullaniciGoruntulenecekFoto(k){
+  const o = k.bagliOgretmenId ? (typeof ogretmenler!=='undefined' ? ogretmenler.find(x=>x.id===k.bagliOgretmenId) : null) : null;
+  return (o && o.profilFotoUrl) || k.fotoUrl || 'assets/icon-192.png';
+}
+
 function renderYonetimKullanicilari(){
   const el = document.getElementById('kullaniciYonetimListesi');
   if(!el) return;
@@ -254,14 +266,14 @@ function renderYonetimKullanicilari(){
   }
   const siraliListe = [...YONETIM_KULLANICILAR_CACHE].sort((a,b)=>{
     if(!!a.aktif !== !!b.aktif) return a.aktif ? 1 : -1; // onay bekleyenler üstte
-    return (a.ad||'').localeCompare(b.ad||'','tr');
+    return _kullaniciGoruntulenecekAd(a).localeCompare(_kullaniciGoruntulenecekAd(b),'tr');
   });
   el.innerHTML = siraliListe.map(k=>{
     const rolAdi = k.admin ? '👑 Süper Admin' : (ROLLER_CACHE.find(r=>r.id===k.rolId)?.ad || 'Rol atanmadı');
     return `<div class="card" style="margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-      <img src="${k.fotoUrl || 'assets/icon-192.png'}" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;object-fit:cover;">
+      <img src="${_kullaniciGoruntulenecekFoto(k)}" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;object-fit:cover;">
       <div style="flex:1;min-width:160px;">
-        <div style="font-weight:700;font-size:14px;">${escapeHtml(k.ad || 'İsimsiz')} ${!k.aktif ? '<span class="status-badge status-bekleme">Onay Bekliyor</span>' : ''}</div>
+        <div style="font-weight:700;font-size:14px;">${escapeHtml(_kullaniciGoruntulenecekAd(k))} ${!k.aktif ? '<span class="status-badge status-bekleme">Onay Bekliyor</span>' : ''}</div>
         <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.email || '')} · ${escapeHtml(rolAdi)}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="kullaniciDuzenleAc('${k.id}')">Düzenle</button>
@@ -292,7 +304,7 @@ function kullaniciDuzenleAc(uid){
       <input type="checkbox" id="fKullaniciAdmin" ${k.admin?'checked':''}> 👑 Süper Admin (tüm yetkileri bypass eder — dikkatli kullanın)
     </label>
   `;
-  modalAc('Kullanıcıyı Düzenle: ' + (k.ad || k.email), bodyHtml, ()=>kullaniciKaydet(uid), null, 'Kaydet');
+  modalAc('Kullanıcıyı Düzenle: ' + _kullaniciGoruntulenecekAd(k), bodyHtml, ()=>kullaniciKaydet(uid), null, 'Kaydet');
 }
 
 function kullaniciKaydet(uid){
