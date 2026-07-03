@@ -1,0 +1,124 @@
+/* ================================================================
+   js/core/services/mesajlasma.service.js
+   MESAJLAŞMA MODÜLÜ — İŞ KURALLARI + YETKİ KONTROLÜ
+
+   Bu katman:
+   - Konuşma listesini görmek için gorebilir('mesajlasma'), yeni konuşma
+     başlatmak/mesaj göndermek için duzenleyebilir('mesajlasma') kontrolü
+     yapar.
+   - Aynı iki kişi arasında birden fazla 1-1 konuşma açılmasını engeller
+     (var olanı bulup kullanır).
+   - Okunmamış mesaj sayaçlarını (okunmayanlar) günceller.
+   - db değişkenine DOĞRUDAN dokunmaz — sadece MesajlasmaRepository çağırır.
+   (bkz. Pragmatik-Mimari-Tasarimi.md §2, §5)
+   ================================================================ */
+
+const MesajlasmaService = {
+
+  _yetkiKontrol(){
+    if(!duzenleyebilir('mesajlasma')){ toast('Bu işlem için yetkiniz yok.'); return false; }
+    return true;
+  },
+
+  _kendiKimlik(){
+    const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : { ad: '' };
+    return {
+      uid: (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null,
+      ad: kimlik.ad || 'Kullanıcı'
+    };
+  },
+
+  /* Bir öğretmen kaydına bağlı hesabın uid'ini bulur. Hesap yoksa/hiç giriş
+     yapmadıysa null döner (çağıran taraf uygun mesajı gösterir). */
+  async _ogretmenUidBul(ogretmenId){
+    const snap = await MesajlasmaRepository.kullaniciUidBulOgretmenId(ogretmenId);
+    if(snap.empty) return null;
+    return snap.docs[0].id;
+  },
+
+  /* Bir öğretmenle 1-1 konuşma başlatır — varsa mevcut konuşmayı bulup
+     döner, yoksa yeni oluşturur. mevcutKonusmalar: UI'da zaten yüklü olan
+     konuşma listesi (gereksiz Firestore sorgusu yapmamak için). */
+  async konusmaBaslatOgretmenIle(ogretmenId, ogretmenAdi, mevcutKonusmalar){
+    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    const ben = this._kendiKimlik();
+    if(!ben.uid) throw new Error('kimlik-yok');
+    const digerUid = await this._ogretmenUidBul(ogretmenId);
+    if(!digerUid) throw new Error('hesap-yok');
+    if(digerUid === ben.uid) throw new Error('kendine-mesaj');
+
+    const varOlan = (mevcutKonusmalar||[]).find(k =>
+      !k.grupMu && k.katilimciUidler.length===2 &&
+      k.katilimciUidler.includes(ben.uid) && k.katilimciUidler.includes(digerUid)
+    );
+    if(varOlan) return varOlan.id;
+
+    const ref = await MesajlasmaRepository.konusmaOlustur({
+      katilimciUidler: [ben.uid, digerUid],
+      katilimciAdlari: { [ben.uid]: ben.ad, [digerUid]: ogretmenAdi },
+      grupMu: false,
+      sonMesaj: null,
+      okunmayanlar: { [ben.uid]: 0, [digerUid]: 0 }
+    });
+    return ref.id;
+  },
+
+  /* Grup konuşması oluşturur. katilimcilar: [{uid, ad}, ...] (kendisi hariç). */
+  async grupOlustur(grupAdi, katilimcilar){
+    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    const ben = this._kendiKimlik();
+    if(!ben.uid) throw new Error('kimlik-yok');
+    if(!grupAdi || !grupAdi.trim()) throw new Error('grup-adi-gerekli');
+    if(!katilimcilar.length) throw new Error('katilimci-gerekli');
+
+    const katilimciUidler = [ben.uid, ...katilimcilar.map(k=>k.uid)];
+    const katilimciAdlari = { [ben.uid]: ben.ad };
+    const okunmayanlar = { [ben.uid]: 0 };
+    katilimcilar.forEach(k => { katilimciAdlari[k.uid] = k.ad; okunmayanlar[k.uid] = 0; });
+
+    const ref = await MesajlasmaRepository.konusmaOlustur({
+      katilimciUidler, katilimciAdlari, grupMu: true, grupAdi: grupAdi.trim(),
+      sonMesaj: null, okunmayanlar
+    });
+    return ref.id;
+  },
+
+  /* Mesaj gönderir + konuşma özetini (son mesaj, okunmamış sayaçları) günceller. */
+  async mesajGonder(konusmaId, metin, mevcutKonusma){
+    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    const temizMetin = (metin||'').trim();
+    if(!temizMetin) throw new Error('mesaj-bos');
+    const ben = this._kendiKimlik();
+    if(!ben.uid) throw new Error('kimlik-yok');
+
+    await MesajlasmaRepository.mesajEkle({
+      konusmaId, gonderenUid: ben.uid, gonderenAdi: ben.ad, metin: temizMetin
+    });
+
+    const yeniOkunmayanlar = { ...(mevcutKonusma?.okunmayanlar || {}) };
+    (mevcutKonusma?.katilimciUidler || []).forEach(uid=>{
+      yeniOkunmayanlar[uid] = uid === ben.uid ? 0 : (yeniOkunmayanlar[uid]||0) + 1;
+    });
+    return MesajlasmaRepository.konusmaGuncelle(konusmaId, {
+      sonMesaj: { metin: temizMetin, gonderenUid: ben.uid, tarih: new Date().toISOString() },
+      guncellenmeTarihi: new Date().toISOString(),
+      okunmayanlar: yeniOkunmayanlar
+    });
+  },
+
+  /* Bir konuşmayı "okundu" işaretler (kendi okunmamış sayacını sıfırlar). */
+  okunduIsaretle(konusmaId, mevcutKonusma){
+    const ben = this._kendiKimlik();
+    if(!ben.uid || !mevcutKonusma) return Promise.resolve();
+    if(!mevcutKonusma.okunmayanlar || !mevcutKonusma.okunmayanlar[ben.uid]) return Promise.resolve();
+    const yeniOkunmayanlar = { ...mevcutKonusma.okunmayanlar, [ben.uid]: 0 };
+    return MesajlasmaRepository.konusmaGuncelle(konusmaId, { okunmayanlar: yeniOkunmayanlar });
+  },
+
+  /* Toplam okunmamış mesaj sayısı (bildirim rozetinde kullanılır). */
+  toplamOkunmayan(konusmalar){
+    const ben = this._kendiKimlik();
+    if(!ben.uid) return 0;
+    return (konusmalar||[]).reduce((top,k)=> top + ((k.okunmayanlar && k.okunmayanlar[ben.uid]) || 0), 0);
+  }
+};
