@@ -1,14 +1,19 @@
 /* ====================================================================
    js/dokumanlar.js
    DÖKÜMANLAR MODÜLÜ — UI KATMANI
-   - Dosya içeriği: IndexedDB (cihaz hafızası)
+   - Dosya içeriği: Firebase Storage (bulut — herkes her cihazdan erişir)
    - Metadata: Firestore (oy_dokumanlar)
    - Opsiyonel: harici URL (Google Drive vb.)
 
+   DÜZELTME (v2): Bu modül eskiden dosyaları IndexedDB'de (cihaz hafızası)
+   tutuyordu — bu, "paylaşılan döküman arşivi" amacına aykırıydı, çünkü
+   bir dosyayı yükleyen kişi DIŞINDA kimse göremiyordu. Artık Firebase
+   Storage kullanıldığı için gerçek anlamda paylaşım var.
+
    Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
-     UI (bu dosya)          → DOM + IndexedDB + DokumanlarService çağrısı
+     UI (bu dosya)          → DOM + DokumanlarService çağrısı, db/storage bilmez
      js/core/services/dokumanlar.service.js    → yetki kontrolü
-     js/core/repositories/dokumanlar.repository.js → TEK Firestore erişim noktası
+     js/core/repositories/dokumanlar.repository.js → TEK Firestore+Storage erişim noktası
    ==================================================================== */
 
 let dokumanlarListesi = [];
@@ -22,57 +27,6 @@ const DOKUMAN_KATEGORILER = [
   'Yönetim & İdari',
   'Diğer',
 ];
-
-/* ================================================================
-   IndexedDB
-   ================================================================ */
-const IDB_NAME    = 'okul_dokumanlar';
-const IDB_VERSION = 1;
-const IDB_STORE   = 'dosyalar';
-
-function idbAc() {
-  return new Promise((res, rej) => {
-    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE, { keyPath: 'id' });
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function idbKaydet(id, blob) {
-  const db = await idbAc();
-  return new Promise((res, rej) => {
-    const tx  = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).put({ id, blob });
-    tx.oncomplete = () => res();
-    tx.onerror    = e => rej(e.target.error);
-  });
-}
-
-async function idbOku(id) {
-  const db = await idbAc();
-  return new Promise((res, rej) => {
-    const tx  = db.transaction(IDB_STORE, 'readonly');
-    const req = tx.objectStore(IDB_STORE).get(id);
-    req.onsuccess = e => res(e.target.result ? e.target.result.blob : null);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-
-async function idbSil(id) {
-  const db = await idbAc();
-  return new Promise((res, rej) => {
-    const tx = db.transaction(IDB_STORE, 'readwrite');
-    tx.objectStore(IDB_STORE).delete(id);
-    tx.oncomplete = () => res();
-    tx.onerror    = e => rej(e.target.error);
-  });
-}
-
-async function idbVarMi(id) {
-  const blob = await idbOku(id);
-  return blob !== null;
-}
 
 /* ================================================================
    Firestore bağlantısı
@@ -98,7 +52,7 @@ function renderDokumanKategoriFiltre() {
     mevcutlar.map(k => `<option value="${escapeHtml(k)}" ${secili === k ? 'selected' : ''}>${escapeHtml(k)}</option>`).join('');
 }
 
-async function renderDokumanlar() {
+function renderDokumanlar() {
   const hedef = document.getElementById('dokumanlarListesi');
   if (!hedef) return;
 
@@ -110,19 +64,12 @@ async function renderDokumanlar() {
     return;
   }
 
-  // Kategoriye göre grupla
   const gruplar = {};
   liste.forEach(d => {
     const k = d.kategori || 'Diğer';
     if (!gruplar[k]) gruplar[k] = [];
     gruplar[k].push(d);
   });
-
-  // IndexedDB varlık kontrolü paralel yap
-  const varlikMap = {};
-  await Promise.all(liste.map(async d => {
-    varlikMap[d.id] = await idbVarMi(d.id);
-  }));
 
   hedef.innerHTML = Object.entries(gruplar)
     .sort(([a], [b]) => a.localeCompare(b, 'tr'))
@@ -131,12 +78,12 @@ async function renderDokumanlar() {
         <div style="font-size:12px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;padding:0 4px;">
           📂 ${escapeHtml(kategori)} <span style="font-weight:400;">(${belgeler.length})</span>
         </div>
-        ${belgeler.map(d => dokumanSatirHtml(d, varlikMap[d.id])).join('')}
+        ${belgeler.map(d => dokumanSatirHtml(d)).join('')}
       </div>
     `).join('');
 }
 
-function dokumanSatirHtml(d, cihazda) {
+function dokumanSatirHtml(d) {
   const tarih   = d.yuklenmeTarihi
     ? new Date(d.yuklenmeTarihi.seconds ? d.yuklenmeTarihi.seconds * 1000 : d.yuklenmeTarihi).toLocaleDateString('tr-TR')
     : '—';
@@ -147,9 +94,7 @@ function dokumanSatirHtml(d, cihazda) {
 
   const depolamaBadge = harici
     ? `<span style="font-size:10px;color:#888;background:#f0f0f0;padding:1px 5px;border-radius:4px;">🔗 URL</span>`
-    : cihazda
-      ? `<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:1px 5px;border-radius:4px;">📱 Cihazda</span>`
-      : `<span style="font-size:10px;color:#c0392b;background:#fdecea;padding:1px 5px;border-radius:4px;">⚠ Cihazda yok</span>`;
+    : `<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:1px 5px;border-radius:4px;">☁️ Bulutta</span>`;
 
   return `
     <div class="evrak-row">
@@ -172,35 +117,30 @@ function dokumanSatirHtml(d, cihazda) {
 }
 
 /* ================================================================
-   Dosya açma / görüntüleme
+   Dosya açma / indirme
+   Resim ve PDF tarayıcıda doğrudan açılabildiği için yeni sekmede
+   açılır; diğer türler (Word/Excel vb.) indirmeye yönlendirilir.
    ================================================================ */
-async function dokumanAc(id) {
-  dokumanIndir(id);
-}
-
-async function dokumanIndir(id) {
+function dokumanAc(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   if (!d) return;
+  const url = d.hariciUrl || d.dosyaUrl;
+  if (!url) { toast('Bu dökümanın dosyası bulunamadı.'); return; }
+  window.open(url, '_blank');
+}
 
-  if (d.hariciUrl) {
-    window.open(d.hariciUrl, '_blank');
-    return;
-  }
-
-  const blob = await idbOku(id);
-  if (!blob) { toast('Bu dosya bu cihazda mevcut değil.'); return; }
-
-  // FileReader ile base64'e çevir — mobil Chrome'da en güvenilir yöntem
-  const reader = new FileReader();
-  reader.onload = e => {
-    const a = document.createElement('a');
-    a.href     = e.target.result;
-    a.download = d.dosyaAdi || d.ad || 'dosya';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-  reader.readAsDataURL(blob);
+function dokumanIndir(id) {
+  const d = dokumanlarListesi.find(x => x.id === id);
+  if (!d) return;
+  const url = d.hariciUrl || d.dosyaUrl;
+  if (!url) { toast('Bu dökümanın dosyası bulunamadı.'); return; }
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = d.dosyaAdi || d.ad || 'dosya';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 /* ================================================================
@@ -240,6 +180,7 @@ function dokumanYukleModalAc() {
         </div>
       </div>
     </div>
+    <div id="dok_yukleme_durumu" style="display:none;font-size:12px;color:var(--ink-muted);margin-top:8px;"></div>
   `;
 
   modalAc('📁 Döküman Ekle', body, () => dokumanKaydet(), null);
@@ -261,7 +202,6 @@ function dokumanDosyaSecildi(input) {
   const bilgi = document.getElementById('dok_dosya_bilgi');
   if (dosya && bilgi) {
     bilgi.textContent = `${dosya.name} · ${dosyaBoyutuFormat(dosya.size)}`;
-    // Döküman adı boşsa dosya adından doldur
     const adEl = document.getElementById('dok_ad');
     if (adEl && !adEl.value.trim()) {
       adEl.value = dosya.name.replace(/\.[^.]+$/, '');
@@ -283,29 +223,24 @@ async function dokumanKaydet() {
   if (!hariciUrl && !dosya) { toast('Dosya seçin veya URL girin.'); return; }
 
   const kaydetBtn = document.getElementById('modalKaydetBtn');
+  const durumEl = document.getElementById('dok_yukleme_durumu');
   if (kaydetBtn) { kaydetBtn.disabled = true; kaydetBtn.textContent = 'Kaydediliyor...'; }
 
   try {
-    // Firestore'a metadata yaz
-    const meta = {
+    const metaTaban = {
       ad, kategori, aciklama,
       yuklenmeTarihi: firebase.firestore.FieldValue.serverTimestamp(),
     };
 
     if (hariciUrl) {
-      meta.hariciUrl = hariciUrl;
-      meta.dosyaAdi  = hariciUrl.split('/').pop().split('?')[0] || 'dosya';
+      metaTaban.hariciUrl = hariciUrl;
+      metaTaban.dosyaAdi  = hariciUrl.split('/').pop().split('?')[0] || 'dosya';
+      await DokumanlarService.dokumanEkle(metaTaban, null, null);
     } else {
-      meta.dosyaAdi    = dosya.name;
-      meta.dosyaBoyutu = dosya.size;
-      meta.dosyaTipi   = dosya.type;
-    }
-
-    const docRef = await DokumanlarService.dokumanEkle(meta);
-
-    // Dosya varsa IndexedDB'ye kaydet
-    if (dosya) {
-      await idbKaydet(docRef.id, dosya);
+      if (durumEl) { durumEl.style.display = ''; durumEl.textContent = `Yükleniyor… %0`; }
+      await DokumanlarService.dokumanEkle(metaTaban, dosya, (yuzde)=>{
+        if (durumEl) durumEl.textContent = `Yükleniyor… %${yuzde}`;
+      });
     }
 
     toast(`"${ad}" kaydedildi.`);
@@ -313,6 +248,7 @@ async function dokumanKaydet() {
   } catch (e) {
     toast('Kayıt hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
     if (kaydetBtn) { kaydetBtn.disabled = false; kaydetBtn.textContent = '💾 Kaydet'; }
+    if (durumEl) durumEl.style.display = 'none';
   }
 }
 
@@ -325,9 +261,9 @@ function dokumanSilOnay(id, ad) {
 }
 
 async function dokumanSil(id) {
+  const d = dokumanlarListesi.find(x => x.id === id);
   try {
-    await idbSil(id);
-    await DokumanlarService.dokumanSil(id);
+    await DokumanlarService.dokumanSil(id, d?.storagePath);
     toast('Döküman silindi.');
   } catch (e) {
     toast('Silme hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
