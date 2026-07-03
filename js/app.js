@@ -976,13 +976,8 @@ function renderDashboard(){
       gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
     ].join('');
   }
-  /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı sayısı) ---- */
-  const bellBadgeEl = document.getElementById('topbarBellBadge');
-  if(bellBadgeEl){
-    const bekleyenSayi = hatirlaticilar.filter(h=>!h.tamamlandi).length;
-    bellBadgeEl.textContent = bekleyenSayi;
-    bellBadgeEl.style.display = bekleyenSayi>0 ? 'flex' : 'none';
-  }
+  /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı + okunmamış duyuru sayısı) ---- */
+  if(typeof topbarBildirimRozetiGuncelle === 'function') topbarBildirimRozetiGuncelle();
 
   const buGunDersler = dersProgrami.filter(d=>d.gun===bugunGun).sort((a,b)=>a.saat-b.saat);
   document.getElementById('dashBugunDersler').innerHTML = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu) ? '<p class="empty-state">🏖️ Tatil modu aktif.</p>' : !GUNLER.includes(bugunGun) ? '<p class="empty-state">Bugün hafta sonu.</p>' :
@@ -1206,6 +1201,19 @@ function renderDersNobetProgramim(){
     <h3 style="margin:0 0 12px;">📚 Haftalık Ders Programım</h3>
     ${dersHtml}
   `;
+}
+
+/* Üst bar bildirim zili rozeti — hem renderDashboard()'dan hem duyuru
+   verisi güncellendiğinde (bkz. js/duyurular.js) çağrılır. */
+function topbarBildirimRozetiGuncelle(){
+  const bellBadgeEl = document.getElementById('topbarBellBadge');
+  if(!bellBadgeEl) return;
+  const bekleyenHatirlatici = (typeof hatirlaticilar!=='undefined' ? hatirlaticilar : []).filter(h=>!h.tamamlandi).length;
+  const okunmamisDuyuru = (typeof duyurular!=='undefined' && typeof DuyurularService!=='undefined')
+    ? duyurular.filter(d=>!DuyurularService.benOkudumMu(d)).length : 0;
+  const bekleyenSayi = bekleyenHatirlatici + okunmamisDuyuru;
+  bellBadgeEl.textContent = bekleyenSayi;
+  bellBadgeEl.style.display = bekleyenSayi>0 ? 'flex' : 'none';
 }
 
 /* ============== ÖĞRETMENE ÖZEL ANASAYFA KARTLARI ==============

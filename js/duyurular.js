@@ -18,6 +18,7 @@ function duyurularBaglantilariKur(){
     duyurular = v.sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
     renderDuyurular();
     renderDuyuruPanosu();
+    if(typeof topbarBildirimRozetiGuncelle === 'function') topbarBildirimRozetiGuncelle();
   });
 }
 
@@ -42,7 +43,7 @@ function renderDuyurular(){
       </div>
       <div style="margin-top:10px;font-size:14px;white-space:pre-wrap;">${escapeHtml(d.icerik||'')}</div>
       <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <button class="btn btn-ghost btn-sm" onclick="duyuruOkuyanlarGoster('${d.id}')">👁 ${okuyanSayisi} kişi okudu</button>
+        <button class="btn btn-ghost btn-sm" onclick="duyuruDetayAc('${d.id}')">👁 ${okuyanSayisi} kişi okudu</button>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-ghost btn-sm" onclick="duyuruModalAc('${d.id}')">Düzenle</button>
         </div>
@@ -51,22 +52,7 @@ function renderDuyurular(){
   }).join('');
 }
 
-/* Admin (veya duyurular:düzenle yetkisi olan) için "kimler okudu" listesi. */
-function duyuruOkuyanlarGoster(id){
-  const d = duyurular.find(x=>x.id===id);
-  if(!d) return;
-  const okuyanlar = Object.values(d.okuyanlar||{}).sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''));
-  const body = okuyanlar.length
-    ? `<div style="max-height:340px;overflow-y:auto;">${okuyanlar.map(o=>`
-        <div class="detay-row" style="display:flex;justify-content:space-between;">
-          <span>${escapeHtml(o.ad)}</span>
-          <span class="detay-row-muted">${formatTarih((o.tarih||'').slice(0,10))} ${(o.tarih||'').slice(11,16)}</span>
-        </div>`).join('')}</div>`
-    : '<p class="empty-state">Henüz kimse okumadı.</p>';
-  modalAc(`👁 "${escapeHtml(d.baslik)}" — Okuyanlar (${okuyanlar.length})`, body, null, null);
-  const kaydetBtn = document.getElementById('modalKaydetBtn');
-  if(kaydetBtn) kaydetBtn.style.display = 'none';
-}
+/* not: "kimler okudu" görüntüleme artık duyuruDetayAc() içinde birleşik (bkz. aşağıda) */
 
 function duyuruOkunduIsaretleTikla(id){
   DuyurularService.okunduIsaretle(id).catch(err=>{ if(err.message!=='kimlik-yok') toast('Hata: '+err.message); });
@@ -102,7 +88,7 @@ function renderDuyuruPanosu(){
   icerik.innerHTML = gosterilecekler.map(d=>{
     const benOkudumMu = DuyurularService.benOkudumMu(d);
     return `
-    <div class="dash-row ${benOkudumMu?'':'duyuru-okunmamis'}" style="align-items:flex-start;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border);">
+    <div class="dash-row ${benOkudumMu?'':'duyuru-okunmamis'}" style="align-items:flex-start;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="duyuruDetayAc('${d.id}')">
       <div style="display:flex;align-items:center;gap:8px;width:100%;">
         <span class="duyuru-ikon ${benOkudumMu?'':'duyuru-ikon-yanip-soner'}">📢</span>
         <div style="flex:1;min-width:0;">
@@ -116,4 +102,38 @@ function renderDuyuruPanosu(){
       ${d.icerik ? `<div style="font-size:12.5px;color:var(--ink-muted);padding-left:28px;">${escapeHtml(d.icerik.length>90?d.icerik.slice(0,90)+'…':d.icerik)}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+/* Duyuru kartına/satırına tıklayınca tam içeriği bir modalda gösterir.
+   Admin (duyurular:düzenle yetkisi olan) için "kimler okudu" listesi de
+   aynı modalda görünür. */
+function duyuruDetayAc(id){
+  const d = duyurular.find(x=>x.id===id);
+  if(!d) return;
+  const benOkudumMu = DuyurularService.benOkudumMu(d);
+  const duzenleyebilirMi = typeof duzenleyebilir==='function' && duzenleyebilir('duyurular');
+  const okuyanlar = Object.values(d.okuyanlar||{}).sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''));
+
+  const body = `
+    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">${escapeHtml(d.olusturanAdi||'Yönetici')} · ${formatTarih((d.tarih||'').slice(0,10))} ${(d.tarih||'').slice(11,16)}</div>
+    <div style="font-size:14.5px;white-space:pre-wrap;line-height:1.5;">${escapeHtml(d.icerik||'')}</div>
+    ${duzenleyebilirMi ? `
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px;">👁 Okuyanlar (${okuyanlar.length})</div>
+        ${okuyanlar.length ? `<div style="max-height:220px;overflow-y:auto;">${okuyanlar.map(o=>`
+          <div class="detay-row" style="display:flex;justify-content:space-between;">
+            <span>${escapeHtml(o.ad)}</span>
+            <span class="detay-row-muted">${formatTarih((o.tarih||'').slice(0,10))} ${(o.tarih||'').slice(11,16)}</span>
+          </div>`).join('')}</div>` : '<p class="empty-state">Henüz kimse okumadı.</p>'}
+      </div>` : ''}
+  `;
+  modalAc(`📢 ${escapeHtml(d.baslik)}`, body,
+    (!benOkudumMu) ? ()=>{ duyuruOkunduIsaretleTikla(id); modalKapat(); } : null,
+    null,
+    benOkudumMu ? undefined : 'Okudum'
+  );
+  if(benOkudumMu){
+    const kaydetBtn = document.getElementById('modalKaydetBtn');
+    if(kaydetBtn) kaydetBtn.style.display = 'none';
+  }
 }
