@@ -145,12 +145,14 @@ function dersListesiEkle(){
     if (kisaltma) veri.kisaltma = kisaltma;
     const saatler = _haftalikSaatOku();
     if (saatler) veri.haftalikSaatler = saatler;
+    if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
     db.collection(COL.dersListesi).add(veri)
       .then(()=>{ toast('Ders eklendi.'); modalKapat(); })
       .catch(err=>toast('Hata: '+err.message));
   }, null);
 }
 function dersListesiSil(id){
+  if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
   if(!confirm('Bu dersi listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
   db.collection(COL.dersListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
 }
@@ -176,6 +178,7 @@ function dersKisaltmaDuzenle(id, ad, mevcutKisaltma){
     if (kisaltma) veri.kisaltma = kisaltma; else veri.kisaltma = '';
     const saatler = _haftalikSaatOku();
     veri.haftalikSaatler = saatler || {};
+    if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
     db.collection(COL.dersListesi).doc(id).update(veri)
       .then(()=>{ toast('Güncellendi.'); modalKapat(); })
       .catch(err=>toast('Hata: '+err.message));
@@ -231,10 +234,12 @@ function bransListesiEkle(){
   const ad = prompt('Yeni branş adı (örn: Sınıf Öğretmenliği):');
   if(!ad || !ad.trim()) return;
   if(bransListesi.some(d=>(d.ad||'').toLocaleLowerCase('tr')===ad.trim().toLocaleLowerCase('tr'))){ toast('Bu branş zaten listede.'); return; }
+  if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
   db.collection(COL.bransListesi).add({ ad: ad.trim() })
     .then(()=>toast('Branş eklendi.')).catch(err=>toast('Hata: '+err.message));
 }
 function bransListesiSil(id){
+  if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
   if(!confirm('Bu branşı listeden silmek istiyor musunuz? (Daha önce seçilmiş kayıtlar etkilenmez.)')) return;
   db.collection(COL.bransListesi).doc(id).delete().catch(err=>toast('Hata: '+err.message));
 }

@@ -39,6 +39,7 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'haberler', ad:'Haberler'},
   {grup:'Genel', modul:'mevzuat', ad:'Mevzuat'},
   {grup:'Genel', modul:'asistan', ad:'AI Asistan'},
+  {grup:'Genel', modul:'sistemAyarlari', ad:'Sistem Ayarları (Ders Saatleri, Ders/Branş Listesi)'},
   {grup:'Çizelgeler', modul:'sosyalKulupler', ad:'Sosyal Kulüpler'},
   {grup:'Çizelgeler', modul:'belirliGunler', ad:'Belirli Gün & Haftalar'},
   {grup:'Çizelgeler', modul:'zumre', ad:'Zümre'},
@@ -129,8 +130,11 @@ function _bnIkinciItemAyarla(){
    kullanıcılar için gizler. Statik kartlar burada; dinamik üretilen
    kartlar (dashStats istatistik şeridi, dashHizliBakis rozetleri)
    kendi gorebilir() kontrolünü js/app.js > renderDashboard() içinde yapar. */
+/* Not: eskiden sadece #tab-panel (anasayfa) içini taradı; artık [data-yetki-modul]
+   taşıyan HERHANGİ bir eleman için çalışır (ör. Ayarlar sekmesindeki "Sistem
+   Ayarları" bölümleri) — isim geriye dönük uyumluluk için korundu. */
 function dashboardYetkiUygula(){
-  document.querySelectorAll('#tab-panel [data-yetki-modul]').forEach(el=>{
+  document.querySelectorAll('[data-yetki-modul]').forEach(el=>{
     const modul = el.dataset.yetkiModul;
     const izinliMi = gorebilir(modul);
     el.classList.toggle('yetkisiz-gizli', !izinliMi);
@@ -400,7 +404,7 @@ function kullaniciKaydet(uid){
    burada kabul edilebilir; amaç kullanıcı deneyimini düzeltmek. */
 const _SALT_OKUMA_GIZLE_DESENLERI = [
   /ModalAc\(/, /ModalAcById\(/, /EkleModal\(/,
-  /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/,
+  /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/, /Duzenle\(/,
   /Ekle\(/, /Cikar\(/, /CikarNegatif\(/, /Olustur\(/, /Ata\(/,
   /IceAktar\(/, /Import\(/, /Isle\(/, /FotoYukle\(/,
 ];
