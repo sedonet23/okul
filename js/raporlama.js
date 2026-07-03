@@ -1167,7 +1167,11 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
     baslikHtml +
     `<div class="crsf-wrap" style="overflow-x:auto;"><div id="crsf-sarici" style="display:inline-block;min-width:100%;">${tabloHtml}</div></div>`;
 
-  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false });
+  // DÜZELTME: 'landscape' parametresi alınıyordu ama hiç kullanılmıyordu —
+  // bu yüzden _raporPenceresiniAc'a yön hiç iletilmiyor, varsayılan olarak
+  // hep 'dikey' basılıyordu. Çarşaf tabloları (gün×saat geniş ızgara) her
+  // zaman yatay basılmalı — tekli (bir sınıf/öğretmen) veya çoklu fark etmez.
+  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false, yon: 'yatay' });
 
   setTimeout(function() {
     try {
