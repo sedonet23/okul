@@ -27,8 +27,12 @@ const TakvimService = {
       ? hamListe.filter(kisiselKayitGorunurMu)
       : hamListe;
   },
+  // DÜZELTME: Artık admin de dahil HERKESİN yeni kaydı sahipUid ile damgalanır
+  // — "kimse kimsenin hatırlatıcı/görevini göremesin" kuralı için her kaydın
+  // bir sahibi olması gerekiyor; sahipsiz kayıtlar artık öğretmenlere hiç
+  // görünmüyor (bkz. app.js kisiselKayitGorunurMu).
   _sahipDamgasiUygula(mevcutId, veri){
-    if(!mevcutId && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && !AKTIF_KULLANICI.admin){
+    if(!mevcutId && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
       return { ...veri, sahipUid: AKTIF_KULLANICI.uid };
     }
     return veri;

@@ -30,7 +30,12 @@ const NotlarService = {
 
   notKaydet(mevcutId, veri){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
-    if(!mevcutId && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && !AKTIF_KULLANICI.admin){
+    // DÜZELTME: Artık admin de dahil HERKESİN yeni notu sahipUid ile damgalanır
+    // — "kimse kimsenin notunu göremesin" kuralı (öğretmenler birbirinden gizli,
+    // admin her şeyi görür) için her kaydın bir sahibi olması gerekiyor;
+    // sahipsiz kayıtlar artık öğretmenlere hiç görünmüyor (bkz. app.js
+    // kisiselKayitGorunurMu).
+    if(!mevcutId && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
       veri = { ...veri, sahipUid: AKTIF_KULLANICI.uid };
     }
     return mevcutId ? NotlarRepository.notGuncelle(mevcutId, veri) : NotlarRepository.notEkle(veri);
