@@ -356,10 +356,15 @@ function _saltOkumaYazmaTetikleyicisiMi(oc){
   if(!gizlenmeli) return false;
   return !_SALT_OKUMA_ISTISNA_DESENLERI.some(r=>r.test(oc));
 }
-function saltOkumaButonlariUygula(panel){
+/* KRİTİK DÜZELTME: Bu fonksiyon önceden "saltOkumaMi" parametresi almıyordu
+   ve eşleşen her butonu/kontrolü YETKİDEN BAĞIMSIZ olarak gizliyor/devre
+   dışı bırakıyordu — süper admin dahil HERKESİ etkileyen ciddi bir hataydı.
+   Artık sadece saltOkumaMi===true iken kısıtlama uygulanır; false ise
+   (düzenleme yetkisi varsa) önceki kısıtlamalar varsa temizlenir. */
+function saltOkumaButonlariUygula(panel, saltOkumaMi){
   if(!panel) return;
   panel.querySelectorAll('[onclick]').forEach(el=>{
-    if(_saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onclick'))) el.classList.add('salt-okuma-gizli');
+    if(saltOkumaMi && _saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onclick'))) el.classList.add('salt-okuma-gizli');
     else el.classList.remove('salt-okuma-gizli');
   });
   // Checkbox/select gibi onchange ile kayıt tetikleyen kontroller (örn. tamamlandı
@@ -367,7 +372,7 @@ function saltOkumaButonlariUygula(panel){
   // Dosya seçici (input type=file, örn. "Fotoğraf yükle") ise görünen eleman
   // gerçekte kendisine bağlı <label for="..."> olduğundan, o da ayrıca gizlenir.
   panel.querySelectorAll('[onchange]').forEach(el=>{
-    const yazmaTetikleyici = _saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onchange'));
+    const yazmaTetikleyici = saltOkumaMi && _saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onchange'));
     if(yazmaTetikleyici){
       el.dataset.saltOkumaDisabled = '1';
       el.disabled = true;
@@ -393,8 +398,9 @@ function saltOkumaButonlariUygula(panel){
 function saltOkumaDetayUygula(modul){
   const overlay = document.getElementById('detayOverlay');
   if(!overlay) return;
-  overlay.classList.toggle('salt-okuma', !duzenleyebilir(modul));
-  saltOkumaButonlariUygula(overlay);
+  const saltOkumaMi = !duzenleyebilir(modul);
+  overlay.classList.toggle('salt-okuma', saltOkumaMi);
+  saltOkumaButonlariUygula(overlay, saltOkumaMi);
 }
 
 function saltOkumaUygula(tab){
@@ -402,7 +408,7 @@ function saltOkumaUygula(tab){
   if(!panel) return;
   const saltOkumaMi = !duzenleyebilir(tab);
   panel.classList.toggle('salt-okuma', saltOkumaMi);
-  saltOkumaButonlariUygula(panel);
+  saltOkumaButonlariUygula(panel, saltOkumaMi);
 }
 
 /* Girişli kullanıcının bağlı olduğu öğretmen kaydı */
