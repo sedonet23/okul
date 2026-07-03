@@ -304,6 +304,7 @@ function toast(msg){
 function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
   isAdi = isAdi || 'Koruk_Okul_Belge';
   yon = yon === 'yatay' ? 'yatay' : 'dikey';
+  const a4Boyut = yon === 'yatay' ? 'A4 landscape' : 'A4 portrait';
 
   const nativeVarMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() &&
     window.Capacitor.Plugins && window.Capacitor.Plugins.PrintPlugin);
@@ -318,11 +319,18 @@ function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
   const stilMatch   = rawHtml.match(/<style>([\s\S]*?)<\/style>/);
   const govdeMatch  = rawHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
   const baslikMatch = rawHtml.match(/<title>([\s\S]*?)<\/title>/);
-  const stil  = stilMatch  ? stilMatch[1]  : '';
+  // @page kuralını orijinal stilde temizle, doğru yönü biz inject edeceğiz
+  const stilHam = stilMatch ? stilMatch[1] : '';
+  const stil = stilHam.replace(/@page\s*\{[^}]*\}/g, '');
   const govde = govdeMatch ? govdeMatch[1] : rawHtml;
   const baslik = baslikMatch ? baslikMatch[1] : isAdi;
 
+  // Kapat butonu: window.close() mobil Chrome'da çalışmayabiliyor.
+  // Script ile açılan pencereler kapatılabiliyor, ama history.back() daha güvenilir fallback.
+  const kapatScript = 'var w=window;try{w.close();setTimeout(function(){if(!w.closed)w.history.back();},150);}catch(e){w.history.back();}';
+
   const tamHtml = '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>' + baslik + '</title><style>' +
+    '@page { size: ' + a4Boyut + '; margin: 8mm; }\n' +
     stil +
     '\n .kk-yazdir-toolbar{ display:flex; gap:8px; padding:10px 14px; background:#f3f2ff; align-items:center; }' +
     '\n .kk-yazdir-toolbar button{ padding:7px 16px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }' +
@@ -330,7 +338,7 @@ function uygulamaHtmlYazdir(rawHtml, isAdi, yon){
     '\n .kk-btn-kapat{ background:#e5e7eb; color:#374151; }' +
     '\n @media print{ .kk-yazdir-toolbar{ display:none !important; } }' +
     '</style></head><body>' +
-    '<div class="kk-yazdir-toolbar"><button class="kk-btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button><button class="kk-btn-kapat" onclick="window.close()">✕ Kapat</button></div>' +
+    '<div class="kk-yazdir-toolbar"><button class="kk-btn-yazdir" onclick="window.print()">🖨️ Yazdır / PDF İndir</button><button class="kk-btn-kapat" onclick="' + kapatScript + '">✕ Kapat</button></div>' +
     govde +
     '</body></html>';
 
