@@ -2871,3 +2871,29 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 [data-theme="dark"] .renk-paketi-secenek.aktif{ color: var(--ink) !important; }
 
 @keyframes ilerlemeDon{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+/* =========================================================================
+   ROL BAZLI ARAYÜZ — Salt-okuma modu buton gizleme
+   (bkz. js/kullanici-yonetimi.js saltOkumaButonlariUygula)
+   "Görüntüle" yetkili (ama "Düzenle" yetkisi olmayan) kullanıcılar için
+   ekle/düzenle/sil/işaretle tetikleyen elemanlar görsel olarak gizlenir.
+   Gerçek yetkilendirme Service katmanında zaten uygulanıyor — bu sadece
+   arayüzü sadeleştirir.
+   ========================================================================= */
+.salt-okuma-gizli{
+  display: none !important;
+}
+/* Devre dışı bırakılan (disabled) checkbox/select kontrolleri görsel olarak
+   soluklaştırılır, tıklanamaz olduğu belli olsun diye. */
+[data-salt-okuma-disabled]{
+  opacity: .55;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Anasayfa (Genel Bakış) kartlarında yetkisiz-gizli sınıfı — dashboardYetkiUygula
+   tarafından kullanılır, inline style zaten !important ile display:none yapıyor,
+   bu kural ek bir güvenlik/dokümantasyon katmanıdır. */
+.yetkisiz-gizli{
+  display: none !important;
+}
