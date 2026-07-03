@@ -2879,13 +2879,20 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    ekle/düzenle/sil/işaretle tetikleyen elemanlar görsel olarak gizlenir.
    Gerçek yetkilendirme Service katmanında zaten uygulanıyor — bu sadece
    arayüzü sadeleştirir.
+
+   KRİTİK DÜZELTME: .salt-okuma-gizli sınıfı js tarafında yetkiden BAĞIMSIZ
+   olarak (eşleşen her butona) ekleniyor — asıl gizleme kararı burada,
+   sadece gerçekten "salt-okuma" moduna alınmış bir üst panel/overlay'in
+   İÇİNDEYSE uygulanır. Önceki (kapsamsız) hâli, düzenleme yetkisi olan
+   herkesin (süper admin dahil) tüm ekle/düzenle butonlarını görünmez
+   yapan ciddi bir hataydı.
    ========================================================================= */
-.salt-okuma-gizli{
+.salt-okuma .salt-okuma-gizli{
   display: none !important;
 }
 /* Devre dışı bırakılan (disabled) checkbox/select kontrolleri görsel olarak
    soluklaştırılır, tıklanamaz olduğu belli olsun diye. */
-[data-salt-okuma-disabled]{
+.salt-okuma [data-salt-okuma-disabled]{
   opacity: .55;
   cursor: not-allowed !important;
   pointer-events: none;
