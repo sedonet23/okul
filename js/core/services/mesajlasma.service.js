@@ -115,6 +115,52 @@ const MesajlasmaService = {
     return MesajlasmaRepository.konusmaGuncelle(konusmaId, { okunmayanlar: yeniOkunmayanlar });
   },
 
+  /* ---------- Dosya eki ---------- */
+  // İzin verilen türler: PDF, Word, Excel, Resim — bkz. kullanıcı isteği.
+  _IZIN_VERILEN_TURLER: {
+    'application/pdf': { etiket: 'PDF', ikon: '📕' },
+    'application/msword': { etiket: 'Word', ikon: '📘' },
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { etiket: 'Word', ikon: '📘' },
+    'application/vnd.ms-excel': { etiket: 'Excel', ikon: '📗' },
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { etiket: 'Excel', ikon: '📗' },
+    'image/jpeg': { etiket: 'Resim', ikon: '🖼️', gorselMi: true },
+    'image/png': { etiket: 'Resim', ikon: '🖼️', gorselMi: true },
+    'image/gif': { etiket: 'Resim', ikon: '🖼️', gorselMi: true },
+    'image/webp': { etiket: 'Resim', ikon: '🖼️', gorselMi: true },
+  },
+  _MAKS_DOSYA_BOYUTU: 10 * 1024 * 1024, // 10 MB
+
+  dosyaTuruBilgisi(mimeTuru){ return this._IZIN_VERILEN_TURLER[mimeTuru] || null; },
+
+  /* Dosya ekiyle mesaj gönderir. ilerlemeCb(yuzde) yükleme sırasında UI'ı
+     güncellemek için çağrılır. */
+  async mesajGonderDosyaIle(konusmaId, dosya, mevcutKonusma, ilerlemeCb){
+    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    const turBilgisi = this.dosyaTuruBilgisi(dosya.type);
+    if(!turBilgisi) throw new Error('desteklenmeyen-tur');
+    if(dosya.size > this._MAKS_DOSYA_BOYUTU) throw new Error('dosya-cok-buyuk');
+    const ben = this._kendiKimlik();
+    if(!ben.uid) throw new Error('kimlik-yok');
+
+    const { url, storagePath } = await MesajlasmaRepository.dosyaYukle(konusmaId, dosya, ilerlemeCb);
+
+    await MesajlasmaRepository.mesajEkle({
+      konusmaId, gonderenUid: ben.uid, gonderenAdi: ben.ad, metin: '',
+      dosya: { ad: dosya.name, url, storagePath, tur: dosya.type, boyut: dosya.size, etiket: turBilgisi.etiket, gorselMi: !!turBilgisi.gorselMi }
+    });
+
+    const ozetMetin = `${turBilgisi.ikon} ${dosya.name}`;
+    const yeniOkunmayanlar = { ...(mevcutKonusma?.okunmayanlar || {}) };
+    (mevcutKonusma?.katilimciUidler || []).forEach(uid=>{
+      yeniOkunmayanlar[uid] = uid === ben.uid ? 0 : (yeniOkunmayanlar[uid]||0) + 1;
+    });
+    return MesajlasmaRepository.konusmaGuncelle(konusmaId, {
+      sonMesaj: { metin: ozetMetin, gonderenUid: ben.uid, tarih: new Date().toISOString() },
+      guncellenmeTarihi: new Date().toISOString(),
+      okunmayanlar: yeniOkunmayanlar
+    });
+  },
+
   /* Toplam okunmamış mesaj sayısı (bildirim rozetinde kullanılır). */
   toplamOkunmayan(konusmalar){
     const ben = this._kendiKimlik();
@@ -130,16 +176,21 @@ const MesajlasmaService = {
     return !!(ben.uid && mesaj && mesaj.gonderenUid === ben.uid);
   },
 
-  /* Tek bir mesajı siler. Not: konuşma listesindeki "son mesaj" önizlemesi
-     bilinçli olarak GÜNCELLENMEZ (basitlik için) — silinen mesaj son
-     mesajsa, yeni bir mesaj gelene kadar önizlemede görünmeye devam eder. */
+  /* Tek bir mesajı siler. Dosya ekiyse Storage'daki dosyayı da temizler.
+     Not: konuşma listesindeki "son mesaj" önizlemesi bilinçli olarak
+     GÜNCELLENMEZ (basitlik için) — silinen mesaj son mesajsa, yeni bir
+     mesaj gelene kadar önizlemede görünmeye devam eder. */
   async mesajSil(mesaj){
     if(!this.mesajSilinebilirMi(mesaj)) throw new Error('sahip-degil');
+    if(mesaj.dosya && mesaj.dosya.storagePath){
+      await MesajlasmaRepository.dosyaSil(mesaj.dosya.storagePath).catch(()=>{});
+    }
     return MesajlasmaRepository.mesajSil(mesaj.id);
   },
 
-  /* Bir konuşmayı (ve TÜM mesajlarını) tamamen siler — hem kendisi hem
-     karşı taraf için. Katılımcılardan biri (veya admin) silebilir. */
+  /* Bir konuşmayı (ve TÜM mesajlarını + varsa dosya eklerini) tamamen
+     siler — hem kendisi hem karşı taraf için. Katılımcılardan biri
+     (veya admin) silebilir. */
   async konusmaSil(konusmaId, mevcutKonusma){
     if(!this._yetkiKontrol()) throw new Error('yetkisiz');
     const ben = this._kendiKimlik();
