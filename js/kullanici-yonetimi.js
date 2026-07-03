@@ -74,6 +74,15 @@ function sidebarYetkiUygula(){
     btn.style.display = gorebilir(modul) ? '' : 'none';
   });
 
+  // Alt mobil menü çubuğu (.bn-item) — masaüstü yan menüyle aynı mantık.
+  // 'panel' (Ana Sayfa) her zaman görünür; '+' (Hızlı Ekle) butonu modül
+  // etiketi taşımadığı için buradan etkilenmez, içeriği ayrıca filtrelenir.
+  document.querySelectorAll('.bn-item[data-tab]').forEach(btn=>{
+    const modul = btn.dataset.tab;
+    if(modul === 'panel') return;
+    btn.style.display = gorebilir(modul) ? '' : 'none';
+  });
+
   // "Çizelgeler" alt grubundaki modüllerin tamamı gizliyse üst başlığı/ayırıcıyı da gizle.
   const hepsiGizli = _CIZELGELER_MODULLERI.every(m => !gorebilir(m));
   document.querySelector('label[for="cizelgelerCheck"]')?.style && (document.querySelector('label[for="cizelgelerCheck"]').style.display = hepsiGizli ? 'none' : '');
@@ -81,9 +90,30 @@ function sidebarYetkiUygula(){
 
   const kyBtn = document.querySelector('.nav-tab[data-tab="kullaniciYonetimi"]');
   if(kyBtn) kyBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
+
+  if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
 }
 
-/* ---------- Veri dinleme ---------- */
+/* ---------- Anasayfa (Genel Bakış) kişiselleştirme ----------
+   data-yetki-modul taşıyan her dashboard kartını, o modülü göremeyen
+   kullanıcılar için gizler. Statik kartlar burada; dinamik üretilen
+   kartlar (dashStats istatistik şeridi, dashHizliBakis rozetleri)
+   kendi gorebilir() kontrolünü js/app.js > renderDashboard() içinde yapar. */
+function dashboardYetkiUygula(){
+  document.querySelectorAll('#tab-panel [data-yetki-modul]').forEach(el=>{
+    const modul = el.dataset.yetkiModul;
+    const izinliMi = gorebilir(modul);
+    el.classList.toggle('yetkisiz-gizli', !izinliMi);
+    if(!izinliMi){
+      el.setAttribute('style', (el.getAttribute('style')||'') + ';display:none!important;');
+    } else if(el.style.display === 'none' && !el.id){
+      // Bilinen "başlangıçta gizli, veri gelince açılan" kartlar (id'li olanlar,
+      // örn. bugunIzinliKart) kendi render fonksiyonlarının kontrolüne bırakılır;
+      // id'siz statik kartlarda inline display:none'ı temizle.
+      el.style.removeProperty('display');
+    }
+  });
+}
 let ROLLER_CACHE = [];
 let YONETIM_KULLANICILAR_CACHE = [];
 let _duzenlenenRolId = null;
@@ -283,13 +313,60 @@ function kullaniciKaydet(uid){
    AŞAMA 3: Sayfa içi yetki uygulaması + Profilim
    ================================================================ */
 
-/* 'goruntule' yetkili modüllerde bölüme .salt-okuma sınıfı ekler —
-   CSS bu sınıf altındaki ekle/kaydet/sil butonlarını gizler
-   (bkz. styles.css .salt-okuma kuralları). */
+/* 'goruntule' yetkili modüllerde bölüme .salt-okuma sınıfı ekler ve
+   içindeki yazma (ekle/düzenle/sil/işaretle) tetikleyici butonları/
+   kontrolleri gizler — CSS bu sınıf altındaki ekle/kaydet/sil
+   butonlarını da ayrıca gizler (bkz. styles.css .salt-okuma kuralları).
+
+   Not: Bu, tamamen görsel bir katmandır — asıl güvenlik zaten Service
+   katmanındaki duzenleyebilir()/yetki kontrollerinde sağlanıyor (bkz.
+   Pragmatik-Mimari-Tasarimi.md §5). Yani burada gözden kaçan bir buton
+   olsa bile, tıklandığında ilgili xxxService fonksiyonu kaydı reddeder.
+   Bu yüzden desen tabanlı (yüzde yüz mükemmel olmayan) bir yaklaşım
+   burada kabul edilebilir; amaç kullanıcı deneyimini düzeltmek. */
+const _SALT_OKUMA_GIZLE_DESENLERI = [
+  /ModalAc\(/, /ModalAcById\(/, /EkleModal\(/,
+  /Sil\(/, /SilOnay\(/, /Toggle\(/, /Kaydet\(/, /Guncelle\(/,
+  /Ekle\(/, /Cikar\(/, /CikarNegatif\(/, /Olustur\(/, /Ata\(/,
+  /IceAktar\(/, /Import\(/,
+];
+/* Rapor/yazdırma/görüntüleme amaçlı, veri YAZMAYAN fonksiyonlar — yanlışlıkla
+   gizlenmesin diye yukarıdaki desenlerden istisna tutulur. */
+const _SALT_OKUMA_ISTISNA_DESENLERI = [
+  /Rapor/i, /Yazdir/i, /Sirku/i, /DetayAc\(/, /DetayModalAc\(/,
+  /hizliEkleModalAc/, /kullaniciSecModalAc/, /profilVeyaSecimAc/,
+  /ListeOlustur/i, /OnayModalAc\(/,
+];
+function _saltOkumaYazmaTetikleyicisiMi(oc){
+  if(!oc) return false;
+  const gizlenmeli = _SALT_OKUMA_GIZLE_DESENLERI.some(r=>r.test(oc));
+  if(!gizlenmeli) return false;
+  return !_SALT_OKUMA_ISTISNA_DESENLERI.some(r=>r.test(oc));
+}
+function saltOkumaButonlariUygula(panel){
+  if(!panel) return;
+  panel.querySelectorAll('[onclick]').forEach(el=>{
+    if(_saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onclick'))) el.classList.add('salt-okuma-gizli');
+    else el.classList.remove('salt-okuma-gizli');
+  });
+  // Checkbox/select gibi onchange ile kayıt tetikleyen kontroller (örn. tamamlandı
+  // tikleri, "aktif" seçimi) — bunlar gizlenmez, devre dışı bırakılır (disabled).
+  panel.querySelectorAll('[onchange]').forEach(el=>{
+    if(_saltOkumaYazmaTetikleyicisiMi(el.getAttribute('onchange'))){
+      el.dataset.saltOkumaDisabled = '1';
+      el.disabled = true;
+    } else if(el.dataset.saltOkumaDisabled){
+      delete el.dataset.saltOkumaDisabled;
+      el.disabled = false;
+    }
+  });
+}
 function saltOkumaUygula(tab){
   const panel = document.getElementById('tab-'+tab);
   if(!panel) return;
-  panel.classList.toggle('salt-okuma', !duzenleyebilir(tab));
+  const saltOkumaMi = !duzenleyebilir(tab);
+  panel.classList.toggle('salt-okuma', saltOkumaMi);
+  saltOkumaButonlariUygula(panel);
 }
 
 /* Girişli kullanıcının bağlı olduğu öğretmen kaydı */

@@ -922,46 +922,50 @@ function renderDashboard(){
   const servisSayisi = (typeof servisler !== 'undefined' && Array.isArray(servisler)) ? servisler.length : 0;
   const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
 
-  document.getElementById('dashStats').innerHTML = `
+  document.getElementById('dashStats').innerHTML = [
+    gorebilir('ogretmenler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
       <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
       <div class="stat-card-num">${ogretmenler.length}</div>
       <div class="stat-card-label">Personel</div>
       ${kadinPersonel||erkekPersonel ? `<div class="stat-card-cinsiyet">🚺${kadinPersonel} 🚹${erkekPersonel}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
-    </div>
+    </div>` : '',
+    gorebilir('ogrenciler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
       <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
       <div class="stat-card-num">${toplamOgrenci}</div>
       <div class="stat-card-label">Öğrenciler</div>
       ${kizOgrenci||erkekOgrenci ? `<div class="stat-card-cinsiyet">🚺${kizOgrenci} 🚹${erkekOgrenci}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
-    </div>
+    </div>` : '',
+    gorebilir('tasima') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')">
       <div class="stat-card-ico-lg stat-card-ico-purple">🚌</div>
       <div class="stat-card-num">${servisSayisi}</div>
       <div class="stat-card-label">Servis Sayısı</div>
       <div class="stat-card-tumu-bottom">Tümü ›</div>
-    </div>
+    </div>` : '',
+    gorebilir('evrak') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('evrak')">
       <div class="stat-card-ico-lg stat-card-ico-amber">📄</div>
       <div class="stat-card-num">${acikEvrakSayisi}</div>
       <div class="stat-card-label">Bekleyen Evrak</div>
       <div class="stat-card-tumu-bottom">Tümü ›</div>
-    </div>
-  `;
+    </div>` : '',
+  ].join('');
   /* ---- Hızlı Bakış: Kadın/Erkek (Öğretmen) kaldırıldı — üstteki "Personel"
      kartında zaten aynı 🚺/🚹 dağılımı gösteriliyordu, tekrar oluyordu.
      Yerine "Bugünkü Ders" sayısı kondu. ---- */
   const bugunkuDersSayisi = dersProgrami.filter(d=>d.gun===bugunGun).length;
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
-    hizliBakisEl.innerHTML = `
-      <div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>
-      <div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>
-      <div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>
-      <div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>
-    `;
+    hizliBakisEl.innerHTML = [
+      gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>` : '',
+      gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>` : '',
+      gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>` : '',
+      gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
+    ].join('');
   }
   /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı sayısı) ---- */
   const bellBadgeEl = document.getElementById('topbarBellBadge');
@@ -1001,6 +1005,7 @@ function renderDashboard(){
   if(typeof renderDashYillikGorunum   === 'function') renderDashYillikGorunum();
 
   tatilModuKartlariniUygula();
+  if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
 }
 
 function tatilModuKartlariniUygula(){
