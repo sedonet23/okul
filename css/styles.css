@@ -2904,3 +2904,37 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .yetkisiz-gizli{
   display: none !important;
 }
+
+/* =========================================================================
+   ADMİN GÖRÜNÜMÜ — Notlar/Takvim'de kişisel kayıt sahiplik etiketi
+   (bkz. js/notlar.js _notKartHtml, js/kullanici-yonetimi.js _sahipAdiGetir)
+   ========================================================================= */
+.not-bolum-baslik, .ajanda-bolum-baslik{
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: .3px;
+}
+.notlar-alt-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+@media (max-width: 900px){ .notlar-alt-grid{ grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px){ .notlar-alt-grid{ grid-template-columns: 1fr; } }
+.note-sahip-etiket{
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+.ajanda-sahip-etiket{
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-left: 8px;
+}
