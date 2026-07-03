@@ -3,6 +3,11 @@
    PERSONEL DİLEKÇE SİSTEMİ
    A4, yazdırmaya tam uyumlu, resmi dilekçe formatı.
    Bağımlılıklar: firebase-init.js, personel.js, app.js
+
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Bu modül
+   hiçbir Firestore okuma/yazma işlemi yapmaz — yalnızca personel.js'ten
+   gelen personel verisiyle istemci tarafında dilekçe HTML'i üretir ve
+   yazdırır. Bu nedenle repository/service katmanı gerektirmiyor.
    ============================================= */
 
 (function() {

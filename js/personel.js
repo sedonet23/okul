@@ -1,9 +1,14 @@
 /* ====================================================================
    js/personel.js
-   PERSONEL İŞLERİ MODÜLÜ — sürekli işçi, hizmetli, memur vb. öğretmen
-   kadrosu dışındaki personelin kayıtları. Dilekçe Sistemi bu kayıtları
-   kullanır. Veri modeli (bkz. firebase-init.js COL.personel):
+   PERSONEL İŞLERİ MODÜLÜ — UI KATMANI — sürekli işçi, hizmetli, memur vb.
+   öğretmen kadrosu dışındaki personelin kayıtları. Dilekçe Sistemi bu
+   kayıtları kullanır. Veri modeli (bkz. firebase-init.js COL.personel):
      personel : {adSoyad, tc, telefon, adres, gorev, notlar}
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + PersonelService çağrısı, db bilmez
+     js/core/services/personel.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/personel.repository.js → TEK Firestore erişim noktası
    ==================================================================== */
 
 let personelListesi = [];
@@ -119,26 +124,27 @@ function personelModalAc(id){
     const adSoyad = document.getElementById('f_pAd').value.trim();
     if(!adSoyad){ toast('Ad Soyad zorunludur.'); return; }
     const tc = document.getElementById('f_pTc').value.trim();
-    if(tc && !/^\d{11}$/.test(tc)){ toast('TC Kimlik No 11 haneli rakamlardan oluşmalıdır.'); return; }
-    kaydet(COL.personel, p?p.id:null, {
+    if(!PersonelService.tcGecerliMi(tc)){ toast('TC Kimlik No 11 haneli rakamlardan oluşmalıdır.'); return; }
+    PersonelService.personelKaydet(p?p.id:null, {
       adSoyad,
       tc,
       telefon: document.getElementById('f_pTel').value.trim(),
       gorev: document.getElementById('f_pGorev').value,
       adres: document.getElementById('f_pAdres').value.trim(),
       notlar: document.getElementById('f_pNotlar').value.trim(),
-    });
+    }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
-  }, p ? ()=>{ if(confirm('Bu personel kaydını silmek istediğinize emin misiniz?')){ db.collection(COL.personel).doc(p.id).delete(); modalKapat(); } } : null);
+  }, p ? ()=>{ if(confirm('Bu personel kaydını silmek istediğinize emin misiniz?')){ PersonelService.personelSil(p.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
-/* ---------- FIRESTORE BAĞLANTISI ---------- */
+/* ---------- FIRESTORE BAĞLANTISI ----------
+   Artık doğrudan db.collection() çağrılmıyor — PersonelRepository üzerinden dinleniyor. */
 function personelBaglantilariKur(){
-  db.collection(COL.personel).onSnapshot(s=>{
-    personelListesi = s.docs.map(d=>({id:d.id,...d.data()}));
+  PersonelRepository.personelDinle(s=>{
+    personelListesi = s;
     renderPersonelListesi();
     if(typeof globalAramaYap === 'function') globalAramaYap();
     if(typeof onbellekKaydet === 'function') onbellekKaydet();
     if(typeof _ilkAcilistaKullaniciSor === 'function') _ilkAcilistaKullaniciSor();
-  }, hataGoster);
+  });
 }

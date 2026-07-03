@@ -1,9 +1,14 @@
 /* =============================================
    js/puantaj.js
-   PERSONEL PUANTAJ VE İMZA SİRKÜSÜ MODÜLÜ
+   PERSONEL PUANTAJ VE İMZA SİRKÜSÜ MODÜLÜ — UI KATMANI
    Excel referans: ŞAHİN_PUANTAJ-İMZA_SİRKÜSÜ — sayfa düzeni,
    satır/sütun yerleşimi ve kod sözlüğü birebir esas alınmıştır.
    Bağımlılıklar: firebase-init.js, personel.js, app.js
+
+   Katmanlı mimari: bkz. docs/Pragmatik-Mimari-Tasarimi.md §2
+     UI (bu dosya)          → sadece DOM + PersonelService çağrısı, db bilmez
+     js/core/services/personel.service.js    → iş kuralı + yetki kontrolü
+     js/core/repositories/personel.repository.js → TEK Firestore erişim noktası
    ============================================= */
 
 (function() {
@@ -151,30 +156,30 @@
       const tur = document.getElementById('f_izinTur').value;
       const baslangic = document.getElementById('f_izinBaslangic').value;
       const bitis = document.getElementById('f_izinBitis').value;
-      if (!baslangic || !bitis) { toast('Başlangıç ve bitiş tarihi zorunludur.'); return; }
-      if (bitis < baslangic) { toast('Bitiş tarihi başlangıçtan önce olamaz.'); return; }
-      kaydet(COL.personelIzinler, k?k.id:null, {
+      if (!PersonelService.tarihAraligiGecerliMi(baslangic, bitis)) { toast('Başlangıç ve bitiş tarihi zorunludur, bitiş başlangıçtan önce olamaz.'); return; }
+      PersonelService.izinKaydet(k?k.id:null, {
         personelId: personelId,
         tur: tur,
         baslangic: baslangic,
         bitis: bitis,
         aciklama: document.getElementById('f_izinAciklama').value.trim()
-      });
+      }).then(function(){ toast('Kaydedildi.'); }).catch(function(err){ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
       modalKapat();
       setTimeout(function(){ if (typeof personelDetayAc === 'function') personelDetayAc(personelId); }, 300);
     }, k ? function(){
       if (confirm('Bu izin kaydını silmek istediğinize emin misiniz?')) {
-        db.collection(COL.personelIzinler).doc(k.id).delete();
+        PersonelService.izinSil(k.id).catch(function(err){ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
         modalKapat();
         setTimeout(function(){ if (typeof personelDetayAc === 'function') personelDetayAc(personelId); }, 300);
       }
     } : null);
   }
 
+  /* Artık doğrudan db.collection() çağrılmıyor — PersonelRepository üzerinden dinleniyor. */
   function personelIzinBaglantilariKur() {
-    db.collection(COL.personelIzinler).onSnapshot(function(s){
-      personelIzinler = s.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
-    }, hataGoster);
+    PersonelRepository.izinleriDinle(function(v){
+      personelIzinler = v;
+    });
   }
 
   // =========================================================
