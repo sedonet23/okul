@@ -60,11 +60,14 @@ function ogretmenDetayAc(id){
     }).join('') + (nobetleri.length>gosterilecekNobetler.length ? `<div class="detay-row-muted">+${nobetleri.length-gosterilecekNobetler.length} kayıt daha (Nöbet Programı sekmesinde)</div>` : '')
   ) : '<p class="empty-state">Nöbet ataması yok.</p>';
 
-  /* ---- Kulüp / Rehberlik danışmanlığı ---- */
+  /* ---- Kulüp / Rehberlik danışmanlığı ----
+     DÜZELTME: Kulüp/etkinlik ADLARI herkese görünür (temel bilgi sayılır),
+     ama tamamlanma tikleri (✓) sadece kendi profili veya 'ogretmenHassasBilgi'
+     yetkisi olan kullanıcıya gösterilir. */
   const kulupler = (cizelgeVerileri.sosyalKulupler||[]).filter(s=> adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id)));
   const kulupHtml = kulupler.length ? kulupler.map(k=>{
     const belirliGunler = (belirliGunlerListesi||[]).filter(e=>adGeciyorMu(e.gorevliOgretmen, k.ad));
-    const ilgiliGunler = belirliGunler.length ? belirliGunler.map(e=>
+    const ilgiliGunler = (hassasGorebilir && belirliGunler.length) ? belirliGunler.map(e=>
       `<span class="cz-check ${e.tamamlandi?'on':''}" style="display:inline-flex;margin-right:4px;font-size:10px;">${e.tamamlandi?'✓':''}</span>`
     ).join('') : '';
     return `<div class="detay-row">${escapeHtml(k.ad)}${ilgiliGunler ? `<span style="margin-left:8px;color:var(--ink-muted);font-size:11px;">Görevler: ${ilgiliGunler}</span>` : ''}</div>`;
@@ -77,10 +80,12 @@ function ogretmenDetayAc(id){
   const bepKayitlari = (cizelgeVerileri.bepPlani||[]).filter(b=>adGeciyorMu(b.ad, adSoyad));
   const bepHtml = bepKayitlari.length ? bepKayitlari.map(b=>`<div class="detay-row">${escapeHtml(b.ad)}</div>`).join('') : '';
 
-  /* ---- Belirli Gün ve Haftalar ---- */
+  /* ---- Belirli Gün ve Haftalar ----
+     DÜZELTME: Etkinlik başlıkları herkese görünür, tamamlanma tiki (✓)
+     sadece kendi profili veya 'ogretmenHassasBilgi' yetkisiyle görünür. */
   const belirliGunler = (belirliGunlerListesi||[]).filter(e=> (e.gorevliOgretmenler && e.gorevliOgretmenler.includes(id)) || adGeciyorMu(e.gorevliOgretmen, adSoyad));
   const belirliGunHtml = belirliGunler.length ? belirliGunler.map(e=>
-    `<div class="detay-row"><span class="cz-check ${e.tamamlandi?'on':''}" style="margin-right:6px;display:inline-flex;">${e.tamamlandi?'✓':''}</span>${escapeHtml(e.baslik)} <span class="detay-row-muted">${escapeHtml(e.tarih||'')}</span></div>`
+    `<div class="detay-row">${hassasGorebilir ? `<span class="cz-check ${e.tamamlandi?'on':''}" style="margin-right:6px;display:inline-flex;">${e.tamamlandi?'✓':''}</span>` : ''}${escapeHtml(e.baslik)} <span class="detay-row-muted">${escapeHtml(e.tarih||'')}</span></div>`
   ).join('') : '<p class="empty-state">Görevli olduğu etkinlik yok.</p>';
 
   /* ---- Haftalık Norm Hesabı ---- */
@@ -207,7 +212,7 @@ function ogretmenDetayAc(id){
       <h4 style="display:flex;align-items:center;justify-content:space-between;">İzinler / Raporlar <button class="btn btn-amber btn-sm" onclick="ogretmenIzinModalAc('${id}', null)">+ Ekle</button></h4>
       <div id="oiListesi"></div>
     </div>` : ''}
-    <div class="detay-card"><h4>Diğer Evrak</h4>${evrakHtml}</div>
+    ${hassasGorebilir ? `<div class="detay-card"><h4>Diğer Evrak</h4>${evrakHtml}</div>` : ''}
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
