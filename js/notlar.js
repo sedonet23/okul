@@ -55,36 +55,69 @@ let _czTamEkranAktif = false;
    RENDER — Notlar Grid
    ==================================================== */
 function renderNotlar() {
-  const liste = [...notlar].sort((a, b) =>
-    (b.eklenmeTarihi || '').localeCompare(a.eklenmeTarihi || '')
-  );
   const grid = document.getElementById('notlarGrid');
   if (!grid) return;
 
-  if (!liste.length) {
+  if (!notlar.length) {
     grid.innerHTML = '<p class="empty-state">Henüz not eklenmedi.</p>';
     return;
   }
 
-  grid.innerHTML = liste.map(n => {
-    const renk = NOT_RENKLERI.find(r => r.id === n.renk) || NOT_RENKLERI[0];
-    const onizleme = _notOnizleme(n);
-    const etiketler = (n.etiketler || []).map(e =>
-      `<span class="not-etiket">${escapeHtml(e)}</span>`
-    ).join('');
-    return `
-      <div class="note-card" onclick="notlarDuzenle('${n.id}')"
-           style="background:${renk.bg};border-left:3px solid ${renk.border};">
-        <div class="note-header">
-          <div class="note-title">${escapeHtml(n.baslik || '(Başlıksız)')}</div>
-          <div class="note-type-badge">${_notTipIkonu(n.tip)}</div>
-        </div>
-        <div class="note-icerik">${onizleme}</div>
-        ${etiketler ? `<div class="note-etiketler">${etiketler}</div>` : ''}
-        <div class="note-tarih">${formatTarih(n.tarih || (n.eklenmeTarihi || '').slice(0, 10))}</div>
+  // DÜZELTME: Admin/yönetici (Kullanıcı Yönetimi yetkisi olan) tüm kullanıcıların
+  // notlarını görür — kendi notları "📌 Benim Notlarım" başlığı altında ayrı,
+  // diğerleri "👥 Diğer Kullanıcıların Notları" altında sahip adı + tarih
+  // etiketiyle gösterilir. Normal kullanıcı zaten sadece kendi notunu görür
+  // (bkz. kisiselKayitGorunurMu), bu yüzden onda ayrım hiç görünmez.
+  const yoneticiGorunumuMu = typeof kullaniciYonetimiYetkisiVar === 'function' && kullaniciYonetimiYetkisiVar()
+    && notlar.some(n => n.sahipUid && (typeof AKTIF_KULLANICI==='undefined' || !AKTIF_KULLANICI || n.sahipUid !== AKTIF_KULLANICI.uid));
+
+  if(!yoneticiGorunumuMu){
+    const liste = [...notlar].sort((a, b) => (b.eklenmeTarihi || '').localeCompare(a.eklenmeTarihi || ''));
+    grid.innerHTML = liste.map(n => _notKartHtml(n)).join('');
+    return;
+  }
+
+  const benimUid = typeof AKTIF_KULLANICI!=='undefined' && AKTIF_KULLANICI ? AKTIF_KULLANICI.uid : null;
+  const benimNotlar = notlar.filter(n => !n.sahipUid || n.sahipUid === benimUid).sort((a,b)=>(b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||''));
+  const digerNotlar = notlar.filter(n => n.sahipUid && n.sahipUid !== benimUid).sort((a,b)=>{
+    const adA = _sahipAdiGetir(a.sahipUid), adB = _sahipAdiGetir(b.sahipUid);
+    return adA.localeCompare(adB,'tr') || (b.eklenmeTarihi||'').localeCompare(a.eklenmeTarihi||'');
+  });
+
+  let html = '';
+  if(benimNotlar.length){
+    html += `<div class="not-bolum-baslik">📌 Benim Notlarım</div>`;
+    html += `<div class="notlar-alt-grid">${benimNotlar.map(n => _notKartHtml(n)).join('')}</div>`;
+  }
+  if(digerNotlar.length){
+    html += `<div class="not-bolum-baslik" style="margin-top:16px;">👥 Diğer Kullanıcıların Notları</div>`;
+    html += `<div class="notlar-alt-grid">${digerNotlar.map(n => _notKartHtml(n, true)).join('')}</div>`;
+  }
+  grid.innerHTML = html || '<p class="empty-state">Henüz not eklenmedi.</p>';
+}
+
+function _notKartHtml(n, sahipEtiketiGoster){
+  const renk = NOT_RENKLERI.find(r => r.id === n.renk) || NOT_RENKLERI[0];
+  const onizleme = _notOnizleme(n);
+  const etiketler = (n.etiketler || []).map(e =>
+    `<span class="not-etiket">${escapeHtml(e)}</span>`
+  ).join('');
+  const sahipEtiket = sahipEtiketiGoster
+    ? `<div class="note-sahip-etiket">👤 ${escapeHtml(_sahipAdiGetir(n.sahipUid))} · ${formatTarih((n.eklenmeTarihi||'').slice(0,10))}</div>`
+    : '';
+  return `
+    <div class="note-card" onclick="notlarDuzenle('${n.id}')"
+         style="background:${renk.bg};border-left:3px solid ${renk.border};">
+      <div class="note-header">
+        <div class="note-title">${escapeHtml(n.baslik || '(Başlıksız)')}</div>
+        <div class="note-type-badge">${_notTipIkonu(n.tip)}</div>
       </div>
-    `;
-  }).join('');
+      <div class="note-icerik">${onizleme}</div>
+      ${etiketler ? `<div class="note-etiketler">${etiketler}</div>` : ''}
+      ${sahipEtiket}
+      <div class="note-tarih">${formatTarih(n.tarih || (n.eklenmeTarihi || '').slice(0, 10))}</div>
+    </div>
+  `;
 }
 
 function _notTipIkonu(tip) {

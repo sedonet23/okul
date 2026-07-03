@@ -224,6 +224,18 @@ function takvimAjandaRender(){
 
   if(!satirlar.length){ el.innerHTML = '<p class="empty-state">Önümüzdeki 30 günde etkinlik veya görev yok.</p>'; return; }
 
+  // DÜZELTME: Admin/yönetici tüm kullanıcıların etkinlik/görevlerini gördüğü
+  // için (bkz. kisiselKayitGorunurMu) her satırda "kimin eklediği" etiketi
+  // gösterilir; normal kullanıcıda (sadece kendi kaydını gördüğü için) bu
+  // etiket hiç görünmez.
+  const _sahipBadge = (sahipUid) => {
+    if(!sahipUid) return '';
+    if(typeof kullaniciYonetimiYetkisiVar !== 'function' || !kullaniciYonetimiYetkisiVar()) return '';
+    const ad = _sahipAdiGetir(sahipUid);
+    if(ad === 'Ben') return '';
+    return ` <span class="ajanda-sahip-etiket">👤 ${escapeHtml(ad)}</span>`;
+  };
+
   const gruplar = {};
   satirlar.forEach(s=>{ if(!gruplar[s.iso]) gruplar[s.iso]=[]; gruplar[s.iso].push(s); });
 
@@ -248,7 +260,7 @@ function takvimAjandaRender(){
           <span class="ajanda-tip-ikon">⏰</span>
           <div class="ajanda-icerik">
             <div class="ajanda-baslik">${escapeHtml(h.baslik)}${h.tekrar&&h.tekrar.tip?' 🔁':''}</div>
-            <div class="ajanda-meta">${h.saat?h.saat+' · ':''}${h.oncelik||'Orta'}${h.aciklama?' · '+escapeHtml(h.aciklama):''}</div>
+            <div class="ajanda-meta">${h.saat?h.saat+' · ':''}${h.oncelik||'Orta'}${h.aciklama?' · '+escapeHtml(h.aciklama):''}${_sahipBadge(h.sahipUid)}</div>
           </div>
           <div class="ajanda-aksiyonlar">
             <input type="checkbox" title="Tamamlandı" ${h.tamamlandi?'checked':''} onchange="hatirlaticiToggleAjanda('${h.id}',this.checked)">
@@ -261,7 +273,7 @@ function takvimAjandaRender(){
           <span class="ajanda-tip-ikon">✅</span>
           <div class="ajanda-icerik">
             <div class="ajanda-baslik">${escapeHtml(g.baslik)}</div>
-            <div class="ajanda-meta">Son tarih: ${_trFormatTarih(g.sonTarih)} · ${g.oncelik||'Orta'}${g.aciklama?' · '+escapeHtml(g.aciklama):''}</div>
+            <div class="ajanda-meta">Son tarih: ${_trFormatTarih(g.sonTarih)} · ${g.oncelik||'Orta'}${g.aciklama?' · '+escapeHtml(g.aciklama):''}${_sahipBadge(g.sahipUid)}</div>
           </div>
           <div class="ajanda-aksiyonlar">
             <input type="checkbox" title="Tamamlandı" ${gorevTamamlandiMi(g)?'checked':''} onchange="gorevToggleAjanda('${g.id}',this.checked)">

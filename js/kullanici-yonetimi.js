@@ -276,6 +276,20 @@ function _kullaniciGoruntulenecekFoto(k){
   return (o && o.profilFotoUrl) || k.fotoUrl || 'assets/icon-192.png';
 }
 
+/* Bir Firebase Auth UID'sinden görüntülenecek kullanıcı adını bulur
+   (bağlı öğretmen kaydı varsa onun adı, yoksa Google adı) — notlar/takvim
+   gibi modüllerde "kim eklemiş" etiketi için admin görünümünde kullanılır.
+   YONETIM_KULLANICILAR_CACHE sadece Kullanıcı Yönetimi yetkisi olanlarda
+   dolu olduğundan, bu fonksiyon pratikte sadece admin/yönetici oturumunda
+   anlamlı sonuç verir. */
+function _sahipAdiGetir(uid){
+  if(!uid) return '';
+  if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && uid === AKTIF_KULLANICI.uid) return 'Ben';
+  const k = (typeof YONETIM_KULLANICILAR_CACHE !== 'undefined' ? YONETIM_KULLANICILAR_CACHE : []).find(x=>x.id===uid);
+  if(!k) return 'Bilinmeyen Kullanıcı';
+  return _kullaniciGoruntulenecekAd(k);
+}
+
 function renderYonetimKullanicilari(){
   const el = document.getElementById('kullaniciYonetimListesi');
   if(!el) return;
