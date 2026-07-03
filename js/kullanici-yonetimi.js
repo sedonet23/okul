@@ -200,6 +200,12 @@ function rolFormAc(id){
           👑 Kullanıcı Yönetimi yetkisi
         </label>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--ink-muted);font-weight:600;">Toplu ayarla:</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="rolModulHepsiniAyarla('duzenle')">✏️ Tümünü Düzenle Yap</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="rolModulHepsiniAyarla('goruntule')">👁 Tümünü Görüntüle Yap</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="rolModulHepsiniAyarla('gizle')">🚫 Tümünü Gizle Yap</button>
+      </div>
       <div id="rolModulGrid">${gridHtml}</div>
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;">
         <button class="btn btn-primary" onclick="rolKaydet()">Kaydet</button>
@@ -208,6 +214,18 @@ function rolFormAc(id){
       </div>
     </div>`;
   alan.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+/* Rol formundaki 29 modülün TÜMÜNÜ tek tıkla aynı seviyeye ("gizle" |
+   "goruntule" | "duzenle") ayarlar — geniş yetkili roller (ör. "Yönetici")
+   tanımlarken her modülü tek tek işaretlemek yerine hepsini "Düzenle" yapıp
+   sadece istisnaları elle değiştirmeyi sağlar. Henüz kaydedilmez; "Kaydet"
+   butonuna basılana kadar sadece formdaki seçimleri değiştirir. */
+function rolModulHepsiniAyarla(seviye){
+  MODUL_LISTESI.forEach(m=>{
+    const radio = document.querySelector(`input[name="rol_${m.modul}"][value="${seviye}"]`);
+    if(radio) radio.checked = true;
+  });
 }
 
 function rolFormKapat(){
