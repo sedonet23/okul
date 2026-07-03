@@ -39,7 +39,15 @@ function ogretmenDetayAc(id){
   document.getElementById('detayBaslik').textContent = adSoyad;
   document.getElementById('detayAltBaslik').innerHTML = `${escapeHtml([o.unvan||'Öğretmen', o.brans].filter(Boolean).join(' · '))}${typeof ogretmenIzinRozeti==='function' ? ogretmenIzinRozeti(id) : ''}`;
   document.getElementById('detayDuzenleBtn').onclick = ()=>{ detayPanelKapat(); ogretmenModalAc(id); };
-  document.getElementById('detayRaporBtn').onclick = ()=>{ ogretmenRaporOlustur(id); };
+  // DÜZELTME: Rapor, İzin/Rapor ve Belge Durumu gibi hassas bilgileri de
+  // içerdiği için (bkz. ogretmenRaporOlustur) — bu buton artık sadece
+  // kendi profilinde veya 'ogretmenHassasBilgi' yetkisi olan kullanıcıda
+  // görünür; önceden herkese açıktı ve hassas-bilgi gizlemeyi by-pass ediyordu.
+  const raporBtn = document.getElementById('detayRaporBtn');
+  if(raporBtn){
+    raporBtn.style.display = hassasGorebilir ? '' : 'none';
+    raporBtn.onclick = ()=>{ ogretmenRaporOlustur(id); };
+  }
 
   /* ---- Ders Programı ---- */
   const dersleri = dersProgrami.filter(d=>d.ogretmenId===id).sort((a,b)=> GUNLER.indexOf(a.gun)-GUNLER.indexOf(b.gun) || a.saat-b.saat);

@@ -18,6 +18,15 @@
 function profilFotoIsle(inputEl, ogretmenId) {
   const file = inputEl.files[0];
   if (!file) return;
+  // DÜZELTME: Eskiden burada HİÇ yetki kontrolü yoktu — sadece görsel
+  // gizleme (salt-okuma) mekanizmasına güveniliyordu, o da zamanlama
+  // hatası yüzünden bu widget'a hiç uygulanmıyordu. Artık kendi profili
+  // veya 'ogretmenler' düzenleme yetkisi olmayan biri fotoğraf değiştiremez.
+  if (!_ogretmenFotoDuzenlenebilirMi(ogretmenId)) {
+    toast('Bu işlem için yetkiniz yok.');
+    inputEl.value = '';
+    return;
+  }
   toast('Fotoğraf işleniyor…');
 
   const reader = new FileReader();
@@ -62,73 +71,37 @@ function profilFotoGoster(ogretmenId) {
   return `<div style="width:70px;height:70px;border-radius:var(--icon-shape,50%);background:rgba(255,255,255,.22);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;">${escapeHtml(harf.toUpperCase())}</div>`;
 }
 
-/* Profil fotoğrafı yükleme: detay panelindeki "📷 Fotoğraf" butonuna bağlanır */
-function profilFotoYukle(ogretmenId) {
-  // Mevcut gizli input'u bul veya oluştur
-  let inp = document.getElementById('_profilFotoInput');
-  if (!inp) {
-    inp = document.createElement('input');
-    inp.id = '_profilFotoInput';
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.setAttribute('capture', 'environment'); // mobilde kamera/galeri seçeneği
-    inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;';
-    document.body.appendChild(inp);
-  }
+/* not: burada eskiden "profilFotoYukle(ogretmenId)" adında, hiçbir yerden
+   çağrılmayan (ölü kod) VE yetki kontrolü olmayan ikinci bir fotoğraf
+   yükleme fonksiyonu vardı — kaldırıldı. Tek geçerli yol artık
+   detayPanelineProfilFotoEkle() → profilFotoIsle() akışı. */
 
-  // Önceki listener'ı temizle
-  inp.onchange = null;
-  inp.value = '';
+/* Bir öğretmenin profil fotoğrafını mevcut kullanıcının değiştirip
+   değiştiremeyeceğini belirler: kendi profili İSE her zaman evet;
+   değilse SADECE süper admin. DÜZELTME: Önceden genel 'ogretmenler'
+   düzenleme yetkisi yeterliydi — ama bu yetki başka amaçlarla (sınıf
+   ataması, iletişim bilgisi güncelleme vb.) verilmiş olabilir; profil
+   fotoğrafını başkası adına değiştirmek bundan bağımsız, daha hassas
+   bir işlem olduğu için sadece admin'e bırakıldı. */
+function _ogretmenFotoDuzenlenebilirMi(ogretmenId) {
+  const bagliOgretmen = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  if (bagliOgretmen && bagliOgretmen.id === ogretmenId) return true;
+  return typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin === true;
+}
 
-  inp.onchange = function() {
-    const file = inp.files[0];
-    inp.value = '';
-    if (!file) return;
-
-    toast('Fotoğraf işleniyor…');
-
-    // FileReader ile oku, sonra Canvas ile küçült
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const MAX = 400;
-        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-        canvas.width  = Math.round(img.width  * ratio);
-        canvas.height = Math.round(img.height * ratio);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        const base64 = canvas.toDataURL('image/jpeg', 0.80);
-
-        if (typeof db !== 'undefined' && typeof COL !== 'undefined') {
-          toast('Firestore\'a kaydediliyor…');
-          db.collection(COL.ogretmenler).doc(ogretmenId)
-            .update({ profilFotoUrl: base64 })
-            .then(() => {
-              const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x => x.id === ogretmenId) : null;
-              if (o) o.profilFotoUrl = base64;
-              toast('✓ Profil fotoğrafı kaydedildi!');
-              const old = document.querySelector('.detay-profil-foto');
-              if (old) old.remove();
-              detayPanelineProfilFotoEkle(ogretmenId);
-            })
-            .catch(err => {
-              console.error('Profil foto hata:', err);
-              toast('Hata: ' + err.message);
-            });
-        } else {
-          toast('Veritabanı bağlantısı bulunamadı.');
-        }
-      };
-      img.onerror = () => toast('Resim yüklenemedi.');
-      img.src = e.target.result;
-    };
-    reader.onerror = () => toast('Dosya okunamadı.');
-    reader.readAsDataURL(file);
-  };
-
-  // Direkt click — bu fonksiyon zaten bir onclick'ten çağrılıyor olmalı
-  inp.click();
+function profilFotoKaldir(ogretmenId) {
+  if (!_ogretmenFotoDuzenlenebilirMi(ogretmenId)) { toast('Bu işlem için yetkiniz yok.'); return; }
+  if (!confirm('Profil fotoğrafını kaldırmak istediğinize emin misiniz?')) return;
+  if (typeof db === 'undefined' || typeof COL === 'undefined') return;
+  db.collection(COL.ogretmenler).doc(ogretmenId)
+    .update({ profilFotoUrl: firebase.firestore.FieldValue.delete() })
+    .then(() => {
+      const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x => x.id === ogretmenId) : null;
+      if (o) delete o.profilFotoUrl;
+      toast('Profil fotoğrafı kaldırıldı.');
+      detayPanelineProfilFotoEkle(ogretmenId);
+    })
+    .catch(err => toast('Hata: ' + err.message));
 }
 
 function detayPanelineProfilFotoEkle(ogretmenId) {
@@ -141,11 +114,24 @@ function detayPanelineProfilFotoEkle(ogretmenId) {
   wrap.className = 'detay-profil-foto';
   wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;';
 
-  // Gizli file input — label ile tetiklenir (mobilde en güvenilir yöntem)
+  // DÜZELTME: Bu widget artık kendi yetki kontrolünü kendisi yapıyor —
+  // eskiden saltOkumaDetayUygula()'nın bu elemanları gizlemesine
+  // güveniliyordu, ama widget setTimeout ile GEÇ eklendiği için o tarama
+  // hiçbir zaman buraya ulaşamıyordu (bkz. js/ogretmen-detay.js). Yetkisiz
+  // kullanıcıda ne "Fotoğraf" ne "Kaldır" butonu hiç DOM'a eklenmiyor.
+  const duzenlenebilirMi = _ogretmenFotoDuzenlenebilirMi(ogretmenId);
+  const o = (typeof ogretmenler !== 'undefined') ? ogretmenler.find(x => x.id === ogretmenId) : null;
+  const fotoVarMi = !!(o && o.profilFotoUrl);
+
   const inputId = '_profilFotoLabelInput_' + ogretmenId;
-  wrap.innerHTML = profilFotoGoster(ogretmenId) +
-    `<label for="${inputId}" style="display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 12px;color:#fff;font-size:11px;cursor:pointer;">📷 Fotoğraf</label>
-     <input id="${inputId}" type="file" accept="image/*" style="display:none;" onchange="profilFotoIsle(this,'${ogretmenId}')">`;
+  const dugmelerHtml = duzenlenebilirMi ? `
+     <div style="display:flex;gap:6px;">
+       <label for="${inputId}" style="display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 12px;color:#fff;font-size:11px;cursor:pointer;">📷 Fotoğraf</label>
+       <input id="${inputId}" type="file" accept="image/*" style="display:none;" onchange="profilFotoIsle(this,'${ogretmenId}')">
+       ${fotoVarMi ? `<button type="button" onclick="profilFotoKaldir('${ogretmenId}')" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 10px;color:#fff;font-size:11px;cursor:pointer;">🗑 Kaldır</button>` : ''}
+     </div>` : '';
+
+  wrap.innerHTML = profilFotoGoster(ogretmenId) + dugmelerHtml;
 
   head.insertBefore(wrap, head.firstChild);
 }
