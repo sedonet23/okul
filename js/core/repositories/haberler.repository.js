@@ -12,8 +12,13 @@
 const HaberlerRepository = {
 
   /* ---------- Haberler ---------- */
+  /* DÜZELTME: limit(200) yetersiz kalıyordu — çok sık yayın yapan bir
+     kaynak (örn. Meb Personel), daha seyrek yayın yapan başka bir
+     kaynağın (örn. Elazığ Meb Duyurular) haberlerini "en yeni 200"
+     penceresinden tamamen dışarı itebiliyordu; o haberler Firestore'da
+     var olmasına rağmen uygulamada HİÇ yüklenmiyordu. Limit artırıldı. */
   haberleriDinle(callback, hataCb){
-    return db.collection(COL.haberler).orderBy('tarih', 'desc').limit(200).onSnapshot(
+    return db.collection(COL.haberler).orderBy('tarih', 'desc').limit(600).onSnapshot(
       s => callback(s.docs.map(d => ({ id: d.id, ...d.data() }))),
       hataCb || hataGoster
     );
