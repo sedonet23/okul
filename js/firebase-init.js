@@ -86,6 +86,8 @@ const COL = {
   mesajlar:'oy_mesajlar',               // {konusmaId, gonderenUid, gonderenAdi, metin, tarih}
   // --- YENİ: Duyuru Panosu (v10.0) — Haberler modülünden BAĞIMSIZ ---
   duyurular:'oy_duyurular',             // {baslik, icerik, tarih:ISO, olusturanUid, olusturanAdi, okuyanlar:{uid:{ad,tarih}}}
+  // --- YENİ: Anketler ---
+  anketler:'oy_anketler',               // {soru, secenekler:[{id,metin}], coklu:bool, aktif:bool, olusturanUid, olusturanAdi, olusturmaTarihi, oylar:{uid:{adlar:[secenekId,...], ad, tarih}}}
 };
 
 let db = null;

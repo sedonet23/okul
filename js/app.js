@@ -962,6 +962,8 @@ function renderDashboard(){
   const servisSayisi = (typeof servisler !== 'undefined' && Array.isArray(servisler)) ? servisler.length : 0;
   const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
 
+  const _statBenOgretmen = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  const _statBenUid = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null;
   const _statTanimlari = {
     personel: gorebilir('ogretmenler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
@@ -991,6 +993,37 @@ function renderDashboard(){
       <div class="stat-card-ico-lg stat-card-ico-amber">📄</div>
       <div class="stat-card-num">${acikEvrakSayisi}</div>
       <div class="stat-card-label">Bekleyen Evrak</div>
+      <div class="stat-card-tumu-bottom">Tümü ›</div>
+    </div>` : '',
+    // YENİ: Öğretmen hesaplarında admin-only kartlar (Personel/Öğrenciler/
+    // Servis) boş kaldığı için eklendi — bunlar herkese bağlı öğretmen
+    // kaydı olan (ya da ilgili modülü görebilen) kullanıcıya görünür.
+    sinavlarim: (_statBenOgretmen && gorebilir('sinavIslemleri') && typeof sinavlar!=='undefined') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('sinavIslemleri')">
+      <div class="stat-card-ico-lg stat-card-ico-blue">📝</div>
+      <div class="stat-card-num">${sinavlar.filter(s=>s.ogretmenId===_statBenOgretmen.id && s.tarih>=todayISO()).length}</div>
+      <div class="stat-card-label">Yaklaşan Sınavlarım</div>
+      <div class="stat-card-tumu-bottom">Tümü ›</div>
+    </div>` : '',
+    okunmamisMesaj: (gorebilir('mesajlasma') && typeof MesajlasmaService!=='undefined' && typeof konusmalar!=='undefined') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('mesajlasma')">
+      <div class="stat-card-ico-lg stat-card-ico-green">💬</div>
+      <div class="stat-card-num">${MesajlasmaService.toplamOkunmayan(konusmalar)}</div>
+      <div class="stat-card-label">Okunmamış Mesaj</div>
+      <div class="stat-card-tumu-bottom">Tümü ›</div>
+    </div>` : '',
+    okunmamisDuyuru: (gorebilir('duyurular') && typeof duyurular!=='undefined') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('duyurular')">
+      <div class="stat-card-ico-lg stat-card-ico-amber">📢</div>
+      <div class="stat-card-num">${duyurular.filter(d=>!(d.okuyanlar && d.okuyanlar[_statBenUid])).length}</div>
+      <div class="stat-card-label">Okunmamış Duyuru</div>
+      <div class="stat-card-tumu-bottom">Tümü ›</div>
+    </div>` : '',
+    bugunkuDersim: (_statBenOgretmen && gorebilir('dersProgrami')) ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('dersNobetProgramim')">
+      <div class="stat-card-ico-lg stat-card-ico-purple">📚</div>
+      <div class="stat-card-num">${dersProgrami.filter(d=>d.ogretmenId===_statBenOgretmen.id && d.gun===GUNADI[new Date().getDay()]).length}</div>
+      <div class="stat-card-label">Bugünkü Ders Sayım</div>
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>` : '',
   };
@@ -1582,6 +1615,7 @@ function baglantilariKur(){
   if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur();
   if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur();
   if(typeof duyurularBaglantilariKur === 'function') duyurularBaglantilariKur();
+  if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur();
   periyodikBaglantilariKur();
   tasimaBaglantilariKur();
   if(typeof ogretmenIzinBaglantilariKur === 'function') ogretmenIzinBaglantilariKur();

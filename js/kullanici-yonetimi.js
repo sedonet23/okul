@@ -38,6 +38,7 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'dokumanlar', ad:'Dökümanlar'},
   {grup:'Genel', modul:'haberler', ad:'Haberler'},
   {grup:'Genel', modul:'duyurular', ad:'Duyuru Panosu'},
+  {grup:'Genel', modul:'anket', ad:'Anketler'},
   {grup:'Genel', modul:'mevzuat', ad:'Mevzuat'},
   {grup:'Genel', modul:'mesajlasma', ad:'Mesajlaşma'},
   {grup:'Genel', modul:'sistemAyarlari', ad:'Sistem Ayarları (Ders Saatleri, Ders/Branş Listesi)'},
@@ -96,7 +97,7 @@ function sidebarYetkiUygula(){
   const _NAV_GRUPLARI = [
     { ayirac:'ayiracKisiler',    check:'kisilerCheck',    moduller:['ogretmenler','siniflar','ogrenciler','personel'] },
     { ayirac:'ayiracProgram',    check:'programCheck',    moduller:['dersProgrami','nobet','takvim','sinavIslemleri'] },
-    { ayirac:'ayiracIletisim',   check:'iletisimCheck',   moduller:['mesajlasma','haberler','duyurular'] },
+    { ayirac:'ayiracIletisim',   check:'iletisimCheck',   moduller:['mesajlasma','haberler','duyurular','anket'] },
     { ayirac:'ayiracBelgeler',   check:'belgelerCheck',   moduller:['evrak','dokumanlar','notlar','mevzuat'] },
     { ayirac:'ayiracUlasim',     check:'ulasimCheck',     moduller:['tasima','harita'] },
     { ayirac:'ayiracCizelgeler', check:'cizelgelerCheck', moduller:_CIZELGELER_MODULLERI },
