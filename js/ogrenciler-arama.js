@@ -450,15 +450,25 @@ function globalAramaYap() {
   }
 
   /* ---- Notlar ---- */
+  // DÜZELTME: n.icerik zengin metin editöründen geldiği için ham HTML
+  // (<div>, <b>, &nbsp; vb.) içeriyor. Eskiden bu ham metnin ilk 80
+  // karakteri escapeHtml ile doğrudan basılıyordu — etiketler kaçırılıp
+  // "kod gibi" ekranda görünüyordu. Önce düz metne çevirip öyle kısaltıyoruz.
+  const _notOnizlemeMetni = (html) => {
+    const gecici = document.createElement('div');
+    gecici.innerHTML = String(html || '');
+    return (gecici.textContent || gecici.innerText || '').replace(/\s+/g, ' ').trim();
+  };
   if (kat === 'hepsi' || kat === 'not') {
     const liste = typeof notlar !== 'undefined' ? notlar : [];
-    const hits  = q ? liste.filter(n => [n.baslik, String(n.icerik||'')].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
+    const hits  = q ? liste.filter(n => [n.baslik, _notOnizlemeMetni(n.icerik)].join(' ').toLocaleLowerCase('tr').includes(q)) : liste;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>📝 Notlar (${hits.length})</h3>`;
       hits.slice(0, 50).forEach(n => {
+        const onizleme = _notOnizlemeMetni(n.icerik);
         html += `<div class="detay-row" style="cursor:pointer;" onclick="sekmeAc('notlar')">
           <div style="flex:1;"><div style="font-weight:700;color:var(--ink);">${escapeHtml(n.baslik||'—')}</div>
-          ${n.icerik?`<div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(String(n.icerik).slice(0,80))}…</div>`:''}</div>
+          ${onizleme?`<div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(onizleme.slice(0,80))}…</div>`:''}</div>
         </div>`;
       });
       if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
