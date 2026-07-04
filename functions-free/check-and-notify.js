@@ -100,7 +100,13 @@ async function kontrolEt() {
       try {
         const yanit = await admin.messaging().sendEachForMulticast({
           tokens,
-          notification: { title: item.baslik, body: item.govde }
+          // DÜZELTME: 'notification' alanı, uygulama ARKA PLANDAYKEN
+          // Android'in KENDİ otomatik bildirim gösterimini tetikliyordu —
+          // bu da OkulFirebaseMessagingService.java > onMessageReceived()'ı
+          // (dolayısıyla özel okul logosu/büyük ikon kodunu) tamamen ATLIYORDU.
+          // Sadece 'data' göndermek, HER durumda (ön/arka plan fark etmeksizin)
+          // bildirimin bizim kendi Java kodumuzdan geçmesini garantiler.
+          data: { kategori: 'genel', baslik: item.baslik, icerik: item.govde }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
@@ -139,7 +145,8 @@ async function kontrolEt() {
       try {
         const yanit = await admin.messaging().sendEachForMulticast({
           tokens: aliciTokenlari,
-          notification: { title: `💬 ${baslik}`, body: k.sonMesaj.metin.slice(0, 120) }
+          // DÜZELTME: bkz. yukarıdaki genel bildirim notu — aynı sebep.
+          data: { kategori: 'genel', baslik: `💬 ${baslik}`, icerik: k.sonMesaj.metin.slice(0, 120) }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
