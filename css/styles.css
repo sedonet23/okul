@@ -3029,3 +3029,77 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    (bkz. js/dashboard-ozellestirme.js dashboardOzellestirmeUygula)
    ========================================================================= */
 .kullanici-gizledi{ display:none !important; }
+
+/* =========================================================================
+   MESAJLAŞMA — WhatsApp tarzı görsel zenginleştirme
+   (bkz. js/mesajlasma.js _mesajlariRenderEt, renderKonusmaListesi)
+   ========================================================================= */
+.mesaj-akis-kutusu{
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(120,120,120,.05) 0%, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(120,120,120,.05) 0%, transparent 40%);
+  background-color: var(--bg, #f5f6f8);
+  border-radius: 14px;
+  padding: 10px 8px;
+}
+.mesaj-tarih-ayirici{ display:flex; justify-content:center; margin: 12px 0 10px; }
+.mesaj-tarih-ayirici span{
+  background: var(--nm-bg); color: var(--ink-muted); font-size: 11.5px;
+  font-weight: 600; padding: 4px 14px; border-radius: 999px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.mesaj-balon-govde{
+  padding: 7px 10px 8px; word-break: break-word; white-space: pre-wrap;
+  font-size: 14.5px; line-height: 1.35; box-shadow: 0 1px 1px rgba(0,0,0,.06);
+}
+.mesaj-balon-govde.kendi{
+  background: var(--brand); color: #fff;
+  border-radius: 14px 14px 4px 14px;
+}
+.mesaj-balon-govde.karsi{
+  background: var(--nm-bg); color: var(--ink);
+  border-radius: 14px 14px 14px 4px;
+}
+.mesaj-balon-govde.kendi.grup-orta, .mesaj-balon-govde.kendi.grup-son{ border-top-right-radius: 14px; }
+.mesaj-balon-govde.karsi.grup-orta, .mesaj-balon-govde.karsi.grup-son{ border-top-left-radius: 14px; }
+.mesaj-satir-alt{ display:flex; align-items:center; gap:4px; margin-top:2px; font-size:10.5px; color: var(--ink-muted); }
+.mesaj-tik{ font-size:12px; line-height:1; }
+.mesaj-tik.okundu{ color:#4fc3f7; }
+.mesaj-gonderen-adi{ font-size:11px; font-weight:700; margin-bottom:2px; }
+.mesaj-giris-satiri{
+  display:flex; gap:8px; align-items:center;
+  background: var(--nm-bg); border-radius: 999px; padding: 6px 8px 6px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.mesaj-giris-satiri input{
+  border:none !important; background:transparent !important; box-shadow:none !important; flex:1;
+}
+.mesaj-giris-satiri input:focus{ outline:none; }
+.mesaj-gonder-btn{
+  width:38px; height:38px; border-radius:50%; border:none; background: var(--brand);
+  color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px;
+  cursor:pointer; flex-shrink:0; transition: transform .1s ease;
+}
+.mesaj-gonder-btn:active{ transform: scale(.92); }
+.mesaj-ek-btn{
+  width:36px; height:36px; border-radius:50%; border:none; background:transparent;
+  color: var(--ink-muted); font-size:18px; cursor:pointer; flex-shrink:0;
+}
+.konusma-karti{
+  display:flex; align-items:center; gap:12px; padding:10px 12px;
+  border-radius:14px; margin-bottom:6px; cursor:pointer; transition: background .15s ease;
+}
+.konusma-karti:active{ background: var(--nm-bg); }
+.konusma-avatar{
+  width:46px; height:46px; border-radius:50%; flex-shrink:0;
+  background: linear-gradient(135deg, var(--brand-light), var(--brand));
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:17px;
+}
+.konusma-satir-ust{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.konusma-baslik{ font-weight:700; font-size:14.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.konusma-baslik.okunmamis{ font-weight:800; }
+.konusma-saat{ font-size:11px; color: var(--ink-muted); flex-shrink:0; }
+.konusma-saat.okunmamis{ color: var(--brand); font-weight:700; }
+.konusma-onizleme{ font-size:12.5px; color: var(--ink-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.konusma-onizleme.okunmamis{ color: var(--ink); font-weight:600; }
