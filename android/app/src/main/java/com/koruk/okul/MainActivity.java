@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PrintPlugin.class);
         registerPlugin(SavePlugin.class);
         registerPlugin(PullToRefreshPlugin.class);
+        registerPlugin(UpdatePlugin.class);
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
