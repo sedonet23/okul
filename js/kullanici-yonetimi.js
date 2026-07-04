@@ -89,10 +89,25 @@ function sidebarYetkiUygula(){
   });
   if(typeof _bnIkinciItemAyarla === 'function') _bnIkinciItemAyarla();
 
-  // "Çizelgeler" alt grubundaki modüllerin tamamı gizliyse üst başlığı/ayırıcıyı da gizle.
-  const hepsiGizli = _CIZELGELER_MODULLERI.every(m => !gorebilir(m));
-  document.querySelector('label[for="cizelgelerCheck"]')?.style && (document.querySelector('label[for="cizelgelerCheck"]').style.display = hepsiGizli ? 'none' : '');
-  document.querySelector('.nav-separator') && (document.querySelector('.nav-separator').style.display = hepsiGizli ? 'none' : '');
+  // "Çizelgeler" ve diğer akordiyon gruplarındaki modüllerin TAMAMI
+  // gizliyse, üst başlığı/ayırıcıyı da gizle — boş/tıklanamaz bir grup
+  // başlığı gösterilmesin diye. Her grup için: [ayırıcı id, toggle
+  // (checkbox+label) id, o gruptaki data-tab değerleri].
+  const _NAV_GRUPLARI = [
+    { ayirac:'ayiracKisiler',    check:'kisilerCheck',    moduller:['ogretmenler','siniflar','ogrenciler','personel'] },
+    { ayirac:'ayiracProgram',    check:'programCheck',    moduller:['dersProgrami','nobet','takvim','sinavIslemleri'] },
+    { ayirac:'ayiracIletisim',   check:'iletisimCheck',   moduller:['mesajlasma','haberler','duyurular'] },
+    { ayirac:'ayiracBelgeler',   check:'belgelerCheck',   moduller:['evrak','dokumanlar','notlar','mevzuat'] },
+    { ayirac:'ayiracUlasim',     check:'ulasimCheck',     moduller:['tasima','harita'] },
+    { ayirac:'ayiracCizelgeler', check:'cizelgelerCheck', moduller:_CIZELGELER_MODULLERI },
+  ];
+  _NAV_GRUPLARI.forEach(g=>{
+    const hepsiGizli = g.moduller.every(m => !gorebilir(m));
+    const ayiracEl = document.getElementById(g.ayirac);
+    const toggleEl = document.querySelector(`label[for="${g.check}"]`);
+    if(ayiracEl) ayiracEl.style.display = hepsiGizli ? 'none' : '';
+    if(toggleEl) toggleEl.style.display = hepsiGizli ? 'none' : '';
+  });
 
   const kyBtn = document.querySelector('.nav-tab[data-tab="kullaniciYonetimi"]');
   if(kyBtn) kyBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
