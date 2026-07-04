@@ -1635,7 +1635,17 @@ window.geriTusuIsle = geriTusuIsle;
    (Chrome'da PWA/sekme) bu köprünün karşılığı hiç yoktu, bu yüzden geri
    tuşu/hareketi doğrudan sekmeyi/uygulamayı kapatıyordu. Burada aynı
    "önce içeride geri git, en üstteyse çift basışla çık" mantığını
-   tarayıcının history.pushState/popstate API'siyle taklit ediyoruz. */
+   tarayıcının history.pushState/popstate API'siyle taklit ediyoruz.
+
+   DÜZELTME 2: Başlangıçta arka arkaya 25 kez pushState çağırmak
+   (kullanıcı hareketi OLMADAN, tek seferde patlama şeklinde) Chrome'un
+   "history manipulation" kötüye kullanım önleme mekanizmasını
+   tetikleyebiliyor — tarayıcı bu türden "yapay" kayıtları geri tuşunda
+   SESSİZCE ATLAYABİLİYOR, yani tuzağımız hiç işe yaramadan by-pass
+   ediliyor. Doğru/standart desen: HER ZAMAN sadece TEK bir tampon
+   kaydı tutmak, ve onu SADECE gerçek bir kullanıcı geri hareketine
+   (popstate'e) karşılık olarak yeniden doldurmak — bu, gerçek bir
+   kullanıcı eylemine bağlı olduğu için kötüye kullanım sayılmıyor. */
 (function(){
   const nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
   if(nativeMi) return; // native ortamda MainActivity.java zaten hallediyor
@@ -1643,22 +1653,14 @@ window.geriTusuIsle = geriTusuIsle;
   let _webGeriSonCikisZamani = 0;
   const _buferPushEt = () => { try{ history.pushState({oyGeriBuferi:true}, '', location.href); }catch(e){} };
 
-  // DÜZELTME: Tek bir tampon kaydı bazı durumlarda (art arda hızlı geri
-  // basışlarında, veya tarayıcının kendi "geri" animasyonunun JS'ten önce
-  // gerçek geçmişi tüketmesi ihtimaline karşı) yetersiz kalabiliyordu —
-  // en sonunda uyarı göstermeden direkt çıkılıyordu. Şimdi baştan derin
-  // bir tampon yığını kuruluyor, her "handled"/ilk-uyarı sonrası da tekrar
-  // dolduruluyor; JS'in her zaman tepki verecek payı oluyor.
-  const _TAMPON_DERINLIK = 25;
-  for(let i=0;i<_TAMPON_DERINLIK;i++) _buferPushEt();
+  _buferPushEt(); // TEK başlangıç tamponu — birden fazla art arda push YAPMA (bkz. yukarıdaki not)
 
   let _sonPopstateZamani = 0;
   window.addEventListener('popstate', function(){
-    // DÜZELTME: Android'in "geri kaydırma" (predictive back gesture) hareketi
-    // bazı cihaz/sürümlerde TEK bir hareket için birden fazla popstate
-    // tetikleyebiliyor — bu da "ilk basış uyar, ikinci basış çıkar" sayacını
-    // yanıltıp tek harekette doğrudan çıkışa sebep olabiliyordu. Çok yakın
-    // ardışık olayları (150ms altı) TEK basış say, sadece tamponu tazele.
+    // Android'in "geri kaydırma" (predictive back gesture) hareketi bazı
+    // cihaz/sürümlerde TEK bir hareket için birden fazla popstate
+    // tetikleyebiliyor — çok yakın ardışık olayları (150ms altı) TEK
+    // basış say, sadece tamponu tazele.
     const simdiPop = Date.now();
     if(simdiPop - _sonPopstateZamani < 150){ _buferPushEt(); return; }
     _sonPopstateZamani = simdiPop;
