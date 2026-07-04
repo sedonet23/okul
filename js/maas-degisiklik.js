@@ -337,7 +337,7 @@
           <button id="mdfCloseBtn" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">✕ Kapat</button>
         </div>
       </div>
-      <div style="flex:1 1 auto; overflow:auto; padding:16px; display:flex; justify-content:center;">
+      <div style="flex:1 1 auto; overflow:auto; padding:16px; display:flex; justify-content:center; align-items:flex-start;">
         <div id="mdfFormPanel" class="mdf-panel" style="background:#fff; border-radius:10px; padding:18px; max-width:760px; width:100%; box-shadow:0 4px 14px rgba(0,0,0,.3); font-family:'Segoe UI',Arial,sans-serif;"></div>
       </div>
     `;
