@@ -18,6 +18,16 @@
     'Refakat İzni', 'Doğum İzni', 'Babalık İzni', 'Diğer'
   ];
 
+  // YENİ: Dilekçe sistemi artık sadece personel izin dilekçesiyle sınırlı
+  // değil — birden fazla dilekçe TÜRÜ arasında seçim yapılabiliyor. Her
+  // türün kendi form alanları, otomatik gövde metni ve kayıtlı varsayılan
+  // şablonu var (bkz. DILEKCE_TURLERI, _formPanelHtml*, _dilekceSayfaHtml*).
+  const DILEKCE_TURLERI = [
+    { key: 'personelIzin', ad: 'Personel İzin Dilekçesi' },
+    { key: 'diplomaKayit', ad: 'Diploma Kayıt Örneği Talep Dilekçesi' },
+    { key: 'diplomaKayitCevap', ad: 'Diploma Kayıt Örneği (Okul Cevabı)' }
+  ];
+
   // --- Sayıyı Türkçe yazıya çevirme (1-999 arası izin süreleri için yeterli) ---
   const BIRLER = ['', 'bir', 'iki', 'üç', 'dört', 'beş', 'altı', 'yedi', 'sekiz', 'dokuz'];
   const ONLAR  = ['', 'on', 'yirmi', 'otuz', 'kırk', 'elli', 'altmış', 'yetmiş', 'seksen', 'doksan'];
@@ -56,6 +66,7 @@
   // --- Durum ---
   let _personelId = null;
   let _personel = null;
+  let _baslangicTuru = 'personelIzin';
 
   // --- HTML üretimi ---
 
@@ -66,6 +77,28 @@
       `${state.baslamaTarihi || '....../....../............'} tarihinden itibaren ` +
       `${sure || '......'} (${sureYazi || '..........'}) gün ` +
       `${state.izinTuru || '...........................'} hakkımı kullanmak istiyorum.`;
+  }
+
+  function _otomatikGovdeMetniDiploma(state, okulAdi) {
+    const okul = okulAdi || '...........................';
+    return `${state.mezuniyetTarihi || '....../....../............'} tarihinde ${okul}'ndan mezun oldum. ` +
+      `Diplomamı kaybettiğimden tarafıma diploma kayıt örneği düzenlenmesi hususunda;`;
+  }
+
+  function _otomatikGovdeMetniDiplomaCevap(state, okulAdi) {
+    const okul = okulAdi || '...........................';
+    const kizOglu = state.kizOglu || 'kızı/oğlu';
+    return `Dilekçe sahibi ${state.tc || '..........................'} T.C. Kimlik Nolu, ` +
+      `${state.dogumTarihi || '....../....../............'} doğumlu, ` +
+      `${state.babaAdi || '...........................'} ${kizOglu} ${state.adSoyad || '...........................'}'ın ` +
+      `${okul}'ndan (${state.ogrenimSuresi || '.....'} yıllık) ` +
+      `${state.diplomaTarihi || '....../....../............'} tarih ve ${state.diplomaSayisi || '............'} sayılı ` +
+      `diplomayı almaya hak kazandığı resmi kayıtların incelenmesinden anlaşılmıştır.`;
+  }
+
+  function _varsayilanMuduAdi() {
+    const okul = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari) || {};
+    return (okul.mudurId && typeof ogretmenAdi === 'function') ? (ogretmenAdi(okul.mudurId) || '') : '';
   }
 
   function _dilekceStilBlogu(hizalamaCss) {
@@ -112,6 +145,16 @@
   .dlk-alt-bilgi { text-align: left; line-height: 1.9; }
   .dlk-alt-bilgi div { margin-bottom: 1mm; }
 
+  .dlk-diploma-baslik { text-align:center; font-weight:700; text-decoration:underline; margin: 2mm 0 6mm; }
+  .dlk-bilgi-tablosu { margin-bottom: 8mm; border-collapse: collapse; }
+  .dlk-bilgi-tablosu td { padding: 1.2mm 0; vertical-align: top; }
+  .dlk-bilgi-etiket { font-weight: 700; padding-right: 6mm; white-space: nowrap; }
+  .dlk-bilgi-iki-nokta { padding-right: 4mm; }
+
+  .dlk-alt-satir { display:flex; justify-content:space-between; align-items:flex-start; gap:10mm; margin-bottom:26mm; }
+  .dlk-adres-blok { text-align:left; flex:1 1 auto; }
+  .dlk-alt-satir .dlk-imza-blok { text-align:right; margin-bottom:0; flex:0 0 auto; }
+
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #dlkSayfaIcerik:hover, #dlkSayfaIcerik:focus { background: transparent; }
@@ -157,6 +200,34 @@
       return _sablonSar(state.tamIcerikManuel, state.hizalama || 'iki-yana');
     }
 
+    const hizalama = state.hizalama || 'iki-yana';
+    const hizalamaCss = {
+      'iki-yana': 'text-align: justify; text-align-last: left;',
+      'sola':     'text-align: left;',
+      'ortala':   'text-align: center;'
+    }[hizalama] || 'text-align: justify; text-align-last: left;';
+
+    const { icerikHtml, baslik } = (state.dilekceTuru === 'diplomaKayitCevap')
+      ? _dilekceIcerikDiplomaCevap(state)
+      : (state.dilekceTuru === 'diplomaKayit')
+        ? _dilekceIcerikDiploma(state)
+        : _dilekceIcerikPersonelIzin(state);
+
+    return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${escapeHtml(baslik)}</title>
+<style>${_dilekceStilBlogu(hizalamaCss)}</style>
+</head>
+<body>
+  <div id="dlkSayfaIcerik" contenteditable="true">${icerikHtml}</div>
+  <script>${_dlkScriptBlogu()}</script>
+</body>
+</html>`;
+  }
+
+  function _dilekceIcerikPersonelIzin(state) {
     const okul = _getOkulBilgisi();
     const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
     const il = (okul.il || '').toLocaleUpperCase('tr');
@@ -167,13 +238,6 @@
 
     const kapanisMetni = 'Gereğini olurlarınıza arz ederim.';
     const tarihMetni = '....../....../............';
-
-    const hizalama = state.hizalama || 'iki-yana';
-    const hizalamaCss = {
-      'iki-yana': 'text-align: justify; text-align-last: left;',
-      'sola':     'text-align: left;',
-      'ortala':   'text-align: center;'
-    }[hizalama] || 'text-align: justify; text-align-last: left;';
 
     const icerikHtml = `
     <div class="dlk-ust-baslik">
@@ -197,19 +261,91 @@
       <div>Adres: ${escapeHtml(state.adres||'')}</div>
     </div>
 `;
+    return { icerikHtml, baslik: `${state.adSoyad||'Personel'} — Dilekçe` };
+  }
 
-    return `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<title>${escapeHtml(state.adSoyad||'Personel')} — Dilekçe</title>
-<style>${_dilekceStilBlogu(hizalamaCss)}</style>
-</head>
-<body>
-  <div id="dlkSayfaIcerik" contenteditable="true">${icerikHtml}</div>
-  <script>${_dlkScriptBlogu()}</script>
-</body>
-</html>`;
+  function _dilekceIcerikDiploma(state) {
+    const okul = _getOkulBilgisi();
+    const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
+    const il = (okul.il || '').toLocaleUpperCase('tr');
+
+    const govdeMetni = (state.govdeManuel !== null && state.govdeManuel !== undefined)
+      ? state.govdeManuel
+      : _otomatikGovdeMetniDiploma(state, state.okulAdiManuel || okul.okulAdi || '');
+
+    const kapanisMetni = 'Gereğini arz ederim.';
+    const tarihMetni = '....../....../............';
+
+    const icerikHtml = `
+    <div class="dlk-ust-baslik">
+      <div class="dlk-okul-adi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜNE</div>
+      <div class="dlk-il">${escapeHtml(il)}</div>
+    </div>
+
+    <div class="dlk-diploma-baslik">Dilekçe Sahibinin;</div>
+    <table class="dlk-bilgi-tablosu">
+      <tr><td class="dlk-bilgi-etiket">T.C. Kimlik No.su</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.tc||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Adı ve Soyadı</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.adSoyad||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Baba Adı</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.babaAdi||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Anne Adı</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.anneAdi||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Doğum Yeri</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.dogumYeri||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Doğum Tarihi</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.dogumTarihi||'')}</td></tr>
+      <tr><td class="dlk-bilgi-etiket">Mezun Olduğu Sınıf</td><td class="dlk-bilgi-iki-nokta">:</td><td>${escapeHtml(state.mezunSinif||'')}</td></tr>
+    </table>
+
+    <div class="dlk-govde">${escapeHtml(govdeMetni)}</div>
+    <div class="dlk-kapanis">${escapeHtml(kapanisMetni)}</div>
+
+    <div class="dlk-alt-satir">
+      <div class="dlk-adres-blok">Adres: ${escapeHtml(state.adres||'')}</div>
+      <div class="dlk-imza-blok">
+        <div>imza</div>
+        <div class="dlk-tarih" style="margin-top:2mm;">${escapeHtml(tarihMetni)}</div>
+        <div class="dlk-ad-soyad">${escapeHtml(state.adSoyad||'')}</div>
+      </div>
+    </div>
+`;
+    return { icerikHtml, baslik: `${state.adSoyad||'Diploma Kayıt Örneği'} — Dilekçe` };
+  }
+
+  function _dilekceIcerikDiplomaCevap(state) {
+    const okul = _getOkulBilgisi();
+    const okulAdi = (state.okulAdiManuel || okul.okulAdi || '').toLocaleUpperCase('tr');
+    const il = (okul.il || '').toLocaleUpperCase('tr');
+
+    const govdeMetni = (state.govdeManuel !== null && state.govdeManuel !== undefined)
+      ? state.govdeManuel
+      : _otomatikGovdeMetniDiplomaCevap(state, state.okulAdiManuel || okul.okulAdi || '');
+
+    const tarihMetni = '....../....../............';
+    const muduAdi = (state.muduAdiManuel !== null && state.muduAdiManuel !== undefined && state.muduAdiManuel !== '')
+      ? state.muduAdiManuel
+      : _varsayilanMuduAdi();
+
+    const icerikHtml = `
+    <div class="dlk-ust-baslik">
+      <div class="dlk-il">T.C.</div>
+      <div class="dlk-il">${escapeHtml(il)} VALİLİĞİ</div>
+      <div class="dlk-okul-adi">${escapeHtml(okulAdi)} MÜDÜRLÜĞÜ</div>
+    </div>
+
+    <div class="dlk-diploma-baslik">DİPLOMA KAYIT ÖRNEĞİ</div>
+
+    <div class="dlk-govde" style="text-indent:10mm;">${escapeHtml(govdeMetni)}</div>
+
+    <div class="dlk-alt-satir" style="margin-top:14mm;">
+      <div class="dlk-adres-blok">
+        <div>Adres: ${escapeHtml(state.adres||'')}</div>
+        <div style="margin-top:6mm;">Cep No: ${escapeHtml(state.cepNo||'')}</div>
+      </div>
+      <div class="dlk-imza-blok">
+        <div class="dlk-tarih">${escapeHtml(tarihMetni)}</div>
+        <div style="margin-top:6mm;">${escapeHtml(muduAdi)}</div>
+        <div>Okul Müdürü</div>
+      </div>
+    </div>
+`;
+    return { icerikHtml, baslik: `${state.adSoyad||'Diploma Kayıt Örneği'} — Okul Cevabı` };
   }
 
   // --- Overlay (in-page) form + önizleme ---
@@ -229,7 +365,7 @@
         background: linear-gradient(135deg,#1b5e20,#2e7d32); color:#fff;
         padding:10px 14px; flex-wrap:wrap;
       ">
-        <span style="font-weight:700;font-size:14px;">📄 Personel Dilekçe Sistemi</span>
+        <span style="font-weight:700;font-size:14px;">📄 Dilekçe Sistemi</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button id="dlkSablonKaydetBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;" title="Şu anki belge metnini ve hizalamasını varsayılan şablon olarak kaydet">💾 Şablonu Kaydet</button>
           <button id="dlkPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır / PDF</button>
@@ -304,7 +440,28 @@
     return ov;
   }
 
-  function _formPanelHtml(state) {
+  function _sablonAnahtari(tur) {
+    // Geriye dönük uyumluluk: personel izin dilekçesi eskiden beri
+    // 'dilekceVarsayilanSablon' anahtarını kullanıyordu, değiştirmedik.
+    if (tur === 'diplomaKayit') return 'dilekceVarsayilanSablonDiploma';
+    if (tur === 'diplomaKayitCevap') return 'dilekceVarsayilanSablonDiplomaCevap';
+    return 'dilekceVarsayilanSablon';
+  }
+
+  function _turSecimiHtml(state) {
+    const secenekler = DILEKCE_TURLERI.map(t =>
+      `<option value="${t.key}" ${state.dilekceTuru===t.key?'selected':''}>${escapeHtml(t.ad)}</option>`
+    ).join('');
+    return `
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Dilekçe Türü</label>
+        <select id="dlk_tur" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-weight:700;">
+          ${secenekler}
+        </select>
+      </div>`;
+  }
+
+  function _formPanelHtmlPersonelIzin(state) {
     const personelSecenekleri = (typeof personelListesi !== 'undefined' ? personelListesi : [])
       .slice()
       .sort((a,b)=>(a.adSoyad||'').localeCompare(b.adSoyad||'','tr'))
@@ -316,8 +473,6 @@
     ).join('');
 
     return `
-      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dilekçe Bilgileri</h3>
-
       <div style="margin-bottom:12px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Personel</label>
         <select id="dlk_personel" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
@@ -347,6 +502,150 @@
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">İzin Süresi (gün)</label>
         <input id="dlk_sure" type="number" min="1" max="365" value="${state.sure||''}" placeholder="örn: 2" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
       </div>
+    `;
+  }
+
+  function _formPanelHtmlDiploma(state) {
+    return `
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Adı ve Soyadı</label>
+        <input id="dlk_adSoyad" value="${escapeHtml(state.adSoyad||'')}" placeholder="örn: Sultan Deveci" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">T.C. Kimlik No</label>
+        <input id="dlk_tc" value="${escapeHtml(state.tc||'')}" maxlength="11" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Baba Adı</label>
+          <input id="dlk_babaAdi" value="${escapeHtml(state.babaAdi||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Anne Adı</label>
+          <input id="dlk_anneAdi" value="${escapeHtml(state.anneAdi||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Doğum Yeri</label>
+        <input id="dlk_dogumYeri" value="${escapeHtml(state.dogumYeri||'')}" placeholder="örn: Esenkent – Merkez/Elazığ" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Doğum Tarihi</label>
+          <input id="dlk_dogumTarihi" type="date" value="${escapeHtml(state.dogumTarihiIso||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Mezuniyet Tarihi</label>
+          <input id="dlk_mezuniyetTarihi" type="date" value="${escapeHtml(state.mezuniyetTarihiIso||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Mezun Olduğu Sınıf</label>
+        <input id="dlk_mezunSinif" value="${escapeHtml(state.mezunSinif||'')}" placeholder="örn: 5. Sınıf" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Adres</label>
+        <input id="dlk_adres" value="${escapeHtml(state.adres||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Okul Adı (manuel düzenlenebilir)</label>
+        <input id="dlk_okulAdi" value="${escapeHtml(state.okulAdiManuel||'')}" placeholder="Okul Bilgilerinden otomatik gelir" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+    `;
+  }
+
+  function _formPanelHtmlDiplomaCevap(state) {
+    return `
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Adı ve Soyadı</label>
+        <input id="dlk_adSoyad" value="${escapeHtml(state.adSoyad||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">T.C. Kimlik No</label>
+        <input id="dlk_tc" value="${escapeHtml(state.tc||'')}" maxlength="11" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:2;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Baba Adı</label>
+          <input id="dlk_babaAdi" value="${escapeHtml(state.babaAdi||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Kız/Oğul</label>
+          <select id="dlk_kizOglu" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+            <option value="kızı" ${state.kizOglu==='kızı'?'selected':''}>kızı</option>
+            <option value="oğlu" ${state.kizOglu==='oğlu'?'selected':''}>oğlu</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Doğum Tarihi</label>
+        <input id="dlk_dogumTarihi" type="date" value="${escapeHtml(state.dogumTarihiIso||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Öğrenim Süresi (yıllık)</label>
+          <input id="dlk_ogrenimSuresi" type="number" min="1" max="12" value="${escapeHtml(state.ogrenimSuresi||'')}" placeholder="örn: 5" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Diploma Tarihi</label>
+          <input id="dlk_diplomaTarihi" type="date" value="${escapeHtml(state.diplomaTarihiIso||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Diploma Sayısı</label>
+        <input id="dlk_diplomaSayisi" value="${escapeHtml(state.diplomaSayisi||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <div style="flex:2;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Adres</label>
+          <input id="dlk_adres" value="${escapeHtml(state.adres||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Cep No</label>
+          <input id="dlk_cepNo" value="${escapeHtml(state.cepNo||'')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Okul Müdürü Adı Soyadı</label>
+        <input id="dlk_muduAdi" value="${escapeHtml(state.muduAdiManuel||'')}" placeholder="${escapeHtml(_varsayilanMuduAdi() || 'Okul ayarlarından otomatik gelir')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Okul Adı (manuel düzenlenebilir)</label>
+        <input id="dlk_okulAdi" value="${escapeHtml(state.okulAdiManuel||'')}" placeholder="Okul Bilgilerinden otomatik gelir" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+      </div>
+    `;
+  }
+
+  function _formPanelHtml(state) {
+    const turAlaniHtml = state.dilekceTuru === 'diplomaKayitCevap'
+      ? _formPanelHtmlDiplomaCevap(state)
+      : (state.dilekceTuru === 'diplomaKayit')
+        ? _formPanelHtmlDiploma(state)
+        : _formPanelHtmlPersonelIzin(state);
+
+    const kayitliVarMi = typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari[_sablonAnahtari(state.dilekceTuru)];
+
+    return `
+      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dilekçe Bilgileri</h3>
+
+      ${_turSecimiHtml(state)}
+
+      ${turAlaniHtml}
 
       <div style="margin-bottom:16px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Paragraf Hizalama</label>
@@ -360,7 +659,7 @@
       <div style="margin-bottom:16px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11.5px;color:#7a5c00;line-height:1.5;">
         💡 Sağdaki A4 sayfasının tamamı (okul adı, metin, tarih, imza alanı, alt bilgiler) üzerine doğrudan tıklayıp serbestçe düzenlenebilir.
         <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Bu Dilekçeyi Şablona Sıfırla</button>
-        ${(typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.dilekceVarsayilanSablon) ? `<button id="dlk_kayitliSablonSil" style="margin-top:6px;width:100%;padding:6px;border:1px solid #c0392b;color:#c0392b;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">🗑️ Kayıtlı Varsayılan Şablonu Sil (fabrika ayarına dön)</button>` : ''}
+        ${kayitliVarMi ? `<button id="dlk_kayitliSablonSil" style="margin-top:6px;width:100%;padding:6px;border:1px solid #c0392b;color:#c0392b;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">🗑️ Kayıtlı Varsayılan Şablonu Sil (fabrika ayarına dön)</button>` : ''}
       </div>
 
       <div id="dlk_bilgiKutusu" style="background:#f0f7f0;border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.6;"></div>
@@ -370,6 +669,10 @@
   function _bilgiKutusuGuncelle(panel, state) {
     const kutu = panel.querySelector('#dlk_bilgiKutusu');
     if (!kutu) return;
+    if (state.dilekceTuru === 'diplomaKayit' || state.dilekceTuru === 'diplomaKayitCevap') {
+      kutu.innerHTML = '💡 Bu belge türü personel kaydına bağlı değildir — tüm bilgileri elle girin.';
+      return;
+    }
     if (!state.personelId) {
       kutu.innerHTML = 'Personel seçtiğinizde TC, telefon, adres ve görev bilgileri otomatik dolacaktır.';
       return;
@@ -381,6 +684,7 @@
       <div><strong>Adres:</strong> ${escapeHtml(state.adres||'—')}</div>
     `;
   }
+
 
   function _tarihIsoToTr(iso) {
     if (!iso) return '';
@@ -395,9 +699,12 @@
     // dilekçe bu şablonla başlar — kullanıcı aynı düzenlemeyi her
     // seferinde tekrar yapmak zorunda kalmaz. Kayıtlı şablon yoksa
     // (ilk kullanım) fabrika varsayılanı (null => otomatik metin) kullanılır.
-    const kayitliSablon = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.dilekceVarsayilanSablon) || null;
+    // Her dilekçe TÜRÜNÜN kendi kayıtlı şablonu var (bkz. _sablonAnahtari).
+    const baslangicTuru = _baslangicTuru || 'personelIzin';
+    const kayitliSablon = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari[_sablonAnahtari(baslangicTuru)]) || null;
 
     const state = {
+      dilekceTuru: baslangicTuru,
       personelId: _personelId,
       adSoyad: _personel ? _personel.adSoyad : '',
       tc: _personel ? _personel.tc : '',
@@ -408,11 +715,21 @@
       baslamaTarihiIso: '',
       baslamaTarihi: '',
       sure: '',
+      // Diploma Kayıt Örneği Talep Dilekçesi alanları:
+      babaAdi: '', anneAdi: '', dogumYeri: '',
+      dogumTarihiIso: '', dogumTarihi: '',
+      mezuniyetTarihiIso: '', mezuniyetTarihi: '',
+      mezunSinif: '',
+      // Diploma Kayıt Örneği (Okul Cevabı) alanları:
+      kizOglu: 'kızı', ogrenimSuresi: '',
+      diplomaTarihiIso: '', diplomaTarihi: '', diplomaSayisi: '',
+      cepNo: '', muduAdiManuel: '',
       okulAdiManuel: '',
       govdeManuel: null,   // null => otomatik metin üretilir; kullanıcı düzenlerse buraya yazılır
       hizalama: kayitliSablon ? (kayitliSablon.hizalama || 'iki-yana') : 'iki-yana', // 'iki-yana' | 'sola' | 'ortala'
       tamIcerikManuel: kayitliSablon ? kayitliSablon.icerik : null // dolu olduğunda tüm sayfa kayıtlı/elle yazılmış haliyle gösterilir
     };
+
 
     const formPanel = ov.querySelector('#dlkFormPanel');
     const frame = ov.querySelector('#dlkFrame');
@@ -420,13 +737,13 @@
     const sablonKaydetBtn = ov.querySelector('#dlkSablonKaydetBtn');
     if(sablonKaydetBtn){
       sablonKaydetBtn.onclick = async () => {
-        if(!confirm('Şu an ekranda gördüğünüz belge metni ve hizalaması, BUNDAN SONRA açılacak TÜM dilekçeler için varsayılan başlangıç şablonu olarak kaydedilecek. Devam edilsin mi?')) return;
+        if(!confirm('Şu an ekranda gördüğünüz belge metni ve hizalaması, BUNDAN SONRA açılacak "' + (DILEKCE_TURLERI.find(t=>t.key===state.dilekceTuru)||{}).ad + '" dilekçeleri için varsayılan başlangıç şablonu olarak kaydedilecek. Devam edilsin mi?')) return;
         try{
           const dogFrame = frame.contentDocument;
           const icerikEl = dogFrame && dogFrame.getElementById('dlkSayfaIcerik');
           if(!icerikEl){ toast('Belge içeriği okunamadı, birkaç saniye sonra tekrar deneyin.'); return; }
           await db.collection(COL.okulBilgileri).doc('ayarlar').set({
-            dilekceVarsayilanSablon: { icerik: icerikEl.innerHTML, hizalama: state.hizalama }
+            [_sablonAnahtari(state.dilekceTuru)]: { icerik: icerikEl.innerHTML, hizalama: state.hizalama }
           }, { merge: true });
           toast('✅ Şablon kaydedildi — bundan sonraki dilekçeler bu şablonla açılacak.');
         }catch(e){
@@ -454,7 +771,25 @@
     }
 
     function _bagla() {
-      formPanel.querySelector('#dlk_personel').onchange = (e) => {
+      const alan = (id) => formPanel.querySelector(id);
+
+      const turSelect = alan('#dlk_tur');
+      if (turSelect) turSelect.onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.dilekceTuru; return; }
+        const yeniTur = e.target.value;
+        if (yeniTur === state.dilekceTuru) return;
+        state.dilekceTuru = yeniTur;
+        // Tür değişince o türe ait kayıtlı varsayılan şablon varsa onunla başla,
+        // yoksa (fabrika) otomatik metne dön.
+        const kayitliSablon = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari[_sablonAnahtari(yeniTur)]) || null;
+        state.govdeManuel = null;
+        state.hizalama = kayitliSablon ? (kayitliSablon.hizalama || 'iki-yana') : 'iki-yana';
+        state.tamIcerikManuel = kayitliSablon ? kayitliSablon.icerik : null;
+        render();
+      };
+
+      const personelSelect = alan('#dlk_personel');
+      if (personelSelect) personelSelect.onchange = (e) => {
         if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.personelId || ''; return; }
         const pid = e.target.value;
         state.personelId = pid;
@@ -472,47 +807,107 @@
         state.govdeManuel = null;
         render();
       };
-      formPanel.querySelector('#dlk_okulAdi').oninput = (e) => {
+      const okulAdiInput0 = alan('#dlk_okulAdi');
+      if (okulAdiInput0) okulAdiInput0.oninput = (e) => {
         if (!_serbestDuzenlemeKorumasi()) return;
         state.okulAdiManuel = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      formPanel.querySelector('#dlk_izinTuru').onchange = (e) => {
+      const izinTuruSelect = alan('#dlk_izinTuru');
+      if (izinTuruSelect) izinTuruSelect.onchange = (e) => {
         if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.izinTuru; return; }
         state.izinTuru = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      formPanel.querySelector('#dlk_baslamaTarihi').onchange = (e) => {
+      const baslamaTarihiInput = alan('#dlk_baslamaTarihi');
+      if (baslamaTarihiInput) baslamaTarihiInput.onchange = (e) => {
         if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.baslamaTarihiIso || ''; return; }
         state.baslamaTarihiIso = e.target.value;
         state.baslamaTarihi = _tarihIsoToTr(e.target.value);
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      formPanel.querySelector('#dlk_sure').oninput = (e) => {
+      const sureInput = alan('#dlk_sure');
+      if (sureInput) sureInput.oninput = (e) => {
         if (!_serbestDuzenlemeKorumasi()) return;
         state.sure = e.target.value;
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      formPanel.querySelector('#dlk_hizalama').onchange = (e) => {
+
+      // --- Diploma Kayıt Örneği Talep Dilekçesi alanları ---
+      const basitAlanBagla = (id, stateAlani) => {
+        const el = alan(id);
+        if (!el) return;
+        el.oninput = (e) => {
+          if (!_serbestDuzenlemeKorumasi()) return;
+          state[stateAlani] = e.target.value;
+          frame.srcdoc = _dilekceSayfaHtml(state);
+        };
+      };
+      basitAlanBagla('#dlk_adSoyad', 'adSoyad');
+      basitAlanBagla('#dlk_tc', 'tc');
+      basitAlanBagla('#dlk_babaAdi', 'babaAdi');
+      basitAlanBagla('#dlk_anneAdi', 'anneAdi');
+      basitAlanBagla('#dlk_dogumYeri', 'dogumYeri');
+      basitAlanBagla('#dlk_mezunSinif', 'mezunSinif');
+      basitAlanBagla('#dlk_adres', 'adres');
+
+      const dogumTarihiInput = alan('#dlk_dogumTarihi');
+      if (dogumTarihiInput) dogumTarihiInput.onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.dogumTarihiIso || ''; return; }
+        state.dogumTarihiIso = e.target.value;
+        state.dogumTarihi = _tarihIsoToTr(e.target.value);
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
+      const mezuniyetTarihiInput = alan('#dlk_mezuniyetTarihi');
+      if (mezuniyetTarihiInput) mezuniyetTarihiInput.onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.mezuniyetTarihiIso || ''; return; }
+        state.mezuniyetTarihiIso = e.target.value;
+        state.mezuniyetTarihi = _tarihIsoToTr(e.target.value);
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
+
+      // --- Diploma Kayıt Örneği (Okul Cevabı) alanları ---
+      basitAlanBagla('#dlk_ogrenimSuresi', 'ogrenimSuresi');
+      basitAlanBagla('#dlk_diplomaSayisi', 'diplomaSayisi');
+      basitAlanBagla('#dlk_cepNo', 'cepNo');
+      basitAlanBagla('#dlk_muduAdi', 'muduAdiManuel');
+
+      const kizOgluSelect = alan('#dlk_kizOglu');
+      if (kizOgluSelect) kizOgluSelect.onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.kizOglu || 'kızı'; return; }
+        state.kizOglu = e.target.value;
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
+      const diplomaTarihiInput = alan('#dlk_diplomaTarihi');
+      if (diplomaTarihiInput) diplomaTarihiInput.onchange = (e) => {
+        if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.diplomaTarihiIso || ''; return; }
+        state.diplomaTarihiIso = e.target.value;
+        state.diplomaTarihi = _tarihIsoToTr(e.target.value);
+        frame.srcdoc = _dilekceSayfaHtml(state);
+      };
+
+      const hizalamaSelect = alan('#dlk_hizalama');
+      if (hizalamaSelect) hizalamaSelect.onchange = (e) => {
         state.hizalama = e.target.value;
         // Hizalama, serbest düzenlenmiş içerikte de uygulanabilir (içeriği bozmaz).
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      formPanel.querySelector('#dlk_govdeSifirla').onclick = () => {
+      const govdeSifirlaBtn = alan('#dlk_govdeSifirla');
+      if (govdeSifirlaBtn) govdeSifirlaBtn.onclick = () => {
         state.govdeManuel = null;
         state.okulAdiManuel = '';
         state.tamIcerikManuel = null;
-        const okulAdiInput = formPanel.querySelector('#dlk_okulAdi');
+        const okulAdiInput = alan('#dlk_okulAdi');
         if (okulAdiInput) okulAdiInput.value = '';
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
-      const kayitliSablonSilBtn = formPanel.querySelector('#dlk_kayitliSablonSil');
+      const kayitliSablonSilBtn = alan('#dlk_kayitliSablonSil');
       if(kayitliSablonSilBtn){
         kayitliSablonSilBtn.onclick = async () => {
           if(!confirm('Kayıtlı varsayılan şablon silinsin mi? Bundan sonra dilekçeler yeniden fabrika (otomatik) metniyle açılacak.')) return;
           try{
             await db.collection(COL.okulBilgileri).doc('ayarlar').set({
-              dilekceVarsayilanSablon: firebase.firestore.FieldValue.delete()
+              [_sablonAnahtari(state.dilekceTuru)]: firebase.firestore.FieldValue.delete()
             }, { merge: true });
             state.tamIcerikManuel = null;
             frame.srcdoc = _dilekceSayfaHtml(state);
@@ -541,10 +936,33 @@
   // --- Public API ---
   window.DilekceSistemi = {
     ac(personelId) {
+      _baslangicTuru = 'personelIzin';
       _personelId = personelId || null;
       _personel = (_personelId && typeof personelListesi !== 'undefined')
         ? personelListesi.find(p => p.id === _personelId) || null
         : null;
+
+      const ov = _overlayOlustur();
+      _overlayDoldur(ov);
+    },
+    // YENİ: Diploma Kayıt Örneği Talep Dilekçesi — personel kaydına bağlı
+    // değil, bu yüzden personelId almaz. Kullanıcı overlay içindeki
+    // "Dilekçe Türü" seçiciyle de bu türe geçebilir; bu sadece direkt
+    // kısayol (örn. ileride ayrı bir buton eklenirse).
+    acDiploma() {
+      _baslangicTuru = 'diplomaKayit';
+      _personelId = null;
+      _personel = null;
+
+      const ov = _overlayOlustur();
+      _overlayDoldur(ov);
+    },
+    // YENİ: Diploma Kayıt Örneği (Okul Cevabı) — okulun dilekçeye verdiği
+    // resmi cevap belgesi. Personel kaydına bağlı değildir.
+    acDiplomaCevap() {
+      _baslangicTuru = 'diplomaKayitCevap';
+      _personelId = null;
+      _personel = null;
 
       const ov = _overlayOlustur();
       _overlayDoldur(ov);
