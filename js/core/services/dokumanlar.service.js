@@ -44,6 +44,17 @@ const DokumanlarService = {
     return (hamListe||[]).filter(d => this.gorunurMu(d));
   },
 
+  /* Bir dökümanı mevcut kullanıcının silip silemeyeceğini belirler:
+     admin her zaman silebilir; değilse SADECE dökümanı ekleyen kişi
+     silebilir. DÜZELTME: Önceden sadece genel 'dokumanlar' düzenleme
+     yetkisi yeterliydi — bu da "Düzenle" yetkili herhangi bir öğretmenin
+     ADMİN'İN eklediği dökümanı bile silebilmesine sebep oluyordu. */
+  dokumanSilinebilirMi(d){
+    const ben = this._kendiKimlik();
+    if(ben.adminMi) return true;
+    return !!(ben.uid && d && d.olusturanUid === ben.uid);
+  },
+
   /* Dosyayı Storage'a yükler + Firestore metadata kaydını oluşturur.
      ilerlemeCb(yuzde) yükleme sırasında UI'ı güncellemek için çağrılır.
      hariciUrl verilirse (Google Drive vb.) dosya yüklemesi atlanır. */
@@ -61,8 +72,9 @@ const DokumanlarService = {
     }
     return DokumanlarRepository.dokumanEkle(meta);
   },
-  async dokumanSil(id, storagePath){
+  async dokumanSil(id, storagePath, mevcutDokuman){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    if(!this.dokumanSilinebilirMi(mevcutDokuman)) return Promise.reject(new Error('sahip-degil'));
     if(storagePath) await DokumanlarRepository.dosyaSil(storagePath).catch(()=>{});
     return DokumanlarRepository.dokumanSil(id);
   }
