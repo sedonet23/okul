@@ -19,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(PushNotificationsPlugin.class);
         registerPlugin(PrintPlugin.class);
         registerPlugin(SavePlugin.class);
+        registerPlugin(PullToRefreshPlugin.class);
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
@@ -76,6 +77,12 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         );
+    }
+
+    /* JS tarafından (bkz. PullToRefreshPlugin) modal/detay paneli açıkken
+       yenileme jestini geçici olarak kapatmak/açmak için çağrılır. */
+    public void setPullToRefreshEnabled(boolean enabled) {
+        if (swipeRefresh != null) swipeRefresh.setEnabled(enabled);
     }
 
     private void setupPullToRefresh() {
