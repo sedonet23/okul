@@ -51,6 +51,23 @@ jobs:
           echo "::add-mask::$TEMIZ_SIFRE"
           echo "KEYSTORE_SIFRE_TEMIZ=$TEMIZ_SIFRE" >> "$GITHUB_ENV"
 
+      - name: Keystore'u doğrula (build'i beklemeden erken hata ver)
+        run: |
+          echo "Keystore dosya boyutu:"
+          ls -la android/app/koruk-okul.jks
+          echo "---"
+          if keytool -list -keystore android/app/koruk-okul.jks -storepass "$KEYSTORE_SIFRE_TEMIZ" -alias koruk > /dev/null 2>&1; then
+            echo "✅ Keystore ve şifre DOĞRU — build'e devam ediliyor."
+          else
+            echo "❌ HATA: Keystore açılamadı veya şifre yanlış."
+            echo "Bu, ANDROID_KEYSTORE_BASE64 veya ANDROID_KEYSTORE_PASSWORD sırlarının"
+            echo "GitHub'a YANLIŞ/EKSİK girildiği anlamına gelir. Dosyanın ilk birkaç"
+            echo "karakteri (teşhis amaçlı, şifre değil):"
+            head -c 50 android/app/koruk-okul.jks | base64 | head -c 100
+            echo ""
+            exit 1
+          fi
+
       - name: Gradle wrapper oluştur
         run: |
           cd android
