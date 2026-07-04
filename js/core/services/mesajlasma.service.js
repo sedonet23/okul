@@ -21,10 +21,11 @@ const MesajlasmaService = {
   },
 
   _kendiKimlik(){
-    const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : { ad: '' };
+    const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : { ad: '', fotoUrl: '' };
     return {
       uid: (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null,
-      ad: kimlik.ad || 'Kullanıcı'
+      ad: kimlik.ad || 'Kullanıcı',
+      foto: kimlik.fotoUrl || ''
     };
   },
 
@@ -39,7 +40,7 @@ const MesajlasmaService = {
   /* Bir öğretmenle 1-1 konuşma başlatır — varsa mevcut konuşmayı bulup
      döner, yoksa yeni oluşturur. mevcutKonusmalar: UI'da zaten yüklü olan
      konuşma listesi (gereksiz Firestore sorgusu yapmamak için). */
-  async konusmaBaslatOgretmenIle(ogretmenId, ogretmenAdi, mevcutKonusmalar){
+  async konusmaBaslatOgretmenIle(ogretmenId, ogretmenAdi, mevcutKonusmalar, ogretmenFotoUrl){
     if(!this._yetkiKontrol()) throw new Error('yetkisiz');
     const ben = this._kendiKimlik();
     if(!ben.uid) throw new Error('kimlik-yok');
@@ -56,6 +57,12 @@ const MesajlasmaService = {
     const ref = await MesajlasmaRepository.konusmaOlustur({
       katilimciUidler: [ben.uid, digerUid],
       katilimciAdlari: { [ben.uid]: ben.ad, [digerUid]: ogretmenAdi },
+      // YENİ: Katılımcıların profil fotoğrafları da konuşma oluşturulurken
+      // "damgalanıyor" — isimlerle aynı yaklaşım (canlı değil, oluşturma
+      // anındaki fotoğraf saklanıyor; kişi sonradan fotoğrafını değiştirirse
+      // eski konuşmalarda eski fotoğraf görünmeye devam eder — isimlerdeki
+      // mevcut davranışla tutarlı).
+      katilimciFotolari: { [ben.uid]: ben.foto || '', [digerUid]: ogretmenFotoUrl || '' },
       grupMu: false,
       sonMesaj: null,
       okunmayanlar: { [ben.uid]: 0, [digerUid]: 0 }
@@ -63,7 +70,7 @@ const MesajlasmaService = {
     return ref.id;
   },
 
-  /* Grup konuşması oluşturur. katilimcilar: [{uid, ad}, ...] (kendisi hariç). */
+  /* Grup konuşması oluşturur. katilimcilar: [{uid, ad, foto}, ...] (kendisi hariç). */
   async grupOlustur(grupAdi, katilimcilar){
     if(!this._yetkiKontrol()) throw new Error('yetkisiz');
     const ben = this._kendiKimlik();
@@ -73,11 +80,12 @@ const MesajlasmaService = {
 
     const katilimciUidler = [ben.uid, ...katilimcilar.map(k=>k.uid)];
     const katilimciAdlari = { [ben.uid]: ben.ad };
+    const katilimciFotolari = { [ben.uid]: ben.foto || '' };
     const okunmayanlar = { [ben.uid]: 0 };
-    katilimcilar.forEach(k => { katilimciAdlari[k.uid] = k.ad; okunmayanlar[k.uid] = 0; });
+    katilimcilar.forEach(k => { katilimciAdlari[k.uid] = k.ad; katilimciFotolari[k.uid] = k.foto || ''; okunmayanlar[k.uid] = 0; });
 
     const ref = await MesajlasmaRepository.konusmaOlustur({
-      katilimciUidler, katilimciAdlari, grupMu: true, grupAdi: grupAdi.trim(),
+      katilimciUidler, katilimciAdlari, katilimciFotolari, grupMu: true, grupAdi: grupAdi.trim(),
       sonMesaj: null, okunmayanlar
     });
     return ref.id;
