@@ -231,6 +231,7 @@
       ">
         <span style="font-weight:700;font-size:14px;">📄 Personel Dilekçe Sistemi</span>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="dlkSablonKaydetBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;" title="Şu anki belge metnini ve hizalamasını varsayılan şablon olarak kaydet">💾 Şablonu Kaydet</button>
           <button id="dlkPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır / PDF</button>
           <button id="dlkCloseBtn" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">✕ Kapat</button>
         </div>
@@ -240,7 +241,10 @@
           background:#fff; border-radius:10px; padding:16px; width:340px; max-width:100%;
           box-shadow:0 4px 14px rgba(0,0,0,.3); font-family:'Segoe UI',Arial,sans-serif;
         "></div>
-        <iframe id="dlkFrame" style="width:210mm; min-height:297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.4);"></iframe>
+        <div style="display:flex;flex-direction:column;align-items:stretch;width:210mm;max-width:100%;">
+          <div id="dlkIframeArac" style="margin-bottom:6px;"></div>
+          <iframe id="dlkFrame" style="width:100%; min-height:297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.4);"></iframe>
+        </div>
       </div>
     `;
     document.body.appendChild(ov);
@@ -255,19 +259,32 @@
     // CSS ile devre dışı bırakıyoruz, overlay kapanınca geri alıyoruz.
     ov.style.overscrollBehaviorY = 'contain';
     document.documentElement.style.overscrollBehaviorY = 'contain';
-    if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
+
+    // DÜZELTME: Zengin editör araç çubuğu artık form panelinde değil,
+    // düzenlenen belgenin (iframe) HEMEN ÜSTÜNDE — kullanıcı hangi
+    // alanı biçimlendirdiğini görsel olarak net anlasın diye. Sadece
+    // bir kez yerleştirilip bağlanıyor (form alanları her yeniden
+    // çizildiğinde bu alan etkilenmiyor).
+    const iframeAracKutusu = ov.querySelector('#dlkIframeArac');
+    if(iframeAracKutusu && typeof zenginEditorAracCubugu === 'function'){
+      iframeAracKutusu.innerHTML = zenginEditorAracCubugu('dlkFrame');
+      if(typeof zenginEditorBaglantiKur === 'function') zenginEditorBaglantiKur('dlkFrame');
+    }
 
     ov.querySelector('#dlkCloseBtn').onclick = () => {
       ov.remove();
       document.body.classList.remove('dlk-overlay-acik');
       document.documentElement.style.overscrollBehaviorY = '';
       if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
-      if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
     };
     ov.querySelector('#dlkPrintBtn').onclick = () => {
       const fr = ov.querySelector('#dlkFrame');
+      if(!fr || !fr.contentWindow){ toast('Belge henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.'); return; }
       fr.contentWindow.focus();
-      fr.contentWindow.print();
+      // DÜZELTME: Bazı mobil tarayıcılarda focus() ile print() art arda hemen
+      // çağrılınca yazdırma diyaloğu açılmıyor — küçük bir gecikme, focus'un
+      // tam oturmasını sağlayıp güvenilirliği artırıyor.
+      setTimeout(() => { fr.contentWindow.print(); }, 150);
     };
 
     return ov;
@@ -286,8 +303,6 @@
 
     return `
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dilekçe Bilgileri</h3>
-
-      ${typeof zenginEditorAracCubugu === 'function' ? zenginEditorAracCubugu('dlkFrame') : ''}
 
       <div style="margin-bottom:12px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Personel</label>
@@ -330,7 +345,8 @@
 
       <div style="margin-bottom:16px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11.5px;color:#7a5c00;line-height:1.5;">
         💡 Sağdaki A4 sayfasının tamamı (okul adı, metin, tarih, imza alanı, alt bilgiler) üzerine doğrudan tıklayıp serbestçe düzenlenebilir.
-        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Tüm Sayfayı Şablona Sıfırla</button>
+        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Bu Dilekçeyi Şablona Sıfırla</button>
+        ${(typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.dilekceVarsayilanSablon) ? `<button id="dlk_kayitliSablonSil" style="margin-top:6px;width:100%;padding:6px;border:1px solid #c0392b;color:#c0392b;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">🗑️ Kayıtlı Varsayılan Şablonu Sil (fabrika ayarına dön)</button>` : ''}
       </div>
 
       <div id="dlk_bilgiKutusu" style="background:#f0f7f0;border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.6;"></div>
@@ -360,6 +376,13 @@
   }
 
   function _overlayDoldur(ov) {
+    // DÜZELTME (YENİ): Daha önce "Şablonu Kaydet" ile kaydedilmiş bir
+    // varsayılan şablon varsa (okul ayarlarında saklanır), her yeni
+    // dilekçe bu şablonla başlar — kullanıcı aynı düzenlemeyi her
+    // seferinde tekrar yapmak zorunda kalmaz. Kayıtlı şablon yoksa
+    // (ilk kullanım) fabrika varsayılanı (null => otomatik metin) kullanılır.
+    const kayitliSablon = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.dilekceVarsayilanSablon) || null;
+
     const state = {
       personelId: _personelId,
       adSoyad: _personel ? _personel.adSoyad : '',
@@ -373,12 +396,30 @@
       sure: '',
       okulAdiManuel: '',
       govdeManuel: null,   // null => otomatik metin üretilir; kullanıcı düzenlerse buraya yazılır
-      hizalama: 'iki-yana', // 'iki-yana' | 'sola' | 'ortala'
-      tamIcerikManuel: null // dolu olduğunda tüm sayfa kullanıcının elle yazdığı haliyle gösterilir
+      hizalama: kayitliSablon ? (kayitliSablon.hizalama || 'iki-yana') : 'iki-yana', // 'iki-yana' | 'sola' | 'ortala'
+      tamIcerikManuel: kayitliSablon ? kayitliSablon.icerik : null // dolu olduğunda tüm sayfa kayıtlı/elle yazılmış haliyle gösterilir
     };
 
     const formPanel = ov.querySelector('#dlkFormPanel');
     const frame = ov.querySelector('#dlkFrame');
+
+    const sablonKaydetBtn = ov.querySelector('#dlkSablonKaydetBtn');
+    if(sablonKaydetBtn){
+      sablonKaydetBtn.onclick = async () => {
+        if(!confirm('Şu an ekranda gördüğünüz belge metni ve hizalaması, BUNDAN SONRA açılacak TÜM dilekçeler için varsayılan başlangıç şablonu olarak kaydedilecek. Devam edilsin mi?')) return;
+        try{
+          const dogFrame = frame.contentDocument;
+          const icerikEl = dogFrame && dogFrame.getElementById('dlkSayfaIcerik');
+          if(!icerikEl){ toast('Belge içeriği okunamadı, birkaç saniye sonra tekrar deneyin.'); return; }
+          await db.collection(COL.okulBilgileri).doc('ayarlar').set({
+            dilekceVarsayilanSablon: { icerik: icerikEl.innerHTML, hizalama: state.hizalama }
+          }, { merge: true });
+          toast('✅ Şablon kaydedildi — bundan sonraki dilekçeler bu şablonla açılacak.');
+        }catch(e){
+          toast('Hata: ' + e.message);
+        }
+      };
+    }
 
     function render() {
       formPanel.innerHTML = _formPanelHtml(state);
@@ -399,7 +440,6 @@
     }
 
     function _bagla() {
-      if(typeof zenginEditorBaglantiKur === 'function') zenginEditorBaglantiKur('dlkFrame');
       formPanel.querySelector('#dlk_personel').onchange = (e) => {
         if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.personelId || ''; return; }
         const pid = e.target.value;
@@ -452,6 +492,21 @@
         if (okulAdiInput) okulAdiInput.value = '';
         frame.srcdoc = _dilekceSayfaHtml(state);
       };
+      const kayitliSablonSilBtn = formPanel.querySelector('#dlk_kayitliSablonSil');
+      if(kayitliSablonSilBtn){
+        kayitliSablonSilBtn.onclick = async () => {
+          if(!confirm('Kayıtlı varsayılan şablon silinsin mi? Bundan sonra dilekçeler yeniden fabrika (otomatik) metniyle açılacak.')) return;
+          try{
+            await db.collection(COL.okulBilgileri).doc('ayarlar').set({
+              dilekceVarsayilanSablon: firebase.firestore.FieldValue.delete()
+            }, { merge: true });
+            state.tamIcerikManuel = null;
+            frame.srcdoc = _dilekceSayfaHtml(state);
+            toast('Kayıtlı şablon silindi.');
+            render();
+          }catch(e){ toast('Hata: ' + e.message); }
+        };
+      }
     }
 
     // İframe içindeki contenteditable alandan gelen düzenleme bildirimlerini dinle.
