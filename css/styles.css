@@ -3073,6 +3073,7 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 }
 .mesaj-giris-satiri input{
   border:none !important; background:transparent !important; box-shadow:none !important; flex:1;
+  color: var(--ink) !important;
 }
 .mesaj-giris-satiri input:focus{ outline:none; }
 .mesaj-gonder-btn{
