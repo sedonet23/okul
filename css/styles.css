@@ -2479,6 +2479,7 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 .nav-group .nav-sub-tab{ color:var(--sb-ink-sub); }
 .nav-group .nav-sub-tab:hover{ background:var(--sb-bg-2); color:var(--sb-ink); }
 .nav-group .nav-sub-tab.active{ background:var(--sb-accent-wash) !important; color:var(--sb-accent) !important; }
+.nav-group-check:checked + .nav-group-toggle{ background:var(--sb-accent-wash) !important; color:var(--sb-accent) !important; }
 
 .nav-cikis-btn{
   color:#DC2626; border-radius:12px; font-family:'Inter'; font-weight:700;
