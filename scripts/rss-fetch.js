@@ -112,9 +112,17 @@ async function main(){
   const db = admin.firestore();
 
   const kaynakSnap = await db.collection('oy_haberKaynaklari').get();
-  const kaynaklar = kaynakSnap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(k => k.aktif !== false && k.url);
+  const tumKaynaklar = kaynakSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  // DÜZELTME: Aktif ama URL'si boş/eksik olan kaynaklar önceden SESSİZCE
+  // filtreleniyordu (hiç log satırı yazmadan) — bu yüzden "bir kaynak hiç
+  // taranmıyor" durumu fark edilmesi çok zor bir hataya dönüşüyordu.
+  // Artık böyle bir kaynak varsa açıkça uyarı basılıyor.
+  tumKaynaklar.forEach(k => {
+    if(k.aktif !== false && !k.url){
+      console.warn(`⚠️ "${k.ad || k.id}" AKTİF ama URL alanı BOŞ — bu kaynak taranamıyor. Kaynak Yönetimi'nden düzenleyip URL girin.`);
+    }
+  });
+  const kaynaklar = tumKaynaklar.filter(k => k.aktif !== false && k.url);
 
   if(kaynaklar.length === 0){
     console.log('Aktif kaynak yok (Kaynak Yönetimi ekranından ekleyin).');
@@ -122,7 +130,11 @@ async function main(){
   }
 
   // Tekrar eklememek için mevcut haberlerin linklerini çek
-  const mevcutSnap = await db.collection('oy_haberler').orderBy('tarih', 'desc').limit(500).get();
+  // DÜZELTME: limit(500) de aynı "sık yayın yapan kaynak azınlık kaynağı
+  // pencereden atar" riskini taşıyordu — bu sefer TEKRAR EKLEME riskiyle
+  // (dedup kontrolü bu pencereyi kullanıyor). Görüntüleme limitiyle
+  // (bkz. haberler.repository.js) tutarlı olacak şekilde artırıldı.
+  const mevcutSnap = await db.collection('oy_haberler').orderBy('tarih', 'desc').limit(600).get();
   const mevcutLinkler = new Set(mevcutSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
 
   const yeniHaberler = []; // {kaynak, item}
