@@ -102,6 +102,13 @@ jobs:
           retention-days: 90
 
       - name: GitHub Release oluştur (uygulama içi güncelleme kontrolü bunu kullanır)
+        # DÜZELTME: Her push'ta (günde defalarca olabilir) otomatik olarak
+        # "yayına çıkmasın" diye SADECE elle tetiklenen ("Run workflow"
+        # butonuna basılan) çalıştırmalarda Release oluşturuluyor. Normal
+        # push'lar yine build alıp "Artifacts" olarak yükleniyor — admin
+        # istediği zaman indirip test edebilir, ama kullanıcılara otomatik
+        # güncelleme bildirimi SADECE bu adım çalıştığında gidiyor.
+        if: github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
