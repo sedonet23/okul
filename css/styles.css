@@ -3023,3 +3023,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   opacity: .45; padding: 4px; flex-shrink: 0; line-height: 1;
 }
 .btn-mesaj-sil:hover{ opacity: 1; }
+
+/* =========================================================================
+   ANASAYFA ÖZELLEŞTİRME — kullanıcının gizlediği kartlar
+   (bkz. js/dashboard-ozellestirme.js dashboardOzellestirmeUygula)
+   ========================================================================= */
+.kullanici-gizledi{ display:none !important; }
