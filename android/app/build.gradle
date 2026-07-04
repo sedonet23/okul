@@ -15,10 +15,18 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("koruk-okul.jks")
-            storePassword "korukokul2024"
-            keyAlias "koruk"
-            keyPassword "korukokul2024"
+            // DÜZELTME: Önceden burada sabit kodlanmış eski şifre vardı
+            // ("korukokul2024") — workflow'un GitHub Secrets'tan gönderdiği
+            // KEYSTORE_PATH/KEYSTORE_PASSWORD/KEY_ALIAS/KEY_PASSWORD ortam
+            // değişkenleri TAMAMEN GÖZ ARDI EDİLİYORDU. Bu yüzden keystore'u
+            // ne kadar doğru üretip doğrularsak doğrulayalım, Gradle hep
+            // eski (artık geçersiz) şifreyle açmaya çalışıp başarısız oluyordu.
+            // Ortam değişkeni yoksa (yerel/Android Studio'da elle build alırken)
+            // eski sabit değerlere düşer, böylece yerel geliştirme bozulmaz.
+            storeFile file(System.getenv("KEYSTORE_PATH") ?: "koruk-okul.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "korukokul2024"
+            keyAlias System.getenv("KEY_ALIAS") ?: "koruk"
+            keyPassword System.getenv("KEY_PASSWORD") ?: "korukokul2024"
         }
     }
 
