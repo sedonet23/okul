@@ -38,8 +38,15 @@ function renkPaketiBaslat(){
 }
 
 function menuDaralt(){ document.body.classList.toggle('nav-collapsed'); }
-function menuAcKapat(){ document.body.classList.toggle('nav-open'); }
-function menuKapat(){ document.body.classList.remove('nav-open'); }
+function menuAcKapat(){
+  document.body.classList.toggle('nav-open');
+  const acikMi = document.body.classList.contains('nav-open');
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(!acikMi);
+}
+function menuKapat(){
+  document.body.classList.remove('nav-open');
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+}
 
 /* ---------- accordion (Ayarlar > Ders Saatleri, v4.0) ---------- */
 function toggleAccordion(headerEl){
