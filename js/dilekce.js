@@ -245,10 +245,24 @@
     `;
     document.body.appendChild(ov);
     document.body.classList.add('dlk-overlay-acik');
+    // DÜZELTME: Bu tam ekran pencere, standart modal/detay paneli
+    // sisteminin dışında olduğu için daha önce modallar için eklediğimiz
+    // "aşağı çekince yenile" korumasının kapsamına hiç girmemişti —
+    // sayfa içinde kaydırırken bazen native yenileme jesti araya giriyordu.
+    if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
+    // Web/PWA sürümünde ise tarayıcının KENDİ "aşağı çekince yenile"
+    // hareketi devrede olabilir (native eklentiden bağımsız) — bunu da
+    // CSS ile devre dışı bırakıyoruz, overlay kapanınca geri alıyoruz.
+    ov.style.overscrollBehaviorY = 'contain';
+    document.documentElement.style.overscrollBehaviorY = 'contain';
+    if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
 
     ov.querySelector('#dlkCloseBtn').onclick = () => {
       ov.remove();
       document.body.classList.remove('dlk-overlay-acik');
+      document.documentElement.style.overscrollBehaviorY = '';
+      if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+      if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
     };
     ov.querySelector('#dlkPrintBtn').onclick = () => {
       const fr = ov.querySelector('#dlkFrame');
