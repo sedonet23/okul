@@ -528,8 +528,7 @@ function raporCizelge(tip){
   if(!icerikEl){ toast('Çizelge henüz yüklenmedi.'); return; }
 
   const icerik = icerikEl.innerHTML;
-  const pencere = window.open('','_blank','width=900,height=700');
-  pencere.document.write(`<!DOCTYPE html><html lang="tr"><head>
+  const html = `<!DOCTYPE html><html lang="tr"><head>
     <meta charset="UTF-8">
     <title>${basliklar[tip]||'Çizelge'}</title>
     <style>
@@ -577,9 +576,71 @@ function raporCizelge(tip){
     <h1>${escapeHtml(okulAdi)}</h1>
     <div class="alt">${escapeHtml(basliklar[tip]||'')} · ${tarih}</div>
     ${icerik}
-    <script>window.onload=function(){window.print();}<\/script>
-  </body></html>`);
-  pencere.document.close();
+  </body></html>`;
+
+  _raporOverlayOlustur(basliklar[tip] || 'Çizelge', html);
+}
+
+/* ================================================================
+   RAPOR ÖNİZLEME / YAZDIRMA OVERLAY'İ
+   DÜZELTME: Eskiden window.open('','_blank') + document.write()
+   kullanılıyordu. Android'de (Capacitor WebView) bu, sistemin
+   "hangi tarayıcıyla aç" seçicisini tetikliyor; seçilen harici
+   tarayıcı orijinal `pencere` referansına bağlı olmadığından
+   document.write() sessizce hiçbir şey yapmıyordu — "tarayıcı
+   seçici çıkıyor ama içi boş" şikayetinin sebebi buydu.
+   Artık diğer modüllerdeki (dilekçe, maaş formu) gibi sayfa-içi
+   overlay + iframe(srcdoc) kullanılıyor; yazdırma native köprü
+   (uygulamaHtmlYazdir) varsa onunla, yoksa iframe.print() ile.
+   ================================================================ */
+function _raporOverlayOlustur(baslik, html){
+  const eski = document.getElementById('raporOverlay');
+  if(eski) eski.remove();
+
+  const ov = document.createElement('div');
+  ov.id = 'raporOverlay';
+  ov.style.cssText = `position:fixed; inset:0; z-index:99999; background:#525659; display:flex; flex-direction:column;`;
+  ov.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:linear-gradient(135deg,#1b5e20,#2e7d32); color:#fff; padding:10px 14px; flex-wrap:wrap;">
+      <span style="font-weight:700;font-size:14px;">🖨️ ${escapeHtml(baslik)}</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button id="raporPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır / PDF</button>
+        <button id="raporCloseBtn" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">✕ Kapat</button>
+      </div>
+    </div>
+    <div style="flex:1 1 auto; overflow:auto; padding:16px; display:flex; justify-content:center; align-items:flex-start;">
+      <iframe id="raporFrame" style="width:100%; max-width:900px; min-height:297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.4);"></iframe>
+    </div>
+  `;
+  document.body.appendChild(ov);
+  document.body.classList.add('dlk-overlay-acik');
+  if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
+  ov.style.overscrollBehaviorY = 'contain';
+  document.documentElement.style.overscrollBehaviorY = 'contain';
+
+  const frame = ov.querySelector('#raporFrame');
+  frame.srcdoc = html;
+
+  ov.querySelector('#raporCloseBtn').onclick = () => {
+    ov.remove();
+    document.body.classList.remove('dlk-overlay-acik');
+    document.documentElement.style.overscrollBehaviorY = '';
+    if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+  };
+  ov.querySelector('#raporPrintBtn').onclick = () => {
+    if(!frame || !frame.contentWindow){ toast('Belge henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.'); return; }
+    if (typeof uygulamaHtmlYazdir === 'function') {
+      const dogFrame = frame.contentDocument;
+      const tamHtml = dogFrame ? dogFrame.documentElement.outerHTML : null;
+      if(!tamHtml){ toast('Belge içeriği okunamadı, birkaç saniye sonra tekrar deneyin.'); return; }
+      uygulamaHtmlYazdir(tamHtml, 'Cizelge_Rapor', 'dikey');
+      return;
+    }
+    frame.contentWindow.focus();
+    frame.contentWindow.print();
+  };
+
+  return ov;
 }
 
 /* ================================================================
