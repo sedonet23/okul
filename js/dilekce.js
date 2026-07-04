@@ -280,6 +280,17 @@
     ov.querySelector('#dlkPrintBtn').onclick = () => {
       const fr = ov.querySelector('#dlkFrame');
       if(!fr || !fr.contentWindow){ toast('Belge henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.'); return; }
+      // DÜZELTME: Android (Capacitor WebView) window.print()'i desteklemiyor —
+      // web sürümünde çalışıp APK'da sessizce hiçbir şey yapmamasının sebebi
+      // buydu. Native yazdırma köprüsü varsa (uygulamaHtmlYazdir, diğer
+      // modüllerdeki gibi) önce onu kullan; yoksa (web) eski davranışa devam et.
+      if (typeof uygulamaHtmlYazdir === 'function') {
+        const dogFrame = fr.contentDocument;
+        const html = dogFrame ? dogFrame.documentElement.outerHTML : null;
+        if (!html) { toast('Belge içeriği okunamadı, birkaç saniye sonra tekrar deneyin.'); return; }
+        uygulamaHtmlYazdir(html, 'Dilekce', 'dikey');
+        return;
+      }
       // DÜZELTME: print() çağrısı setTimeout içine alınmıştı — bu, çağrıyı
       // kullanıcının tıklama anından (senkron kullanıcı jesti) "koparıyor".
       // Birçok mobil tarayıcı (özellikle Android Chrome), print()'in TAM
