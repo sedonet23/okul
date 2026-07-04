@@ -355,7 +355,7 @@ function renderYonetimKullanicilari(){
       <img src="${_kullaniciGoruntulenecekFoto(k)}" style="width:38px;height:38px;border-radius:50%;flex-shrink:0;object-fit:cover;">
       <div style="flex:1;min-width:160px;">
         <div style="font-weight:700;font-size:14px;">${escapeHtml(_kullaniciGoruntulenecekAd(k))} ${!k.aktif ? '<span class="status-badge status-bekleme">Onay Bekliyor</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.email || '')} · ${escapeHtml(rolAdi)}</div>
+        <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.kullaniciAdi ? '@'+k.kullaniciAdi : (k.email || ''))} · ${escapeHtml(rolAdi)}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="kullaniciDuzenleAc('${k.id}')">Düzenle</button>
     </div>`;
@@ -372,11 +372,12 @@ function kullaniciDuzenleAc(uid){
     .map(o=>`<option value="${o.id}" ${k.bagliOgretmenId===o.id?'selected':''}>${escapeHtml((o.ad||'')+' '+(o.soyad||''))}</option>`).join('');
 
   const bodyHtml = `
-    <label>E-posta</label>
-    <input type="text" value="${escapeHtml(k.email || '')}" disabled>
+    <label>Kullanıcı Adı</label>
+    <input type="text" value="${escapeHtml(k.kullaniciAdi || k.email || '')}" disabled>
+    <button type="button" class="btn btn-ghost btn-sm" style="margin:6px 0 4px;" onclick="sifreSifirlaModalAc('${uid}')">🔑 Şifre Sıfırla / Yeni Giriş Bilgisi Ver</button>
     <label>Rol</label>
     <select id="fKullaniciRol"><option value="">— Rol seçilmedi —</option>${rolSecenekleri}</select>
-    <label>Bağlı Öğretmen Kaydı <span style="font-weight:400;color:var(--ink-muted);">(kişisel veri filtresi — Aşama 3'te devreye girecek)</span></label>
+    <label>Bağlı Öğretmen Kaydı <span style="font-weight:400;color:var(--ink-muted);">(kişisel veri filtresi için)</span></label>
     <select id="fKullaniciOgretmen"><option value="">— Bağlantı yok —</option>${ogretmenSecenekleri}</select>
     <label style="display:flex;align-items:center;gap:8px;margin-top:12px;">
       <input type="checkbox" id="fKullaniciAktif" ${k.aktif?'checked':''}> Hesap aktif (uygulamaya girebilir)
@@ -386,6 +387,103 @@ function kullaniciDuzenleAc(uid){
     </label>
   `;
   modalAc('Kullanıcıyı Düzenle: ' + _kullaniciGoruntulenecekAd(k), bodyHtml, ()=>kullaniciKaydet(uid), null, 'Kaydet');
+}
+
+/* ---------- Yeni kullanıcı oluşturma (admin) ---------- */
+function yeniKullaniciModalAc(){
+  const rolSecenekleri = [...ROLLER_CACHE].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+    .map(r=>`<option value="${r.id}">${escapeHtml(r.ad)}</option>`).join('');
+  const ogretmenSecenekleri = (typeof ogretmenler !== 'undefined' ? ogretmenler : [])
+    .slice().sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+    .map(o=>`<option value="${o.id}">${escapeHtml((o.ad||'')+' '+(o.soyad||''))}</option>`).join('');
+
+  const bodyHtml = `
+    <label>Ad Soyad</label>
+    <input type="text" id="fyAd" placeholder="örn: Hasret Çeçen">
+    <label>Kullanıcı Adı <span style="font-weight:400;color:var(--ink-muted);">(giriş için kullanılacak, boşluksuz)</span></label>
+    <input type="text" id="fyKullaniciAdi" placeholder="örn: hasret.cecen" autocapitalize="none">
+    <label>Geçici Şifre <span style="font-weight:400;color:var(--ink-muted);">(en az 6 karakter)</span></label>
+    <input type="text" id="fySifre" placeholder="örn: Okul2026!">
+    <label>Rol</label>
+    <select id="fyRol"><option value="">— Rol seçilmedi —</option>${rolSecenekleri}</select>
+    <label>Bağlı Öğretmen Kaydı</label>
+    <select id="fyOgretmen"><option value="">— Bağlantı yok —</option>${ogretmenSecenekleri}</select>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+      <input type="checkbox" id="fyAdmin"> 👑 Süper Admin
+    </label>
+    <div style="font-size:12px;color:var(--ink-muted);margin-top:10px;">Oluşturulan kullanıcı adı ve şifreyi bu kişiye siz iletmelisiniz.</div>
+  `;
+  modalAc('➕ Yeni Kullanıcı Oluştur', bodyHtml, ()=>yeniKullaniciKaydet(), null, 'Oluştur');
+}
+
+async function yeniKullaniciKaydet(){
+  const ad = document.getElementById('fyAd').value.trim();
+  const kullaniciAdi = document.getElementById('fyKullaniciAdi').value.trim();
+  const sifre = document.getElementById('fySifre').value;
+  const rolId = document.getElementById('fyRol').value || null;
+  const bagliOgretmenId = document.getElementById('fyOgretmen').value || null;
+  const admin = !!document.getElementById('fyAdmin').checked;
+
+  if(!ad || !kullaniciAdi){ toast('Ad Soyad ve Kullanıcı Adı zorunludur.'); return; }
+  if(!sifre || sifre.length < 6){ toast('Şifre en az 6 karakter olmalıdır.'); return; }
+  if(!kullaniciYonetimiYetkisiVar()){ toast('Bu işlem için yetkiniz yok.'); return; }
+
+  const kaydetBtn = document.getElementById('modalKaydetBtn');
+  if(kaydetBtn){ kaydetBtn.disabled = true; kaydetBtn.textContent = 'Oluşturuluyor…'; }
+  try{
+    const sonuc = await adminYeniKullaniciOlustur(kullaniciAdi, sifre, { ad, rolId, bagliOgretmenId, admin });
+    toast(`Kullanıcı oluşturuldu: ${kullaniciAdi} — şifreyi kendisine iletin.`);
+    modalKapat();
+  }catch(err){
+    console.error(err);
+    let mesaj = 'Hata: ' + err.message;
+    if(err.code === 'auth/email-already-in-use') mesaj = 'Bu kullanıcı adı zaten kullanılıyor, başka bir tane seçin.';
+    if(err.code === 'auth/weak-password') mesaj = 'Şifre çok zayıf, en az 6 karakter olmalı.';
+    toast(mesaj);
+  }finally{
+    if(kaydetBtn){ kaydetBtn.disabled = false; kaydetBtn.textContent = 'Oluştur'; }
+  }
+}
+
+/* ---------- Şifre sıfırlama (admin) — bkz. js/auth.js dosya başı notu ---------- */
+function sifreSifirlaModalAc(uid){
+  const k = YONETIM_KULLANICILAR_CACHE.find(u=>u.id===uid);
+  if(!k) return;
+  const bodyHtml = `
+    <p style="font-size:13px;color:var(--ink-muted);margin-bottom:10px;">
+      Eski kullanıcı adı (<strong>${escapeHtml(k.kullaniciAdi||k.email||'')}</strong>) devre dışı bırakılacak,
+      bu kişi için YENİ bir kullanıcı adı ve şifre oluşturulacak. Rolü ve bağlı öğretmen kaydı korunur.
+    </p>
+    <label>Yeni Kullanıcı Adı</label>
+    <input type="text" id="fsYeniKullaniciAdi" placeholder="örn: hasret.cecen2" autocapitalize="none">
+    <label>Yeni Şifre <span style="font-weight:400;color:var(--ink-muted);">(en az 6 karakter)</span></label>
+    <input type="text" id="fsYeniSifre" placeholder="örn: Okul2026!">
+  `;
+  modalAc('🔑 Şifre Sıfırla — ' + _kullaniciGoruntulenecekAd(k), bodyHtml, ()=>sifreSifirlaKaydet(uid), null, 'Sıfırla');
+}
+
+async function sifreSifirlaKaydet(uid){
+  const k = YONETIM_KULLANICILAR_CACHE.find(u=>u.id===uid);
+  if(!k) return;
+  const yeniKullaniciAdi = document.getElementById('fsYeniKullaniciAdi').value.trim();
+  const yeniSifre = document.getElementById('fsYeniSifre').value;
+  if(!yeniKullaniciAdi){ toast('Yeni kullanıcı adı zorunludur.'); return; }
+  if(!yeniSifre || yeniSifre.length < 6){ toast('Şifre en az 6 karakter olmalıdır.'); return; }
+
+  const kaydetBtn = document.getElementById('modalKaydetBtn');
+  if(kaydetBtn){ kaydetBtn.disabled = true; kaydetBtn.textContent = 'İşleniyor…'; }
+  try{
+    const sonuc = await adminSifreSifirlaYeniHesapla(k, yeniKullaniciAdi, yeniSifre);
+    toast(`Yeni giriş bilgileri oluşturuldu: ${yeniKullaniciAdi} — kendisine iletin.`);
+    modalKapat();
+  }catch(err){
+    console.error(err);
+    let mesaj = 'Hata: ' + err.message;
+    if(err.code === 'auth/email-already-in-use') mesaj = 'Bu kullanıcı adı zaten kullanılıyor, başka bir tane seçin.';
+    toast(mesaj);
+  }finally{
+    if(kaydetBtn){ kaydetBtn.disabled = false; kaydetBtn.textContent = 'Sıfırla'; }
+  }
 }
 
 function kullaniciKaydet(uid){
