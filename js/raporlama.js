@@ -54,14 +54,19 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <title>${baslik} — ${okulAdi}</title>
   <style>
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact; }
-    @page { size: A4; margin: 0; }
+    /* DÜZELTME: @page kuralı 'yon' değişkenini hiç kullanmıyordu — sadece
+       native (APK) yazdırma eklentisine iletiliyordu. Web sürümünde
+       (window.print() / tarayıcının kendi PDF kaydetme diyaloğu) yön
+       her zaman varsayılan (dikey) kalıyordu, kullanıcı ne seçerse seçsin.
+       Artık @page da 'yon'a göre landscape/portrait belirtiyor. */
+    @page { size: A4 ${yon==='yatay'?'landscape':'portrait'}; margin: 0; }
     body { font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif; font-size:10px; color:#1a1a1a; background:#fff; line-height:1.4; }
 
     ${servisRaporu ? `
-    @page { size: A4; margin: 8mm; }
+    @page { size: A4 ${yon==='yatay'?'landscape':'portrait'}; margin: 8mm; }
     body { background: #fff; }
     ` : `
-    @page { size: A4; margin: 5mm 7mm; }
+    @page { size: A4 ${yon==='yatay'?'landscape':'portrait'}; margin: 5mm 7mm; }
     `}
 
     .rapor-header { display:flex; align-items:center; gap:6px; border-bottom:1.5px solid #0A6E6E; padding-bottom:3px; margin-bottom:4px; }
@@ -1169,9 +1174,12 @@ function _crsfGoster(tabloHtml, baslikMetin, m, landscape) {
 
   // DÜZELTME: 'landscape' parametresi alınıyordu ama hiç kullanılmıyordu —
   // bu yüzden _raporPenceresiniAc'a yön hiç iletilmiyor, varsayılan olarak
-  // hep 'dikey' basılıyordu. Çarşaf tabloları (gün×saat geniş ızgara) her
-  // zaman yatay basılmalı — tekli (bir sınıf/öğretmen) veya çoklu fark etmez.
-  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false, yon: 'yatay' });
+  // hep 'dikey' basılıyordu. Artık kullanıcının modaldaki "Yatay/Dikey"
+  // radyo seçimi (m.yon: 'landscape'|'portrait') gerçekten kullanılıyor;
+  // hiç seçim yoksa (m.yon tanımsızsa) geniş ızgara tabloları için güvenli
+  // varsayılan olan yatay uygulanır.
+  const gercekYon = m?.yon === 'portrait' ? 'dikey' : 'yatay';
+  const win = _raporPenceresiniAc(icerik, baslikMetin, { ortaliBaslik: false, yon: gercekYon });
 
   setTimeout(function() {
     try {
