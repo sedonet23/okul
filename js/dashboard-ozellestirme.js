@@ -175,6 +175,132 @@ function _dkoVarsayilanaDon(){
 }
 
 /* ====================================================================
+   ALT-ÖĞE SEÇİCİ (kart İÇİNDEKİ öğelerin seçimi/sıralaması)
+   Örn: Hızlı Bakış'ın 4 rozetten hangilerini göstereceği, İstatistik
+   Şeridi'nin 4 kartından hangilerinin görüneceği, Hızlı İşlemler'in
+   8 kısayolundan hangilerinin görüneceği. Üst düzey kart seçiminden
+   (yukarıdaki DASHBOARD_KART_KATALOGU) BAĞIMSIZ, ayrı bir localStorage
+   anahtarı kullanır — her kartın kendi iç düzeni ayrı saklanır.
+   ==================================================================== */
+const DASHBOARD_ALT_KATALOG = {
+  hizliBakis: { limit:4, ogeler:[
+    {id:'sinif',        ad:'🏫 Sınıf Sayısı'},
+    {id:'bugunkuDers',  ad:'📚 Bugünkü Ders Sayısı'},
+    {id:'acikGorev',    ad:'📌 Açık Görev Sayısı'},
+    {id:'hatirlatici',  ad:'⏰ Hatırlatıcı Sayısı'},
+    {id:'sinavlarim',   ad:'📝 Sınavlarım (sadece öğretmen hesabında)'},
+  ]},
+  istatistikSeridi: { limit:4, ogeler:[
+    {id:'personel',   ad:'👨‍🏫 Personel Sayısı'},
+    {id:'ogrenciler', ad:'🧑‍🎓 Öğrenci Sayısı'},
+    {id:'servis',     ad:'🚌 Servis Sayısı'},
+    {id:'evrak',      ad:'📄 Bekleyen Evrak Sayısı'},
+  ]},
+  hizliIslemler: { limit:8, ogeler:[
+    {id:'personel',       ad:'👥 Personel'},
+    {id:'nobet',          ad:'🛡️ Nöbet'},
+    {id:'servis',         ad:'🚌 Servis'},
+    {id:'evrak',          ad:'📄 Evrak'},
+    {id:'raporlar',       ad:'📊 Raporlar / Dökümanlar'},
+    {id:'takvim',         ad:'📅 Takvim'},
+    {id:'notlar',         ad:'📝 Notlar'},
+    {id:'cizelgeler',     ad:'⋯ Çizelgeler'},
+    {id:'mesajlar',       ad:'💬 Mesajlar'},
+    {id:'duyurular',      ad:'📢 Duyurular'},
+    {id:'sinavIslemleri', ad:'📝 Sınav İşlemleri'},
+  ]},
+};
+
+function _altTercihAnahtari(kartId){ return 'oyDashboardAlt_'+kartId+'_v1'; }
+function _altTercihOku(kartId){
+  const katalog = DASHBOARD_ALT_KATALOG[kartId];
+  if(!katalog) return [];
+  try{
+    const ham = localStorage.getItem(_altTercihAnahtari(kartId));
+    if(ham){
+      const liste = JSON.parse(ham);
+      if(Array.isArray(liste)) return liste.filter(id=>katalog.ogeler.some(o=>o.id===id));
+    }
+  }catch(e){}
+  // Varsayılan: kataloğun ilk (limit) kadar öğesi, tanımlı sırayla.
+  return katalog.ogeler.map(o=>o.id).slice(0, katalog.limit);
+}
+function _altTercihYaz(kartId, seciliListe){
+  try{ localStorage.setItem(_altTercihAnahtari(kartId), JSON.stringify(seciliListe)); }catch(e){}
+}
+
+function dashboardAltDuzenModalAc(kartId){
+  const katalog = DASHBOARD_ALT_KATALOG[kartId];
+  if(!katalog) return;
+  window._dkoAltAnahtar = kartId;
+  window._dkoAltSeciliGecici = _altTercihOku(kartId).slice();
+  modalAc('✏️ Düzenle', '<div class="empty-state">Yükleniyor…</div>',
+    () => {
+      _altTercihYaz(kartId, window._dkoAltSeciliGecici);
+      modalKapat();
+      if(typeof renderDashboard === 'function') renderDashboard();
+      toast('Kaydedildi.');
+    },
+    null, '💾 Kaydet'
+  );
+  _dashboardAltModalIcerikYaz();
+}
+
+function _dashboardAltModalIcerikYaz(){
+  const govde = document.getElementById('modalBody');
+  if(!govde) return;
+  const kartId = window._dkoAltAnahtar;
+  const katalog = DASHBOARD_ALT_KATALOG[kartId];
+  const secili = window._dkoAltSeciliGecici || [];
+  const kalanlar = katalog.ogeler.filter(o=>!secili.includes(o.id));
+
+  const seciliHtml = secili.length ? secili.map((id,i)=>{
+    const o = katalog.ogeler.find(x=>x.id===id);
+    if(!o) return '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px;background:var(--nm-bg);">
+      <span style="flex:1;font-size:13.5px;">${escapeHtml(o.ad)}</span>
+      <button type="button" class="btn btn-ghost btn-sm" ${i===0?'disabled style="opacity:.3;"':''} onclick="_dkoAltTasi('${id}',-1)">⬆</button>
+      <button type="button" class="btn btn-ghost btn-sm" ${i===secili.length-1?'disabled style="opacity:.3;"':''} onclick="_dkoAltTasi('${id}',1)">⬇</button>
+      <button type="button" class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="_dkoAltKaldir('${id}')">✕</button>
+    </div>`;
+  }).join('') : '<p class="empty-state">Hiç öğe seçilmedi.</p>';
+
+  const kalanlarHtml = kalanlar.length ? kalanlar.map(o=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px dashed var(--border);border-radius:10px;margin-bottom:6px;">
+      <span style="flex:1;font-size:13.5px;color:var(--ink-muted);">${escapeHtml(o.ad)}</span>
+      <button type="button" class="btn btn-amber btn-sm" onclick="_dkoAltEkle('${o.id}')">+ Ekle</button>
+    </div>`).join('') : '<p class="empty-state">Tüm öğeler zaten seçili.</p>';
+
+  govde.innerHTML = `
+    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">En fazla <strong>${katalog.limit}</strong> öğe seçebilirsiniz.</div>
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;">✅ Seçili (${secili.length}/${katalog.limit})</div>
+    <div style="max-height:220px;overflow-y:auto;margin-bottom:14px;">${seciliHtml}</div>
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;">➕ Eklenebilir</div>
+    <div style="max-height:180px;overflow-y:auto;">${kalanlarHtml}</div>
+  `;
+}
+function _dkoAltTasi(id, yon){
+  const liste = window._dkoAltSeciliGecici;
+  const i = liste.indexOf(id); const j = i+yon;
+  if(i<0||j<0||j>=liste.length) return;
+  [liste[i],liste[j]] = [liste[j],liste[i]];
+  _dashboardAltModalIcerikYaz();
+}
+function _dkoAltKaldir(id){
+  window._dkoAltSeciliGecici = window._dkoAltSeciliGecici.filter(x=>x!==id);
+  _dashboardAltModalIcerikYaz();
+}
+function _dkoAltEkle(id){
+  const katalog = DASHBOARD_ALT_KATALOG[window._dkoAltAnahtar];
+  if(window._dkoAltSeciliGecici.length >= katalog.limit){
+    toast(`En fazla ${katalog.limit} öğe seçebilirsiniz.`);
+    return;
+  }
+  window._dkoAltSeciliGecici.push(id);
+  _dashboardAltModalIcerikYaz();
+}
+
+/* ====================================================================
    YENİ WIDGET İÇERİKLERİ (Sınavlarım / Mesajlarım / Son Dökümanlar / Bekleyen Evrak)
    ==================================================================== */
 function _dashboardYeniWidgetleriDoldur(){

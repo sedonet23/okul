@@ -947,8 +947,8 @@ function renderDashboard(){
   const servisSayisi = (typeof servisler !== 'undefined' && Array.isArray(servisler)) ? servisler.length : 0;
   const acikEvrakSayisi = evrakTakibi.filter(e=>e.durum!=='Tamamlandı' && e.durum!=='Arşivlendi').length;
 
-  document.getElementById('dashStats').innerHTML = [
-    gorebilir('ogretmenler') ? `
+  const _statTanimlari = {
+    personel: gorebilir('ogretmenler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
       <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
       <div class="stat-card-num">${ogretmenler.length}</div>
@@ -956,7 +956,7 @@ function renderDashboard(){
       ${kadinPersonel||erkekPersonel ? `<div class="stat-card-cinsiyet">🚺${kadinPersonel} 🚹${erkekPersonel}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>` : '',
-    gorebilir('ogrenciler') ? `
+    ogrenciler: gorebilir('ogrenciler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
       <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
       <div class="stat-card-num">${toplamOgrenci}</div>
@@ -964,21 +964,23 @@ function renderDashboard(){
       ${kizOgrenci||erkekOgrenci ? `<div class="stat-card-cinsiyet">🚺${kizOgrenci} 🚹${erkekOgrenci}</div>` : ''}
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>` : '',
-    gorebilir('tasima') ? `
+    servis: gorebilir('tasima') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')">
       <div class="stat-card-ico-lg stat-card-ico-purple">🚌</div>
       <div class="stat-card-num">${servisSayisi}</div>
       <div class="stat-card-label">Servis Sayısı</div>
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>` : '',
-    gorebilir('evrak') ? `
+    evrak: gorebilir('evrak') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('evrak')">
       <div class="stat-card-ico-lg stat-card-ico-amber">📄</div>
       <div class="stat-card-num">${acikEvrakSayisi}</div>
       <div class="stat-card-label">Bekleyen Evrak</div>
       <div class="stat-card-tumu-bottom">Tümü ›</div>
     </div>` : '',
-  ].join('');
+  };
+  const _statSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('istatistikSeridi') : Object.keys(_statTanimlari);
+  document.getElementById('dashStats').innerHTML = _statSirasi.map(id => _statTanimlari[id] || '').join('');
   /* ---- Hızlı Bakış: Kadın/Erkek (Öğretmen) kaldırıldı — üstteki "Personel"
      kartında zaten aynı 🚺/🚹 dağılımı gösteriliyordu, tekrar oluyordu.
      Yerine "Bugünkü Ders" sayısı kondu. ---- */
@@ -991,13 +993,15 @@ function renderDashboard(){
     : 0;
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
-    hizliBakisEl.innerHTML = [
-      gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>` : '',
-      gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>` : '',
-      gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>` : '',
-      gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
-      (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div></div>` : '',
-    ].join('');
+    const _hbTanimlari = {
+      sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>` : '',
+      bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>` : '',
+      acikGorev: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>` : '',
+      hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
+      sinavlarim: (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div></div>` : '',
+    };
+    const _hbSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliBakis') : Object.keys(_hbTanimlari);
+    hizliBakisEl.innerHTML = _hbSirasi.map(id => _hbTanimlari[id] || '').join('');
   }
   /* ---- YENİ: Üst bar bildirim zili rozeti (bekleyen hatırlatıcı + okunmamış duyuru sayısı) ---- */
   if(typeof topbarBildirimRozetiGuncelle === 'function') topbarBildirimRozetiGuncelle();
@@ -1032,6 +1036,7 @@ function renderDashboard(){
   if(typeof renderDashYillikGorunum   === 'function') renderDashYillikGorunum();
 
   tatilModuKartlariniUygula();
+  if(typeof renderHizliIslemler === 'function') renderHizliIslemler();
   if(typeof renderOgretmenOzelKartlar === 'function') renderOgretmenOzelKartlar();
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
   if(typeof _dashboardYeniWidgetleriDoldur === 'function') _dashboardYeniWidgetleriDoldur();
@@ -1239,6 +1244,32 @@ function topbarBildirimRozetiGuncelle(){
   const bekleyenSayi = bekleyenHatirlatici + okunmamisDuyuru;
   bellBadgeEl.textContent = bekleyenSayi;
   bellBadgeEl.style.display = bekleyenSayi>0 ? 'flex' : 'none';
+}
+
+/* Hızlı İşlemler kartı artık kullanıcı seçimine göre üretiliyor (bkz.
+   js/dashboard-ozellestirme.js DASHBOARD_ALT_KATALOG.hizliIslemler). */
+function renderHizliIslemler(){
+  const el = document.getElementById('hizliIslemlerGrid');
+  if(!el) return;
+  const tanimlari = {
+    personel:       { modul:'personel',    onclick:"sekmeAc('personel');",              ikon:'👥', ikonClass:'qa-personel', label:'Personel' },
+    nobet:          { modul:'nobet',       onclick:"sekmeAc('nobet');",                 ikon:'🛡️', ikonClass:'qa-nobet',    label:'Nöbet' },
+    servis:         { modul:'tasima',      onclick:"sekmeAc('tasima');",                ikon:'🚌', ikonClass:'qa-evrak',    label:'Servis' },
+    evrak:          { modul:'evrak',       onclick:"sekmeAc('evrak'); evrakModalAc();", ikon:'📄', ikonClass:'qa-gorev',    label:'Evrak' },
+    raporlar:       { modul:'dokumanlar',  onclick:"sekmeAc('dokumanlar');",            ikon:'📊', ikonClass:'qa-rapor',    label:'Raporlar' },
+    takvim:         { modul:'takvim',      onclick:"sekmeAc('takvim');",                ikon:'📅', ikonClass:'qa-takvim',   label:'Takvim' },
+    notlar:         { modul:'notlar',      onclick:"notlarModalAc();",                  ikon:'📝', ikonClass:'qa-not',      label:'Notlar' },
+    cizelgeler:     { modul:'sosyalKulupler', onclick:"sekmeAc('sosyalKulupler');",      ikon:'⋯',  ikonClass:'qa-daha',     label:'Çizelgeler' },
+    mesajlar:       { modul:'mesajlasma',  onclick:"sekmeAc('mesajlasma');",            ikon:'💬', ikonClass:'qa-gorev',    label:'Mesajlar' },
+    duyurular:      { modul:'duyurular',   onclick:"sekmeAc('duyurular');",             ikon:'📢', ikonClass:'qa-rapor',    label:'Duyurular' },
+    sinavIslemleri: { modul:'sinavIslemleri', onclick:"sekmeAc('sinavIslemleri');",      ikon:'📝', ikonClass:'qa-not',      label:'Sınavlar' },
+  };
+  const sira = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliIslemler') : Object.keys(tanimlari).slice(0,8);
+  el.innerHTML = sira.map(id=>{
+    const t = tanimlari[id];
+    if(!t) return '';
+    return `<div class="qa-item" data-yetki-modul="${t.modul}" onclick="${t.onclick}"><div class="qa-icon ${t.ikonClass}">${t.ikon}</div><div class="qa-label">${t.label}</div></div>`;
+  }).join('');
 }
 
 /* ============== ÖĞRETMENE ÖZEL ANASAYFA KARTLARI ==============
