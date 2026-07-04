@@ -429,6 +429,12 @@ const _SALT_OKUMA_ISTISNA_DESENLERI = [
   /Rapor/i, /Yazdir/i, /Sirku/i, /DetayAc\(/, /DetayModalAc\(/,
   /hizliEkleModalAc/, /profilVeyaSecimAc/,
   /ListeOlustur/i, /OnayModalAc\(/,
+  // DÜZELTME: Dökümanlar modülü artık genel Görüntüle/Düzenle seviyesinden
+  // BAĞIMSIZ, kendi sahiplik tabanlı yetkilendirmesini kullanıyor (bkz.
+  // js/core/services/dokumanlar.service.js) — ekleme herkese açık (kendi
+  // kişisel dökümanı için), silme sadece sahip/admin'e açık. Bu yüzden
+  // genel salt-okuma mekanizması bu iki butona hiç karışmamalı.
+  /dokumanYukleModalAc/, /dokumanSilOnay\(/,
 ];
 function _saltOkumaYazmaTetikleyicisiMi(oc){
   if(!oc) return false;
