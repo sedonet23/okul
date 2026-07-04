@@ -3103,3 +3103,20 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .konusma-saat.okunmamis{ color: var(--brand); font-weight:700; }
 .konusma-onizleme{ font-size:12.5px; color: var(--ink-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .konusma-onizleme.okunmamis{ color: var(--ink); font-weight:600; }
+
+/* Mesajlaşma detay başlığı avatarı */
+.detay-avatar{
+  width:42px; height:42px; border-radius:50%; flex-shrink:0; margin-right:10px;
+  background: linear-gradient(135deg, rgba(255,255,255,.35), rgba(255,255,255,.15));
+  color:#fff; align-items:center; justify-content:center; font-weight:700; font-size:16px;
+  border: 1px solid rgba(255,255,255,.4);
+}
+/* Basit emoji seçici paneli */
+.mesaj-emoji-paneli{
+  grid-template-columns: repeat(8, 1fr); gap:4px; max-height:140px; overflow-y:auto;
+  background: var(--nm-bg); border-radius:12px; padding:8px; margin-bottom:8px;
+}
+.mesaj-emoji-btn{
+  border:none; background:transparent; font-size:20px; padding:4px; border-radius:8px; cursor:pointer;
+}
+.mesaj-emoji-btn:active{ background: rgba(0,0,0,.08); }
