@@ -6,12 +6,14 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
@@ -91,14 +93,24 @@ public class OkulFirebaseMessagingService extends FirebaseMessagingService {
     }
 
     /* Bildirimde tam renkli okul logosunu "büyük ikon" olarak göstermek
-       için uygulama simgesini (ic_launcher_round) bitmap olarak yükler.
-       Küçük ikon (setSmallIcon) Android kuralı gereği tek renkli bir
-       silüet olmak ZORUNDA — tam renkli logo ancak büyük ikon olarak
-       gösterilebilir. Yükleme başarısız olursa null döner (güvenli, o
-       zaman bildirim büyük ikon olmadan gösterilir). */
+       için uygulama simgesini bitmap olarak yükler.
+       DÜZELTME: Android 8.0+ (API 26+) cihazlarda ic_launcher_round,
+       BitmapFactory.decodeResource() ile OKUNAMAYAN özel bir "adaptif
+       ikon" (XML tabanlı, katmanlı) kaynağına dönüşüyor — sessizce null
+       dönüyordu, büyük ikon hiç görünmüyordu. Şimdi Drawable+Canvas
+       kullanılıyor; bu yöntem hem eski düz PNG ikonları hem de yeni
+       adaptif ikonları doğru şekilde bitmap'e çiziyor. */
     private Bitmap okulLogosuBitmapAl() {
         try {
-            return BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_round);
+            Drawable drawable = ContextCompat.getDrawable(this, R.mipmap.ic_launcher_round);
+            if (drawable == null) return null;
+            int genislik = drawable.getIntrinsicWidth() > 0 ? drawable.getIntrinsicWidth() : 192;
+            int yukseklik = drawable.getIntrinsicHeight() > 0 ? drawable.getIntrinsicHeight() : 192;
+            Bitmap bitmap = Bitmap.createBitmap(genislik, yukseklik, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+            return bitmap;
         } catch (Exception e) {
             return null;
         }
