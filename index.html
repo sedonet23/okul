@@ -136,6 +136,7 @@
         <button class="nav-tab nav-sub-tab" data-tab="mesajlasma"><span class="nt-ico">💬</span><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="anket"><span class="nt-ico">📊</span><span class="nt-label">Anketler</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracBelgeler">— Belgeler —</div>
@@ -549,6 +550,14 @@
         <div class="page-header-actions"><button class="btn btn-amber" onclick="duyuruModalAc()">+ Yeni Duyuru</button></div>
       </div>
       <div id="duyurularListesi"></div>
+    </section>
+
+    <section id="tab-anket" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📊 Anketler</div><div class="page-sub">Okul geneline anket oluşturun, sonuçları görün</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" id="anketYeniBtn" style="display:none;" onclick="anketOlusturModalAc()">+ Yeni Anket</button></div>
+      </div>
+      <div id="anketListesi"></div>
     </section>
 
     <section id="tab-notlar" class="tab-panel">
@@ -1375,10 +1384,13 @@
 <script src="js/core/services/mesajlasma.service.js"></script>
 <script src="js/core/repositories/duyurular.repository.js"></script>
 <script src="js/core/services/duyurular.service.js"></script>
+<script src="js/core/repositories/anket.repository.js"></script>
+<script src="js/core/services/anket.service.js"></script>
 <script src="js/push.js"></script>
 <script src="js/cizelgeler.js"></script>
 <script src="js/mesajlasma.js"></script>
 <script src="js/duyurular.js"></script>
+<script src="js/anket.js"></script>
 <script src="js/dashboard-ozellestirme.js"></script>
 <script src="js/excel-import.js"></script>
 <script src="js/nobet.js"></script>
