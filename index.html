@@ -111,7 +111,6 @@
       <button class="nav-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
       <button class="nav-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
       <button class="nav-tab" data-tab="mevzuat"><span class="nt-ico">⚖️</span><span class="nt-label">Mevzuat</span></button>
-      <button class="nav-tab" data-tab="asistan"><span class="nt-ico ni-asistan">🤖</span><span class="nt-label">AI Asistan</span></button>
       
       <div class="nav-separator">— Çizelgeler —</div>
       
@@ -496,22 +495,6 @@
       </div>
       <div class="notes-grid" id="notlarGrid"></div>
     </section>
-
-    <section id="tab-asistan" class="tab-panel">
-      <div class="page-header">
-        <div><div class="page-title">AI Asistan</div><div class="page-sub">Form, rapor, dilekçe, not, görev ve hatırlatıcı taslakları üretir</div></div>
-      </div>
-      <div class="card" style="display:flex;flex-direction:column;height:60vh;">
-        <div id="asistanMesajlar" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:10px;"></div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <textarea id="asistanInput" rows="2" placeholder="Örn: 5/A için yarınki nöbet hatırlatıcısı oluştur" style="flex:1;resize:none;"></textarea>
-          <button class="btn btn-amber" id="asistanGonderBtn">Gönder</button>
-        </div>
-      </div>
-    </section>
-
-
-
 
     <section id="tab-mevzuat" class="tab-panel">
       <div class="page-header">
@@ -1148,7 +1131,6 @@
 
     </main>
 
-    <button id="asistanFab" class="asistan-fab" onclick="sekmeAc('asistan')" title="AI Asistan" aria-label="AI Asistan">🤖</button>
 
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
@@ -1330,7 +1312,6 @@
 <script src="js/notlar.js"></script>
 <script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
-<script src="js/asistan.js"></script>
 <script src="js/ogrenciler-arama.js"></script>
 <script src="js/yedekleme.js"></script>
 <script src="js/ui.js"></script>
