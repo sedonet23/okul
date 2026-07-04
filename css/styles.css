@@ -402,6 +402,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   position:sticky; top:0; height:100vh; z-index:80;
   transition: width .18s ease, transform .22s ease;
   border-right: 1px solid rgba(10,110,110,0.15);
+  overscroll-behavior-y: contain;
 }
 .sidebar-head{ display:flex; align-items:center; gap:10px; padding: 4px 6px 18px; }
 .sidebar-head .hamburger-btn{ background: rgba(10,200,200,0.08); border-color: rgba(10,200,200,0.18); display:none; }
@@ -414,7 +415,7 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 
 .theme-toggle.in-sidebar{ background: rgba(10,200,200,0.07); border-color: rgba(10,200,200,0.16); color: var(--ink-on-dark); flex-shrink:0; }
 
-.nav{ display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto; overflow-x:hidden; }
+.nav{ display:flex; flex-direction:column; gap:2px; flex:1; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y: contain; }
 .nav-separator{ font-family: var(--font-mono); font-size:9.5px; letter-spacing:.08em; color: rgba(10,200,200,0.45); padding:14px 12px 4px; white-space:nowrap; text-transform:uppercase; }
 .nav-tab{
   display:flex; align-items:center; gap:10px; text-align:left; background:transparent; border:none; color: rgba(210,248,248,0.82);
