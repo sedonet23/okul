@@ -3206,7 +3206,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .mdf-mini-etiket input{ padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px; font-weight:400; }
 .mdf-bos-not{ font-size:12px; color:#777 !important; margin:6px 0; }
 .mdf-roster-satir{ padding:6px 8px; border-radius:8px; background:#f7f9f6; margin-bottom:4px; }
-.mdf-gizli-satir{ opacity:.55; background:transparent; }
+.mdf-gizli-satir{ background:transparent; }
+.mdf-gizli-satir .mdf-roster-kisi strong{ color:#8a8a8a !important; }
+.mdf-gizli-satir .mdf-roster-kisi span{ color:#aaa !important; }
 .mdf-goster-gizle-btn{
   border:1px solid #ccc; background:#fff !important; color:#555 !important; border-radius:6px;
   padding:4px 9px; font-size:11.5px; cursor:pointer; flex-shrink:0;
