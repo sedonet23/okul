@@ -44,9 +44,12 @@ jobs:
         run: |
           echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
-      - name: Keystore'u sırlardan geri yükle
+      - name: Keystore ve şifreyi sırlardan hazırla (olası boşluk/satır sonu temizlenir)
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/koruk-okul.jks
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | tr -d '[:space:]' | base64 -d > android/app/koruk-okul.jks
+          TEMIZ_SIFRE=$(printf '%s' "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" | tr -d '[:space:]')
+          echo "::add-mask::$TEMIZ_SIFRE"
+          echo "KEYSTORE_SIFRE_TEMIZ=$TEMIZ_SIFRE" >> "$GITHUB_ENV"
 
       - name: Gradle wrapper oluştur
         run: |
@@ -63,9 +66,9 @@ jobs:
         working-directory: android
         env:
           KEYSTORE_PATH: app/koruk-okul.jks
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_SIFRE_TEMIZ }}
           KEY_ALIAS: koruk
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEYSTORE_SIFRE_TEMIZ }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: APK artifacts olarak yükle
