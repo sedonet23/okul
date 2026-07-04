@@ -273,6 +273,8 @@
     return `
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dilekçe Bilgileri</h3>
 
+      ${typeof zenginEditorAracCubugu === 'function' ? zenginEditorAracCubugu('dlkFrame') : ''}
+
       <div style="margin-bottom:12px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Personel</label>
         <select id="dlk_personel" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
@@ -383,6 +385,7 @@
     }
 
     function _bagla() {
+      if(typeof zenginEditorBaglantiKur === 'function') zenginEditorBaglantiKur('dlkFrame');
       formPanel.querySelector('#dlk_personel').onchange = (e) => {
         if (!_serbestDuzenlemeKorumasi()) { e.target.value = state.personelId || ''; return; }
         const pid = e.target.value;
