@@ -2651,6 +2651,16 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
   transition: opacity .8s ease;
 }
+/* DÜZELTME: Açık renkli sahnelerde (özellikle gündoğumunun soluk sarı alt
+   kısmı, #FFE3A3) beyaz yazı okunurluğu çok düşüyordu. Sahne rengi ne
+   olursa olsun, üstten alta doğru artan hafif bir karartma katmanı
+   ekleniyor — üstte neredeyse görünmez, altta (hava durumu/"Detaylar"
+   satırının olduğu yer) yeterince koyu, böylece metin her sahnede
+   okunabilir kalıyor. */
+#tab-panel.dash-modern .dash-hero::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.08) 35%, rgba(0,0,0,.32) 100%);
+}
 #tab-panel.dash-modern .dash-hero > *{ position:relative; z-index:1; }
 
 /* Gün doğumu: 05:00–08:00 — sıcak turuncu/pembe gökyüzü + yükselen güneş */
@@ -2750,7 +2760,7 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .dash-hero-hava-satir:hover{ background:rgba(255,255,255,.22); }
 .dash-hero-hava-satir .hero-hava-sicaklik{ font-size:17px; font-weight:800; color:#fff; }
 .dash-hero-hava-satir .hero-hava-aciklama{ font-size:13px; color:rgba(255,255,255,.75); flex:1; }
-.dash-hero-hava-satir .hero-hava-detay-ok{ font-size:12px; color:rgba(255,255,255,.55); margin-left:auto; }
+.dash-hero-hava-satir .hero-hava-detay-ok{ font-size:12px; color:rgba(255,255,255,.85); margin-left:auto; text-shadow:0 1px 2px rgba(0,0,0,.25); }
 
 /* =========================================================================
    YENİ: ÖĞRENCİLER SAYFASI + GLOBAL ARAMA
