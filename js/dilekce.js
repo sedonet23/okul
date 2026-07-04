@@ -280,11 +280,14 @@
     ov.querySelector('#dlkPrintBtn').onclick = () => {
       const fr = ov.querySelector('#dlkFrame');
       if(!fr || !fr.contentWindow){ toast('Belge henüz yüklenmedi, birkaç saniye sonra tekrar deneyin.'); return; }
+      // DÜZELTME: print() çağrısı setTimeout içine alınmıştı — bu, çağrıyı
+      // kullanıcının tıklama anından (senkron kullanıcı jesti) "koparıyor".
+      // Birçok mobil tarayıcı (özellikle Android Chrome), print()'in TAM
+      // OLARAK tıklamayla aynı anda (senkron) çağrılmasını şart koşuyor;
+      // aksi halde SESSİZCE hiçbir şey yapmıyor (hata bile vermiyor) —
+      // "yazdır butonu tepki vermiyor" şikayetinin sebebi buydu.
       fr.contentWindow.focus();
-      // DÜZELTME: Bazı mobil tarayıcılarda focus() ile print() art arda hemen
-      // çağrılınca yazdırma diyaloğu açılmıyor — küçük bir gecikme, focus'un
-      // tam oturmasını sağlayıp güvenilirliği artırıyor.
-      setTimeout(() => { fr.contentWindow.print(); }, 150);
+      fr.contentWindow.print();
     };
 
     return ov;
