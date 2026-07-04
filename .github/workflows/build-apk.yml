@@ -44,15 +44,9 @@ jobs:
         run: |
           echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
 
-      - name: Keystore oluştur
+      - name: Keystore'u sırlardan geri yükle
         run: |
-          keytool -genkey -v \
-            -keystore android/app/koruk-okul.jks \
-            -alias koruk \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass korukokul2024 \
-            -keypass korukokul2024 \
-            -dname "CN=Koruk Okul,OU=Okul,O=Koruk,L=Ankara,ST=Ankara,C=TR"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/koruk-okul.jks
 
       - name: Gradle wrapper oluştur
         run: |
@@ -69,9 +63,9 @@ jobs:
         working-directory: android
         env:
           KEYSTORE_PATH: app/koruk-okul.jks
-          KEYSTORE_PASSWORD: korukokul2024
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: koruk
-          KEY_PASSWORD: korukokul2024
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: APK artifacts olarak yükle
