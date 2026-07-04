@@ -110,14 +110,21 @@ function renderKonusmaListesi(){
   hedef.innerHTML = siralanmis.map(k=>{
     const baslik = k.grupMu ? (k.grupAdi || 'Grup') : Object.entries(k.katilimciAdlari||{}).find(([uid])=>uid!==ben)?.[1] || 'Kullanıcı';
     const okunmayan = (k.okunmayanlar && k.okunmayanlar[ben]) || 0;
-    const sonMetin = k.sonMesaj ? (k.sonMesaj.gonderenUid===ben ? 'Siz: ' : '') + k.sonMesaj.metin : 'Henüz mesaj yok.';
-    return `<div class="card dash-card-clickable" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;" onclick="mesajKonusmaAc('${k.id}')">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--brand-light);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">${k.grupMu?'👥':escapeHtml((baslik[0]||'?').toUpperCase())}</div>
+    const okunmamisMi = okunmayan > 0;
+    const sonMetin = k.sonMesaj ? (k.sonMesaj.gonderenUid===ben ? 'Siz: ' : '') + (k.sonMesaj.metin || (k.sonMesaj.dosyaMi ? '📎 Dosya' : '')) : 'Henüz mesaj yok.';
+    const saat = k.guncellenmeTarihi ? _mesajSaatYaz(k.guncellenmeTarihi) : '';
+    return `<div class="konusma-karti" onclick="mesajKonusmaAc('${k.id}')">
+      <div class="konusma-avatar">${k.grupMu?'👥':escapeHtml((baslik[0]||'?').toUpperCase())}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-weight:700;${okunmayan?'':''}">${escapeHtml(baslik)}</div>
-        <div style="font-size:12.5px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(sonMetin)}</div>
+        <div class="konusma-satir-ust">
+          <span class="konusma-baslik ${okunmamisMi?'okunmamis':''}">${escapeHtml(baslik)}</span>
+          <span class="konusma-saat ${okunmamisMi?'okunmamis':''}">${saat}</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+          <span class="konusma-onizleme ${okunmamisMi?'okunmamis':''}">${escapeHtml(sonMetin)}</span>
+          ${okunmamisMi ? `<span class="badge badge-red" style="border-radius:999px;flex-shrink:0;">${okunmayan>9?'9+':okunmayan}</span>` : ''}
+        </div>
       </div>
-      ${okunmayan ? `<span class="badge badge-red" style="border-radius:999px;flex-shrink:0;">${okunmayan>9?'9+':okunmayan}</span>` : ''}
       <button class="btn btn-ghost btn-sm" style="flex-shrink:0;color:#c0392b;" title="Sohbeti sil" onclick="event.stopPropagation(); mesajKonusmaSil('${k.id}')">🗑️</button>
     </div>`;
   }).join('');
@@ -168,36 +175,94 @@ function _mesajBasligiGuncelle(k){
   document.getElementById('detayAltBaslik').textContent = k.grupMu ? `${(k.katilimciUidler||[]).length} kişi` : '';
 }
 
+/* Bir konuşmada, mevcut kullanıcının kendi mesajlarının "okundu" sayılıp
+   sayılmayacağını belirler. Mesaj bazlı okunma zaman damgası tutulmuyor
+   (veri modeli sadece konuşma bazlı okunmamış SAYACI tutuyor) — bu yüzden
+   YAKLAŞIK bir gösterge kullanılıyor: karşı taraf(lar)ın bu konuşmadaki
+   okunmamış sayısı 0 ise TÜM mesajlarım okunmuş kabul edilir (✓✓),
+   değilse sadece gönderilmiş sayılır (✓). Grup sohbetinde herkes okumuşsa
+   ✓✓ gösterilir. */
+function _digerlerininTumuOkudumu(k, ben){
+  const digerUidler = (k.katilimciUidler || []).filter(u => u !== ben);
+  if(!digerUidler.length) return false;
+  return digerUidler.every(uid => !(k.okunmayanlar && k.okunmayanlar[uid] > 0));
+}
+
+/* Bir ISO tarihi "Bugün" / "Dün" / "3 Temmuz 2026" olarak biçimlendirir —
+   tarih ayırıcı rozetlerinde kullanılır. */
+function _mesajGunEtiketi(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '';
+  const bugun = new Date(); bugun.setHours(0,0,0,0);
+  const dun = new Date(bugun); dun.setDate(dun.getDate()-1);
+  const gun = new Date(d); gun.setHours(0,0,0,0);
+  if(gun.getTime() === bugun.getTime()) return 'Bugün';
+  if(gun.getTime() === dun.getTime()) return 'Dün';
+  return `${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 function _mesajlariRenderEt(){
   const body = document.getElementById('detayBody');
   if(!body || !_aktifKonusmaId) return;
   const ben = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null;
+  const k = konusmalar.find(x => x.id === _aktifKonusmaId);
+  const herkesOkudMu = k ? _digerlerininTumuOkudumu(k, ben) : false;
   const siralanmis = [...mesajlar].sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''));
-  const kabarcikHtml = siralanmis.length
-    ? siralanmis.map(m=>{
-        const kendisiMi = m.gonderenUid === ben;
-        const silinebilirMi = MesajlasmaService.mesajSilinebilirMi(m);
-        const icerikHtml = m.dosya ? _dosyaBalonuHtml(m.dosya, kendisiMi) : `<div style="max-width:${kendisiMi?'calc(100% - 26px)':'78%'};padding:8px 12px;border-radius:14px;background:${kendisiMi?'var(--brand)':'var(--nm-bg)'};color:${kendisiMi?'#fff':'var(--ink)'};font-size:14px;white-space:pre-wrap;word-break:break-word;">${escapeHtml(m.metin)}</div>`;
-        return `<div style="display:flex;flex-direction:column;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:8px;">
-          ${!kendisiMi ? `<div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
-          <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
-            ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
-            ${icerikHtml}
-            ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
-          </div>
-          <div style="font-size:10px;color:var(--ink-muted);margin-top:2px;">${_mesajSaatYaz(m.tarih)}</div>
-        </div>`;
-      }).join('')
-    : '<p class="empty-state">Henüz mesaj yok — ilk mesajı gönderin.</p>';
+
+  let sonGunEtiketi = null;
+  let akisHtml = '';
+
+  siralanmis.forEach((m, i)=>{
+    const gunEtiketi = _mesajGunEtiketi(m.tarih);
+    if(gunEtiketi !== sonGunEtiketi){
+      akisHtml += `<div class="mesaj-tarih-ayirici"><span>${escapeHtml(gunEtiketi)}</span></div>`;
+      sonGunEtiketi = gunEtiketi;
+    }
+
+    const kendisiMi = m.gonderenUid === ben;
+    const onceki = siralanmis[i-1];
+    const sonraki = siralanmis[i+1];
+    // Gruplama: bir önceki/sonraki mesaj AYNI gönderenden ve AYNI gün içindeyse
+    // araya sıkıştırılır (isim/boşluk sadece grubun ilk mesajında gösterilir).
+    const oncekiAyniGrup = onceki && onceki.gonderenUid === m.gonderenUid && _mesajGunEtiketi(onceki.tarih) === gunEtiketi;
+    const sonrakiAyniGrup = sonraki && sonraki.gonderenUid === m.gonderenUid && _mesajGunEtiketi(sonraki.tarih) === gunEtiketi;
+    const grupSinifi = oncekiAyniGrup ? (sonrakiAyniGrup ? 'grup-orta' : 'grup-son') : (sonrakiAyniGrup ? 'grup-ilk' : '');
+
+    const silinebilirMi = MesajlasmaService.mesajSilinebilirMi(m);
+    const yonSinifi = kendisiMi ? 'kendi' : 'karsi';
+
+    const tikHtml = kendisiMi
+      ? `<span class="mesaj-tik ${herkesOkudMu?'okundu':''}">${herkesOkudMu?'✓✓':'✓'}</span>`
+      : '';
+
+    const icerikHtml = m.dosya
+      ? _dosyaBalonuHtml(m.dosya, kendisiMi)
+      : `<div class="mesaj-balon-govde ${yonSinifi} ${grupSinifi}" style="max-width:78%;display:inline-block;">${escapeHtml(m.metin)}</div>`;
+
+    akisHtml += `<div style="display:flex;flex-direction:column;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:${oncekiAyniGrup?'2px':'10px'};">
+      ${(!kendisiMi && !oncekiAyniGrup) ? `<div class="mesaj-gonderen-adi" style="color:var(--brand);margin-left:4px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
+      <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
+        ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
+        ${icerikHtml}
+        ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
+      </div>
+      <div class="mesaj-satir-alt">${_mesajSaatYaz(m.tarih)}${tikHtml}</div>
+    </div>`;
+  });
+
+  const kabarcikHtml = siralanmis.length ? akisHtml : '<p class="empty-state">Henüz mesaj yok — ilk mesajı gönderin.</p>';
 
   body.innerHTML = `
-    <div id="mesajAkisKutusu" style="display:flex;flex-direction:column;min-height:200px;">${kabarcikHtml}</div>
+    <div id="mesajAkisKutusu" class="mesaj-akis-kutusu" style="display:flex;flex-direction:column;min-height:200px;">${kabarcikHtml}</div>
     <div id="mesajYuklemeDurumu" style="display:none;font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
-    <div style="position:sticky;bottom:0;background:var(--bg-card);padding-top:10px;margin-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;">
+    <div style="position:sticky;bottom:0;background:var(--bg-card);padding-top:10px;margin-top:10px;">
       <input type="file" id="mesajDosyaInput" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" style="display:none;" onchange="mesajDosyaSecildi(this.files[0]); this.value='';">
-      <button class="btn btn-ghost btn-sm" title="Dosya ekle" onclick="document.getElementById('mesajDosyaInput').click()">📎</button>
-      <input id="mesajMetinInput" placeholder="Mesaj yazın…" style="flex:1;" onkeydown="if(event.key==='Enter'){mesajGonderTikla();}">
-      <button class="btn btn-primary btn-sm" onclick="mesajGonderTikla()">Gönder</button>
+      <div class="mesaj-giris-satiri">
+        <button class="mesaj-ek-btn" title="Dosya ekle" onclick="document.getElementById('mesajDosyaInput').click()">📎</button>
+        <input id="mesajMetinInput" placeholder="Mesaj yazın…" onkeydown="if(event.key==='Enter'){mesajGonderTikla();}">
+        <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()" title="Gönder">➤</button>
+      </div>
     </div>`;
   const kutu = document.getElementById('mesajAkisKutusu');
   if(kutu) kutu.scrollIntoView({block:'end'});
