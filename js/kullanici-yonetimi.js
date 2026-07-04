@@ -39,7 +39,6 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'haberler', ad:'Haberler'},
   {grup:'Genel', modul:'duyurular', ad:'Duyuru Panosu'},
   {grup:'Genel', modul:'mevzuat', ad:'Mevzuat'},
-  {grup:'Genel', modul:'asistan', ad:'AI Asistan'},
   {grup:'Genel', modul:'mesajlasma', ad:'Mesajlaşma'},
   {grup:'Genel', modul:'sistemAyarlari', ad:'Sistem Ayarları (Ders Saatleri, Ders/Branş Listesi)'},
   {grup:'Çizelgeler', modul:'sosyalKulupler', ad:'Sosyal Kulüpler'},
