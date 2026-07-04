@@ -113,8 +113,15 @@ function renderKonusmaListesi(){
     const okunmamisMi = okunmayan > 0;
     const sonMetin = k.sonMesaj ? (k.sonMesaj.gonderenUid===ben ? 'Siz: ' : '') + (k.sonMesaj.metin || (k.sonMesaj.dosyaMi ? '📎 Dosya' : '')) : 'Henüz mesaj yok.';
     const saat = k.guncellenmeTarihi ? _mesajSaatYaz(k.guncellenmeTarihi) : '';
+    // YENİ: Grup değilse karşı tarafın gerçek profil fotoğrafı (varsa)
+    // gösterilir; yoksa (veya grup ise) baş harf/👥 rozetine düşer.
+    const digerUid = k.grupMu ? null : Object.keys(k.katilimciAdlari||{}).find(u=>u!==ben);
+    const fotoUrl = !k.grupMu && digerUid ? (k.katilimciFotolari && k.katilimciFotolari[digerUid]) : '';
+    const avatarIcerik = fotoUrl
+      ? `<img src="${fotoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : (k.grupMu ? '👥' : escapeHtml((baslik[0]||'?').toUpperCase()));
     return `<div class="konusma-karti" onclick="mesajKonusmaAc('${k.id}')">
-      <div class="konusma-avatar">${k.grupMu?'👥':escapeHtml((baslik[0]||'?').toUpperCase())}</div>
+      <div class="konusma-avatar">${avatarIcerik}</div>
       <div style="flex:1;min-width:0;">
         <div class="konusma-satir-ust">
           <span class="konusma-baslik ${okunmamisMi?'okunmamis':''}">${escapeHtml(baslik)}</span>
@@ -176,8 +183,14 @@ function _mesajBasligiGuncelle(k){
   const avatarEl = document.getElementById('detayAvatar');
   if(avatarEl){
     avatarEl.style.display = 'flex';
-    avatarEl.textContent = k.grupMu ? '👥' : (baslik[0]||'?').toUpperCase();
+    const digerUid = k.grupMu ? null : Object.keys(k.katilimciAdlari||{}).find(u=>u!==ben);
+    const fotoUrl = !k.grupMu && digerUid ? (k.katilimciFotolari && k.katilimciFotolari[digerUid]) : '';
+    avatarEl.innerHTML = fotoUrl
+      ? `<img src="${fotoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : escapeHtml(k.grupMu ? '👥' : (baslik[0]||'?').toUpperCase());
   }
+  const arkaplanBtn = document.getElementById('detayMesajArkaplanBtn');
+  if(arkaplanBtn) arkaplanBtn.style.display = '';
 }
 
 /* Bir konuşmada, mevcut kullanıcının kendi mesajlarının "okundu" sayılıp
@@ -245,14 +258,26 @@ function _mesajlariRenderEt(){
       ? _dosyaBalonuHtml(m.dosya, kendisiMi)
       : `<div class="mesaj-balon-govde ${yonSinifi} ${grupSinifi}">${escapeHtml(m.metin)}</div>`;
 
+    // YENİ: Karşı taraf(lar)ın mesajlarının yanında küçük bir avatar
+    // (baş harf rozeti) gösterilir — WhatsApp'taki gibi, özellikle grup
+    // sohbetlerinde kimin yazdığını görsel olarak ayırt etmeyi kolaylaştırır.
+    // YENİ: Karşı taraf(lar)ın mesajlarının yanında gerçek profil fotoğrafı
+    // (varsa) gösterilir — konuşma oluşturulurken damgalanan katilimciFotolari
+    // alanından okunur. Fotoğraf yoksa baş harf rozetine düşer.
+    const fotoUrl = !kendisiMi && k ? (k.katilimciFotolari && k.katilimciFotolari[m.gonderenUid]) : '';
+    const avatarHtml = !kendisiMi
+      ? `<div class="mesaj-mini-avatar">${fotoUrl ? `<img src="${fotoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : escapeHtml(((m.gonderenAdi||'?')[0]||'?').toUpperCase())}</div>`
+      : '';
+
     akisHtml += `<div style="display:flex;flex-direction:column;width:100%;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:${oncekiAyniGrup?'2px':'10px'};">
-      ${(!kendisiMi && !oncekiAyniGrup) ? `<div class="mesaj-gonderen-adi" style="color:var(--brand);margin-left:4px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:6px;max-width:78%;">
+      ${(!kendisiMi && !oncekiAyniGrup) ? `<div class="mesaj-gonderen-adi" style="color:var(--brand);margin-left:34px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
+      <div style="display:flex;align-items:flex-end;gap:6px;max-width:82%;">
         ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
+        ${avatarHtml}
         ${icerikHtml}
         ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
       </div>
-      <div class="mesaj-satir-alt">${_mesajSaatYaz(m.tarih)}${tikHtml}</div>
+      <div class="mesaj-satir-alt" style="${!kendisiMi?'margin-left:34px;':''}">${_mesajSaatYaz(m.tarih)}${tikHtml}</div>
     </div>`;
   });
 
@@ -273,26 +298,91 @@ function _mesajlariRenderEt(){
     </div>`;
   const kutu = document.getElementById('mesajAkisKutusu');
   if(kutu) kutu.scrollIntoView({block:'end'});
+  _mesajArkaplanUygula();
 }
 
-/* ---------- Basit emoji seçici (harici kütüphane gerekmez) ---------- */
-const MESAJ_EMOJI_LISTESI = ['😀','😂','🥰','😍','😊','🙂','😉','😢','😭','😡','👍','👎','🙏','👏','💪','❤️','🎉','🔥','✅','❌','⏰','📌','📚','🏫','🚌','📢','🎂','☀️','🌧️','⭐'];
+/* ---------- Kategorili emoji seçici (harici kütüphane gerekmez) ---------- */
+const MESAJ_EMOJI_KATEGORILERI = {
+  '😊': ['😀','😁','😂','🤣','😊','🙂','😉','😍','🥰','😘','😜','🤪','😎','🤗','🙄','😴','🤔','😅','🥲','😇',
+         '😢','😭','😡','🤬','😱','😨','🥶','🤒','🤧','😷','🤢','🥳','😏','😬','🫡','🤭','😳','🥹','😤','🫠'],
+  '🖐️': ['👍','👎','👏','🙏','💪','✌️','🤝','👋','🤞','👌','🤟','🤙','👊','✊','🖐️','☝️','👇','👉','👈','🤲'],
+  '❤️': ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️'],
+  '🐾': ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦋','🐝'],
+  '🍕': ['🍎','🍌','🍕','🍔','🍟','🌭','🍿','🍩','🍪','🎂','🍰','🍫','🍭','☕','🍵','🥤','🍉','🍓','🍇','🥐'],
+  '⭐': ['✅','❌','⭐','🌟','🔥','💯','⚡','🎉','🎊','📌','📍','⏰','⏳','🎯','🎁','🏆','📢','📝','❗','❓'],
+  '🇹🇷': ['🇹🇷','🏫','📚','🎓','✏️','📖','🖊️','🚌','🏆','🎈','🎵','☀️','🌧️','❄️','🌈','🌙','⛄','🌸','🍀','🎄'],
+};
+let _mesajEmojiAktifKategori = '😊';
 
 function mesajEmojiPaneliAcKapat(){
   const panel = document.getElementById('mesajEmojiPaneli');
   if(!panel) return;
   if(panel.style.display === 'none' || !panel.style.display){
-    panel.innerHTML = MESAJ_EMOJI_LISTESI.map(e=>`<button type="button" class="mesaj-emoji-btn" onclick="mesajEmojiEkle('${e}')">${e}</button>`).join('');
-    panel.style.display = 'grid';
+    _mesajEmojiPaneliCiz();
+    panel.style.display = 'block';
   } else {
     panel.style.display = 'none';
   }
+}
+function _mesajEmojiPaneliCiz(){
+  const panel = document.getElementById('mesajEmojiPaneli');
+  if(!panel) return;
+  const sekmelerHtml = Object.keys(MESAJ_EMOJI_KATEGORILERI).map(k=>
+    `<button type="button" class="mesaj-emoji-sekme ${k===_mesajEmojiAktifKategori?'aktif':''}" onclick="mesajEmojiKategoriSec('${k}')">${k}</button>`
+  ).join('');
+  const emojilerHtml = MESAJ_EMOJI_KATEGORILERI[_mesajEmojiAktifKategori].map(e=>
+    `<button type="button" class="mesaj-emoji-btn" onclick="mesajEmojiEkle('${e}')">${e}</button>`
+  ).join('');
+  panel.innerHTML = `
+    <div class="mesaj-emoji-sekmeler">${sekmelerHtml}</div>
+    <div class="mesaj-emoji-grid">${emojilerHtml}</div>
+  `;
+}
+function mesajEmojiKategoriSec(kategori){
+  _mesajEmojiAktifKategori = kategori;
+  _mesajEmojiPaneliCiz();
 }
 function mesajEmojiEkle(emoji){
   const input = document.getElementById('mesajMetinInput');
   if(!input) return;
   input.value += emoji;
   input.focus();
+}
+
+/* ---------- Sohbet arka planı seçici ---------- */
+const MESAJ_ARKAPLAN_SECENEKLERI = {
+  varsayilan: { ad: 'Varsayılan', css: '' },
+  yesilDoku: { ad: 'Yeşil Doku', css: 'radial-gradient(circle at 20% 20%, rgba(37,140,110,.08) 0%, transparent 40%), radial-gradient(circle at 80% 60%, rgba(37,140,110,.08) 0%, transparent 40%)' },
+  gokyuzu: { ad: 'Gökyüzü', css: 'linear-gradient(180deg, rgba(135,206,250,.15) 0%, transparent 60%)' },
+  kum: { ad: 'Kum', css: 'linear-gradient(180deg, rgba(237,201,175,.18) 0%, transparent 60%)' },
+  lavanta: { ad: 'Lavanta', css: 'linear-gradient(180deg, rgba(190,170,230,.18) 0%, transparent 60%)' },
+  noktali: { ad: 'Noktalı', css: 'radial-gradient(circle, rgba(120,120,120,.15) 1px, transparent 1px)', boyut: '14px 14px' },
+};
+function _mesajArkaplanOku(){
+  try{ return localStorage.getItem('oyMesajArkaplan') || 'varsayilan'; }catch(e){ return 'varsayilan'; }
+}
+function _mesajArkaplanUygula(){
+  const kutu = document.getElementById('mesajAkisKutusu');
+  if(!kutu) return;
+  const secim = MESAJ_ARKAPLAN_SECENEKLERI[_mesajArkaplanOku()] || MESAJ_ARKAPLAN_SECENEKLERI.varsayilan;
+  kutu.style.backgroundImage = secim.css || '';
+  kutu.style.backgroundSize = secim.boyut || '';
+}
+function mesajArkaplanPaneliAc(){
+  const secenekler = Object.entries(MESAJ_ARKAPLAN_SECENEKLERI).map(([id, s])=>
+    `<button type="button" class="mesaj-arkaplan-secenek ${_mesajArkaplanOku()===id?'aktif':''}" onclick="mesajArkaplanSec('${id}')">
+      <span class="mesaj-arkaplan-onizleme" style="background-image:${s.css};background-size:${s.boyut||'auto'};"></span>
+      <span>${escapeHtml(s.ad)}</span>
+    </button>`
+  ).join('');
+  modalAc('🎨 Sohbet Arka Planı', `<div class="mesaj-arkaplan-liste">${secenekler}</div>`, null, null, null);
+  const kb = document.getElementById('modalKaydetBtn');
+  if(kb) kb.style.display = 'none';
+}
+function mesajArkaplanSec(id){
+  try{ localStorage.setItem('oyMesajArkaplan', id); }catch(e){}
+  _mesajArkaplanUygula();
+  modalKapat();
 }
 
 /* Bir dosya ekini balon içinde gösterir: resimse önizleme (tıklayınca
@@ -384,6 +474,8 @@ function _mesajPaneliTemizle(){
   document.getElementById('detayRaporBtn').style.display = '';
   const avatarEl = document.getElementById('detayAvatar');
   if(avatarEl){ avatarEl.style.display = 'none'; avatarEl.textContent = ''; }
+  const arkaplanBtn = document.getElementById('detayMesajArkaplanBtn');
+  if(arkaplanBtn) arkaplanBtn.style.display = 'none';
 }
 
 /* ---------- Yeni mesaj / yeni grup ---------- */
@@ -399,7 +491,7 @@ function yeniKonusmaModalAc(){
       <label>Kiminle mesajlaşmak istiyorsunuz?</label>
       <select id="f_mesajKisi" style="width:100%;">
         <option value="">Öğretmen seçiniz…</option>
-        ${secenekler.map(o=>`<option value="${o.id}" data-ad="${escapeHtml(o.ad+' '+o.soyad)}">${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}
+        ${secenekler.map(o=>`<option value="${o.id}" data-ad="${escapeHtml(o.ad+' '+o.soyad)}" data-foto="${escapeHtml(o.profilFotoUrl||'')}">${escapeHtml(o.ad+' '+o.soyad)}</option>`).join('')}
       </select>
     </div>
     <div style="font-size:12px;color:var(--ink-muted);margin-top:8px;">Not: Seçilen kişinin uygulamaya en az bir kez giriş yapmış olması gerekir.</div>
@@ -410,8 +502,9 @@ function yeniKonusmaModalAc(){
     const ogretmenId = sel.value;
     if(!ogretmenId){ toast('Bir kişi seçin.'); return; }
     const ad = sel.selectedOptions[0].dataset.ad;
+    const foto = sel.selectedOptions[0].dataset.foto;
     try{
-      const konusmaId = await MesajlasmaService.konusmaBaslatOgretmenIle(ogretmenId, ad, konusmalar);
+      const konusmaId = await MesajlasmaService.konusmaBaslatOgretmenIle(ogretmenId, ad, konusmalar, foto);
       modalKapat();
       setTimeout(()=>mesajKonusmaAc(konusmaId), 150);
     }catch(err){
@@ -434,7 +527,7 @@ function grupOlusturModalAc(){
       <label>Katılımcılar</label>
       <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px;">
         ${secenekler.map(o=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;">
-          <input type="checkbox" class="f_grupKatilimci" value="${o.id}" data-ad="${escapeHtml(o.ad+' '+o.soyad)}">
+          <input type="checkbox" class="f_grupKatilimci" value="${o.id}" data-ad="${escapeHtml(o.ad+' '+o.soyad)}" data-foto="${escapeHtml(o.profilFotoUrl||'')}">
           ${escapeHtml(o.ad+' '+o.soyad)}
         </label>`).join('')}
       </div>
@@ -448,7 +541,7 @@ function grupOlusturModalAc(){
     try{
       const uidCozumleri = await Promise.all(secililer.map(async cb=>{
         const uid = await MesajlasmaService._ogretmenUidBul(cb.value);
-        return uid ? { uid, ad: cb.dataset.ad } : null;
+        return uid ? { uid, ad: cb.dataset.ad, foto: cb.dataset.foto } : null;
       }));
       const gecerliler = uidCozumleri.filter(Boolean);
       const eksik = secililer.length - gecerliler.length;
