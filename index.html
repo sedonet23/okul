@@ -101,26 +101,66 @@
     </div>
     <nav class="nav">
       <button class="nav-tab active" data-tab="panel"><span class="nt-ico ni-panel">🏠</span><span class="nt-label">Genel Bakış</span></button>
-      <button class="nav-tab" data-tab="ogretmenler"><span class="nt-ico ni-ogretmen">👩‍🏫</span><span class="nt-label">Öğretmenler</span></button>
-      <button class="nav-tab" data-tab="siniflar"><span class="nt-ico ni-sinif">🏫</span><span class="nt-label">Sınıflar</span></button>
-      <button class="nav-tab" data-tab="ogrenciler"><span class="nt-ico">👨‍🎓</span><span class="nt-label">Öğrenciler</span></button>
       <button class="nav-tab" data-tab="arama"><span class="nt-ico">🔍</span><span class="nt-label">Arama</span></button>
-      <button class="nav-tab" data-tab="dersProgrami"><span class="nt-ico ni-ders">📚</span><span class="nt-label">Ders Programı</span></button>
-      <button class="nav-tab" data-tab="nobet"><span class="nt-ico ni-nobet">🛡️</span><span class="nt-label">Nöbet Programı</span></button>
-      <button class="nav-tab" data-tab="takvim"><span class="nt-ico ni-takvim">📅</span><span class="nt-label">Takvim</span></button>
-      <button class="nav-tab" data-tab="evrak"><span class="nt-ico ni-evrak">📋</span><span class="nt-label">Evrak Takibi</span></button>
-      <button class="nav-tab" data-tab="notlar"><span class="nt-ico ni-notlar">📝</span><span class="nt-label">Notlar</span></button>
-      <button class="nav-tab" data-tab="mesajlasma"><span class="nt-ico">💬</span><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
-      <button class="nav-tab" data-tab="tasima"><span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Taşıma</span></button>
-      <button class="nav-tab" data-tab="personel"><span class="nt-ico ni-ogretmen">🧑‍💼</span><span class="nt-label">Personel İşleri</span></button>
-      <button class="nav-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
-      <button class="nav-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
-      <button class="nav-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
-      <button class="nav-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
-      <button class="nav-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
-      <button class="nav-tab" data-tab="mevzuat"><span class="nt-ico">⚖️</span><span class="nt-label">Mevzuat</span></button>
-      
-      <div class="nav-separator">— Çizelgeler —</div>
+
+      <div class="nav-separator" id="ayiracKisiler">— Kişiler —</div>
+      <input type="checkbox" id="kisilerCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="kisilerCheck">
+        <span class="nt-ico ni-ogretmen">👥</span><span class="nt-label">Kişiler</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="kisilerMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><span class="nt-ico ni-ogretmen">👩‍🏫</span><span class="nt-label">Öğretmenler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="siniflar"><span class="nt-ico ni-sinif">🏫</span><span class="nt-label">Sınıflar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><span class="nt-ico">👨‍🎓</span><span class="nt-label">Öğrenciler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="personel"><span class="nt-ico ni-ogretmen">🧑‍💼</span><span class="nt-label">Personel İşleri</span></button>
+      </div>
+
+      <div class="nav-separator" id="ayiracProgram">— Program —</div>
+      <input type="checkbox" id="programCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="programCheck">
+        <span class="nt-ico ni-ders">📚</span><span class="nt-label">Program</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="programMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><span class="nt-ico ni-ders">📚</span><span class="nt-label">Ders Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="nobet"><span class="nt-ico ni-nobet">🛡️</span><span class="nt-label">Nöbet Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="takvim"><span class="nt-ico ni-takvim">📅</span><span class="nt-label">Takvim</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
+      </div>
+
+      <div class="nav-separator" id="ayiracIletisim">— İletişim —</div>
+      <input type="checkbox" id="iletisimCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="iletisimCheck">
+        <span class="nt-ico">💬</span><span class="nt-label">İletişim</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="iletisimMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="mesajlasma"><span class="nt-ico">💬</span><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
+      </div>
+
+      <div class="nav-separator" id="ayiracBelgeler">— Belgeler —</div>
+      <input type="checkbox" id="belgelerCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="belgelerCheck">
+        <span class="nt-ico ni-evrak">📋</span><span class="nt-label">Belgeler</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="belgelerMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="evrak"><span class="nt-ico ni-evrak">📋</span><span class="nt-label">Evrak Takibi</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="notlar"><span class="nt-ico ni-notlar">📝</span><span class="nt-label">Notlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><span class="nt-ico">⚖️</span><span class="nt-label">Mevzuat</span></button>
+      </div>
+
+      <div class="nav-separator" id="ayiracUlasim">— Ulaşım —</div>
+      <input type="checkbox" id="ulasimCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="ulasimCheck">
+        <span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Ulaşım</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="ulasimMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="tasima"><span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Taşıma</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
+      </div>
+
+      <div class="nav-separator" id="ayiracCizelgeler">— Çizelgeler —</div>
       
       <!-- Açılır menü: Çizelgeler (saf CSS ile çalışır, JS'e bağımlı değildir) -->
       <input type="checkbox" id="cizelgelerCheck" class="nav-group-check" hidden>
