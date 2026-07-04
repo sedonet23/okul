@@ -82,7 +82,7 @@ jobs:
       - name: Release APK derle
         working-directory: android
         env:
-          KEYSTORE_PATH: app/koruk-okul.jks
+          KEYSTORE_PATH: koruk-okul.jks
           KEYSTORE_PASSWORD: ${{ env.KEYSTORE_SIFRE_TEMIZ }}
           KEY_ALIAS: koruk
           KEY_PASSWORD: ${{ env.KEYSTORE_SIFRE_TEMIZ }}
