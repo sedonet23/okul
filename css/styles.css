@@ -3174,3 +3174,23 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   font-size:12.5px; padding:0 6px; color:#3c4043;
 }
 .zed-ayrac{ width:1px; height:22px; background:#dadce0; margin:0 4px; }
+
+/* =========================================================================
+   MAAŞ DEĞİŞİKLİĞİ BİLDİRİM FORMU — veri girişi paneli
+   (bkz. js/maas-degisiklik.js)
+   ========================================================================= */
+.mdf-bolum{ margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #e0e0e0; }
+.mdf-bolum-baslik{ font-weight:700; font-size:13.5px; color:#1b5e20; margin-bottom:8px; }
+.mdf-satir{ display:flex; gap:6px; margin-bottom:6px; align-items:center; }
+.mdf-satir select, .mdf-satir input{
+  padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:12.5px;
+}
+.mdf-satir-sil{
+  border:none; background:#fdecea; color:#c0392b; border-radius:6px;
+  width:26px; height:26px; flex-shrink:0; cursor:pointer; font-size:13px;
+}
+.mdf-mini-etiket{
+  display:flex; flex-direction:column; gap:3px; font-size:11px; font-weight:700;
+  color:#555; flex:1 1 140px;
+}
+.mdf-mini-etiket input{ padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-size:13px; font-weight:400; }
