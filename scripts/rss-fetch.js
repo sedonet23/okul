@@ -219,8 +219,12 @@ async function bildirimGonder(db, yeniHaberler){
     try{
       const res = await admin.messaging().sendEachForMulticast({
         tokens: hedefTokenler,
-        notification: { title: baslik, body: govde },
-        data: { kategori: kat, tip: 'haber' }
+        // DÜZELTME: 'notification' alanı kaldırıldı (bkz. check-and-notify.js
+        // ile aynı sebep — arka planda Android'in kendi otomatik gösterimini
+        // tetikleyip özel okul logosunu atlıyordu). Ayrıca 'baslik'/'icerik'
+        // alanları hiç gönderilmiyordu — OkulFirebaseMessagingService.java
+        // bunları okuyor, eksik olunca bildirim boş/varsayılan çıkıyordu.
+        data: { kategori: 'genel', baslik, icerik: govde }
       });
       res.responses.forEach((r, i) => {
         if(!r.success){
