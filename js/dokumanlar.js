@@ -102,6 +102,7 @@ function dokumanSatirHtml(d) {
   // Kimin eklediği sadece admin için (veya "herkese açık" değilse zaten sahibi görüyordur) anlamlı — admin'e göster.
   const ekleyenGoster = (typeof AKTIF_KULLANICI!=='undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin && d.olusturanAdi)
     ? ` · 👤 ${escapeHtml(d.olusturanAdi)}` : '';
+  const silinebilirMi = typeof DokumanlarService !== 'undefined' && DokumanlarService.dokumanSilinebilirMi(d);
 
   return `
     <div class="evrak-row">
@@ -118,7 +119,7 @@ function dokumanSatirHtml(d) {
       <div style="display:flex;gap:4px;flex-shrink:0;">
         <button class="btn btn-ghost btn-sm" onclick="dokumanAc('${d.id}')" title="Aç">👁</button>
         <button class="btn btn-ghost btn-sm" onclick="dokumanIndir('${d.id}')" title="İndir">⬇</button>
-        <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="dokumanSilOnay('${d.id}', '${escapeHtml(d.ad||'')}')">🗑</button>
+        ${silinebilirMi ? `<button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="dokumanSilOnay('${d.id}', '${escapeHtml(d.ad||'')}')">🗑</button>` : ''}
       </div>
     </div>`;
 }
@@ -285,9 +286,10 @@ function dokumanSilOnay(id, ad) {
 async function dokumanSil(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   try {
-    await DokumanlarService.dokumanSil(id, d?.storagePath);
+    await DokumanlarService.dokumanSil(id, d?.storagePath, d);
     toast('Döküman silindi.');
   } catch (e) {
+    if (e.message === 'sahip-degil') { toast('Bu dökümanı sadece ekleyen kişi veya yönetici silebilir.'); return; }
     toast('Silme hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
   }
 }
