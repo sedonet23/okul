@@ -462,7 +462,7 @@ let haritaFavoriMarkerlar = {};  // id → L.Marker
 /* ---------- Firestore bağlantısı ---------- */
 function haritaFavorilerBaglantisiKur() {
   HaritaRepository.favorileriDinle(v => {
-    haritaFavoriler = v;
+    haritaFavoriler = HaritaService.gorunurFavoriler(v);
     renderHaritaFavoriler();
     haritaFavoriMarkerlariGuncelle();
   });
@@ -550,13 +550,14 @@ async function haritaFavoriSil(id) {
   const f = haritaFavoriler.find(x => x.id === id);
   if (!confirm(`"${f?.ad || 'Bu konum'}" favorilerden silinsin mi?`)) return;
   try {
-    await HaritaService.favoriSil(id);
+    await HaritaService.favoriSil(id, f);
     if (haritaFavoriMarkerlar[id]) {
       haritaOrnek.removeLayer(haritaFavoriMarkerlar[id]);
       delete haritaFavoriMarkerlar[id];
     }
     toast('Favori silindi.');
   } catch (e) {
+    if(e.message === 'sahip-degil') { toast('Bu favoriyi sadece ekleyen kişi veya admin silebilir.'); return; }
     toast(e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : 'Hata: ' + e.message);
   }
 }
