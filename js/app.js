@@ -1034,6 +1034,8 @@ function renderDashboard(){
   tatilModuKartlariniUygula();
   if(typeof renderOgretmenOzelKartlar === 'function') renderOgretmenOzelKartlar();
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
+  if(typeof _dashboardYeniWidgetleriDoldur === 'function') _dashboardYeniWidgetleriDoldur();
+  if(typeof dashboardOzellestirmeUygula === 'function') dashboardOzellestirmeUygula();
 }
 
 function tatilModuKartlariniUygula(){
