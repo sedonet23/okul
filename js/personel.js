@@ -103,6 +103,7 @@ function personelDetayAc(id){
   if (typeof renderPersonelIzinListesi === 'function') renderPersonelIzinListesi(id);
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
   if(typeof saltOkumaDetayUygula === 'function') saltOkumaDetayUygula('personel');
 }
 

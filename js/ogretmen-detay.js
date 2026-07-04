@@ -16,6 +16,7 @@ function detayPanelKapat(){
   document.body.classList.remove('modal-open');
   detaySinifId = null;
   if(typeof _mesajPaneliTemizle === 'function') _mesajPaneliTemizle();
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
 }
 
 function ogretmenDetayAc(id){
@@ -225,6 +226,7 @@ function ogretmenDetayAc(id){
   `;
 
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
   if(typeof saltOkumaDetayUygula === 'function') saltOkumaDetayUygula('ogretmenler');
   if(typeof detayPanelYetkiUygula === 'function') detayPanelYetkiUygula(id);
   if(hassasGorebilir && typeof renderOgretmenIzinBolumu === 'function') renderOgretmenIzinBolumu(id);

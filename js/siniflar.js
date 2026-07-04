@@ -139,6 +139,7 @@ function sinifDetayAc(id){
 
   /* ← PANEL AÇMA — bu satır eksikti */
   document.getElementById('detayOverlay').classList.add('active'); document.body.classList.add('modal-open');
+  if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
   if(typeof saltOkumaDetayUygula === 'function') saltOkumaDetayUygula('siniflar');
 }
 

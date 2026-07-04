@@ -531,6 +531,19 @@ function kisiselKayitGorunurMu(k){
 function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message); }
 
 /* ---------- modal ---------- */
+/* Native (APK) ortamda modal/detay paneli açıkken "aşağı çekince yenile"
+   jestini geçici olarak kapatır — aksi halde modal içindeki bir listeyi
+   aşağı kaydırmaya çalışırken bazen sayfa yenileme jesti araya giriyordu
+   (bkz. android/.../PullToRefreshPlugin.java). Web sürümünde etkisizdir. */
+function _pullToRefreshAyarla(enabled){
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+       && window.Capacitor.Plugins && window.Capacitor.Plugins.PullToRefreshPlugin){
+      window.Capacitor.Plugins.PullToRefreshPlugin.setEnabled({ enabled });
+    }
+  }catch(e){}
+}
+
 function modalAc(title, bodyHtml, kaydetFn, silFn, kaydetBtnMetni){
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = bodyHtml;
@@ -546,10 +559,12 @@ function modalAc(title, bodyHtml, kaydetFn, silFn, kaydetBtnMetni){
   } : null;
   document.getElementById('modalOverlay').classList.add('active');
   document.body.classList.add('modal-open');
+  _pullToRefreshAyarla(false);
 }
 function modalKapat(){
   document.getElementById('modalOverlay').classList.remove('active');
   document.body.classList.remove('modal-open');
+  _pullToRefreshAyarla(true);
 }
 
 /* ============== ÖĞRETMENLER ============== */
