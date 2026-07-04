@@ -173,6 +173,11 @@ function _mesajBasligiGuncelle(k){
   const baslik = k.grupMu ? (k.grupAdi || 'Grup') : Object.entries(k.katilimciAdlari||{}).find(([uid])=>uid!==ben)?.[1] || 'Kullanıcı';
   document.getElementById('detayBaslik').textContent = baslik;
   document.getElementById('detayAltBaslik').textContent = k.grupMu ? `${(k.katilimciUidler||[]).length} kişi` : '';
+  const avatarEl = document.getElementById('detayAvatar');
+  if(avatarEl){
+    avatarEl.style.display = 'flex';
+    avatarEl.textContent = k.grupMu ? '👥' : (baslik[0]||'?').toUpperCase();
+  }
 }
 
 /* Bir konuşmada, mevcut kullanıcının kendi mesajlarının "okundu" sayılıp
@@ -238,11 +243,11 @@ function _mesajlariRenderEt(){
 
     const icerikHtml = m.dosya
       ? _dosyaBalonuHtml(m.dosya, kendisiMi)
-      : `<div class="mesaj-balon-govde ${yonSinifi} ${grupSinifi}" style="max-width:78%;display:inline-block;">${escapeHtml(m.metin)}</div>`;
+      : `<div class="mesaj-balon-govde ${yonSinifi} ${grupSinifi}">${escapeHtml(m.metin)}</div>`;
 
-    akisHtml += `<div style="display:flex;flex-direction:column;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:${oncekiAyniGrup?'2px':'10px'};">
+    akisHtml += `<div style="display:flex;flex-direction:column;width:100%;align-items:${kendisiMi?'flex-end':'flex-start'};margin-bottom:${oncekiAyniGrup?'2px':'10px'};">
       ${(!kendisiMi && !oncekiAyniGrup) ? `<div class="mesaj-gonderen-adi" style="color:var(--brand);margin-left:4px;">${escapeHtml(m.gonderenAdi||'')}</div>` : ''}
-      <div style="display:flex;align-items:center;gap:6px;max-width:100%;">
+      <div style="display:flex;align-items:center;gap:6px;max-width:78%;">
         ${(kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
         ${icerikHtml}
         ${(!kendisiMi && silinebilirMi) ? `<button class="btn-mesaj-sil" title="Mesajı sil" onclick="mesajTekSil('${m.id}')">🗑️</button>` : ''}
@@ -258,7 +263,9 @@ function _mesajlariRenderEt(){
     <div id="mesajYuklemeDurumu" style="display:none;font-size:12px;color:var(--ink-muted);margin-top:6px;"></div>
     <div style="position:sticky;bottom:0;background:var(--bg-card);padding-top:10px;margin-top:10px;">
       <input type="file" id="mesajDosyaInput" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" style="display:none;" onchange="mesajDosyaSecildi(this.files[0]); this.value='';">
+      <div id="mesajEmojiPaneli" class="mesaj-emoji-paneli" style="display:none;"></div>
       <div class="mesaj-giris-satiri">
+        <button class="mesaj-ek-btn" title="Emoji" onclick="mesajEmojiPaneliAcKapat()">😊</button>
         <button class="mesaj-ek-btn" title="Dosya ekle" onclick="document.getElementById('mesajDosyaInput').click()">📎</button>
         <input id="mesajMetinInput" placeholder="Mesaj yazın…" onkeydown="if(event.key==='Enter'){mesajGonderTikla();}">
         <button class="mesaj-gonder-btn" onclick="mesajGonderTikla()" title="Gönder">➤</button>
@@ -266,6 +273,26 @@ function _mesajlariRenderEt(){
     </div>`;
   const kutu = document.getElementById('mesajAkisKutusu');
   if(kutu) kutu.scrollIntoView({block:'end'});
+}
+
+/* ---------- Basit emoji seçici (harici kütüphane gerekmez) ---------- */
+const MESAJ_EMOJI_LISTESI = ['😀','😂','🥰','😍','😊','🙂','😉','😢','😭','😡','👍','👎','🙏','👏','💪','❤️','🎉','🔥','✅','❌','⏰','📌','📚','🏫','🚌','📢','🎂','☀️','🌧️','⭐'];
+
+function mesajEmojiPaneliAcKapat(){
+  const panel = document.getElementById('mesajEmojiPaneli');
+  if(!panel) return;
+  if(panel.style.display === 'none' || !panel.style.display){
+    panel.innerHTML = MESAJ_EMOJI_LISTESI.map(e=>`<button type="button" class="mesaj-emoji-btn" onclick="mesajEmojiEkle('${e}')">${e}</button>`).join('');
+    panel.style.display = 'grid';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+function mesajEmojiEkle(emoji){
+  const input = document.getElementById('mesajMetinInput');
+  if(!input) return;
+  input.value += emoji;
+  input.focus();
 }
 
 /* Bir dosya ekini balon içinde gösterir: resimse önizleme (tıklayınca
@@ -355,6 +382,8 @@ function _mesajPaneliTemizle(){
   _aktifKonusmaId = null;
   document.getElementById('detayDuzenleBtn').style.display = '';
   document.getElementById('detayRaporBtn').style.display = '';
+  const avatarEl = document.getElementById('detayAvatar');
+  if(avatarEl){ avatarEl.style.display = 'none'; avatarEl.textContent = ''; }
 }
 
 /* ---------- Yeni mesaj / yeni grup ---------- */
