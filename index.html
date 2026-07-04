@@ -55,11 +55,20 @@
   <div class="config-box" style="text-align:center;">
     <img src="assets/icon-192.png" alt="Logo" style="width:64px;height:64px;border-radius:16px;margin-bottom:14px;">
     <h2>Koruk İlk-Ortaokulu Yönetim Paneli</h2>
-    <p>Devam etmek için okul Google hesabınızla giriş yapın.</p>
-    <button onclick="googleIleGirisYap()" style="margin-top:16px;display:inline-flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:600;font-size:14px;color:#3c4043;">
-      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.6 6.5 29 4.5 24 4.5 12.9 4.5 4 13.4 4 24.5S12.9 44.5 24 44.5c11 0 20-8.9 20-19.9 0-1.4-.1-2.4-.4-3.6z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.5 18.9 12.5 24 12.5c2.8 0 5.3 1 7.3 2.7l5.7-5.7C33.6 6.5 29 4.5 24 4.5c-7.7 0-14.3 4.4-17.7 10.2z"/><path fill="#4CAF50" d="M24 44.5c5.2 0 9.8-1.8 13.4-4.9l-6.2-5.3c-2 1.4-4.6 2.2-7.2 2.2-5.3 0-9.7-3.4-11.3-8.1l-6.5 5c3.3 6.6 10.2 11.1 17.8 11.1z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.4-2.4 4.4-4.4 5.8l6.2 5.3C40.5 36.3 44 30.9 44 24.5c0-1.4-.1-2.4-.4-4z"/></svg>
-      Google ile Giriş Yap
-    </button>
+    <p>Devam etmek için kullanıcı adı ve şifrenizle giriş yapın.</p>
+    <form onsubmit="girisFormGonder(event)" style="margin-top:16px;display:flex;flex-direction:column;gap:10px;text-align:left;">
+      <div class="form-group" style="margin:0;">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="girisKullaniciAdi" autocomplete="username" autocapitalize="none" style="width:100%;" required>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Şifre</label>
+        <input type="password" id="girisSifre" autocomplete="current-password" style="width:100%;" required>
+      </div>
+      <div id="girisHataMetni" style="display:none;color:#c0392b;font-size:12.5px;"></div>
+      <button type="submit" id="girisBtn" class="btn btn-amber" style="margin-top:6px;">Giriş Yap</button>
+    </form>
+    <p style="margin-top:14px;font-size:12px;color:var(--ink-muted);">Kullanıcı adınızı unuttuysanız veya şifrenizi sıfırlatmanız gerekiyorsa okul yöneticinizle iletişime geçin.</p>
   </div>
 </div>
 
@@ -1030,6 +1039,22 @@
       <!-- YENİ: Anasayfa Düzenleme -->
       <div class="accordion-item" style="margin-bottom:18px;">
         <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🔑 Şifremi Değiştir</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <label>Mevcut Şifre</label>
+          <input type="password" id="fSpMevcutSifre" autocomplete="current-password">
+          <label>Yeni Şifre <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(en az 6 karakter)</span></label>
+          <input type="password" id="fSpYeniSifre" autocomplete="new-password">
+          <label>Yeni Şifre (Tekrar)</label>
+          <input type="password" id="fSpYeniSifreTekrar" autocomplete="new-password">
+          <button class="btn btn-amber" style="margin-top:12px;" onclick="sifremiDegistirTikla()">Şifremi Değiştir</button>
+        </div>
+      </div>
+
+      <!-- YENİ: Anasayfa Düzenleme -->
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
           <span>🏠 Anasayfa Düzeni</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content open">
@@ -1153,6 +1178,7 @@
 
       <!-- Kullanıcılar bölümü -->
       <div id="ky-bolum-kullanicilar" style="display:none;">
+        <button class="btn btn-amber" style="margin-bottom:14px;" onclick="yeniKullaniciModalAc()">➕ Yeni Kullanıcı Oluştur</button>
         <div id="kullaniciYonetimListesi"></div>
       </div>
     </section>
