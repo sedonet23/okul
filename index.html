@@ -157,7 +157,7 @@
     <main class="content">
 
     <section id="tab-panel" class="tab-panel active dash-modern">
-      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div><div class="page-header-actions"><button class="btn btn-ghost btn-sm" onclick="dashboardOzellestirModalAc()">⚙️ Anasayfayı Düzenle</button></div></div>
+      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div></div>
 
       <!-- 1. HERO KARTI: Karşılama + tarih + zil sayacı + hava özeti (birleşik, tıklanınca detay açılır) -->
       <div class="card dash-hero">
@@ -194,11 +194,17 @@
       </div>
 
       <!-- 3. İstatistik kartları (Personel / Öğrenci / Servis / Bekleyen Evrak) — dashStats id'si ile JS'ten geliyor, her kart kendi gorebilir() kontrolüyle üretiliyor -->
-      <div class="dash-stat-strip" id="dashStats" data-kart-id="istatistikSeridi"></div>
+      <div data-kart-id="istatistikSeridi">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 6px;">
+          <span style="font-size:12px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.4px;">İstatistikler</span>
+          <button class="btn btn-ghost btn-sm" onclick="dashboardAltDuzenModalAc('istatistikSeridi')" title="Düzenle">✏️</button>
+        </div>
+        <div class="dash-stat-strip" id="dashStats"></div>
+      </div>
 
       <!-- YENİ: Hızlı Bakış — ikincil özet rozetleri (Sınıf, Kadın/Erkek, Açık Görev, Hatırlatıcı) — chip'ler kendi gorebilir() kontrolüyle üretiliyor -->
       <div class="card dash-hizlibakis-card" data-kart-id="hizliBakis">
-        <h3>👁️ Hızlı Bakış</h3>
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">👁️ Hızlı Bakış <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); dashboardAltDuzenModalAc('hizliBakis')" title="Düzenle">✏️</button></h3>
         <div class="dash-hizlibakis" id="dashHizliBakis"></div>
       </div>
 
@@ -213,17 +219,8 @@
 
       <!-- 4. Hızlı İşlemler — 2x4 grid, M3 tarzı renkli ikon rozetleri, gerçek sekmelere bağlı -->
       <div class="card" data-kart-id="hizliIslemler">
-        <h3>⚡ Hızlı İşlemler</h3>
-        <div class="qa-grid">
-          <div class="qa-item" data-yetki-modul="personel" onclick="sekmeAc('personel');"><div class="qa-icon qa-personel">👥</div><div class="qa-label">Personel</div></div>
-          <div class="qa-item" data-yetki-modul="nobet" onclick="sekmeAc('nobet');"><div class="qa-icon qa-nobet">🛡️</div><div class="qa-label">Nöbet</div></div>
-          <div class="qa-item" data-yetki-modul="tasima" onclick="sekmeAc('tasima');"><div class="qa-icon qa-evrak">🚌</div><div class="qa-label">Servis</div></div>
-          <div class="qa-item" data-yetki-modul="evrak" onclick="sekmeAc('evrak'); evrakModalAc();"><div class="qa-icon qa-gorev">📄</div><div class="qa-label">Evrak</div></div>
-          <div class="qa-item" data-yetki-modul="dokumanlar" onclick="sekmeAc('dokumanlar');"><div class="qa-icon qa-rapor">📊</div><div class="qa-label">Raporlar</div></div>
-          <div class="qa-item" data-yetki-modul="takvim" onclick="sekmeAc('takvim');"><div class="qa-icon qa-takvim">📅</div><div class="qa-label">Takvim</div></div>
-          <div class="qa-item" data-yetki-modul="notlar" onclick="notlarModalAc();"><div class="qa-icon qa-not">📝</div><div class="qa-label">Notlar</div></div>
-          <div class="qa-item" data-yetki-modul="sosyalKulupler" onclick="sekmeAc('sosyalKulupler');"><div class="qa-icon qa-daha">⋯</div><div class="qa-label">Çizelgeler</div></div>
-        </div>
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">⚡ Hızlı İşlemler <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); dashboardAltDuzenModalAc('hizliIslemler')" title="Düzenle">✏️</button></h3>
+        <div class="qa-grid" id="hizliIslemlerGrid"></div>
       </div>
 
       <!-- 5. Günün Nöbetçileri -->
@@ -1029,6 +1026,19 @@
 
 <section id="tab-ayarlar" class="tab-panel">
       <div class="page-header"><div><div class="page-title">Ayarlar</div><div class="page-sub">Bildirimler, tema, içe/dışa aktarma</div></div></div>
+
+      <!-- YENİ: Anasayfa Düzenleme -->
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🏠 Anasayfa Düzeni</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content open">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+            Anasayfada hangi kartların, hangi sırada görüneceğini seçin. Bu tercih sadece bu cihazda geçerlidir.
+          </p>
+          <button class="btn btn-amber" onclick="dashboardOzellestirModalAc()">⚙️ Anasayfa Kartlarını Düzenle</button>
+        </div>
+      </div>
 
       <!-- YENİ: Tema paketi seçimi -->
       <div class="accordion-item" style="margin-bottom:18px;">
