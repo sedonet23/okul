@@ -5,6 +5,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -69,6 +71,7 @@ public class OkulFirebaseMessagingService extends FirebaseMessagingService {
         Uri sesUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, kanal)
             .setSmallIcon(R.drawable.ic_notification)
+            .setLargeIcon(okulLogosuBitmapAl())
             .setContentTitle(baslik)
             .setContentText(icerik)
             .setStyle(new NotificationCompat.BigTextStyle().bigText(icerik))
@@ -85,6 +88,20 @@ public class OkulFirebaseMessagingService extends FirebaseMessagingService {
     public void onNewToken(String token) {
         // Token yenilenince uygulamaya bildir (JS tarafı dinleyebilir)
         super.onNewToken(token);
+    }
+
+    /* Bildirimde tam renkli okul logosunu "büyük ikon" olarak göstermek
+       için uygulama simgesini (ic_launcher_round) bitmap olarak yükler.
+       Küçük ikon (setSmallIcon) Android kuralı gereği tek renkli bir
+       silüet olmak ZORUNDA — tam renkli logo ancak büyük ikon olarak
+       gösterilebilir. Yükleme başarısız olursa null döner (güvenli, o
+       zaman bildirim büyük ikon olmadan gösterilir). */
+    private Bitmap okulLogosuBitmapAl() {
+        try {
+            return BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher_round);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void kanalOlustur(String id, String ad, int onem) {
