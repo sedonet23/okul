@@ -2,6 +2,6 @@
 <!-- YENİ: Otomatik güncelleme için indirilen APK'nın (cache klasörüne
      yazılıyor) FileProvider ile content:// URI olarak paylaşılabilmesi
      için gerekli yol tanımı. (bkz. UpdatePlugin.java, AndroidManifest.xml) -->
-<paths xmlns:android="http://schemas.android.com/apk/res-android">
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="guncellemeler" path="." />
 </paths>
