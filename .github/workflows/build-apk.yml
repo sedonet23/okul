@@ -9,6 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
 
     steps:
       - name: Kodu çek
@@ -37,6 +39,10 @@ jobs:
           cp -r assets www/ 2>/dev/null || true
           cp manifest.json www/ 2>/dev/null || true
           cp firebase-messaging-sw.js www/ 2>/dev/null || true
+
+      - name: Sürüm numarasını göm (uygulama içi güncelleme kontrolü için)
+        run: |
+          echo "{\"kod\": ${{ github.run_number }}}" > www/version.json
 
       - name: google-services.json oluştur
         env:
@@ -94,3 +100,13 @@ jobs:
           name: koruk-okul-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 90
+
+      - name: GitHub Release oluştur (uygulama içi güncelleme kontrolü bunu kullanır)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Sürüm ${{ github.run_number }}"
+          files: android/app/build/outputs/apk/release/app-release.apk
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
