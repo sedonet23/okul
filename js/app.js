@@ -1747,6 +1747,49 @@ function uygulamaBaslat(){
     pushOnMessageDinleyiciKur();
   }, 1000);
   setInterval(()=>{ renderZilSayaci(GUNADI[new Date().getDay()]); }, 30000);
+  setTimeout(guncellemeKontrolEt, 3000);
+}
+
+/* ====================================================================
+   YENİ: Uygulama İçi Otomatik Güncelleme (SADECE native/APK ortamında)
+   ----------------------------------------------------------------
+   Bu APK, Google Play üzerinden değil doğrudan dosya olarak dağıtıldığı
+   için Play Store'un otomatik güncelleme sistemi yok. Bunun yerine:
+   1) Bu APK'nın KENDİ İÇİNE gömülü sürüm numarası (version.json, build
+      sırasında yazılır — bkz. .github/workflows/build-apk.yml) okunur.
+   2) GitHub'daki EN SON Release'in sürüm numarasıyla karşılaştırılır
+      (bu her zaman canlı/güncel bilgi verir, APK'nın kendisi eski olsa
+      bile bu kontrol kodu her çalıştığında GitHub'a soruyor).
+   3) Daha yeni bir sürüm varsa, kullanıcıya sorup onaylarsa APK'yı arka
+      planda indirip (bkz. android/.../UpdatePlugin.java) kurulum
+      ekranını otomatik açar — kullanıcı sadece son "Yükle" onayını verir.
+   ==================================================================== */
+const GUNCELLEME_REPO = 'sedonet23/okul';
+
+async function guncellemeKontrolEt(){
+  const nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if(!nativeMi) return; // web sürümü zaten kendiliğinden güncelleniyor (service worker)
+
+  try{
+    const yerelRes = await fetch('version.json');
+    const yerel = await yerelRes.json();
+
+    const sonRes = await fetch(`https://api.github.com/repos/${GUNCELLEME_REPO}/releases/latest`);
+    if(!sonRes.ok) return; // sessizce vazgeç — internet yok / API limiti vb.
+    const son = await sonRes.json();
+    const sonKod = parseInt(String(son.tag_name || '').replace(/[^0-9]/g,''), 10);
+    if(!sonKod || sonKod <= yerel.kod) return; // güncel
+
+    const apkAsset = (son.assets || []).find(a => (a.name||'').endsWith('.apk'));
+    if(!apkAsset) return;
+
+    if(!confirm(`Yeni bir sürüm mevcut (v${sonKod}). Şimdi indirip kurmak ister misiniz?`)) return;
+
+    toast('Güncelleme indiriliyor, birazdan kurulum ekranı açılacak…');
+    await window.Capacitor.Plugins.UpdatePlugin.indirVeKur({ url: apkAsset.browser_download_url });
+  }catch(e){
+    console.warn('Güncelleme kontrolü başarısız (sessizce atlandı):', e);
+  }
 }
 
 /* ================================================================
