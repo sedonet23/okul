@@ -2,24 +2,23 @@
    js/core/services/dokumanlar.service.js
    DÖKÜMANLAR MODÜLÜ — YETKİ KONTROLÜ + GÖRÜNÜRLÜK KURALI
 
-   - Her yazma işleminden önce duzenleyebilir('dokumanlar') kontrolü yapar.
+   DÜZELTME (v4) — yetki modeli netleştirildi:
+   - EKLEME: 'dokumanlar' modülünü GÖREBİLEN (Görüntüle veya Düzenle,
+     Gizle değil) HERKES kendi kişisel dökümanını ekleyebilir. Bu artık
+     "Düzenle" seviyesine bağlı DEĞİL — aksi halde "Görüntüle" yetkili
+     bir öğretmen kendi dökümanını bile ekleyemiyordu.
+   - SİLME: SADECE admin veya dökümanı ekleyen kişi silebilir — bu da
+     genel modül yetki seviyesinden (Görüntüle/Düzenle) TAMAMEN BAĞIMSIZ.
+     Önceden "Düzenle" yetkisi tek başına yeterliydi, bu da "Düzenle"
+     yetkili herhangi bir öğretmenin ADMİN'İN dökümanını bile
+     silebilmesine sebep oluyordu.
+   - GÖRÜNÜRLÜK: 'herkes' (okulda herkes görür) sadece ADMİN seçebilir;
+     öğretmen her zaman 'kisisel' (sadece kendisi + admin) ekler.
    - db değişkenine DOĞRUDAN dokunmaz — sadece DokumanlarRepository çağırır.
-   - DÜZELTME (v3): Dökümanlara görünürlük eklendi —
-       'herkes'  : okulda herkes görür (admin + tüm öğretmenler)
-       'kisisel' : sadece EKLEYEN kişi + admin görür
-     Admin olmayan (öğretmen) kullanıcılar SADECE 'kisisel' döküman
-     ekleyebilir — 'herkes' seçeneği formda bile gösterilmez, ama arka
-     planda da (burada) zorlanır; UI'daki seçim asla tek başına yeterli
-     güvence değildir. Admin her iki türü de ekleyebilir.
    (bkz. Pragmatik-Mimari-Tasarimi.md §2, §5)
    ================================================================ */
 
 const DokumanlarService = {
-
-  _yetkiKontrol(){
-    if(!duzenleyebilir('dokumanlar')){ toast('Bu işlem için yetkiniz yok.'); return false; }
-    return true;
-  },
 
   _kendiKimlik(){
     const kimlik = (typeof _hesapKimligi === 'function') ? _hesapKimligi() : { ad: '' };
@@ -46,9 +45,8 @@ const DokumanlarService = {
 
   /* Bir dökümanı mevcut kullanıcının silip silemeyeceğini belirler:
      admin her zaman silebilir; değilse SADECE dökümanı ekleyen kişi
-     silebilir. DÜZELTME: Önceden sadece genel 'dokumanlar' düzenleme
-     yetkisi yeterliydi — bu da "Düzenle" yetkili herhangi bir öğretmenin
-     ADMİN'İN eklediği dökümanı bile silebilmesine sebep oluyordu. */
+     silebilir. Genel modül yetki seviyesinden (Görüntüle/Düzenle)
+     bağımsızdır — bkz. dosya başındaki not. */
   dokumanSilinebilirMi(d){
     const ben = this._kendiKimlik();
     if(ben.adminMi) return true;
@@ -59,11 +57,14 @@ const DokumanlarService = {
      ilerlemeCb(yuzde) yükleme sırasında UI'ı güncellemek için çağrılır.
      hariciUrl verilirse (Google Drive vb.) dosya yüklemesi atlanır. */
   async dokumanEkle(metaTaban, dosya, ilerlemeCb){
-    if(!this._yetkiKontrol()) throw new Error('yetkisiz');
+    // DÜZELTME: Artık duzenleyebilir('dokumanlar') DEĞİL, gorebilir(...)
+    // kontrol ediliyor — modülü görebilen (Görüntüle dahil) herkes kendi
+    // kişisel dökümanını ekleyebilsin diye.
+    if(!gorebilir('dokumanlar')){ toast('Bu işlem için yetkiniz yok.'); throw new Error('yetkisiz'); }
     const ben = this._kendiKimlik();
-    // DÜZELTME: 'herkes' görünürlüğü sadece admin seçebilir — öğretmen
-    // formda görünürlük seçemediği için zaten metaTaban.gorunurluk hiç
-    // gelmez, ama biri teknik yolla zorlarsa bile burada ezilir.
+    // 'herkes' görünürlüğü sadece admin seçebilir — öğretmen formda
+    // görünürlük seçemediği için zaten metaTaban.gorunurluk hiç gelmez,
+    // ama biri teknik yolla zorlarsa bile burada ezilir.
     const gorunurluk = ben.adminMi && metaTaban.gorunurluk === 'herkes' ? 'herkes' : 'kisisel';
     let meta = { ...metaTaban, gorunurluk, olusturanUid: ben.uid, olusturanAdi: ben.ad };
     if(dosya){
@@ -73,7 +74,6 @@ const DokumanlarService = {
     return DokumanlarRepository.dokumanEkle(meta);
   },
   async dokumanSil(id, storagePath, mevcutDokuman){
-    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
     if(!this.dokumanSilinebilirMi(mevcutDokuman)) return Promise.reject(new Error('sahip-degil'));
     if(storagePath) await DokumanlarRepository.dosyaSil(storagePath).catch(()=>{});
     return DokumanlarRepository.dokumanSil(id);
