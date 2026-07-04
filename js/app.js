@@ -1643,17 +1643,33 @@ window.geriTusuIsle = geriTusuIsle;
   let _webGeriSonCikisZamani = 0;
   const _buferPushEt = () => { try{ history.pushState({oyGeriBuferi:true}, '', location.href); }catch(e){} };
 
-  _buferPushEt(); // başlangıç "tampon" kaydı — ilk geri basışın sayfadan tamamen çıkmasını engeller
+  // DÜZELTME: Tek bir tampon kaydı bazı durumlarda (art arda hızlı geri
+  // basışlarında, veya tarayıcının kendi "geri" animasyonunun JS'ten önce
+  // gerçek geçmişi tüketmesi ihtimaline karşı) yetersiz kalabiliyordu —
+  // en sonunda uyarı göstermeden direkt çıkılıyordu. Şimdi baştan derin
+  // bir tampon yığını kuruluyor, her "handled"/ilk-uyarı sonrası da tekrar
+  // dolduruluyor; JS'in her zaman tepki verecek payı oluyor.
+  const _TAMPON_DERINLIK = 25;
+  for(let i=0;i<_TAMPON_DERINLIK;i++) _buferPushEt();
 
+  let _sonPopstateZamani = 0;
   window.addEventListener('popstate', function(){
+    // DÜZELTME: Android'in "geri kaydırma" (predictive back gesture) hareketi
+    // bazı cihaz/sürümlerde TEK bir hareket için birden fazla popstate
+    // tetikleyebiliyor — bu da "ilk basış uyar, ikinci basış çıkar" sayacını
+    // yanıltıp tek harekette doğrudan çıkışa sebep olabiliyordu. Çok yakın
+    // ardışık olayları (150ms altı) TEK basış say, sadece tamponu tazele.
+    const simdiPop = Date.now();
+    if(simdiPop - _sonPopstateZamani < 150){ _buferPushEt(); return; }
+    _sonPopstateZamani = simdiPop;
+
     const sonuc = (typeof geriTusuIsle === 'function') ? geriTusuIsle() : 'exit';
     if(sonuc === 'handled'){ _buferPushEt(); return; }
 
-    const simdi = Date.now();
-    if(simdi - _webGeriSonCikisZamani < 2000){
+    if(simdiPop - _webGeriSonCikisZamani < 2000){
       return; // ikinci basış — tamponu yeniden kurmuyoruz, tarayıcı gerçekten geri gitsin/sekme kapansın
     }
-    _webGeriSonCikisZamani = simdi;
+    _webGeriSonCikisZamani = simdiPop;
     if(typeof toast === 'function') toast('Çıkmak için tekrar geri tuşuna basın');
     _buferPushEt();
   });
