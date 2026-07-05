@@ -89,6 +89,7 @@ const DokumanlarService = {
       const { url, storagePath } = await DokumanlarRepository.dosyaYukle(dosya, ilerlemeCb);
       meta = { ...meta, dosyaUrl: url, storagePath, dosyaAdi: dosya.name, dosyaBoyutu: dosya.size, dosyaTipi: dosya.type };
     }
+    if(typeof IstatistikService !== 'undefined') IstatistikService.dosyaYuklemeKaydet();
     return DokumanlarRepository.dokumanEkle(meta);
   },
   async dokumanSil(id, storagePath, mevcutDokuman){

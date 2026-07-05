@@ -38,6 +38,7 @@ const NotlarService = {
     if(!mevcutId && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
       veri = { ...veri, sahipUid: AKTIF_KULLANICI.uid };
     }
+    if(!mevcutId && typeof IstatistikService !== 'undefined') IstatistikService.notEklemeKaydet();
     return mevcutId ? NotlarRepository.notGuncelle(mevcutId, veri) : NotlarRepository.notEkle(veri);
   },
   notSil(id){
