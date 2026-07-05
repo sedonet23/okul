@@ -126,14 +126,24 @@ function dokumanSatirHtml(d) {
 
 /* ================================================================
    Dosya açma / indirme
-   Resim ve PDF tarayıcıda doğrudan açılabildiği için yeni sekmede
-   açılır; diğer türler (Word/Excel vb.) indirmeye yönlendirilir.
+   DÜZELTME: Eskiden tüm dosyalar window.open(url,'_blank') ile
+   açılıyordu — Android'de (Capacitor WebView) bu, harici tarayıcı
+   seçiciyi tetikliyordu ve PDF/Word/Excel için sayfa çevirme/tam ekran
+   gibi hiçbir kontrol sağlamıyordu. Artık desteklenen türler (PDF,
+   Excel, Word) DokumanOkuyucu ile uygulama içinde açılıyor. Harici
+   linkler (Google Drive vb.) CORS kısıtı yüzünden uygulama içine
+   çekilemeyebileceğinden eski davranışta (tarayıcıda aç) bırakıldı.
    ================================================================ */
 function dokumanAc(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   if (!d) return;
   const url = d.hariciUrl || d.dosyaUrl;
   if (!url) { toast('Bu dökümanın dosyası bulunamadı.'); return; }
+  const ad = d.dosyaAdi || d.ad || 'Belge';
+  if (!d.hariciUrl && typeof DokumanOkuyucu !== 'undefined' && DokumanOkuyucu.destekliMi(ad)) {
+    DokumanOkuyucu.ac(url, ad);
+    return;
+  }
   window.open(url, '_blank');
 }
 
