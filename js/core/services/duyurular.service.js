@@ -31,9 +31,25 @@ const DuyurularService = {
       okuyanlar: {}
     });
   },
-  duyuruSil(id){
+  duyuruSil(id, resimler){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
-    return DuyurularRepository.duyuruSil(id);
+    // Önce ekli görselleri Storage'dan temizle (biri başarısız olsa da
+    // belge silme işlemi engellenmesin — yetim bir dosya, silinmiş bir
+    // duyurudan daha az sorunlu).
+    const gorselSilmeler = (resimler || []).map(r =>
+      DuyurularRepository.resimSil(r.storagePath).catch(() => {})
+    );
+    return Promise.all(gorselSilmeler).then(() => DuyurularRepository.duyuruSil(id));
+  },
+
+  /* ---------- Görsel duyuru desteği (YENİ) ---------- */
+  resimYukle(dosya, ilerlemeCb){
+    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    return DuyurularRepository.resimYukle(dosya, ilerlemeCb);
+  },
+  resimSil(storagePath){
+    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    return DuyurularRepository.resimSil(storagePath);
   },
 
   /* Herkes kendi "okudum" kaydını bırakabilir — içerik değiştirmediği için yetki gerektirmez. */
