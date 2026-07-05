@@ -41,7 +41,9 @@ const DASHBOARD_KART_KATALOGU = [
   { id:'ajanda',             ad:'🗓️ Ajanda' },
   { id:'notDefteri',         ad:'📝 Not Defteri' },
 ];
-const DASHBOARD_KART_LIMITI = 12;
+// DÜZELTME: 12 kart sınırı kaldırıldı — artık katalogdaki tüm kartlar
+// seçilebilir. Sabit kaldırıldı, ilk kullanımda (hiç tercih yokken)
+// varsayılan artık TÜM kartlar oluyor.
 const DASHBOARD_TERCIH_ANAHTARI = 'oyDashboardDuzeni_v1';
 
 function _dashboardTercihiOku(){
@@ -97,7 +99,7 @@ function dashboardOzellestirmeUygula(){
 function dashboardOzellestirModalAc(){
   const tercih = _dashboardTercihiOku();
   const tumIdler = DASHBOARD_KART_KATALOGU.map(k=>k.id);
-  const secili = tercih ? tercih.secili.filter(id=>tumIdler.includes(id)) : tumIdler.slice(0, DASHBOARD_KART_LIMITI);
+  const secili = tercih ? tercih.secili.filter(id=>tumIdler.includes(id)) : tumIdler.slice();
 
   window._dkoSeciliGecici = secili.slice();
 
@@ -138,9 +140,9 @@ function _dashboardOzellestirModalIcerikYaz(){
 
   govde.innerHTML = `
     <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">
-      En fazla <strong>${DASHBOARD_KART_LIMITI}</strong> kart seçebilirsiniz. Yukarı/aşağı oklarla sırasını değiştirebilirsiniz. Bu tercih sadece bu cihazda geçerlidir.
+      Yukarı/aşağı oklarla sırasını değiştirebilirsiniz. Bu tercih sadece bu cihazda geçerlidir.
     </div>
-    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;">✅ Seçili Kartlarım (${secili.length}/${DASHBOARD_KART_LIMITI})</div>
+    <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;">✅ Seçili Kartlarım (${secili.length})</div>
     <div style="max-height:220px;overflow-y:auto;margin-bottom:14px;">${seciliHtml}</div>
     <div style="font-weight:700;font-size:12.5px;margin-bottom:6px;">➕ Eklenebilir Kartlar</div>
     <div style="max-height:180px;overflow-y:auto;">${kalanlarHtml}</div>
@@ -161,10 +163,6 @@ function _dkoKaldir(id){
   _dashboardOzellestirModalIcerikYaz();
 }
 function _dkoEkle(id){
-  if(window._dkoSeciliGecici.length >= DASHBOARD_KART_LIMITI){
-    toast(`En fazla ${DASHBOARD_KART_LIMITI} kart seçebilirsiniz — önce birini kaldırın.`);
-    return;
-  }
   window._dkoSeciliGecici.push(id);
   _dashboardOzellestirModalIcerikYaz();
 }
