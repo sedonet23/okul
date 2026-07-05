@@ -21,9 +21,14 @@ const NotlarRepository = {
       hataCb || hataGoster
     );
   },
-  notEkle(veri){ return db.collection(COL.notlar).add({ ...veri, eklenmeTarihi: new Date().toISOString() }); },
-  notGuncelle(id, veri){ return db.collection(COL.notlar).doc(id).update(veri); },
+  notEkle(veri){ return db.collection(COL.notlar).add({ ...veri, eklenmeTarihi: new Date().toISOString(), guncellenmeTarihi: new Date().toISOString() }); },
+  // DÜZELTME: guncellenmeTarihi damgası eklendi — yedekten geri yükleme
+  // artık bu notun backup'tan SONRA düzenlenip düzenlenmediğini bu alana
+  // bakarak anlıyor (bkz. app.js yedektenGeriYukle). Bu damga olmadan,
+  // eski bir yedeği geri yüklemek yeni yapılmış düzenlemeleri sessizce
+  // eziyordu.
+  notGuncelle(id, veri){ return db.collection(COL.notlar).doc(id).update({ ...veri, guncellenmeTarihi: new Date().toISOString() }); },
   notSil(id){ return db.collection(COL.notlar).doc(id).delete(); },
   /* Grid'den hızlı todo-toggle için: sadece maddeler alanını günceller. */
-  notMaddeleriGuncelle(id, maddeler){ return db.collection(COL.notlar).doc(id).update({ maddeler }); }
+  notMaddeleriGuncelle(id, maddeler){ return db.collection(COL.notlar).doc(id).update({ maddeler, guncellenmeTarihi: new Date().toISOString() }); }
 };
