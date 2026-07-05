@@ -26,8 +26,9 @@ function duyurularBaglantilariKur(){
 function renderDuyurular(){
   const hedef = document.getElementById('duyurularListesi');
   if(!hedef) return;
-  if(!duyurular.length){ hedef.innerHTML = '<p class="empty-state">Henüz duyuru eklenmedi.</p>'; return; }
-  hedef.innerHTML = duyurular.map(d=>{
+  const aktifler = duyurular.filter(d => !d.arsivlendi);
+  if(!aktifler.length){ hedef.innerHTML = '<p class="empty-state">Henüz duyuru eklenmedi.</p>'; return; }
+  hedef.innerHTML = aktifler.map(d=>{
     const okuyanSayisi = Object.keys(d.okuyanlar||{}).length;
     const benOkudumMu = DuyurularService.benOkudumMu(d);
     return `
@@ -274,7 +275,11 @@ function duyuruModalAc(id){
     DuyurularService.duyuruKaydet(id||null, { baslik, icerik, resimler: _duyuruModalResimler })
       .then(()=>{ toast('Kaydedildi.'); modalKapat(); })
       .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
-  }, d ? ()=>{ if(confirm('Bu duyuruyu silmek istediğinize emin misiniz?')){ DuyurularService.duyuruSil(id, d.resimler||[]).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
+  }, d ? ()=>{ if(confirm('Bu duyuruyu arşivlemek istediğinize emin misiniz? (Görünürlükten kalkar ama silinmez — "📦 Arşiv" ekranından geri alabilirsiniz.)')){ DuyurularService.duyuruArsivle(id).then(()=>toast('Arşivlendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
+  if(d){
+    const silBtn = document.getElementById('modalSilBtn');
+    if(silBtn) silBtn.textContent = '📦 Arşivle';
+  }
 
   // Dosya(lar) seçildiğinde: sırayla küçült + Storage'a yükle + galeriye ekle.
   const secEl = document.getElementById('f_duyuruResimSec');
@@ -304,9 +309,10 @@ function renderDuyuruPanosu(){
   const kart = document.getElementById('duyuruPanosuKart');
   const icerik = document.getElementById('duyuruPanosuIcerik');
   if(!kart || !icerik) return;
-  if(!duyurular.length){ kart.style.display='none'; return; }
+  const aktifler = duyurular.filter(d => !d.arsivlendi);
+  if(!aktifler.length){ kart.style.display='none'; return; }
   kart.style.display = '';
-  const gosterilecekler = duyurular.slice(0,5);
+  const gosterilecekler = aktifler.slice(0,5);
   icerik.innerHTML = gosterilecekler.map(d=>{
     const benOkudumMu = DuyurularService.benOkudumMu(d);
     return `
@@ -360,4 +366,41 @@ function duyuruDetayAc(id){
     const kaydetBtn = document.getElementById('modalKaydetBtn');
     if(kaydetBtn) kaydetBtn.style.display = 'none';
   }
+}
+
+/* ================================================================
+   ARŞİV EKRANI (YENİ) — "Sil" artık normal akışta kullanılmıyor;
+   arşivlenen duyurular burada listelenir, geri alınabilir veya
+   (isteyerek) kalıcı olarak silinebilir.
+   ================================================================ */
+function duyuruArsivModalAc(){
+  const arsivdekiler = duyurular.filter(d => d.arsivlendi);
+  const body = !arsivdekiler.length
+    ? '<p class="empty-state">Arşivde duyuru yok.</p>'
+    : arsivdekiler.map(d => `
+      <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="min-width:0;">
+          <div style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.baslik)}</div>
+          <div class="detay-row-muted" style="font-size:11px;">${isoYereleCevir(d.tarih).tarih} tarihli · ${d.arsivTarihi ? isoYereleCevir(d.arsivTarihi).tarih + ' arşivlendi' : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-ghost btn-sm" onclick="duyuruArsivdenCikarTikla('${d.id}')">↩️ Geri Al</button>
+          <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="duyuruKaliciSilTikla('${d.id}', '${escapeHtml(d.baslik)}')">🗑</button>
+        </div>
+      </div>`).join('');
+  modalAc('📦 Arşivlenen Duyurular', body, null, null);
+}
+
+function duyuruArsivdenCikarTikla(id){
+  DuyurularService.duyuruArsivdenCikar(id)
+    .then(()=>{ toast('Arşivden çıkarıldı.'); modalKapat(); duyuruArsivModalAc(); })
+    .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+}
+
+function duyuruKaliciSilTikla(id, baslik){
+  if(!confirm(`"${baslik}" duyurusu KALICI OLARAK silinecek, bu işlem geri alınamaz. Emin misiniz?`)) return;
+  const d = duyurular.find(x=>x.id===id);
+  DuyurularService.duyuruSil(id, d?.resimler||[])
+    .then(()=>{ toast('Kalıcı olarak silindi.'); modalKapat(); duyuruArsivModalAc(); })
+    .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }

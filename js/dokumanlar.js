@@ -96,13 +96,14 @@ function dokumanSatirHtml(d) {
   const depolamaBadge = harici
     ? `<span style="font-size:10px;color:#888;background:#f0f0f0;padding:1px 5px;border-radius:4px;">🔗 URL</span>`
     : `<span style="font-size:10px;color:#2e7d32;background:#e8f5e9;padding:1px 5px;border-radius:4px;">☁️ Bulutta</span>`;
-  const gorunurlukBadge = d.gorunurluk === 'kisisel'
-    ? `<span style="font-size:10px;color:#8a4b00;background:#fff3e0;padding:1px 5px;border-radius:4px;">🔒 Kişisel</span>`
-    : `<span style="font-size:10px;color:#1565c0;background:#e3f2fd;padding:1px 5px;border-radius:4px;">🌐 Herkese Açık</span>`;
+  const gorunurlukBadge = d.gorunurluk === 'herkes'
+    ? `<span style="font-size:10px;color:#1565c0;background:#e3f2fd;padding:1px 5px;border-radius:4px;">🌐 Herkese Açık</span>`
+    : `<span style="font-size:10px;color:#8a4b00;background:#fff3e0;padding:1px 5px;border-radius:4px;">🔒 Kişisel</span>`;
   // Kimin eklediği sadece admin için (veya "herkese açık" değilse zaten sahibi görüyordur) anlamlı — admin'e göster.
   const ekleyenGoster = (typeof AKTIF_KULLANICI!=='undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin && d.olusturanAdi)
     ? ` · 👤 ${escapeHtml(d.olusturanAdi)}` : '';
   const silinebilirMi = typeof DokumanlarService !== 'undefined' && DokumanlarService.dokumanSilinebilirMi(d);
+  const gorunurlukDegistirilebilirMi = typeof DokumanlarService !== 'undefined' && DokumanlarService.gorunurlukDegistirilebilirMi();
 
   return `
     <div class="evrak-row">
@@ -119,6 +120,7 @@ function dokumanSatirHtml(d) {
       <div style="display:flex;gap:4px;flex-shrink:0;">
         <button class="btn btn-ghost btn-sm" onclick="dokumanAc('${d.id}')" title="Aç">👁</button>
         <button class="btn btn-ghost btn-sm" onclick="dokumanIndir('${d.id}')" title="İndir">⬇</button>
+        ${gorunurlukDegistirilebilirMi ? `<button class="btn btn-ghost btn-sm" onclick="dokumanGorunurlukDegistirTikla('${d.id}', '${d.gorunurluk === 'herkes' ? 'kisisel' : 'herkes'}', '${escapeHtml(d.ad||'')}')" title="${d.gorunurluk === 'herkes' ? 'Kişisel yap' : 'Herkese açık yap'}">${d.gorunurluk === 'herkes' ? '🔒' : '🌐'}</button>` : ''}
         ${silinebilirMi ? `<button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="dokumanSilOnay('${d.id}', '${escapeHtml(d.ad||'')}')">🗑</button>` : ''}
       </div>
     </div>`;
@@ -126,30 +128,14 @@ function dokumanSatirHtml(d) {
 
 /* ================================================================
    Dosya açma / indirme
-   DÜZELTME: Eskiden tüm dosyalar window.open(url,'_blank') ile
-   açılıyordu — Android'de (Capacitor WebView) bu, harici tarayıcı
-   seçiciyi tetikliyordu ve PDF/Word/Excel için sayfa çevirme/tam ekran
-   gibi hiçbir kontrol sağlamıyordu. Artık desteklenen türler (PDF,
-   Excel, Word) DokumanOkuyucu ile uygulama içinde açılıyor. Harici
-   linkler (Google Drive vb.) CORS kısıtı yüzünden uygulama içine
-   çekilemeyebileceğinden eski davranışta (tarayıcıda aç) bırakıldı.
+   Resim ve PDF tarayıcıda doğrudan açılabildiği için yeni sekmede
+   açılır; diğer türler (Word/Excel vb.) indirmeye yönlendirilir.
    ================================================================ */
 function dokumanAc(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   if (!d) return;
   const url = d.hariciUrl || d.dosyaUrl;
   if (!url) { toast('Bu dökümanın dosyası bulunamadı.'); return; }
-  const ad = d.dosyaAdi || d.ad || 'Belge';
-  if (!d.hariciUrl && typeof DokumanOkuyucu !== 'undefined' && DokumanOkuyucu.destekliMi(ad)) {
-    DokumanOkuyucu.ac(url, ad);
-    return;
-  }
-  // DÜZELTME: .doc (eski, 2003 öncesi ikili Word formatı) uygulama içi
-  // okuyucuda desteklenmiyor (mammoth.js sadece .docx okuyabiliyor).
-  // Sessizce indirmek yerine sebebini açıkça söylüyoruz.
-  if (/\.doc$/i.test(ad)) {
-    toast('Bu dosya eski .doc formatında olduğu için uygulama içinde önizlenemiyor, indiriliyor. Önizleme için dosyayı Word\'de .docx olarak yeniden kaydedip tekrar yükleyin.');
-  }
   window.open(url, '_blank');
 }
 
@@ -297,6 +283,18 @@ async function dokumanKaydet() {
 function dokumanSilOnay(id, ad) {
   if (!confirm(`"${ad}" dökümanını silmek istediğinize emin misiniz?`)) return;
   dokumanSil(id);
+}
+
+/* Admin'in başka birinin (veya kendi) dökümanının görünürlüğünü sonradan
+   değiştirmesi için — bkz. dokumanlar.service.js "gorunurMu" notu. */
+function dokumanGorunurlukDegistirTikla(id, yeniGorunurluk, ad){
+  const mesaj = yeniGorunurluk === 'herkes'
+    ? `"${ad}" artık HERKESE AÇIK olacak — okuldaki tüm kullanıcılar görebilecek. Devam edilsin mi?`
+    : `"${ad}" artık KİŞİSEL olacak — sadece ekleyen kişi ve admin görebilecek. Devam edilsin mi?`;
+  if(!confirm(mesaj)) return;
+  DokumanlarService.dokumanGorunurlukGuncelle(id, yeniGorunurluk)
+    .then(()=> toast('Görünürlük güncellendi.'))
+    .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 async function dokumanSil(id) {
