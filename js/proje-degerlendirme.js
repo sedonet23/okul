@@ -116,7 +116,7 @@
       donem: '1. Dönem',
       ogretmenId: '', ogretmenAdi: '', brans: '',
       okulAdi: _getOkulAdi(), muduAdi: _varsayilanMuduAdi(),
-      sinif: '',
+      ders: '',
       aoa: null,
       ogrenciler: [] // { no, ad, notu }
     };
@@ -179,7 +179,7 @@
     <div class="pd-sayfa">
       <table class="pd-ust-tablo">
         <tr><td colspan="3" class="pd-ust-baslik">${escapeHtml(_state.egitimYili)} EĞİTİM ÖĞRETİM YILI ${escapeHtml(_state.okulAdi.toLocaleUpperCase('tr'))}</td></tr>
-        <tr><td colspan="3" class="pd-ust-baslik">${escapeHtml((_state.sinif || '').toLocaleUpperCase('tr'))} SINIFI ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} PROJE DEĞERLENDİRME ÖLÇEĞİ</td></tr>
+        <tr><td colspan="3" class="pd-ust-baslik">${escapeHtml((_state.ders || 'DERS').toLocaleUpperCase('tr'))} DERSİ ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} PROJE DEĞERLENDİRME ÖLÇEĞİ</td></tr>
       </table>
 
       <table class="pd-govde-tablo">
@@ -282,7 +282,7 @@
     `<input id="${id}" value="${escapeHtml(deger || '')}" placeholder="${escapeHtml(placeholder || '')}" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:12px;">`;
   const _etiket = (metin) => `<label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">${metin}</label>`;
 
-  /* ---- Adım 1: Genel Bilgiler + Sınıf Seçimi ---- */
+  /* ---- Adım 1: Genel Bilgiler + Ders Seçimi ---- */
   function _adim1Render(ov) {
     if (!_state.okulAdi) _state.okulAdi = _getOkulAdi();
     if (!_state.muduAdi) _state.muduAdi = _varsayilanMuduAdi();
@@ -290,9 +290,8 @@
     const ogretmenSecenekleri = (typeof ogretmenler !== 'undefined' ? ogretmenler : []).slice()
       .sort((a, b) => `${a.ad} ${a.soyad}`.localeCompare(`${b.ad} ${b.soyad}`, 'tr'))
       .map(o => `<option value="${o.id}" ${_state.ogretmenId === o.id ? 'selected' : ''}>${escapeHtml(o.ad + ' ' + o.soyad)}</option>`).join('');
-    const sinifSecenekleri = (typeof siniflar !== 'undefined' ? siniflar : []).slice()
-      .sort((a, b) => `${a.seviye || ''}${a.sube || ''}`.localeCompare(`${b.seviye || ''}${b.sube || ''}`, 'tr'))
-      .map(s => `<option value="${escapeHtml(s.ad || (s.seviye + '/' + s.sube))}" ${_state.sinif === (s.ad || (s.seviye + '/' + s.sube)) ? 'selected' : ''}>${escapeHtml(s.ad || (s.seviye + '/' + s.sube))}</option>`).join('');
+    const dersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : [])
+      .map(d => `<option value="${escapeHtml(d.ad)}" ${_state.ders === d.ad ? 'selected' : ''}>${escapeHtml(d.ad)}</option>`).join('');
 
     _panel(ov).innerHTML = _kutu(`
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">1/3 — Genel Bilgiler</h3>
@@ -302,9 +301,9 @@
         <option value="1. Dönem" ${_state.donem === '1. Dönem' ? 'selected' : ''}>1. Dönem</option>
         <option value="2. Dönem" ${_state.donem === '2. Dönem' ? 'selected' : ''}>2. Dönem</option>
       </select>
-      ${_etiket('Sınıf')}
-      <select id="pd_sinif" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:12px;">
-        <option value="">— Sınıf seçin —</option>${sinifSecenekleri}
+      ${_etiket('Ders')}
+      <select id="pd_ders" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:12px;">
+        <option value="">— Ders seçin —</option>${dersSecenekleri}
       </select>
       ${_etiket('Öğretmen')}
       <select id="pd_ogretmen" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:12px;">
@@ -323,12 +322,12 @@
     ov.querySelector('#pd_ileri1').onclick = () => {
       _state.egitimYili = ov.querySelector('#pd_yil').value.trim();
       _state.donem = ov.querySelector('#pd_donem').value;
-      _state.sinif = ov.querySelector('#pd_sinif').value;
+      _state.ders = ov.querySelector('#pd_ders').value;
       _state.brans = ov.querySelector('#pd_brans').value.trim();
       _state.okulAdi = ov.querySelector('#pd_okul').value.trim();
       _state.muduAdi = ov.querySelector('#pd_mudur').value.trim();
       if (!_state.ogretmenAdi) { toast('Öğretmen seçin.'); return; }
-      if (!_state.sinif) { toast('Sınıf seçin.'); return; }
+      if (!_state.ders) { toast('Ders seçin.'); return; }
       _state.adim = 2;
       _render(ov);
     };
