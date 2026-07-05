@@ -115,7 +115,7 @@
       govde.style.overflow = 'auto';
       govde.style.alignItems = 'flex-start';
       govde.style.justifyContent = 'flex-start';
-      govde.innerHTML = `<div id="dokOkuyucuXlsxSarici" style="background:#fff;padding:14px;transform-origin:top left;min-width:100%;box-sizing:border-box;"></div>`;
+      govde.innerHTML = `<div id="dokOkuyucuXlsxSarici" style="background:#fff;padding:14px;transform-origin:top left;flex-shrink:0;box-sizing:border-box;"></div>`;
       _xlsxSayfaRenderEt(ov, 0);
       _thumbBarKur(ov);
     } catch (e) {
@@ -128,7 +128,13 @@
     const sheet = _xlsxWb.Sheets[adi];
     const tabloHtml = XLSX.utils.sheet_to_html(sheet, { editable: false });
     const sarici = ov.querySelector('#dokOkuyucuXlsxSarici');
-    sarici.innerHTML = `<h4 style="margin-bottom:8px;font-family:Arial,sans-serif;color:#111;">${escapeHtml(adi)}</h4>${tabloHtml}`;
+    sarici.innerHTML = `
+      <style>
+        #dokOkuyucuXlsxSarici table { border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#111; }
+        #dokOkuyucuXlsxSarici td, #dokOkuyucuXlsxSarici th { border:1px solid #ccc; padding:5px 9px; white-space:nowrap; }
+      </style>
+      <h4 style="margin-bottom:8px;font-family:Arial,sans-serif;color:#111;white-space:nowrap;">${escapeHtml(adi)}</h4>
+      ${tabloHtml}`;
     sarici.style.transform = `scale(${_state.zoom})`;
     _state.sayfaIndex = index;
     _sayacGuncelle(ov);
