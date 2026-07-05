@@ -42,6 +42,20 @@ const DuyurularService = {
     return Promise.all(gorselSilmeler).then(() => DuyurularRepository.duyuruSil(id));
   },
 
+  /* ---------- Arşivleme (YENİ) ----------
+     "Sil" artık normal akışta kullanılmıyor — duyuru kalıcı olarak
+     kaybolmasın diye önce arşive kaldırılıyor (görünürlükten kalkıyor
+     ama veri/görseller silinmiyor). Kalıcı silme sadece Arşiv ekranından
+     yapılabilir (duyuruSil hâlâ o amaçla duruyor). */
+  duyuruArsivle(id){
+    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    return DuyurularRepository.duyuruGuncelle(id, { arsivlendi: true, arsivTarihi: new Date().toISOString() });
+  },
+  duyuruArsivdenCikar(id){
+    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    return DuyurularRepository.duyuruGuncelle(id, { arsivlendi: false, arsivTarihi: null });
+  },
+
   /* ---------- Görsel duyuru desteği (YENİ) ---------- */
   resimYukle(dosya, ilerlemeCb){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));

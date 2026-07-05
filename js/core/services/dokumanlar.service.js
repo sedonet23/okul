@@ -30,17 +30,35 @@ const DokumanlarService = {
   },
 
   /* Bir dökümanın mevcut kullanıcıya görünüp görünmeyeceğini belirler.
-     'herkes' (veya eski/gorunurluk alanı hiç olmayan kayıtlar — geriye
-     dönük uyumluluk) her zaman görünür; 'kisisel' sadece admin veya
-     kaydı ekleyen kişiye görünür. */
+     DÜZELTME (v5 — varsayılan güvenlik yönü değişti): Eskiden alan hiç
+     yoksa (eski kayıtlar) "her zaman görünür" sayılıyordu — bu, okulun
+     "herkes başkasının dökümanını görmesin" beklentisiyle çelişiyordu.
+     Artık SADECE açıkça gorunurluk==='herkes' olan kayıtlar herkese
+     görünür; hem 'kisisel' HEM DE alanı hiç olmayan eski kayıtlar artık
+     "özel" sayılır (sadece sahibi + admin görür). Var olan eski
+     dökümanların sahiplerinin görmeye devam etmesi için ekstra bir
+     göç/migration script'ine gerek yok — bu kural sadece görüntülemeyi
+     etkiliyor, veriyi değiştirmiyor. */
   gorunurMu(d){
-    if(!d || d.gorunurluk !== 'kisisel') return true;
+    if(!d) return false;
+    if(d.gorunurluk === 'herkes') return true;
     const ben = this._kendiKimlik();
     if(ben.adminMi) return true;
     return !!(ben.uid && d.olusturanUid === ben.uid);
   },
   gorunurListele(hamListe){
     return (hamListe||[]).filter(d => this.gorunurMu(d));
+  },
+
+  /* Bir dökümanın görünürlüğünü SONRADAN değiştirir — SADECE admin
+     kullanabilir. Böylece admin, başkasının yüklediği "özel" bir
+     dökümanı isterse "herkese açık" yapabilir (ya da tersi). */
+  gorunurlukDegistirilebilirMi(){
+    return this._kendiKimlik().adminMi;
+  },
+  async dokumanGorunurlukGuncelle(id, yeniGorunurluk){
+    if(!this.gorunurlukDegistirilebilirMi()) return Promise.reject(new Error('yetkisiz'));
+    return DokumanlarRepository.dokumanGuncelle(id, { gorunurluk: yeniGorunurluk });
   },
 
   /* Bir dökümanı mevcut kullanıcının silip silemeyeceğini belirler:
