@@ -14,18 +14,23 @@
    listesidir. Her blok için birden fazla not sütunu (1. Etkinlik,
    2. Etkinlik, ...) doluysa, HER BİRİ için AYRI bir çizelge/sayfa üretilir.
 
-   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Bu modül
-   Firestore/Storage'a HİÇ dokunmuz — Excel dosyası tamamen tarayıcıda
-   okunup işlenir, sonuç sadece ekranda gösterilip yazdırılır, hiçbir şey
-   kaydedilmez. Repository katmanı (DB/Storage erişimi) ve service katmanı
-   (yetki kontrolü) bu yüzden burada YOK — ikisinin de yapacağı iş yok;
-   dilekçe/maaş formu modülleriyle aynı gerekçe.
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Excel dosyasının
+   okunup işlenmesi tamamen tarayıcıda olur, Firestore'a hiç dokunmaz.
+   Kriterler İKİ katmanlı saklanır:
+     1) localStorage (birincil, cihaza özel) — internet olmasa da çalışır,
+        kullanıcının kendi düzenlemeleri hep kendi cihazında kalır.
+     2) oy_okulBilgileri/ayarlar (bulut, SADECE admin yazabilir) — okulun
+        ortak "varsayılan" şablonu. Cihazda hiç kayıt yokken (ilk kullanım)
+        bu varsayılan otomatik çekilir; sonrasında "Buluttaki Varsayılanı
+        Yükle" ile isteğe bağlı olarak tekrar çekilebilir. Basit bir ayar
+        bloğu olduğu için ayrı repository/service katmanı gerekmiyor.
    ==================================================================== */
 
 (function() {
   'use strict';
 
   const LS_ANAHTAR = 'krtDagitimAyarlari';
+  const OKUL_AYAR_ALANI = 'kriterDagitimAyari';
 
   /* ---- Varsayılan kriter şablonu (Ölçütleri Düzenle ile değiştirilebilir) ---- */
   function _varsayilanKriterAyari() {
@@ -43,20 +48,41 @@
     };
   }
 
+  function _bulutVarsayilaniniGetir() {
+    if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari[OKUL_AYAR_ALANI]) {
+      return okulBilgileriAyari[OKUL_AYAR_ALANI];
+    }
+    return null;
+  }
+
+  // Öncelik: 1) bu cihazda daha önce kaydedilmiş kişisel ayar,
+  //          2) yoksa buluttaki admin varsayılanı (internet + admin ayarı varsa),
+  //          3) yoksa kod içindeki sabit varsayılan.
   function _kriterAyariYukle() {
     try {
       const ham = localStorage.getItem(LS_ANAHTAR);
       if (ham) return JSON.parse(ham);
-    } catch (e) { /* yoksay, varsayılana dön */ }
-    return _varsayilanKriterAyari();
+    } catch (e) { /* yoksay */ }
+    return _bulutVarsayilaniniGetir() || _varsayilanKriterAyari();
   }
 
-  function _kriterAyariKaydet(ayar) {
+  // Kişisel değişiklik — SADECE bu cihaza kaydedilir, internete gerek yok.
+  function _kriterAyariYereleKaydet(ayar) {
     _kriterAyari = ayar;
     try { localStorage.setItem(LS_ANAHTAR, JSON.stringify(ayar)); } catch (e) { /* önemli değil */ }
   }
 
+  // Bulut varsayılanını GÜNCELLEME — SADECE admin kullanmalı (arayüzde de
+  // sadece admin'e gösteriliyor, ama burada da güvence için not düşülüyor).
+  async function _kriterAyariBulutaKaydet(ayar) {
+    await db.collection(COL.okulBilgileri).doc('ayarlar').set({ [OKUL_AYAR_ALANI]: ayar }, { merge: true });
+  }
+
   let _kriterAyari = _kriterAyariYukle();
+
+  function _adminMi() {
+    return typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin === true;
+  }
 
   function _tumKriterler() {
     const liste = [];
@@ -521,11 +547,14 @@
 
       <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;">Kriter Grupları</div>
       <div id="kd_om_gruplar" style="margin-bottom:10px;"></div>
-      <button id="kd_om_grupEkle" style="width:100%;padding:7px;border:1px dashed #999;background:#f7f7f7;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:14px;">➕ Grup Ekle</button>
+      <button id="kd_om_grupEkle" style="width:100%;padding:7px;border:1px dashed #999;background:#f7f7f7;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:10px;">➕ Grup Ekle</button>
+
+      <button id="kd_om_bulutYukle" style="width:100%;padding:8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:${_adminMi() ? '8px' : '14px'};">☁️ Buluttaki Varsayılanı Yükle</button>
+      ${_adminMi() ? `<button id="kd_om_varsayilanYap" style="width:100%;padding:8px;border:1px solid #8a4b00;color:#8a4b00;background:#fff8e1;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:14px;">👑 Bunu Herkes İçin Varsayılan Yap</button>` : ''}
 
       <div style="display:flex;gap:8px;">
         <button id="kd_om_vazgec" style="flex:1;padding:10px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:14px;cursor:pointer;">Vazgeç</button>
-        <button id="kd_om_kaydet" style="flex:2;padding:10px;border:none;background:#1b5e20;color:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Kaydet</button>
+        <button id="kd_om_kaydet" style="flex:2;padding:10px;border:none;background:#1b5e20;color:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Kaydet (bu cihaza)</button>
       </div>
     </div>`;
     document.body.appendChild(modal);
@@ -568,12 +597,48 @@
     modal.querySelector('#kd_om_max').oninput = (e) => { taslak.puanMax = parseInt(e.target.value, 10) || 5; etiketleriRenderEt(); };
     modal.querySelector('#kd_om_grupEkle').onclick = () => { taslak.gruplar.push({ ad: 'YENİ GRUP', kriterler: ['Yeni kriter'] }); gruplariRenderEt(); };
     modal.querySelector('#kd_om_vazgec').onclick = () => modal.remove();
+
+    // Kaydet: SADECE bu cihaza (localStorage) — internet gerekmez, anında olur.
     modal.querySelector('#kd_om_kaydet').onclick = () => {
       if (taslak.puanMin >= taslak.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
-      _kriterAyariKaydet(taslak);
+      _kriterAyariYereleKaydet(taslak);
       modal.remove();
-      toast('Ölçütler kaydedildi.');
+      toast('Ölçütler bu cihaza kaydedildi.');
     };
+
+    // Buluttaki Varsayılanı Yükle: herkes kullanabilir — kendi değişikliklerini
+    // atıp admin'in belirlediği ortak varsayılana döner.
+    modal.querySelector('#kd_om_bulutYukle').onclick = () => {
+      const bulutAyar = _bulutVarsayilaniniGetir();
+      if (!bulutAyar) { toast('Bulutta henüz kayıtlı bir varsayılan yok (veya internet yok).'); return; }
+      if (!confirm('Şu an düzenlemekte olduğunuz ayarların üzerine buluttaki varsayılan yazılacak (henüz Kaydet demediyseniz kaybolmaz, hemen kaydetmezseniz vazgeçebilirsiniz). Devam edilsin mi?')) return;
+      const kopya = JSON.parse(JSON.stringify(bulutAyar));
+      taslak.puanMin = kopya.puanMin; taslak.puanMax = kopya.puanMax;
+      taslak.puanEtiketleri = kopya.puanEtiketleri; taslak.gruplar = kopya.gruplar;
+      modal.querySelector('#kd_om_min').value = taslak.puanMin;
+      modal.querySelector('#kd_om_max').value = taslak.puanMax;
+      etiketleriRenderEt();
+      gruplariRenderEt();
+      toast('Buluttaki varsayılan yüklendi — "Kaydet" demeyi unutmayın.');
+    };
+
+    // Bunu Herkes İçin Varsayılan Yap: SADECE admin — bulut belgesini günceller.
+    const varsayilanYapBtn = modal.querySelector('#kd_om_varsayilanYap');
+    if (varsayilanYapBtn) {
+      varsayilanYapBtn.onclick = async () => {
+        if (taslak.puanMin >= taslak.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
+        if (!confirm('Bu ayarlar, artık bu aracı İLK KEZ açan HERKESİN varsayılanı olacak. Daha önce kendi ayarını yapıp kaydetmiş kullanıcıları ETKİLEMEZ (onlarınki kendi cihazlarında kalır). Devam edilsin mi?')) return;
+        varsayilanYapBtn.disabled = true; varsayilanYapBtn.textContent = 'Kaydediliyor…';
+        try {
+          await _kriterAyariBulutaKaydet(taslak);
+          toast('Bulut varsayılanı güncellendi.');
+        } catch (e) {
+          toast('Kaydedilemedi: ' + e.message);
+        } finally {
+          varsayilanYapBtn.disabled = false; varsayilanYapBtn.textContent = '👑 Bunu Herkes İçin Varsayılan Yap';
+        }
+      };
+    }
 
     etiketleriRenderEt();
     gruplariRenderEt();
