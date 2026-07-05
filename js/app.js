@@ -1541,7 +1541,7 @@ async function yedektenGeriYukle(file){
     const metin = await _dosyaMetniOku(file);
     const data = JSON.parse(metin);
     ilerlemeGizle();
-    const onaylandi = await uygulamaOnayAl("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Devam edilsin mi?");
+    const onaylandi = await uygulamaOnayAl("Yedekteki kayıtlar mevcut verilerinizin üzerine yazılacak (aynı ID'ye sahip olanlar güncellenecek, yeni olanlar eklenecek). Notlar için: yedekten SONRA düzenlenmiş bir not varsa, o not korunur ve üzerine yazılmaz. Devam edilsin mi?");
     if(!onaylandi) return;
     ilerlemeGoster('Geri yükleniyor… (0 kayıt)');
     const eslemeler = [
@@ -1560,12 +1560,32 @@ async function yedektenGeriYukle(file){
       [data.personel, COL.personel]
     ];
 
+    // DÜZELTME (KRİTİK): Eskiden restore, aynı ID'li bir kaydı HER ZAMAN
+    // yedekteki içerikle eziyordu — bu, örneğin bir notu düzenledikten
+    // SONRA eski bir yedek geri yüklendiğinde, o düzenlemenin sessizce
+    // kaybolmasına sebep oluyordu (kullanıcı bunu fark etmeden). Artık
+    // "zaman damgalı" koleksiyonlar (şu an: notlar) için, mevcut kaydın
+    // guncellenmeTarihi'si yedektekinden daha yeniyse o kayıt ATLANIR —
+    // yedek asla daha yeni bir düzenlemenin üzerine yazamaz.
+    const ZAMAN_DAMGALI_KOLEKSIYONLAR = new Set([COL.notlar]);
+    const mevcutZamanDamgalari = {};
+    for(const kol of ZAMAN_DAMGALI_KOLEKSIYONLAR){
+      const snap = await db.collection(kol).get();
+      const harita = {};
+      snap.docs.forEach(d => {
+        const v = d.data();
+        harita[d.id] = v.guncellenmeTarihi || v.eklenmeTarihi || null;
+      });
+      mevcutZamanDamgalari[kol] = harita;
+    }
+
     // Tek tek (await ... await ...) yazmak yerine Firestore BATCH kullan —
     // hem çok daha hızlı (tek ağ gidiş-gelişinde yüzlerce yazma) hem de
     // "hiçbir şey olmuyor" hissi vermeden ilerleme bildirimi eklenebiliyor.
     // Firestore tek batch'te en fazla 500 işlem kabul eder, güvenli pay
     // için 400'de bir commit ediyoruz.
     let toplamKayit = 0;
+    let atlananKayit = 0;
     let batch = db.batch();
     let batchIcindeki = 0;
 
@@ -1580,6 +1600,14 @@ async function yedektenGeriYukle(file){
       if(!Array.isArray(liste)) continue;
       for(const oge of liste){
         const {id, ...veri} = oge;
+        if(id && ZAMAN_DAMGALI_KOLEKSIYONLAR.has(koleksiyon)){
+          const mevcutZaman = mevcutZamanDamgalari[koleksiyon]?.[id];
+          const yedekZaman = veri.guncellenmeTarihi || veri.eklenmeTarihi || null;
+          if(mevcutZaman && yedekZaman && mevcutZaman > yedekZaman){
+            atlananKayit++;
+            continue; // mevcut kayıt yedekten daha yeni düzenlenmiş — koru
+          }
+        }
         const ref = id ? db.collection(koleksiyon).doc(id) : db.collection(koleksiyon).doc();
         batch.set(ref, veri, { merge: true });
         batchIcindeki++;
@@ -1608,7 +1636,7 @@ async function yedektenGeriYukle(file){
     }
     const yedekDosyaEl = document.getElementById('yedekDosya');
     if(yedekDosyaEl) yedekDosyaEl.value = '';
-    ilerlemeTamamlandi(`Geri yükleme tamamlandı — ${toplamKayit} kayıt işlendi.`);
+    ilerlemeTamamlandi(`Geri yükleme tamamlandı — ${toplamKayit} kayıt işlendi.${atlananKayit > 0 ? ` (${atlananKayit} kayıt, yedekten sonra düzenlendiği için korundu ve ATLANDI.)` : ''}`);
   }catch(err){
     console.error('yedektenGeriYukle hatası:', err);
     ilerlemeHataGoster('Geri yükleme hatası: '+err.message);
