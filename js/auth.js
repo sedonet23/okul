@@ -250,6 +250,7 @@ function authDinleyiciKur(){
       girisEkraniGizle();
       const app = document.getElementById('app');
       if(app) app.classList.add('ready','show');
+      if(typeof IstatistikService !== 'undefined') IstatistikService.girisKaydet();
       if(typeof uygulamaBaslat === 'function') uygulamaBaslat();
 
     }catch(err){

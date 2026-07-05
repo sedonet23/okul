@@ -1695,6 +1695,7 @@ function bottomNavAktifYap(el){
 }
 
 function sekmeAc(tab){
+  if(typeof IstatistikService !== 'undefined') IstatistikService.sayfaZiyaretiKaydet(tab);
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
   document.querySelectorAll('.bn-item[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));

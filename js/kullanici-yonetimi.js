@@ -74,7 +74,7 @@ function kullaniciYonetimiYetkisiVar(){
 function sidebarYetkiUygula(){
   document.querySelectorAll('.nav-tab[data-tab]').forEach(btn=>{
     const modul = btn.dataset.tab;
-    if(modul === 'panel' || modul === 'kullaniciYonetimi') return; // ayrı ele alınıyor
+    if(modul === 'panel' || modul === 'kullaniciYonetimi' || modul === 'istatistikler') return; // ayrı ele alınıyor
     btn.style.display = gorebilir(modul) ? '' : 'none';
   });
 
@@ -112,6 +112,11 @@ function sidebarYetkiUygula(){
 
   const kyBtn = document.querySelector('.nav-tab[data-tab="kullaniciYonetimi"]');
   if(kyBtn) kyBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
+
+  // İstatistikler paneli de sadece admin/yetkili kullanıcıya görünür —
+  // kişisel giriş/aktivite verileri diğer öğretmenlere gösterilmemeli.
+  const istBtn = document.querySelector('.nav-tab[data-tab="istatistikler"]');
+  if(istBtn) istBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
 
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
 }
