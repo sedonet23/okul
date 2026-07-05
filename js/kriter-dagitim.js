@@ -211,28 +211,30 @@
         <tr><td colspan="3" class="kd-ust-baslik">${escapeHtml((blok.sinif || '').toLocaleUpperCase('tr'))} SINIFI ${escapeHtml((blok.ders || 'DERS').toLocaleUpperCase('tr'))} DERSİ ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} ${escapeHtml(notAdi.toLocaleUpperCase('tr'))} DERS İÇİ KATILIM ÖLÇEĞİ</td></tr>
       </table>
 
-      <table class="kd-govde-tablo">
-        <tr>
-          <td class="kd-sinif-kutu" rowspan="3">
-            <div class="kd-olcutler-dikey">ÖLÇÜTLER</div>
-            <table class="kd-lejant-tablo">${olcutLejant}</table>
-          </td>
-          <td class="kd-th-sabit" rowspan="3">SIRA</td>
-          <td class="kd-th-sabit" rowspan="3">NO</td>
-          <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
-          <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
-          <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
-        </tr>
-        <tr>${grupBaslikHtml}</tr>
-        <tr>${kriterBaslikHtml}</tr>
-        ${satirlarHtml}
-      </table>
+      <div class="kd-govde-satir">
+        <div class="kd-sinif-kutu">
+          <div class="kd-olcutler-dikey">ÖLÇÜTLER</div>
+          <table class="kd-lejant-tablo">${olcutLejant}</table>
+        </div>
+        <table class="kd-govde-tablo">
+          <tr>
+            <td class="kd-th-sabit" rowspan="3">SIRA</td>
+            <td class="kd-th-sabit" rowspan="3">NO</td>
+            <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
+            <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
+            <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
+          </tr>
+          <tr>${grupBaslikHtml}</tr>
+          <tr>${kriterBaslikHtml}</tr>
+          ${satirlarHtml}
+        </table>
+      </div>
 
       <table class="kd-alt-tablo">
         <tr>
           <td class="kd-imza-hucre">
             <div>${escapeHtml(_state.ogretmenAdi)}</div>
-            <div class="kd-unvan">${escapeHtml((_state.brans || '').toLocaleUpperCase('tr'))} ÖĞRETMENİ</div>
+            <div class="kd-unvan">${escapeHtml((((_state.brans || '').replace(/\s*öğretmeni\s*$/i, '').trim()).toLocaleUpperCase('tr'))) + ' ÖĞRETMENİ'}</div>
           </td>
           <td class="kd-imza-hucre">
             <div>${escapeHtml(_state.muduAdi)}</div>
@@ -259,7 +261,9 @@
     .kd-kriter-th { width:20px; height:90px; vertical-align:bottom; padding:2px 0; }
     .kd-donen-yazi { writing-mode: vertical-rl; transform: rotate(180deg); font-size:7pt; font-weight:400; white-space:nowrap; margin:0 auto; }
     .kd-donen-yazi-th { width:24px; }
-    .kd-sinif-kutu { text-align:center; font-weight:700; padding:4px; width:40px; }
+    .kd-govde-satir { display:flex; align-items:stretch; }
+    .kd-govde-tablo { flex:1 1 auto; }
+    .kd-sinif-kutu { text-align:center; font-weight:700; padding:4px; width:44px; flex-shrink:0; border:1px solid #000; border-right:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
     .kd-olcutler-dikey { writing-mode:vertical-rl; transform:rotate(180deg); font-weight:700; font-size:10pt; margin-bottom:4px; display:inline-block; }
     .kd-lejant-tablo td { border:1px solid #000; font-size:7pt; padding:1px 3px; }
     .kd-lejant-no { font-weight:700; text-align:center; width:14px; }
