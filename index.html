@@ -926,13 +926,28 @@
 
       <div class="card" style="margin-bottom:18px;">
         <h3>Temel Bilgiler</h3>
-        <div class="form-group"><label>Okul Adı</label><input id="f_okulAdi" placeholder="örn: KORUK İLK - ORTAOKULU"></div>
+        <div class="form-group"><label>Okul Adı (Birleşik — evrak başlıklarında "ikisi birlikte" gerektiğinde kullanılır)</label><input id="f_okulAdi" placeholder="örn: KORUK İLK - ORTAOKULU"></div>
         <div class="form-group"><label>Okul Müdürü</label><select id="f_okulMudur"></select></div>
         <div class="form-row">
           <div class="form-group"><label>İl</label><input id="f_okulIl" placeholder="örn: KARAMAN" style="text-transform:uppercase;"></div>
           <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn: ERMENEK" style="text-transform:uppercase;"></div>
         </div>
         <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Ermenek İlçe Millî Eğitim Müdürlüğü"></div>
+      </div>
+
+      <!-- YENİ: İki okul bir arada (Koruk İlkokulu + Koruk Ortaokulu) — evrak
+           başlıklarında bazen sadece biri, bazen ikisi birden gerekiyor. -->
+      <div class="card" style="margin-bottom:18px;">
+        <h3>İlkokul / Ortaokul Ayrı Bilgileri</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İki okul aynı binada bir arada olduğu için, evrak/çizelge oluştururken bazen sadece İlkokul, bazen sadece Ortaokul, bazen de yukarıdaki birleşik ad kullanılır.</p>
+        <div class="form-row">
+          <div class="form-group"><label>İlkokul Adı</label><input id="f_okulIlkokulAdi" placeholder="örn: KORUK İLKOKULU"></div>
+          <div class="form-group"><label>İlkokul Kurum Kodu</label><input id="f_okulIlkokulKurumKodu" placeholder="örn: 719088"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Ortaokul Adı</label><input id="f_okulOrtaokulAdi" placeholder="örn: KORUK ORTAOKULU"></div>
+          <div class="form-group"><label>Ortaokul Kurum Kodu</label><input id="f_okulOrtaokulKurumKodu" placeholder="örn: 719089"></div>
+        </div>
       </div>
 
       <div class="card">
