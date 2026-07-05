@@ -108,14 +108,16 @@
     Array.from(bar.children).forEach(c => io.observe(c));
   }
 
-  /* ---- Excel (sayfa = sekme) ---- */
+  /* ---- Excel (sayfa = sekme) — ExcelJS: hücre rengi/yazı tipi/hizalama/
+     birleştirilmiş hücreleri okuyabiliyor (SheetJS'in ücretsiz sürümü okuyamıyordu) ---- */
   async function _xlsxYukle(ov, url) {
     const govde = ov.querySelector('#dokOkuyucuGovde');
     try {
       const buf = await (await fetch(url)).arrayBuffer();
-      _xlsxWb = XLSX.read(buf, { type: 'array' });
+      _xlsxWb = new ExcelJS.Workbook();
+      await _xlsxWb.xlsx.load(buf);
       _state.tur = 'xlsx';
-      _state.toplamSayfa = _xlsxWb.SheetNames.length;
+      _state.toplamSayfa = _xlsxWb.worksheets.length;
       govde.style.overflow = 'auto';
       govde.style.touchAction = 'pan-x pan-y';
       govde.style.alignItems = 'flex-start';
@@ -128,25 +130,107 @@
     }
   }
 
+  // ARGB ("FFRRGGBB") -> CSS hex rengi
+  function _argbCss(argb) {
+    if (!argb || argb.length < 6) return null;
+    const hex = argb.length === 8 ? argb.slice(2) : argb;
+    return '#' + hex;
+  }
+
+  function _kenarlikCss(kenar) {
+    if (!kenar || !kenar.style) return '1px solid #ddd';
+    const kalinlik = { thin: '1px', hair: '1px', medium: '2px', thick: '3px', double: '3px' }[kenar.style] || '1px';
+    const renk = (kenar.color && kenar.color.argb) ? _argbCss(kenar.color.argb) : '#999';
+    return `${kalinlik} solid ${renk}`;
+  }
+
+  function _hucreMetni(hucre) {
+    const v = hucre.value;
+    if (v === null || v === undefined) return '';
+    if (v instanceof Date) return escapeHtml(v.toLocaleDateString('tr-TR'));
+    if (typeof v === 'object') {
+      if (v.richText) return v.richText.map(p => escapeHtml(p.text || '')).join('');
+      if (v.result !== undefined && v.result !== null) return escapeHtml(String(v.result)); // formül sonucu
+      if (v.text) return escapeHtml(String(v.text));
+      return escapeHtml(String(v));
+    }
+    return escapeHtml(String(v));
+  }
+
+  function _sayfaninHtmlBul(ws) {
+    // Birleştirilmiş hücreleri haritala: master hücreye rowspan/colspan,
+    // diğer hücreleri (aynı birleşimin geri kalanı) atla.
+    const master = {};
+    const gizli = new Set();
+    (ws.model.merges || []).forEach(aralik => {
+      const [bas, son] = aralik.split(':');
+      const b = ws.getCell(bas), s = ws.getCell(son);
+      master[`${b.row}-${b.col}`] = { rowspan: s.row - b.row + 1, colspan: s.col - b.col + 1 };
+      for (let r = b.row; r <= s.row; r++) for (let c = b.col; c <= s.col; c++) {
+        if (r === b.row && c === b.col) continue;
+        gizli.add(`${r}-${c}`);
+      }
+    });
+
+    let html = '<table style="border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px;">';
+    for (let r = 1; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      html += '<tr>';
+      for (let c = 1; c <= ws.columnCount; c++) {
+        const anahtar = `${r}-${c}`;
+        if (gizli.has(anahtar)) continue;
+        const hucre = row.getCell(c);
+        const yayilma = master[anahtar];
+        const stiller = ['padding:4px 8px'];
+
+        if (hucre.fill && hucre.fill.type === 'pattern' && hucre.fill.pattern === 'solid' && hucre.fill.fgColor && hucre.fill.fgColor.argb) {
+          const renk = _argbCss(hucre.fill.fgColor.argb);
+          if (renk && renk.toLowerCase() !== '#000000') stiller.push(`background-color:${renk}`);
+        }
+        if (hucre.font) {
+          if (hucre.font.bold) stiller.push('font-weight:700');
+          if (hucre.font.italic) stiller.push('font-style:italic');
+          if (hucre.font.underline) stiller.push('text-decoration:underline');
+          if (hucre.font.size) stiller.push(`font-size:${hucre.font.size}px`);
+          if (hucre.font.color && hucre.font.color.argb) {
+            const renk = _argbCss(hucre.font.color.argb);
+            if (renk) stiller.push(`color:${renk}`);
+          }
+        }
+        const hiz = hucre.alignment;
+        stiller.push(`text-align:${(hiz && hiz.horizontal) || 'left'}`);
+        stiller.push(`vertical-align:${(hiz && hiz.vertical === 'middle') ? 'middle' : 'top'}`);
+        stiller.push(hiz && hiz.wrapText ? 'white-space:normal' : 'white-space:nowrap');
+
+        const kb = hucre.border || {};
+        stiller.push(`border-top:${_kenarlikCss(kb.top)}`);
+        stiller.push(`border-left:${_kenarlikCss(kb.left)}`);
+        stiller.push(`border-bottom:${_kenarlikCss(kb.bottom)}`);
+        stiller.push(`border-right:${_kenarlikCss(kb.right)}`);
+
+        const ozellikler = yayilma
+          ? `${yayilma.rowspan > 1 ? `rowspan="${yayilma.rowspan}"` : ''} ${yayilma.colspan > 1 ? `colspan="${yayilma.colspan}"` : ''}`
+          : '';
+        html += `<td ${ozellikler} style="${stiller.join(';')}">${_hucreMetni(hucre)}</td>`;
+      }
+      html += '</tr>';
+    }
+    return html + '</table>';
+  }
+
   function _xlsxSayfaRenderEt(ov, index) {
-    const adi = _xlsxWb.SheetNames[index];
-    const sheet = _xlsxWb.Sheets[adi];
-    const tabloHtml = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    const ws = _xlsxWb.worksheets[index];
     const sarici = ov.querySelector('#dokOkuyucuXlsxSarici');
     const govde = ov.querySelector('#dokOkuyucuGovde');
     sarici.style.transform = 'none';
-    sarici.innerHTML = `
-      <style>
-        #dokOkuyucuXlsxSarici table { border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#111; }
-        #dokOkuyucuXlsxSarici td, #dokOkuyucuXlsxSarici th { border:1px solid #ccc; padding:5px 9px; white-space:nowrap; }
-      </style>
-      <h4 style="margin-bottom:8px;font-family:Arial,sans-serif;color:#111;white-space:nowrap;">${escapeHtml(adi)}</h4>
-      ${tabloHtml}`;
+    sarici.innerHTML = `<h4 style="margin-bottom:8px;font-family:Arial,sans-serif;color:#111;white-space:nowrap;">${escapeHtml(ws.name)}</h4>${_sayfaninHtmlBul(ws)}`;
     // Doğal boyutuna göre ekrana tam sığacak ölçeği hesapla (PDF'teki gibi) —
     // zoom bundan itibaren bir ÇARPAN: zoom=1 -> tam sığdırılmış, zoom=4 -> 4x yakın.
     const dogalGenislik = sarici.scrollWidth || 1;
-    const dogalYukseklik = sarici.scrollHeight || 1;
-    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, govde.clientHeight / dogalYukseklik, 1);
+    // NOT: Sadece GENİŞLİĞE göre sığdırıyoruz (yükseklik değil) — aksi halde
+    // uzun bir sayfa tüm sayfayı sığdırmak için aşırı küçülüyor ("daralmış"
+    // görünüm). Yükseklik fazlası zaten normal şekilde kaydırılıyor.
+    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, 1);
     sarici.style.transformOrigin = 'top left';
     sarici.style.transform = `scale(${_state.tabanOlcek * _state.zoom})`;
     _state.sayfaIndex = index;
@@ -209,8 +293,10 @@
     sarici.style.transform = 'none';
     sarici.innerHTML = _docxSayfalar[index] || '';
     const dogalGenislik = sarici.scrollWidth || 1;
-    const dogalYukseklik = sarici.scrollHeight || 1;
-    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, govde.clientHeight / dogalYukseklik, 1);
+    // NOT: Sadece GENİŞLİĞE göre sığdırıyoruz — görselli/uzun sayfalarda
+    // tüm yüksekliği sığdırmaya çalışmak aşırı küçültmeye ("daralmış"
+    // görünüm) sebep oluyordu. Fazla yükseklik normal kaydırmayla görülür.
+    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, 1);
     sarici.style.transformOrigin = 'top center';
     sarici.style.transform = `scale(${_state.tabanOlcek * _state.zoom})`;
     _state.sayfaIndex = index;
@@ -226,7 +312,7 @@
       chip.dataset.index = i;
       chip.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:50px;height:64px;margin-right:6px;border:2px solid transparent;border-radius:6px;background:#fff;color:#333;font-size:11px;cursor:pointer;overflow:hidden;vertical-align:top;';
       if (_state.tur === 'xlsx') {
-        chip.textContent = _xlsxWb.SheetNames[i];
+        chip.textContent = _xlsxWb.worksheets[i].name;
         chip.style.padding = '4px';
         chip.style.whiteSpace = 'normal';
         chip.style.textAlign = 'center';
