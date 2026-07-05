@@ -98,7 +98,7 @@ function duyuruLightboxAcById(duyuruId, index){
     <div style="display:flex;justify-content:flex-end;padding:10px;">
       <button id="dlbKapat" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:20px;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>
     </div>
-    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;touch-action:none;">
       <button id="dlbOnceki" style="position:absolute;left:8px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;">‹</button>
       <img id="dlbResim" style="max-width:92%;max-height:92%;object-fit:contain;border-radius:6px;">
       <button id="dlbSonraki" style="position:absolute;right:8px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:20px;cursor:pointer;">›</button>
@@ -114,8 +114,14 @@ function duyuruLightboxAcById(duyuruId, index){
     document.body.classList.remove('dlk-overlay-acik');
     if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
   };
+  let _dlbZoom = 1, _dlbPanX = 0, _dlbPanY = 0;
+  function _dlbTransformUygula(){
+    ov.querySelector('#dlbResim').style.transform = `translate(${_dlbPanX}px, ${_dlbPanY}px) scale(${_dlbZoom})`;
+  }
   function goster(){
+    _dlbZoom = 1; _dlbPanX = 0; _dlbPanY = 0;
     ov.querySelector('#dlbResim').src = _duyuruLightboxResimler[_duyuruLightboxIndex].url;
+    _dlbTransformUygula();
     ov.querySelector('#dlbSayac').textContent = `${_duyuruLightboxIndex+1} / ${_duyuruLightboxResimler.length}`;
     const cokluMu = _duyuruLightboxResimler.length > 1;
     ov.querySelector('#dlbOnceki').style.display = cokluMu ? '' : 'none';
@@ -126,21 +132,62 @@ function duyuruLightboxAcById(duyuruId, index){
 
   // DÜZELTME (YENİ): Sadece ok butonlarına dokunmak yeterli değildi —
   // kullanıcılar doğal olarak parmakla kaydırmayı (swipe) deniyor.
-  // Tek parmak yatay kaydırma da artık sayfa değiştiriyor.
-  let _dlbBaslangicX = null;
+  // Tek parmak yatay kaydırma (yakınlaştırma yokken) sayfa değiştirir.
+  // YENİ: İki parmakla pinch-zoom + yakınlaştırılmışken tek parmakla
+  // gezinme (pan) — dokuman-okuyucu.js'deki PDF davranışıyla aynı desen.
+  ov.querySelector('#dlbResim').style.transformOrigin = 'center center';
+  let _dlbBaslangicX = null, _dlbBaslangicY = null;
+  let _dlbSurukleniyor = false, _dlbPanBaslX = 0, _dlbPanBaslY = 0;
+  let _dlbPinchBaslangic = 0, _dlbZoomBaslangic = 1;
   const govdeEl = ov.querySelector('div[style*="flex:1"]');
+
+  function _dlbMesafe(t1, t2){
+    const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
   govdeEl.addEventListener('touchstart', (e) => {
-    if(e.touches.length === 1) _dlbBaslangicX = e.touches[0].clientX;
+    if(e.touches.length === 2){
+      _dlbPinchBaslangic = _dlbMesafe(e.touches[0], e.touches[1]);
+      _dlbZoomBaslangic = _dlbZoom;
+      _dlbBaslangicX = null;
+      _dlbSurukleniyor = false;
+    } else if(e.touches.length === 1){
+      if(_dlbZoom > 1.02){
+        _dlbSurukleniyor = true;
+        _dlbBaslangicX = e.touches[0].clientX;
+        _dlbBaslangicY = e.touches[0].clientY;
+        _dlbPanBaslX = _dlbPanX; _dlbPanBaslY = _dlbPanY;
+      } else {
+        _dlbBaslangicX = e.touches[0].clientX;
+      }
+    }
   }, { passive: true });
+
+  govdeEl.addEventListener('touchmove', (e) => {
+    if(e.touches.length === 2){
+      const mesafe = _dlbMesafe(e.touches[0], e.touches[1]);
+      _dlbZoom = Math.min(4, Math.max(1, _dlbZoomBaslangic * (mesafe / _dlbPinchBaslangic)));
+      if(_dlbZoom <= 1.02){ _dlbPanX = 0; _dlbPanY = 0; }
+      _dlbTransformUygula();
+    } else if(e.touches.length === 1 && _dlbSurukleniyor){
+      _dlbPanX = _dlbPanBaslX + (e.touches[0].clientX - _dlbBaslangicX);
+      _dlbPanY = _dlbPanBaslY + (e.touches[0].clientY - _dlbBaslangicY);
+      _dlbTransformUygula();
+    }
+  }, { passive: true });
+
   govdeEl.addEventListener('touchend', (e) => {
-    if(_dlbBaslangicX === null || e.changedTouches.length !== 1) return;
-    const fark = e.changedTouches[0].clientX - _dlbBaslangicX;
-    if(Math.abs(fark) > 50 && _duyuruLightboxResimler.length > 1){
-      if(fark < 0) _duyuruLightboxIndex = (_duyuruLightboxIndex + 1) % _duyuruLightboxResimler.length;
-      else _duyuruLightboxIndex = (_duyuruLightboxIndex - 1 + _duyuruLightboxResimler.length) % _duyuruLightboxResimler.length;
-      goster();
+    if(!_dlbSurukleniyor && _dlbZoom <= 1.02 && _dlbBaslangicX !== null && e.changedTouches.length === 1){
+      const fark = e.changedTouches[0].clientX - _dlbBaslangicX;
+      if(Math.abs(fark) > 50 && _duyuruLightboxResimler.length > 1){
+        if(fark < 0) _duyuruLightboxIndex = (_duyuruLightboxIndex + 1) % _duyuruLightboxResimler.length;
+        else _duyuruLightboxIndex = (_duyuruLightboxIndex - 1 + _duyuruLightboxResimler.length) % _duyuruLightboxResimler.length;
+        goster();
+      }
     }
     _dlbBaslangicX = null;
+    _dlbSurukleniyor = false;
   });
 
   goster();
