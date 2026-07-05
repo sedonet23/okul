@@ -133,6 +133,8 @@
     const sheet = _xlsxWb.Sheets[adi];
     const tabloHtml = XLSX.utils.sheet_to_html(sheet, { editable: false });
     const sarici = ov.querySelector('#dokOkuyucuXlsxSarici');
+    const govde = ov.querySelector('#dokOkuyucuGovde');
+    sarici.style.transform = 'none';
     sarici.innerHTML = `
       <style>
         #dokOkuyucuXlsxSarici table { border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; color:#111; }
@@ -140,7 +142,13 @@
       </style>
       <h4 style="margin-bottom:8px;font-family:Arial,sans-serif;color:#111;white-space:nowrap;">${escapeHtml(adi)}</h4>
       ${tabloHtml}`;
-    sarici.style.transform = `scale(${_state.zoom})`;
+    // Doğal boyutuna göre ekrana tam sığacak ölçeği hesapla (PDF'teki gibi) —
+    // zoom bundan itibaren bir ÇARPAN: zoom=1 -> tam sığdırılmış, zoom=4 -> 4x yakın.
+    const dogalGenislik = sarici.scrollWidth || 1;
+    const dogalYukseklik = sarici.scrollHeight || 1;
+    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, govde.clientHeight / dogalYukseklik, 1);
+    sarici.style.transformOrigin = 'top left';
+    sarici.style.transform = `scale(${_state.tabanOlcek * _state.zoom})`;
     _state.sayfaIndex = index;
     _sayacGuncelle(ov);
   }
@@ -197,8 +205,14 @@
 
   function _docxSayfaRenderEt(ov, index) {
     const sarici = ov.querySelector('#dokOkuyucuDocxSarici');
+    const govde = ov.querySelector('#dokOkuyucuGovde');
+    sarici.style.transform = 'none';
     sarici.innerHTML = _docxSayfalar[index] || '';
-    sarici.style.transform = `scale(${_state.zoom})`;
+    const dogalGenislik = sarici.scrollWidth || 1;
+    const dogalYukseklik = sarici.scrollHeight || 1;
+    _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, govde.clientHeight / dogalYukseklik, 1);
+    sarici.style.transformOrigin = 'top center';
+    sarici.style.transform = `scale(${_state.tabanOlcek * _state.zoom})`;
     _state.sayfaIndex = index;
     _sayacGuncelle(ov);
   }
@@ -248,7 +262,7 @@
       return;
     }
     const hedef = ov.querySelector('#dokOkuyucuXlsxSarici') || ov.querySelector('#dokOkuyucuDocxSarici');
-    if (hedef) hedef.style.transform = `scale(${_state.zoom})`;
+    if (hedef) hedef.style.transform = `scale(${(_state.tabanOlcek || 1) * _state.zoom})`;
   }
 
   function _jestleriBagla(ov) {
@@ -352,7 +366,7 @@
       if (!isNaN(n)) _sayfayaGit(ov, n - 1);
     };
 
-    _state = { url, ad, uzanti, sayfaIndex: 0, toplamSayfa: 0, zoom: 1, panX: 0, panY: 0, tur: null };
+    _state = { url, ad, uzanti, sayfaIndex: 0, toplamSayfa: 0, zoom: 1, panX: 0, panY: 0, tabanOlcek: 1, tur: null };
     _jestleriBagla(ov);
 
     if (uzanti === 'pdf') _pdfYukle(ov, url);
