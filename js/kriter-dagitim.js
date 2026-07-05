@@ -14,8 +14,12 @@
    listesidir. Her blok için birden fazla not sütunu (1. Etkinlik,
    2. Etkinlik, ...) doluysa, HER BİRİ için AYRI bir çizelge/sayfa üretilir.
 
-   Mimari not: Firestore'a yazmaz, tamamen istemci tarafında (tarayıcıda)
-   çalışır — dilekçe/maaş formu modülleriyle aynı yaklaşım.
+   Mimari not (bkz. docs/Pragmatik-Mimari-Tasarimi.md §2): Bu modül
+   Firestore/Storage'a HİÇ dokunmuz — Excel dosyası tamamen tarayıcıda
+   okunup işlenir, sonuç sadece ekranda gösterilip yazdırılır, hiçbir şey
+   kaydedilmez. Repository katmanı (DB/Storage erişimi) ve service katmanı
+   (yetki kontrolü) bu yüzden burada YOK — ikisinin de yapacağı iş yok;
+   dilekçe/maaş formu modülleriyle aynı gerekçe.
    ==================================================================== */
 
 (function() {
@@ -204,26 +208,23 @@
     <div class="kd-sayfa">
       <table class="kd-ust-tablo">
         <tr><td colspan="3" class="kd-ust-baslik">${escapeHtml(_state.egitimYili)} EĞİTİM ÖĞRETİM YILI ${escapeHtml(_state.okulAdi.toLocaleUpperCase('tr'))}</td></tr>
-        <tr><td colspan="3" class="kd-ust-baslik">${escapeHtml((blok.ders || 'DERS').toLocaleUpperCase('tr'))} DERSİ ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} ${escapeHtml(notAdi.toLocaleUpperCase('tr'))} DERS İÇİ KATILIM ÖLÇEĞİ</td></tr>
+        <tr><td colspan="3" class="kd-ust-baslik">${escapeHtml((blok.sinif || '').toLocaleUpperCase('tr'))} SINIFI ${escapeHtml((blok.ders || 'DERS').toLocaleUpperCase('tr'))} DERSİ ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} ${escapeHtml(notAdi.toLocaleUpperCase('tr'))} DERS İÇİ KATILIM ÖLÇEĞİ</td></tr>
       </table>
 
       <table class="kd-govde-tablo">
         <tr>
-          <td class="kd-sinif-kutu" rowspan="2">
+          <td class="kd-sinif-kutu" rowspan="3">
             <div class="kd-olcutler-dikey">ÖLÇÜTLER</div>
             <table class="kd-lejant-tablo">${olcutLejant}</table>
           </td>
-          <td class="kd-sinif-adi" rowspan="2">${escapeHtml(blok.sinif || '')}<br><span style="font-size:9pt;font-weight:400;">SINIFI</span></td>
+          <td class="kd-th-sabit" rowspan="3">SIRA</td>
+          <td class="kd-th-sabit" rowspan="3">NO</td>
+          <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
           <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
+          <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
         </tr>
         <tr>${grupBaslikHtml}</tr>
-        <tr>
-          <td class="kd-th-sabit">SIRA</td>
-          <td class="kd-th-sabit">NO</td>
-          <td class="kd-th-sabit">ADI SOYADI</td>
-          ${kriterBaslikHtml}
-          <td class="kd-th-sabit kd-donen-yazi-th"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
-        </tr>
+        <tr>${kriterBaslikHtml}</tr>
         ${satirlarHtml}
       </table>
 
@@ -263,7 +264,6 @@
     .kd-lejant-tablo td { border:1px solid #000; font-size:7pt; padding:1px 3px; }
     .kd-lejant-no { font-weight:700; text-align:center; width:14px; }
     .kd-lejant-etiket { text-align:left; }
-    .kd-sinif-adi { font-weight:700; font-size:11pt; width:70px; }
     .kd-sira { width:22px; } .kd-no { width:30px; } .kd-ad { text-align:left !important; min-width:120px; font-weight:600; }
     .kd-puan { font-weight:600; }
     .kd-toplam { font-weight:700; background:#f0f0f0; }
@@ -276,13 +276,15 @@
 
   function _tumCizelgelerHtml() {
     const parcalar = [];
-    _state.bloklar.forEach(blok => {
-      const notAdlari = _state.notSutunlari.filter(n => n.sutun).map(n => n.ad)
-        .filter(notAd => blok.ogrenciler.some(o => o.notlar[notAd] !== null && o.notlar[notAd] !== undefined));
-      notAdlari.forEach(notAd => parcalar.push(_cizelgeHtml(blok, notAd)));
-    });
+    _state.bloklar
+      .filter(blok => blok.ders && blok.sinif) // DÜZELTME: ders/sınıf seçilmemiş bloklar atlanır
+      .forEach(blok => {
+        const notAdlari = _state.notSutunlari.filter(n => n.sutun).map(n => n.ad)
+          .filter(notAd => blok.ogrenciler.some(o => o.notlar[notAd] !== null && o.notlar[notAd] !== undefined));
+        notAdlari.forEach(notAd => parcalar.push(_cizelgeHtml(blok, notAd)));
+      });
     return `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Kriter Puan Dağıtım Çizelgeleri</title>
-      <style>${_kdStilBlogu()}</style></head><body>${parcalar.join('')}</body></html>`;
+      <style>${_kdStilBlogu()}</style></head><body>${parcalar.join('') || '<p style="padding:20px;">Ders/Sınıf seçilmiş hiçbir liste bulunamadı.</p>'}</body></html>`;
   }
 
   /* ================================================================
@@ -333,7 +335,7 @@
       .map(o => `<option value="${o.id}" ${_state.ogretmenId === o.id ? 'selected' : ''}>${escapeHtml(o.ad + ' ' + o.soyad)}</option>`).join('');
 
     _panel(ov).innerHTML = _kutu(`
-      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">1/5 — Genel Bilgiler</h3>
+      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">1/4 — Genel Bilgiler</h3>
       ${_etiket('Eğitim-Öğretim Yılı')}${_girdi('kd_yil', _state.egitimYili, 'örn: 2025-2026')}
       ${_etiket('Dönem')}
       <select id="kd_donem" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:12px;">
@@ -367,9 +369,20 @@
   }
 
   /* ---- Adım 2: Excel Yükleme ---- */
+  // DÜZELTME: Sütun eşleme artık her seferinde SORULMUYOR — kullanıcının
+  // daha önce belirttiği sabit sütunlar kullanılıyor: A=sıra, C=isim,
+  // 1.Dönem'de J/K/L, 2.Dönem'de W/X/Y = 1./2./3. Etkinlik notları.
+  function _sabitSutunEslemesiUygula() {
+    _state.siraSutunu = 'A';
+    _state.isimSutunu = 'C';
+    _state.notSutunlari = (_state.donem === '2. Dönem')
+      ? [{ sutun: 'W', ad: '1. Etkinlik Notu' }, { sutun: 'X', ad: '2. Etkinlik Notu' }, { sutun: 'Y', ad: '3. Etkinlik Notu' }]
+      : [{ sutun: 'J', ad: '1. Etkinlik Notu' }, { sutun: 'K', ad: '2. Etkinlik Notu' }, { sutun: 'L', ad: '3. Etkinlik Notu' }];
+  }
+
   function _adim2Render(ov) {
     _panel(ov).innerHTML = _kutu(`
-      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">2/5 — Excel Dosyası Yükle</h3>
+      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">2/4 — Excel Dosyası Yükle</h3>
       <p style="font-size:12.5px;color:#666;margin-bottom:12px;">e-Okul'dan indirdiğin not döküm dosyasını (.xls/.xlsx) seç. Aynı dosyada birden fazla sınıf/ders listesi varsa hepsi otomatik ayrıştırılacak.</p>
       <input id="kd_dosya" type="file" accept=".xlsx,.xls" style="width:100%;margin-bottom:14px;">
       <div style="display:flex;gap:8px;">
@@ -385,6 +398,9 @@
         const buf = await dosya.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         _state.aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null });
+        _sabitSutunEslemesiUygula();
+        await _excelOkuVeBlokla();
+        if (!_state.bloklar.length) { toast('Hiç blok/liste bulunamadı — sütun eşlemesi bu dosyayla uyuşmuyor olabilir.'); return; }
         _state.adim = 3;
         _render(ov);
       } catch (e) { toast('Dosya okunamadı: ' + e.message); }
@@ -392,57 +408,8 @@
   }
 
   /* ---- Adım 3: Sütun Eşleme ---- */
-  function _ornekDegerler(harf) {
-    if (!harf || !_state.aoa) return '';
-    const idx = _harfdenIndexe(harf);
-    const ornekler = _state.aoa.slice(0, 15).map(r => r && r[idx]).filter(v => v !== null && v !== undefined && v !== '').slice(0, 3);
-    return ornekler.length ? `örnek: ${ornekler.join(', ')}` : '';
-  }
-
+  /* ---- Adım 3: Blok Başına Ders/Sınıf Seçimi ---- */
   function _adim3Render(ov) {
-    const notSatirlariHtml = _state.notSutunlari.map((n, i) => `
-      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
-        <input class="kd_notSutun" data-i="${i}" value="${escapeHtml(n.sutun)}" placeholder="Sütun (örn: J)" style="width:80px;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;text-transform:uppercase;">
-        <input class="kd_notAd" data-i="${i}" value="${escapeHtml(n.ad)}" placeholder="Not adı (örn: 1. Etkinlik Notu)" style="flex:1;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;">
-        <button class="kd_notSil" data-i="${i}" style="border:none;background:#fdecea;color:#c0392b;border-radius:6px;width:26px;height:26px;cursor:pointer;">✕</button>
-      </div>`).join('');
-
-    _panel(ov).innerHTML = _kutu(`
-      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">3/5 — Sütun Eşleme (${_state.donem})</h3>
-      ${_etiket('Sıra Numarası Sütunu (blok tespiti için — her yeni sınıf/ders listesi burada 1\'e döner)')}${_girdi('kd_sira', _state.siraSutunu, 'örn: A')}
-      <div id="kd_siraOrnek" style="font-size:11px;color:#888;margin:-8px 0 12px;">${_ornekDegerler(_state.siraSutunu)}</div>
-      ${_etiket('Öğrenci Adı Soyadı Sütunu')}${_girdi('kd_isim', _state.isimSutunu, 'örn: C')}
-      <div id="kd_isimOrnek" style="font-size:11px;color:#888;margin:-8px 0 12px;">${_ornekDegerler(_state.isimSutunu)}</div>
-
-      <div style="margin-bottom:8px;font-size:12.5px;font-weight:700;color:#555;">Not Sütunları (${_state.donem} için) — kaç tane doluysa o kadar ayrı çizelge üretilecek</div>
-      <div id="kd_notSutunlari">${notSatirlariHtml}</div>
-      <button id="kd_notEkle" style="width:100%;padding:7px;border:1px dashed #999;background:#f7f7f7;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:14px;">➕ Not Sütunu Ekle</button>
-
-      <div style="display:flex;gap:8px;">
-        <button id="kd_geri3" style="flex:1;padding:10px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:14px;cursor:pointer;">← Geri</button>
-        <button id="kd_ileri3" style="flex:2;padding:10px;border:none;background:#1b5e20;color:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">Blokları Bul →</button>
-      </div>
-    `);
-
-    ov.querySelector('#kd_sira').oninput = (e) => { _state.siraSutunu = e.target.value.toUpperCase(); ov.querySelector('#kd_siraOrnek').textContent = _ornekDegerler(_state.siraSutunu); };
-    ov.querySelector('#kd_isim').oninput = (e) => { _state.isimSutunu = e.target.value.toUpperCase(); ov.querySelector('#kd_isimOrnek').textContent = _ornekDegerler(_state.isimSutunu); };
-    ov.querySelectorAll('.kd_notSutun').forEach(el => el.oninput = (e) => { _state.notSutunlari[+e.target.dataset.i].sutun = e.target.value.toUpperCase(); });
-    ov.querySelectorAll('.kd_notAd').forEach(el => el.oninput = (e) => { _state.notSutunlari[+e.target.dataset.i].ad = e.target.value; });
-    ov.querySelectorAll('.kd_notSil').forEach(el => el.onclick = (e) => { _state.notSutunlari.splice(+e.target.dataset.i, 1); _adim3Render(ov); });
-    ov.querySelector('#kd_notEkle').onclick = () => { _state.notSutunlari.push({ sutun: '', ad: `${_state.notSutunlari.length + 1}. Etkinlik Notu` }); _adim3Render(ov); };
-    ov.querySelector('#kd_geri3').onclick = () => { _state.adim = 2; _render(ov); };
-    ov.querySelector('#kd_ileri3').onclick = async () => {
-      if (!_state.siraSutunu || !_state.isimSutunu) { toast('Sıra ve isim sütunlarını belirtin.'); return; }
-      if (!_state.notSutunlari.some(n => n.sutun)) { toast('En az bir not sütunu belirtin.'); return; }
-      await _excelOkuVeBlokla();
-      if (!_state.bloklar.length) { toast('Hiç blok/liste bulunamadı — sütun harflerini kontrol edin.'); return; }
-      _state.adim = 4;
-      _render(ov);
-    };
-  }
-
-  /* ---- Adım 4: Blok Başına Ders/Sınıf Seçimi ---- */
-  function _adim4Render(ov) {
     const dersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : []).map(d => `<option value="${escapeHtml(d.ad)}">${escapeHtml(d.ad)}</option>`).join('');
     const sinifSecenekleri = (typeof siniflar !== 'undefined' ? siniflar : []).slice()
       .sort((a, b) => `${a.seviye || ''}${a.sube || ''}`.localeCompare(`${b.seviye || ''}${b.sube || ''}`, 'tr'))
@@ -462,7 +429,7 @@
       </div>`).join('');
 
     _panel(ov).innerHTML = _kutu(`
-      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">4/5 — Bulunan Listeler (${_state.bloklar.length})</h3>
+      <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">3/4 — Bulunan Listeler (${_state.bloklar.length})</h3>
       <p style="font-size:12px;color:#666;margin-bottom:12px;">Her liste için hangi ders ve sınıfa ait olduğunu seç.</p>
       <div id="kd_bloklar">${blokKartlari}</div>
       <div style="display:flex;gap:8px;margin-top:6px;">
@@ -472,12 +439,15 @@
     `);
     ov.querySelectorAll('.kd_blokDers').forEach(el => { el.onchange = (e) => { _state.bloklar[+e.target.dataset.i].ders = e.target.value; }; });
     ov.querySelectorAll('.kd_blokSinif').forEach(el => { el.onchange = (e) => { _state.bloklar[+e.target.dataset.i].sinif = e.target.value; }; });
-    ov.querySelector('#kd_geri4').onclick = () => { _state.adim = 3; _render(ov); };
-    ov.querySelector('#kd_ileri4').onclick = () => { _state.adim = 5; _render(ov); };
+    ov.querySelector('#kd_geri4').onclick = () => { _state.adim = 2; _render(ov); };
+    ov.querySelector('#kd_ileri4').onclick = () => {
+      if (!_state.bloklar.some(b => b.ders && b.sinif)) { toast('En az bir liste için Ders ve Sınıf seçmelisin.'); return; }
+      _state.adim = 4; _render(ov);
+    };
   }
 
-  /* ---- Adım 5: Önizleme + Yazdır ---- */
-  function _adim5Render(ov) {
+  /* ---- Adım 4: Önizleme + Yazdır ---- */
+  function _adim4Render(ov) {
     const govde = _panel(ov);
     govde.style.alignItems = 'flex-start';
     govde.innerHTML = `
@@ -493,7 +463,7 @@
     const frame = govde.querySelector('#kd_frame');
     frame.srcdoc = _tumCizelgelerHtml();
 
-    govde.querySelector('#kd_geri5').onclick = () => { _state.adim = 4; _render(ov); };
+    govde.querySelector('#kd_geri5').onclick = () => { _state.adim = 3; _render(ov); };
     govde.querySelector('#kd_yenidenDagit').onclick = () => { frame.srcdoc = _tumCizelgelerHtml(); };
     govde.querySelector('#kd_yazdir').onclick = () => {
       if (!frame.contentWindow) { toast('Belge henüz yüklenmedi.'); return; }
@@ -513,7 +483,6 @@
     else if (_state.adim === 2) _adim2Render(ov);
     else if (_state.adim === 3) _adim3Render(ov);
     else if (_state.adim === 4) _adim4Render(ov);
-    else if (_state.adim === 5) _adim5Render(ov);
   }
 
   /* ================================================================
