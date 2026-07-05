@@ -35,6 +35,8 @@
   function _sayfayaGit(ov, index) {
     if (!_state || index < 0 || index >= _state.toplamSayfa) return;
     _state.zoom = 1;
+    _state.panX = 0;
+    _state.panY = 0;
     if (_state.tur === 'pdf') _pdfSayfaRenderEt(ov, index);
     else if (_state.tur === 'xlsx') _xlsxSayfaRenderEt(ov, index);
     else if (_state.tur === 'docx') _docxSayfaRenderEt(ov, index);
@@ -53,6 +55,8 @@
       _pdfDoc = await pdfjsLib.getDocument(url).promise;
       _state.tur = 'pdf';
       _state.toplamSayfa = _pdfDoc.numPages;
+      govde.style.overflow = 'hidden';
+      govde.style.touchAction = 'none';
       govde.innerHTML = `<canvas id="dokOkuyucuCanvas" style="background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.5);"></canvas>`;
       await _pdfSayfaRenderEt(ov, 0);
       _thumbBarKur(ov);
@@ -113,6 +117,7 @@
       _state.tur = 'xlsx';
       _state.toplamSayfa = _xlsxWb.SheetNames.length;
       govde.style.overflow = 'auto';
+      govde.style.touchAction = 'pan-x pan-y';
       govde.style.alignItems = 'flex-start';
       govde.style.justifyContent = 'flex-start';
       govde.innerHTML = `<div id="dokOkuyucuXlsxSarici" style="background:#fff;padding:14px;transform-origin:top left;flex-shrink:0;box-sizing:border-box;"></div>`;
@@ -150,6 +155,7 @@
       _state.tur = 'docx';
       _state.toplamSayfa = _docxSayfalar.length;
       govde.style.overflow = 'auto';
+      govde.style.touchAction = 'pan-x pan-y';
       govde.style.alignItems = 'flex-start';
       govde.style.justifyContent = 'center';
       govde.innerHTML = `<div id="dokOkuyucuDocxSarici" style="background:#fff;width:210mm;max-width:100%;min-height:250mm;padding:18mm;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12pt;line-height:1.5;color:#111;transform-origin:top center;"></div>`;
@@ -236,23 +242,38 @@
   }
 
   function _zoomUygula(ov) {
-    const hedef = ov.querySelector('#dokOkuyucuCanvas') ||
-                  ov.querySelector('#dokOkuyucuXlsxSarici') ||
-                  ov.querySelector('#dokOkuyucuDocxSarici');
+    const canvas = ov.querySelector('#dokOkuyucuCanvas');
+    if (canvas) {
+      canvas.style.transform = `translate(${_state.panX || 0}px, ${_state.panY || 0}px) scale(${_state.zoom})`;
+      return;
+    }
+    const hedef = ov.querySelector('#dokOkuyucuXlsxSarici') || ov.querySelector('#dokOkuyucuDocxSarici');
     if (hedef) hedef.style.transform = `scale(${_state.zoom})`;
   }
 
   function _jestleriBagla(ov) {
     const govde = ov.querySelector('#dokOkuyucuGovde');
-    let baslangicMesafe = 0, baslangicZoom = 1, swipeBaslangicX = null;
+    let baslangicMesafe = 0, baslangicZoom = 1;
+    let swipeBaslangicX = null;
+    let surukleniyor = false, surukleBaslangicX = 0, surukleBaslangicY = 0, panBaslangicX = 0, panBaslangicY = 0;
 
     govde.addEventListener('touchstart', (e) => {
       if (e.touches.length === 2) {
         baslangicMesafe = _mesafe(e.touches[0], e.touches[1]);
         baslangicZoom = _state.zoom;
         swipeBaslangicX = null;
+        surukleniyor = false;
       } else if (e.touches.length === 1) {
-        swipeBaslangicX = e.touches[0].clientX;
+        if (_state.tur === 'pdf' && _state.zoom > 1.02) {
+          // Yakınlaştırılmış PDF'te tek parmak = gezinme (pan), sayfa çevirme değil.
+          surukleniyor = true;
+          surukleBaslangicX = e.touches[0].clientX;
+          surukleBaslangicY = e.touches[0].clientY;
+          panBaslangicX = _state.panX || 0;
+          panBaslangicY = _state.panY || 0;
+        } else {
+          swipeBaslangicX = e.touches[0].clientX;
+        }
       }
     }, { passive: true });
 
@@ -260,12 +281,17 @@
       if (e.touches.length === 2) {
         const mesafe = _mesafe(e.touches[0], e.touches[1]);
         _state.zoom = Math.min(4, Math.max(1, baslangicZoom * (mesafe / baslangicMesafe)));
+        if (_state.zoom <= 1.02) { _state.panX = 0; _state.panY = 0; }
+        _zoomUygula(ov);
+      } else if (e.touches.length === 1 && surukleniyor) {
+        _state.panX = panBaslangicX + (e.touches[0].clientX - surukleBaslangicX);
+        _state.panY = panBaslangicY + (e.touches[0].clientY - surukleBaslangicY);
         _zoomUygula(ov);
       }
     }, { passive: true });
 
     govde.addEventListener('touchend', (e) => {
-      if (swipeBaslangicX !== null && _state.zoom <= 1.02 && e.changedTouches.length === 1) {
+      if (!surukleniyor && _state.tur === 'pdf' && swipeBaslangicX !== null && _state.zoom <= 1.02 && e.changedTouches.length === 1) {
         const fark = e.changedTouches[0].clientX - swipeBaslangicX;
         if (Math.abs(fark) > 60) {
           if (fark < 0) _sayfayaGit(ov, _state.sayfaIndex + 1);
@@ -273,6 +299,7 @@
         }
       }
       swipeBaslangicX = null;
+      surukleniyor = false;
     });
   }
 
@@ -292,7 +319,7 @@
           <button id="dokOkuyucuKapat" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 12px;font-size:13px;font-weight:700;">✕</button>
         </div>
       </div>
-      <div id="dokOkuyucuGovde" style="flex:1 1 auto;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;background:#525659;">
+      <div id="dokOkuyucuGovde" style="flex:1 1 auto;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#525659;">
         <div style="color:#fff;font-size:13px;">Yükleniyor…</div>
       </div>
       <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:8px;background:#2b2b2b;">
@@ -325,7 +352,7 @@
       if (!isNaN(n)) _sayfayaGit(ov, n - 1);
     };
 
-    _state = { url, ad, uzanti, sayfaIndex: 0, toplamSayfa: 0, zoom: 1, tur: null };
+    _state = { url, ad, uzanti, sayfaIndex: 0, toplamSayfa: 0, zoom: 1, panX: 0, panY: 0, tur: null };
     _jestleriBagla(ov);
 
     if (uzanti === 'pdf') _pdfYukle(ov, url);
