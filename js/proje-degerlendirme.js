@@ -186,7 +186,7 @@
         <tr>
           <td class="pd-th-sabit" rowspan="3">SIRA</td>
           <td class="pd-th-sabit" rowspan="3">NO</td>
-          <td class="pd-th-sabit" rowspan="3">ADI SOYADI</td>
+          <td class="pd-th-sabit pd-ad-basligi" rowspan="3">ADI SOYADI</td>
           <td colspan="${kriterSayisi}" class="pd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
           <td class="pd-th-sabit pd-donen-yazi-th" rowspan="3"><div class="pd-donen-yazi">PROJE PUANI</div></td>
         </tr>
@@ -225,9 +225,10 @@
     .pd-ust-baslik { text-align:center; font-weight:700; font-size:11pt; padding:2px; }
     .pd-govde-tablo td, .pd-govde-tablo th { border:1px solid #000; text-align:center; font-size:8pt; padding:2px; }
     .pd-th-sabit { font-weight:700; background:#f0f0f0; }
+    .pd-ad-basligi { text-align:left !important; vertical-align:bottom !important; padding:4px 6px !important; }
     .pd-kazanim-baslik { font-weight:700; background:#f0f0f0; }
     .pd-grup-th { font-weight:700; background:#f7f7f7; font-size:7.5pt; }
-    .pd-kriter-th { width:20px; height:90px; vertical-align:bottom; padding:2px 0; }
+    .pd-kriter-th { width:20px; height:65px; vertical-align:bottom; padding:2px 0; }
     .pd-donen-yazi { writing-mode: vertical-rl; transform: rotate(180deg); font-size:7pt; font-weight:400; white-space:nowrap; margin:0 auto; }
     .pd-donen-yazi-th { width:24px; }
     .pd-sira { width:22px; } .pd-no { width:30px; } .pd-ad { text-align:left !important; min-width:120px; font-weight:600; }
