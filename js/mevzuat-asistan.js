@@ -170,14 +170,32 @@ function _mevzuatAnahtarKelimelerCikar(metin){
 
 /* Türkçe eklemeli (agglutinative) bir dil: "izin" sorulur, metinde
    "iznin", "izinli", "izinlerini" geçer — tam kelime eşleşmesi bunları
-   YAKALAYAMAZ. Basit bir "sözde-kök" (ilk ~5 karakter) çıkarıp o gövdeyi
-   karşılaştırmak, ek farklarını büyük ölçüde tolere eder. Kusursuz bir
-   Türkçe kök bulma algoritması değildir ama pratikte işe yarar. */
+   YAKALAYAMAZ. Önceki sürüm sadece "ilk 5 karaktere kırp" yapıyordu; bu,
+   "izin"(4 harf, kırpılmıyor) ile "izinli"(6 harf, "izinl"e kırpılıyor)
+   gibi durumlarda gövdeleri birbirinden FARKLI çıkarıp eşleşmeyi
+   kaçırıyordu. Bunun yerine bilinen ekleri sondan gerçekten kesiyoruz,
+   sonra kalanı normalize ediyoruz. Kusursuz bir Türkçe kök bulma
+   algoritması değildir ama önceki yönteme göre çok daha isabetlidir. */
+const MEVZUAT_EKLER = [
+  'lerinden','larından','lerinin','larının','lerine','larına','lerini','larını',
+  'ndeki','ndaki','leri','ları','lere','lara','lerde','larda','lerden','lardan',
+  'lerin','ların','nden','ndan','ndeki','ndaki','sında','sinde','sunda','sünde',
+  'sına','sine','suna','süne','sinin','sının','sunun','sünün','ecek','acak',
+  'yordu','miş','mış','muş','müş','yor','dir','dır','dur','dür','siz','sız',
+  'suz','süz','nin','nın','nun','nün','nde','nda','den','dan','te','ta','de','da',
+  'li','lı','lu','lü','ci','cı','cu','cü','çi','çı','çu','çü','ler','lar',
+  'nı','ni','nu','nü','ın','in','un','ün','ı','i','u','ü','e','a'
+].sort((a,b)=> b.length - a.length); // en uzun ek önce denenir
+
 function _mevzuatGovdeCikar(kelime){
-  // "izin" -> "izi", "iznin" -> "izni"... tam eşleşmeyecek özel bir kaç
-  // sık ek kalıbını (ünlü düşmesi vb.) normalize etmeye çalışmadan önce,
-  // basitçe ilk 5 karaktere kırp — çoğu ek 5. karakterden sonra başlar.
-  return kelime.length > 5 ? kelime.slice(0, 5) : kelime;
+  let k = kelime;
+  for(const ek of MEVZUAT_EKLER){
+    if(k.length - ek.length >= 3 && k.endsWith(ek)){
+      k = k.slice(0, k.length - ek.length);
+      break; // sadece en uzun eşleşen tek eki kes, üst üste kesme (aşırı kısaltmayı önler)
+    }
+  }
+  return k.length > 6 ? k.slice(0, 6) : k;
 }
 
 /* ---------- toplu içe aktarma ----------
@@ -323,13 +341,13 @@ function mevzuatAltGorunumSec(g){
 
 /* ---------- cihazda arama (index tabanlı, Firestore'a hiç gitmiyor) ---------- */
 async function _mevzuatEnAlakaliChunklariBul(soru, adet){
-  adet = adet || 6;
+  adet = adet || 10;
   const sorguKelimeleri = _mevzuatAnahtarKelimelerCikar(soru);
   if(sorguKelimeleri.length === 0) return [];
   const sorguGovdeleri = [...new Set(sorguKelimeleri.map(_mevzuatGovdeCikar))];
 
   const tumChunklar = await _mevzuatTumChunklariOku();
-  const skorlar = tumChunklar.map(c=>{
+  let skorlar = tumChunklar.map(c=>{
     const kelimeler = c.anahtarKelimeler || [];
     const govdeSeti = new Set(kelimeler.map(_mevzuatGovdeCikar));
     let skor = 0;
@@ -341,6 +359,26 @@ async function _mevzuatEnAlakaliChunklariBul(soru, adet){
     }
     return { chunk: c, skor };
   }).filter(x=> x.skor > 0);
+
+  // YEDEK PLAN: gövde eşleşmesi hiç bulunamazsa (ör. kısaltılmış/özel bir
+  // ek kalıbı gövde çıkarıcının kaçırdığı bir kelime), ham metin üzerinde
+  // doğrudan alt-dize araması yap. Daha yavaş ama çok daha kapsayıcı;
+  // sadece gövde araması boş döndüğünde devreye girer.
+  if(skorlar.length === 0){
+    const sorguKelimeleriUzun = sorguKelimeleri.filter(k=> k.length >= 4);
+    if(sorguKelimeleriUzun.length > 0){
+      skorlar = tumChunklar.map(c=>{
+        const metinKucuk = (c.metin || '').toLocaleLowerCase('tr');
+        const baslikKucuk = (c.baslik || '').toLocaleLowerCase('tr');
+        let skor = 0;
+        sorguKelimeleriUzun.forEach(k=>{
+          if(metinKucuk.includes(k)) skor++;
+          if(baslikKucuk.includes(k)) skor += 2;
+        });
+        return { chunk: c, skor };
+      }).filter(x=> x.skor > 0);
+    }
+  }
 
   skorlar.sort((a,b)=> b.skor - a.skor);
   return skorlar.slice(0, adet).map(x=> x.chunk);
@@ -370,7 +408,7 @@ async function mevzuatSoruGonder(){
   mevzuatSohbetRender();
 
   try{
-    const ilgiliChunklar = await _mevzuatEnAlakaliChunklariBul(soru, 6);
+    const ilgiliChunklar = await _mevzuatEnAlakaliChunklariBul(soru, 10);
 
     if(ilgiliChunklar.length === 0){
       mevzuatYukleniyor = false;
