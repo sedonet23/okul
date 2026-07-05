@@ -384,7 +384,8 @@
     _panel(ov).innerHTML = _kutu(`
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">2/4 — Excel Dosyası Yükle</h3>
       <p style="font-size:12.5px;color:#666;margin-bottom:12px;">e-Okul'dan indirdiğin not döküm dosyasını (.xls/.xlsx) seç. Aynı dosyada birden fazla sınıf/ders listesi varsa hepsi otomatik ayrıştırılacak.</p>
-      <input id="kd_dosya" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="width:100%;margin-bottom:14px;">
+      <input id="kd_dosya" type="file" style="width:100%;margin-bottom:14px;">
+      <p style="font-size:11px;color:#999;margin:-10px 0 12px;">Dosya seçme ekranında filtre yok — her türlü dosya listelenir, .xls/.xlsx olmayanı seçersen ayrıştırma hatası verir.</p>
       <div style="display:flex;gap:8px;">
         <button id="kd_geri2" style="flex:1;padding:10px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:14px;cursor:pointer;">← Geri</button>
         <button id="kd_ileri2" style="flex:2;padding:10px;border:none;background:#1b5e20;color:#fff;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;">İleri →</button>
