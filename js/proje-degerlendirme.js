@@ -186,7 +186,8 @@
     const satirlarHtml = _state.ogrenciler.map((o, i) => {
       const dagilim = _puanDagit(o.notu, kriterSayisi, puanMin, puanMax);
       const puanHucreleri = dagilim.map(p => `<td class="pd-puan">${p}</td>`).join('');
-      return `<tr><td class="pd-sira">${i + 1}</td><td class="pd-no">${escapeHtml(String(o.no))}</td><td class="pd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="pd-toplam">${Math.round(o.notu)}</td></tr>`;
+      const zebraSinifi = (i % 2 === 1) ? ' class="pd-zebra"' : '';
+      return `<tr${zebraSinifi}><td class="pd-sira">${i + 1}</td><td class="pd-no">${escapeHtml(String(o.no))}</td><td class="pd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="pd-toplam">${Math.round(o.notu)}</td></tr>`;
     }).join('');
 
     const olcutLejantYatay = _kriterAyari.puanEtiketleri.map((etiket, i) =>
@@ -202,8 +203,8 @@
 
       <table class="pd-govde-tablo">
         <tr>
-          <td class="pd-th-sabit" rowspan="3">SIRA</td>
-          <td class="pd-th-sabit" rowspan="3">NO</td>
+          <td class="pd-th-sabit pd-ad-basligi" rowspan="3">SIRA</td>
+          <td class="pd-th-sabit pd-ad-basligi" rowspan="3">NO</td>
           <td class="pd-th-sabit pd-ad-basligi" rowspan="3">ADI SOYADI</td>
           <td colspan="${kriterSayisi}" class="pd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
           <td class="pd-th-sabit pd-donen-yazi-th" rowspan="3"><div class="pd-donen-yazi">PROJE PUANI</div></td>
@@ -246,12 +247,13 @@
     .pd-ad-basligi { text-align:left !important; vertical-align:bottom !important; padding:4px 6px !important; }
     .pd-kazanim-baslik { font-weight:700; background:#f0f0f0; }
     .pd-grup-th { font-weight:700; background:#f7f7f7; font-size:7.5pt; }
-    .pd-kriter-th { width:20px; height:65px; vertical-align:bottom; padding:2px 0; }
+    .pd-kriter-th { width:32px; height:65px; vertical-align:bottom; padding:2px 0; }
     .pd-donen-yazi { writing-mode: vertical-rl; transform: rotate(180deg); font-size:7pt; font-weight:400; white-space:nowrap; margin:0 auto; }
     .pd-donen-yazi-th { width:24px; }
     .pd-sira { width:22px; } .pd-no { width:30px; } .pd-ad { text-align:left !important; min-width:120px; font-weight:600; }
     .pd-puan { font-weight:600; }
     .pd-toplam { font-weight:700; background:#f0f0f0; }
+    .pd-zebra td:not(.pd-toplam) { background:#f7f9fb; }
     .pd-lejant-not { font-size:8pt; margin:2mm 0 4mm; padding:3px 0; border-bottom:1px solid #000; }
     .pd-lejant-ogesi { margin-right:10px; white-space:nowrap; }
     .pd-alt-tablo { margin-top:10mm; }
@@ -372,7 +374,7 @@
         const wb = XLSX.read(buf, { type: 'array' });
         _state.aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null });
         _excelTara();
-        if (!_state.ogrenciler.length) { toast(`${_projeSutunuBul()} sütununda dolu not bulunamadı.`); return; }
+        if (!_state.ogrenciler.length) { toast(`${_state.donem} için ${_projeSutunuBul()} sütununda dolu proje notu bulunamadı. Doğru dönemi seçtiğinizden emin olun.`); return; }
         _state.adim = 3;
         _render(ov);
       } catch (e) { toast('Dosya okunamadı: ' + e.message); }

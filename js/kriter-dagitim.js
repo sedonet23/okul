@@ -220,13 +220,14 @@
     ).join('');
 
     const satirlarHtml = blok.ogrenciler.map((o, i) => {
+      const zebraSinifi = (i % 2 === 1) ? ' class="kd-zebra"' : '';
       const hedef = o.notlar[notAdi];
       if (hedef === null || hedef === undefined) {
-        return `<tr><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${kriterler.map(() => '<td></td>').join('')}<td></td></tr>`;
+        return `<tr${zebraSinifi}><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${kriterler.map(() => '<td></td>').join('')}<td></td></tr>`;
       }
       const dagilim = _puanDagit(hedef, kriterSayisi, puanMin, puanMax);
       const puanHucreleri = dagilim.map(p => `<td class="kd-puan">${p}</td>`).join('');
-      return `<tr><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${Math.round(hedef)}</td></tr>`;
+      return `<tr${zebraSinifi}><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${Math.round(hedef)}</td></tr>`;
     }).join('');
 
     const olcutLejantYatay = _kriterAyari.puanEtiketleri.map((etiket, i) =>
@@ -242,9 +243,9 @@
 
       <table class="kd-govde-tablo">
         <tr>
-          <td class="kd-th-sabit" rowspan="3">SIRA</td>
-          <td class="kd-th-sabit" rowspan="3">NO</td>
-          <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
+          <td class="kd-th-sabit kd-ad-basligi" rowspan="3">SIRA</td>
+          <td class="kd-th-sabit kd-ad-basligi" rowspan="3">NO</td>
+          <td class="kd-th-sabit kd-ad-basligi" rowspan="3">ADI SOYADI</td>
           <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
           <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
         </tr>
@@ -281,9 +282,10 @@
     .kd-ust-baslik { text-align:center; font-weight:700; font-size:11pt; padding:2px; }
     .kd-govde-tablo td, .kd-govde-tablo th { border:1px solid #000; text-align:center; font-size:8pt; padding:2px; }
     .kd-th-sabit { font-weight:700; background:#f0f0f0; }
+    .kd-ad-basligi { text-align:left !important; vertical-align:bottom !important; padding:4px 6px !important; }
     .kd-kazanim-baslik { font-weight:700; background:#f0f0f0; }
     .kd-grup-th { font-weight:700; background:#f7f7f7; font-size:7.5pt; }
-    .kd-kriter-th { width:20px; height:90px; vertical-align:bottom; padding:2px 0; }
+    .kd-kriter-th { width:32px; height:90px; vertical-align:bottom; padding:2px 0; }
     .kd-donen-yazi { writing-mode: vertical-rl; transform: rotate(180deg); font-size:7pt; font-weight:400; white-space:nowrap; margin:0 auto; }
     .kd-donen-yazi-th { width:24px; }
     .kd-lejant-not { font-size:8pt; margin:2mm 0 4mm; padding:3px 0; border-bottom:1px solid #000; }
@@ -291,6 +293,7 @@
     .kd-sira { width:22px; } .kd-no { width:30px; } .kd-ad { text-align:left !important; min-width:120px; font-weight:600; }
     .kd-puan { font-weight:600; }
     .kd-toplam { font-weight:700; background:#f0f0f0; }
+    .kd-zebra td:not(.kd-toplam) { background:#f7f9fb; }
     .kd-alt-tablo { margin-top:10mm; }
     .kd-imza-hucre { text-align:center; width:50%; font-weight:700; font-size:10pt; border:none; padding-top:6mm; }
     .kd-unvan { font-weight:400; font-size:9pt; margin-top:1mm; }
