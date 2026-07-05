@@ -677,11 +677,19 @@ function renderOkulBilgileriSayfasi(){
     const ilEl = document.getElementById('f_okulIl');
     const ilceEl = document.getElementById('f_okulIlce');
     const mebEl = document.getElementById('f_okulMeb');
+    const ilkokulAdEl = document.getElementById('f_okulIlkokulAdi');
+    const ilkokulKodEl = document.getElementById('f_okulIlkokulKurumKodu');
+    const ortaokulAdEl = document.getElementById('f_okulOrtaokulAdi');
+    const ortaokulKodEl = document.getElementById('f_okulOrtaokulKurumKodu');
     if(adEl) adEl.value = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
     if(mudurEl) mudurEl.innerHTML = ogretmenSecenekleri(okulBilgileriAyari ? okulBilgileriAyari.mudurId : '');
     if(ilEl) ilEl.value = (okulBilgileriAyari && okulBilgileriAyari.il) || '';
     if(ilceEl) ilceEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilce) || '';
     if(mebEl) mebEl.value = (okulBilgileriAyari && okulBilgileriAyari.mebMudurlugu) || '';
+    if(ilkokulAdEl) ilkokulAdEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilkokulAdi) || '';
+    if(ilkokulKodEl) ilkokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilkokulKurumKodu) || '';
+    if(ortaokulAdEl) ortaokulAdEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulAdi) || '';
+    if(ortaokulKodEl) ortaokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulKurumKodu) || '';
     if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
   } catch(e) { console.warn('renderOkulBilgileriSayfasi hata:', e); }
 }
@@ -691,7 +699,14 @@ function okulBilgileriKaydet(){
   const il = (document.getElementById('f_okulIl')?.value || '').trim().toLocaleUpperCase('tr');
   const ilce = (document.getElementById('f_okulIlce')?.value || '').trim().toLocaleUpperCase('tr');
   const mebMudurlugu = (document.getElementById('f_okulMeb')?.value || '').trim();
-  db.collection(COL.okulBilgileri).doc('ayarlar').set({ okulAdi, mudurId, il, ilce, mebMudurlugu })
+  const ilkokulAdi = (document.getElementById('f_okulIlkokulAdi')?.value || '').trim();
+  const ilkokulKurumKodu = (document.getElementById('f_okulIlkokulKurumKodu')?.value || '').trim();
+  const ortaokulAdi = (document.getElementById('f_okulOrtaokulAdi')?.value || '').trim();
+  const ortaokulKurumKodu = (document.getElementById('f_okulOrtaokulKurumKodu')?.value || '').trim();
+  db.collection(COL.okulBilgileri).doc('ayarlar').set({
+    okulAdi, mudurId, il, ilce, mebMudurlugu,
+    ilkokulAdi, ilkokulKurumKodu, ortaokulAdi, ortaokulKurumKodu
+  })
     .then(()=>toast('Okul bilgileri kaydedildi.'))
     .catch(err=>toast('Hata: '+err.message));
 }
