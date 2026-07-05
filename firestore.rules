@@ -2,16 +2,53 @@
 // sekmesine yapıştırıp "Yayınla" (Publish) demeniz gerekir — bu dosya
 // otomatik olarak Firebase'e yüklenmez.
 //
-// NOT: Giriş ekranı kaldırıldığı (bkz. js/auth.js) için bu kurallar artık
-// herkese açık okuma/yazma izni veriyor. Güvenlik, uygulamanın adresinin
-// genel olarak paylaşılmamasına bağlıdır. Eğer ileride şifreli girişe
-// dönerseniz, alttaki satırı "if request.auth != null;" ile değiştirip
-// js/auth.js'i de buna göre güncellemeniz gerekir.
+// GÜNCELLEME: Uygulama artık kullanıcı adı/şifre ile giriş yaptırıyor
+// (bkz. js/auth.js), bu yüzden kurallar da buna göre sıkılaştırıldı:
+// - Giriş yapmamış hiç kimse HİÇBİR VERİYİ okuyup yazamaz.
+// - oy_kullanicilar ve oy_roller (hesap/yetki tanımları): sadece admin yazabilir.
+// - oy_kullaniciIstatistikleri: herkes SADECE KENDİ istatistik belgesini
+//   yazabilir (increment için gerekli), okuma sadece admin'e açık.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function girisYapmis() {
+      return request.auth != null;
+    }
+    function kendiBelgemVarMi() {
+      return exists(/databases/$(database)/documents/oy_kullanicilar/$(request.auth.uid));
+    }
+    function adminMi() {
+      return girisYapmis() && kendiBelgemVarMi()
+        && get(/databases/$(database)/documents/oy_kullanicilar/$(request.auth.uid)).data.admin == true;
+    }
+
+    // Varsayılan: sadece giriş yapmış (ve uygulamada hesabı olan) kullanıcılar
+    // okuyup yazabilir. Modül bazlı ince yetkilendirme (Görüntüle/Düzenle/Gizle)
+    // zaten uygulama tarafında (js/kullanici-yonetimi.js) uygulanıyor; bu satır
+    // sadece "giriş yapmamış hiç kimse hiçbir şeye erişemesin" güvencesini verir.
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if girisYapmis();
+    }
+
+    // Hesap kayıtları: herkes okuyabilir (giriş kontrolü/isim gösterimi için
+    // gerekli) ama SADECE admin oluşturabilir/düzenleyebilir/silebilir.
+    match /oy_kullanicilar/{uid} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
+
+    // Roller (yetki tanımları): sadece admin değiştirebilir.
+    match /oy_roller/{id} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
+
+    // Kullanıcı istatistikleri: herkes SADECE KENDİ belgesini yazabilir
+    // (başkasının sayaçlarını değiştiremez), okuma sadece admin'e açık.
+    match /oy_kullaniciIstatistikleri/{uid} {
+      allow read: if adminMi() || (girisYapmis() && request.auth.uid == uid);
+      allow write: if girisYapmis() && request.auth.uid == uid;
     }
   }
 }
