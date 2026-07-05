@@ -249,8 +249,8 @@
       govde.style.overflow = 'auto';
       govde.style.touchAction = 'pan-x pan-y';
       govde.style.alignItems = 'flex-start';
-      govde.style.justifyContent = 'center';
-      govde.innerHTML = `<div id="dokOkuyucuDocxSarici" style="background:#fff;width:210mm;max-width:100%;min-height:250mm;padding:18mm;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12pt;line-height:1.5;color:#111;transform-origin:top center;"></div>`;
+      govde.style.justifyContent = 'flex-start';
+      govde.innerHTML = `<div id="dokOkuyucuDocxSarici" style="background:#fff;width:max-content;min-width:210mm;min-height:250mm;padding:18mm;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12pt;line-height:1.5;color:#111;flex-shrink:0;transform-origin:top left;"></div>`;
       _docxSayfaRenderEt(ov, 0);
       _thumbBarKur(ov);
     } catch (e) {
@@ -297,7 +297,7 @@
     // tüm yüksekliği sığdırmaya çalışmak aşırı küçültmeye ("daralmış"
     // görünüm) sebep oluyordu. Fazla yükseklik normal kaydırmayla görülür.
     _state.tabanOlcek = Math.min(govde.clientWidth / dogalGenislik, 1);
-    sarici.style.transformOrigin = 'top center';
+    sarici.style.transformOrigin = 'top left';
     sarici.style.transform = `scale(${_state.tabanOlcek * _state.zoom})`;
     _state.sayfaIndex = index;
     _sayacGuncelle(ov);
