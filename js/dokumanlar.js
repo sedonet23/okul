@@ -144,6 +144,12 @@ function dokumanAc(id) {
     DokumanOkuyucu.ac(url, ad);
     return;
   }
+  // DÜZELTME: .doc (eski, 2003 öncesi ikili Word formatı) uygulama içi
+  // okuyucuda desteklenmiyor (mammoth.js sadece .docx okuyabiliyor).
+  // Sessizce indirmek yerine sebebini açıkça söylüyoruz.
+  if (/\.doc$/i.test(ad)) {
+    toast('Bu dosya eski .doc formatında olduğu için uygulama içinde önizlenemiyor, indiriliyor. Önizleme için dosyayı Word\'de .docx olarak yeniden kaydedip tekrar yükleyin.');
+  }
   window.open(url, '_blank');
 }
 
