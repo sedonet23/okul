@@ -269,6 +269,13 @@
         <div class="karusel-noktalar" id="haberKaruselNoktalar"></div>
       </div>
 
+      <!-- YENİ: Okul sitemizden (korukortaokulu.meb.k12.tr) Haber+Duyuru RSS'i,
+           görselli, yatay kaydırmalı şerit — genel Haberler karuselinden AYRI. -->
+      <div class="card" id="okulSitesiKart" data-kart-id="okulSitesiKart" data-yetki-modul="haberler" style="display:none;">
+        <h3 class="dash-h3-row">🏫 Okul Sitemizden <span class="dash-tumu-link" onclick="sekmeAc('haberler')">Tümü ›</span></h3>
+        <div id="okulSitesiSerit" style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:4px;margin-top:6px;"></div>
+      </div>
+
       <!-- 4. Hızlı İşlemler — 2x4 grid, M3 tarzı renkli ikon rozetleri, gerçek sekmelere bağlı -->
       <div class="card" data-kart-id="hizliIslemler">
         <h3 style="display:flex;align-items:center;justify-content:space-between;">⚡ Hızlı İşlemler <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); dashboardAltDuzenModalAc('hizliIslemler')" title="Düzenle">✏️</button></h3>
@@ -741,8 +748,8 @@
       <div class="page-header">
         <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri ve deneme sınavları</div></div>
         <div class="page-header-actions">
-          <button class="btn btn-ghost" onclick="if(typeof KriterDagitimAraci!=='undefined') KriterDagitimAraci.ac(); else alert('Kriter Puan Dağıtım Aracı yüklenemedi.');">📊 Ders Etkinlikleri Not Otomasyonu</button>
-          <button class="btn btn-ghost" onclick="if(typeof ProjeDegerlendirmeAraci!=='undefined') ProjeDegerlendirmeAraci.ac(); else alert('Proje Değerlendirme Ölçeği yüklenemedi.');">📐 Proje Değerlendirme Ölçeği Otomasyonu</button>
+          <button class="btn btn-ghost" onclick="if(typeof KriterDagitimAraci!=='undefined') KriterDagitimAraci.ac(); else alert('Kriter Puan Dağıtım Aracı yüklenemedi.');">📊 Kriter Puan Dağıtım Aracı</button>
+          <button class="btn btn-ghost" onclick="if(typeof ProjeDegerlendirmeAraci!=='undefined') ProjeDegerlendirmeAraci.ac(); else alert('Proje Değerlendirme Ölçeği yüklenemedi.');">📐 Proje Değerlendirme Ölçeği</button>
         </div>
       </div>
 
