@@ -740,6 +740,9 @@
         <section id="tab-sinavIslemleri" class="tab-panel">
       <div class="page-header">
         <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri ve deneme sınavları</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="if(typeof KriterDagitimAraci!=='undefined') KriterDagitimAraci.ac(); else alert('Kriter Puan Dağıtım Aracı yüklenemedi.');">📊 Kriter Puan Dağıtım Aracı</button>
+        </div>
       </div>
 
       <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -1400,6 +1403,7 @@
 <script src="js/anket.js"></script>
 <script src="js/dashboard-ozellestirme.js"></script>
 <script src="js/excel-import.js"></script>
+<script src="js/kriter-dagitim.js"></script>
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
 <script src="js/ogretmen-detay.js"></script>
