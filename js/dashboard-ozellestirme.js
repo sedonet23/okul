@@ -24,6 +24,7 @@ const DASHBOARD_KART_KATALOGU = [
   { id:'istatistikSeridi',   ad:'📊 İstatistik Şeridi (Personel/Öğrenci/Servis/Evrak)' },
   { id:'hizliBakis',         ad:'👁️ Hızlı Bakış Rozetleri' },
   { id:'haberKarusel',       ad:'📰 Son Haberler (karusel)' },
+  { id:'okulSitesiKart',     ad:'🏫 Okul Sitemizden (görselli, yatay kayan)' },
   { id:'hizliIslemler',      ad:'⚡ Hızlı İşlemler' },
   { id:'gununNobetcileri',   ad:'🛡️ Günün Nöbetçileri' },
   { id:'ogretmenOzel',       ad:'📚 Bugünkü Derslerim / Bu Haftaki Nöbetim' },

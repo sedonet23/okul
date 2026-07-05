@@ -123,6 +123,26 @@ function duyuruLightboxAcById(duyuruId, index){
   }
   ov.querySelector('#dlbOnceki').onclick = () => { _duyuruLightboxIndex = (_duyuruLightboxIndex - 1 + _duyuruLightboxResimler.length) % _duyuruLightboxResimler.length; goster(); };
   ov.querySelector('#dlbSonraki').onclick = () => { _duyuruLightboxIndex = (_duyuruLightboxIndex + 1) % _duyuruLightboxResimler.length; goster(); };
+
+  // DÜZELTME (YENİ): Sadece ok butonlarına dokunmak yeterli değildi —
+  // kullanıcılar doğal olarak parmakla kaydırmayı (swipe) deniyor.
+  // Tek parmak yatay kaydırma da artık sayfa değiştiriyor.
+  let _dlbBaslangicX = null;
+  const govdeEl = ov.querySelector('div[style*="flex:1"]');
+  govdeEl.addEventListener('touchstart', (e) => {
+    if(e.touches.length === 1) _dlbBaslangicX = e.touches[0].clientX;
+  }, { passive: true });
+  govdeEl.addEventListener('touchend', (e) => {
+    if(_dlbBaslangicX === null || e.changedTouches.length !== 1) return;
+    const fark = e.changedTouches[0].clientX - _dlbBaslangicX;
+    if(Math.abs(fark) > 50 && _duyuruLightboxResimler.length > 1){
+      if(fark < 0) _duyuruLightboxIndex = (_duyuruLightboxIndex + 1) % _duyuruLightboxResimler.length;
+      else _duyuruLightboxIndex = (_duyuruLightboxIndex - 1 + _duyuruLightboxResimler.length) % _duyuruLightboxResimler.length;
+      goster();
+    }
+    _dlbBaslangicX = null;
+  });
+
   goster();
 }
 

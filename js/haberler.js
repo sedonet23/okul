@@ -33,6 +33,7 @@ function haberlerBaglantilariKur(){
     renderHaberFiltreler();
     if(typeof renderHaberTicker === 'function') renderHaberTicker();
     if(typeof renderHaberKarusel === 'function') renderHaberKarusel();
+    if(typeof renderOkulSitesiKart === 'function') renderOkulSitesiKart();
     if(typeof globalAramaYap === 'function') globalAramaYap();
   });
 
@@ -295,4 +296,38 @@ function haberKaruselUygula(){
   if(!hedef) return;
   hedef.style.transform = `translateX(-${_haberKaruselIndex * 100}%)`;
   document.querySelectorAll('#haberKaruselNoktalar .karusel-nokta').forEach((n,i)=>n.classList.toggle('active', i===_haberKaruselIndex));
+}
+
+/* ================= DASHBOARD: OKUL SİTEMİZDEN (görselli, yatay kaydırmalı) =================
+   DÜZELTME (YENİ): Genel "Son Haberler" karuselinden FARKLI — bu kart SADECE
+   okulun kendi web sitesinden (korukortaokulu.meb.k12.tr) çekilen Haber ve
+   Duyuru RSS kaynaklarını gösterir. Bu iki kaynağı "Kaynak Yönetimi"nden
+   eklerken kategori alanına aynı ortak etiketi ("Okul Sitesi") vermeniz
+   yeterli — filtre bu alana göre çalışıyor. Otomatik döngü YOK, tamamen
+   parmakla yatay kaydırma (yatay kaydırmalı bir "hikaye şeridi" gibi). */
+const OKUL_SITESI_KATEGORISI = 'Okul Sitesi';
+
+function renderOkulSitesiKart(){
+  const kart = document.getElementById('okulSitesiKart');
+  const serit = document.getElementById('okulSitesiSerit');
+  if(!kart || !serit) return;
+  const sonlar = haberler.filter(h => h.kategori === OKUL_SITESI_KATEGORISI).slice(0, 7);
+  if(!sonlar.length){ kart.style.display = 'none'; return; }
+  kart.style.display = '';
+
+  serit.innerHTML = sonlar.map(h => {
+    const duyuruMu = (h.kaynakAdi||'').toLocaleLowerCase('tr').includes('duyuru');
+    return `
+    <div onclick="${h.link ? `window.open('${escapeHtml(h.link)}','_blank')` : ''}"
+         style="flex:0 0 auto;width:200px;border-radius:12px;overflow:hidden;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;scroll-snap-align:start;">
+      <div style="width:100%;height:120px;background:var(--nm-bg) center/cover no-repeat url('${h.resimUrl ? escapeHtml(h.resimUrl) : ''}');display:flex;align-items:center;justify-content:center;">
+        ${h.resimUrl ? '' : '<span style="font-size:28px;opacity:.4;">🏫</span>'}
+      </div>
+      <div style="padding:8px 10px;">
+        <span class="badge badge-${duyuruMu?'amber':'sage'}" style="font-size:10px;">${duyuruMu?'Duyuru':'Haber'}</span>
+        <div style="font-weight:700;font-size:12.5px;margin-top:5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${escapeHtml(h.baslik||'')}</div>
+        <div style="font-size:10.5px;color:var(--ink-muted);margin-top:4px;">${haberZamanEtiketi(h.tarih)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
