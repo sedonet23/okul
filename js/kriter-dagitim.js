@@ -105,10 +105,13 @@
   }
   function _varsayilanMuduAdi() {
     const okul = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari) || {};
-    return (okul.mudurId && typeof ogretmenAdi === 'function') ? (ogretmenAdi(okul.mudurId) || '') : '';
+    if (!okul.mudurId || typeof ogretmenler === 'undefined') return '';
+    const o = ogretmenler.find(x => x.id === okul.mudurId);
+    return o ? `${o.ad} ${o.soyad}` : ''; // '—' DÖNDÜRMEZ — böylece sonraki render'da tekrar denenir
   }
   function _getOkulAdi() {
-    return (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+    if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) return okulBilgileriAyari.okulAdi;
+    return 'KORUK İLK - ORTAOKULU'; // uygulamanın Okul Ayarları ekranındaki aynı varsayılan
   }
 
   /* ================================================================
@@ -200,8 +203,8 @@
       return `<tr><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${Math.round(hedef)}</td></tr>`;
     }).join('');
 
-    const olcutLejant = _kriterAyari.puanEtiketleri.map((etiket, i) =>
-      `<tr><td class="kd-lejant-no">${puanMin + i}</td><td class="kd-lejant-etiket">${escapeHtml(etiket)}</td></tr>`
+    const olcutLejantYatay = _kriterAyari.puanEtiketleri.map((etiket, i) =>
+      `<span class="kd-lejant-ogesi"><b>${puanMin + i}</b> - ${escapeHtml(etiket)}</span>`
     ).join('');
 
     return `
@@ -211,24 +214,20 @@
         <tr><td colspan="3" class="kd-ust-baslik">${escapeHtml((blok.sinif || '').toLocaleUpperCase('tr'))} SINIFI ${escapeHtml((blok.ders || 'DERS').toLocaleUpperCase('tr'))} DERSİ ${escapeHtml(_state.donem.toLocaleUpperCase('tr'))} ${escapeHtml(notAdi.toLocaleUpperCase('tr'))} DERS İÇİ KATILIM ÖLÇEĞİ</td></tr>
       </table>
 
-      <div class="kd-govde-satir">
-        <div class="kd-sinif-kutu">
-          <div class="kd-olcutler-dikey">ÖLÇÜTLER</div>
-          <table class="kd-lejant-tablo">${olcutLejant}</table>
-        </div>
-        <table class="kd-govde-tablo">
-          <tr>
-            <td class="kd-th-sabit" rowspan="3">SIRA</td>
-            <td class="kd-th-sabit" rowspan="3">NO</td>
-            <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
-            <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
-            <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
-          </tr>
-          <tr>${grupBaslikHtml}</tr>
-          <tr>${kriterBaslikHtml}</tr>
-          ${satirlarHtml}
-        </table>
-      </div>
+      <table class="kd-govde-tablo">
+        <tr>
+          <td class="kd-th-sabit" rowspan="3">SIRA</td>
+          <td class="kd-th-sabit" rowspan="3">NO</td>
+          <td class="kd-th-sabit" rowspan="3">ADI SOYADI</td>
+          <td colspan="${kriterSayisi}" class="kd-kazanim-baslik">Öğrencide Gözlenecek Kazanımlar</td>
+          <td class="kd-th-sabit kd-donen-yazi-th" rowspan="3"><div class="kd-donen-yazi">${escapeHtml(notAdi.toLocaleUpperCase('tr'))} PUANI</div></td>
+        </tr>
+        <tr>${grupBaslikHtml}</tr>
+        <tr>${kriterBaslikHtml}</tr>
+        ${satirlarHtml}
+      </table>
+
+      <div class="kd-lejant-not"><b>ÖLÇÜTLER:</b> ${olcutLejantYatay}</div>
 
       <table class="kd-alt-tablo">
         <tr>
@@ -261,13 +260,8 @@
     .kd-kriter-th { width:20px; height:90px; vertical-align:bottom; padding:2px 0; }
     .kd-donen-yazi { writing-mode: vertical-rl; transform: rotate(180deg); font-size:7pt; font-weight:400; white-space:nowrap; margin:0 auto; }
     .kd-donen-yazi-th { width:24px; }
-    .kd-govde-satir { display:flex; align-items:stretch; }
-    .kd-govde-tablo { flex:1 1 auto; }
-    .kd-sinif-kutu { text-align:center; font-weight:700; padding:4px; width:44px; flex-shrink:0; border:1px solid #000; border-right:none; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; }
-    .kd-olcutler-dikey { writing-mode:vertical-rl; transform:rotate(180deg); font-weight:700; font-size:10pt; margin-bottom:4px; display:inline-block; }
-    .kd-lejant-tablo td { border:1px solid #000; font-size:7pt; padding:1px 3px; }
-    .kd-lejant-no { font-weight:700; text-align:center; width:14px; }
-    .kd-lejant-etiket { text-align:left; }
+    .kd-lejant-not { font-size:8pt; margin:2mm 0 4mm; padding:3px 0; border-bottom:1px solid #000; }
+    .kd-lejant-ogesi { margin-right:10px; white-space:nowrap; }
     .kd-sira { width:22px; } .kd-no { width:30px; } .kd-ad { text-align:left !important; min-width:120px; font-weight:600; }
     .kd-puan { font-weight:600; }
     .kd-toplam { font-weight:700; background:#f0f0f0; }
@@ -334,6 +328,12 @@
 
   /* ---- Adım 1: Genel Bilgiler ---- */
   function _adim1Render(ov) {
+    // DÜZELTME: Bu bilgiler ilk overlay açılışında bir kere hesaplanıyordu —
+    // o an Firestore verisi (okulBilgileriAyari/ogretmenler) henüz gelmemişse
+    // boş kalıyordu. Adım her render edildiğinde tekrar denenir.
+    if (!_state.okulAdi) _state.okulAdi = _getOkulAdi();
+    if (!_state.muduAdi) _state.muduAdi = _varsayilanMuduAdi();
+
     const ogretmenSecenekleri = (typeof ogretmenler !== 'undefined' ? ogretmenler : []).slice()
       .sort((a, b) => `${a.ad} ${a.soyad}`.localeCompare(`${b.ad} ${b.soyad}`, 'tr'))
       .map(o => `<option value="${o.id}" ${_state.ogretmenId === o.id ? 'selected' : ''}>${escapeHtml(o.ad + ' ' + o.soyad)}</option>`).join('');
