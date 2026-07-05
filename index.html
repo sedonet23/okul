@@ -20,6 +20,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script>
   (function(){
     var kayitliTema = localStorage.getItem('oyTema');
@@ -645,7 +647,6 @@
           <button class="btn btn-ghost" onclick="MaasDegisiklikFormu.ac()">📋 Maaş Değişiklik Formu</button>
           <button class="btn btn-ghost" onclick="if(typeof DilekceSistemi!=='undefined') DilekceSistemi.acDiploma(); else alert('Dilekçe modülü yüklenemedi.');">📄 Diploma Kayıt Örneği Talep Dilekçesi</button>
           <button class="btn btn-ghost" onclick="if(typeof DilekceSistemi!=='undefined') DilekceSistemi.acDiplomaCevap(); else alert('Dilekçe modülü yüklenemedi.');">📄 Diploma Kayıt Örneği (Okul Cevabı)</button>
-          <button class="btn btn-ghost" onclick="if(typeof TebligTebellugSirkusu!=='undefined') TebligTebellugSirkusu.ac(); else alert('Tebliğ-Tebellüğ modülü yüklenemedi.');">📋 Tebliğ-Tebellüğ İmza Sirküsü</button>
           <button class="btn btn-amber" onclick="personelModalAc()">+ Yeni Personel</button>
         </div>
       </div>
@@ -1407,6 +1408,7 @@
 <script src="js/haberler.js"></script>
 <script src="js/mevzuat-asistan.js"></script>
 <script src="js/dokumanlar.js"></script>
+<script src="js/dokuman-okuyucu.js"></script>
 <script src="js/harita.js"></script>
 <script src="js/servis-oturma.js"></script>
 <script src="js/tasima-takip.js"></script>
@@ -1414,7 +1416,6 @@
 <script src="js/personel.js"></script>
 <script src="js/dilekce.js"></script>
 <script src="js/maas-degisiklik.js"></script>
-<script src="js/teblig-tebellug.js"></script>
 <script src="js/puantaj.js"></script>
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
