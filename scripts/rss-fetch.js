@@ -30,6 +30,21 @@ function xmlDecode(s){
 
 function stripTags(s){ return xmlDecode(s).replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim(); }
 
+/* YENİ: RSS öğesinden manşet görselini çıkarır. Sırayla dener:
+   1) <enclosure url="..." type="image/..."> (RSS 2.0 standardı)
+   2) <media:content url="..."> / <media:thumbnail url="..."> (bazı beslemeler)
+   3) description/content HTML'i içine gömülü ilk <img src="..."> */
+function gorselAl(blok){
+  let m = blok.match(/<enclosure[^>]*\surl=["']([^"']+)["'][^>]*>/i);
+  if(m && /\.(jpe?g|png|gif|webp)(\?|$)/i.test(m[1])) return xmlDecode(m[1]);
+  m = blok.match(/<media:(?:content|thumbnail)[^>]*\surl=["']([^"']+)["'][^>]*>/i);
+  if(m) return xmlDecode(m[1]);
+  const govde = etiketAl(blok, 'description') || etiketAl(blok, 'content') || etiketAl(blok, 'content:encoded') || '';
+  m = xmlDecode(govde).match(/<img[^>]*\ssrc=["']([^"']+)["']/i);
+  if(m) return m[1];
+  return '';
+}
+
 function etiketAl(blok, etiket){
   const re = new RegExp('<' + etiket + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + etiket + '>', 'i');
   const m = blok.match(re);
@@ -65,7 +80,8 @@ function parseFeedItems(xml){
       baslik,
       link: linkTemiz,
       tarih: tarihiIsoYap(tarihHam),
-      ozet: stripTags(ozetHam).slice(0, 400)
+      ozet: stripTags(ozetHam).slice(0, 400),
+      resimUrl: gorselAl(blok)
     });
   }
   return items;
@@ -179,6 +195,7 @@ async function main(){
         kaynakAdi: kaynak.ad,
         kategori: kaynak.kategori || 'Genel',
         tarih: item.tarih,
+        resimUrl: item.resimUrl || '',
         manuel: false
       });
     });
