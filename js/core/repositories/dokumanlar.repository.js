@@ -25,6 +25,7 @@ const DokumanlarRepository = {
      bilinçli olarak uygulanmıyor. */
   dokumanEkle(meta){ return db.collection(COL.dokumanlar).add(meta); },
   dokumanSil(id){ return db.collection(COL.dokumanlar).doc(id).delete(); },
+  dokumanGuncelle(id, veri){ return db.collection(COL.dokumanlar).doc(id).update(veri); },
 
   /* ---------- Dosya (Firebase Storage) ----------
      Yol: dokumanlar/{zamanDamgasi}_{dosyaAdi}
