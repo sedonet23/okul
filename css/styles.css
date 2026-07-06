@@ -3291,3 +3291,30 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
 /* ---- 6) Kart köşeleri: referans tasarımdaki daha yuvarlak "squircle" hissi ---- */
 #tab-panel.dash-modern .dash-hero,
 #tab-panel.dash-modern .dash-hero-bell{ border-radius: 22px; }
+
+/* =========================================================================
+   YENİ — FAZ 2: LUCIDE İKONLARI İÇİN BOYUT/DOLGU AYARI
+   ---------------------------------------------------------------------
+   Emoji metinleri artık gerçek SVG çizgi ikonlarla değiştirildiği için,
+   önceki font-size tabanlı boyutlandırma yerine width/height + padding
+   kullanılıyor. .nt-ico / .bn-ico kutularının ARKA PLAN RENGİ, KÖŞE
+   YUVARLAKLIĞI ve aktif/hover durumları (yukarıdaki mevcut kurallar)
+   HİÇ DEĞİŞMEDİ — sadece içindeki ikonun kendisi artık bir <svg>.
+   ========================================================================= */
+[data-lucide], svg.lucide{ stroke-width:2; flex-shrink:0; }
+
+/* Sidebar ikon "chip"leri: kutu aynı 32px kalıyor, ikon ortalanıp biraz
+   içeri dolgu (padding) alıyor — referans tasarımdaki icon-btn hissi. */
+.nav-tab .nt-ico, .nav-group-toggle .nt-ico{
+  box-sizing:border-box; padding:7px;
+}
+.nav-group .nav-sub-tab .nt-ico{ box-sizing:border-box; padding:6px; }
+.nav-cikis-btn .nt-ico{ box-sizing:border-box; padding:4px; }
+
+/* Alt navigasyon: ikon çıplak (arka plansız), sadece boyut sabitleniyor */
+.bn-item .bn-ico{ width:22px; height:22px; }
+.bn-plus-ico{ display:flex; align-items:center; justify-content:center; }
+.bn-plus-ico [data-lucide], .bn-plus-ico svg{ width:24px; height:24px; stroke-width:2.5; color:#fff; }
+
+/* Genel buton içi ikon+metin hizası (Rapor/Düzenle/Kapat gibi) */
+.btn [data-lucide]{ vertical-align:-3px; }
