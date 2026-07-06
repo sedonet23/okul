@@ -3227,3 +3227,67 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   body.dlk-overlay-acik > *:not(#raporOverlay):not(#dlkOverlay):not(#mdfOverlay) { display: none !important; }
   #raporOverlay > div:first-child { display: none !important; }
 }
+
+/* =========================================================================
+   YENİ — FAZ 0 + FAZ 1: OKUL YEŞİLİ MARKA RENGİ + REFERANS TASARIM HİZALAMASI
+   ---------------------------------------------------------------------
+   Bu blok HİÇBİR JS mantığını, HTML id'sini veya class yapısını değiştirmez.
+   Sadece daha önce marka rengi yerine SABİT (hardcoded) mavi (#2563EB) ile
+   yazılmış olan yüzeyleri (Genel Bakış hero kartı, topbar avatarı, alt
+   navigasyon aktif rengi, ortadaki + FAB'ı) artık --brand / --brand-dark /
+   --brand-mid değişkenlerine bağlıyor. Böylece:
+     1) Ayarlar > Tema > Vurgu Rengi'nden seçilen paket (varsayılan: Yeşil)
+        uygulamanın GERÇEKTEN her yerinde tutarlı şekilde yansıyor.
+     2) Referans tasarımdaki "birincil marka rengi = tüm önemli vurgular"
+        felsefesi, okul logosundaki yeşil ile uygulanmış oluyor.
+   Kategori/durum renkleri (mavi=öğrenci, mor=sınıf, turuncu=personel vb.)
+   kasıtlı olarak DEĞİŞTİRİLMEDİ — onlar marka rengi değil, bilgi kategorisi
+   rengidir ve referans tasarımdaki "tint" (blue/teal/purple/amber/rose)
+   sistemiyle zaten birebir örtüşüyor.
+   ========================================================================= */
+
+/* ---- 1) Genel Bakış hero kartı: mavi gradyan -> marka (yeşil) gradyanı ---- */
+#tab-panel.dash-modern .dash-hero{
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 55%, var(--brand-mid) 100%);
+  box-shadow: 0 12px 32px -8px rgba(22,163,74,.45); /* eski tarayıcı yedek gölgesi */
+  box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+/* ---- 2) Topbar profil avatarı: mavi gradyan -> marka gradyanı ---- */
+.topbar-avatar{
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-mid) 100%);
+}
+
+/* ---- 3) Alt navigasyon (mobil): aktif ikon rengi + ortadaki FAB ---- */
+.bn-item.active{ color: var(--brand); }
+[data-theme="dark"] .bn-item.active{ color: var(--brand-mid); }
+.bn-plus-ico{
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+  box-shadow: 0 8px 20px -4px rgba(22,163,74,.55); /* eski tarayıcı yedek gölgesi */
+  box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+
+/* ---- 4) Sidebar: referans tasarımdaki gibi aktif sekmede sol vurgu çubuğu ---- */
+.nav-tab, .nav-group .nav-sub-tab{ position: relative; }
+.nav-tab.active::before,
+.nav-group .nav-sub-tab.active::before{
+  content:'';
+  position:absolute; left:-4px; top:8px; bottom:8px;
+  width:3px; border-radius:3px;
+  background: var(--sb-accent);
+}
+body.nav-collapsed .nav-tab.active::before{ left:-2px; }
+
+/* ---- 5) Quick actions / istatistik kartlarına 5. "rose" tint eklendi ----
+   (Referans tasarımdaki 5 renkli hızlı işlem paleti: blue/teal/purple/amber/rose) */
+.qa-icon.qa-rose,
+#tab-panel.dash-modern .stat-card-ico-rose{
+  background: rgba(225,29,72,0.12); color:#E11D48;
+}
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-rose{
+  background: rgba(225,29,72,0.20); color:#FB7185;
+}
+
+/* ---- 6) Kart köşeleri: referans tasarımdaki daha yuvarlak "squircle" hissi ---- */
+#tab-panel.dash-modern .dash-hero,
+#tab-panel.dash-modern .dash-hero-bell{ border-radius: 22px; }
