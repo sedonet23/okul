@@ -112,65 +112,65 @@
       <button class="theme-toggle in-sidebar" id="temaDugmesi" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
     <nav class="nav">
-      <button class="nav-tab active" data-tab="panel"><span class="nt-ico ni-panel">🏠</span><span class="nt-label">Genel Bakış</span></button>
-      <button class="nav-tab" data-tab="arama"><span class="nt-ico">🔍</span><span class="nt-label">Arama</span></button>
+      <button class="nav-tab active" data-tab="panel"><i class="nt-ico ni-panel" data-lucide="layout-dashboard"></i><span class="nt-label">Genel Bakış</span></button>
+      <button class="nav-tab" data-tab="arama"><i class="nt-ico" data-lucide="search"></i><span class="nt-label">Arama</span></button>
 
       <div class="nav-separator" id="ayiracKisiler">— Kişiler —</div>
       <input type="checkbox" id="kisilerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="kisilerCheck">
-        <span class="nt-ico ni-ogretmen">👥</span><span class="nt-label">Kişiler</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-ogretmen" data-lucide="users"></i><span class="nt-label">Kişiler</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="kisilerMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><span class="nt-ico ni-ogretmen">👩‍🏫</span><span class="nt-label">Öğretmenler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="siniflar"><span class="nt-ico ni-sinif">🏫</span><span class="nt-label">Sınıflar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><span class="nt-ico">👨‍🎓</span><span class="nt-label">Öğrenciler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="personel"><span class="nt-ico ni-ogretmen">🧑‍💼</span><span class="nt-label">Personel İşleri</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><i class="nt-ico ni-ogretmen" data-lucide="user-round"></i><span class="nt-label">Öğretmenler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="siniflar"><i class="nt-ico ni-sinif" data-lucide="school"></i><span class="nt-label">Sınıflar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><i class="nt-ico" data-lucide="graduation-cap"></i><span class="nt-label">Öğrenciler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="personel"><i class="nt-ico ni-ogretmen" data-lucide="briefcase"></i><span class="nt-label">Personel İşleri</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracProgram">— Program —</div>
       <input type="checkbox" id="programCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="programCheck">
-        <span class="nt-ico ni-ders">📚</span><span class="nt-label">Program</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Program</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="programMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><span class="nt-ico ni-ders">📚</span><span class="nt-label">Ders Programı</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="nobet"><span class="nt-ico ni-nobet">🛡️</span><span class="nt-label">Nöbet Programı</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="takvim"><span class="nt-ico ni-takvim">📅</span><span class="nt-label">Takvim</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><span class="nt-ico ni-sinav">✏️</span><span class="nt-label">Sınav İşlemleri</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="nobet"><i class="nt-ico ni-nobet" data-lucide="shield-check"></i><span class="nt-label">Nöbet Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="takvim"><i class="nt-ico ni-takvim" data-lucide="calendar-days"></i><span class="nt-label">Takvim</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Sınav İşlemleri</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracIletisim">— İletişim —</div>
       <input type="checkbox" id="iletisimCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="iletisimCheck">
-        <span class="nt-ico">💬</span><span class="nt-label">İletişim</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico" data-lucide="message-circle"></i><span class="nt-label">İletişim</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="iletisimMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="mesajlasma"><span class="nt-ico">💬</span><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="haberler"><span class="nt-ico">📰</span><span class="nt-label">Haberler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="duyurular"><span class="nt-ico">📢</span><span class="nt-label">Duyurular</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="anket"><span class="nt-ico">📊</span><span class="nt-label">Anketler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="mesajlasma"><i class="nt-ico" data-lucide="message-circle"></i><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="haberler"><i class="nt-ico" data-lucide="newspaper"></i><span class="nt-label">Haberler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="duyurular"><i class="nt-ico" data-lucide="megaphone"></i><span class="nt-label">Duyurular</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="anket"><i class="nt-ico" data-lucide="bar-chart-3"></i><span class="nt-label">Anketler</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracBelgeler">— Belgeler —</div>
       <input type="checkbox" id="belgelerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="belgelerCheck">
-        <span class="nt-ico ni-evrak">📋</span><span class="nt-label">Belgeler</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Belgeler</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="belgelerMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="evrak"><span class="nt-ico ni-evrak">📋</span><span class="nt-label">Evrak Takibi</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><span class="nt-ico ni-dokumanlar">📁</span><span class="nt-label">Dökümanlar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="notlar"><span class="nt-ico ni-notlar">📝</span><span class="nt-label">Notlar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><span class="nt-ico">⚖️</span><span class="nt-label">Mevzuat</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="evrak"><i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Evrak Takibi</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><i class="nt-ico ni-dokumanlar" data-lucide="folder"></i><span class="nt-label">Dökümanlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="notlar"><i class="nt-ico ni-notlar" data-lucide="notebook-pen"></i><span class="nt-label">Notlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><i class="nt-ico" data-lucide="scale"></i><span class="nt-label">Mevzuat</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracUlasim">— Ulaşım —</div>
       <input type="checkbox" id="ulasimCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="ulasimCheck">
-        <span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Ulaşım</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-tasima" data-lucide="bus"></i><span class="nt-label">Ulaşım</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="ulasimMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="tasima"><span class="nt-ico ni-tasima">🚌</span><span class="nt-label">Taşıma</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="harita" onclick="haritaSekmesiAc()"><span class="nt-ico ni-harita">🗺️</span><span class="nt-label">Harita</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="tasima"><i class="nt-ico ni-tasima" data-lucide="bus"></i><span class="nt-label">Taşıma</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="harita" onclick="haritaSekmesiAc()"><i class="nt-ico ni-harita" data-lucide="map"></i><span class="nt-label">Harita</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracCizelgeler">— Çizelgeler —</div>
@@ -178,25 +178,25 @@
       <!-- Açılır menü: Çizelgeler (saf CSS ile çalışır, JS'e bağımlı değildir) -->
       <input type="checkbox" id="cizelgelerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="cizelgelerCheck">
-        <span class="nt-ico ni-diger">🗂️</span><span class="nt-label">Çizelgeler</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-diger" data-lucide="layout-grid"></i><span class="nt-label">Çizelgeler</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="cizelgelerMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><span class="nt-ico ni-kulupler">🎭</span><span class="nt-label">Sosyal Kulüpler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><span class="nt-ico ni-bgw">🌟</span><span class="nt-label">Belirli Gün &amp; Haftalar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="zumre"><span class="nt-ico ni-zumre">👥</span><span class="nt-label">Zümre</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="sok"><span class="nt-ico ni-sok">📐</span><span class="nt-label">ŞÖK</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><span class="nt-ico ni-bep">📖</span><span class="nt-label">Yıllık / BEP Planı</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><span class="nt-ico ni-rehber">🧭</span><span class="nt-label">Rehberlik</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><span class="nt-ico ni-maarif">📊</span><span class="nt-label">Maarif Model Raporlar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><span class="nt-ico ni-digrevr">🗂️</span><span class="nt-label">Diğer Evraklar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><span class="nt-ico ni-aylik">🔄</span><span class="nt-label">Aylık İşler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><i class="nt-ico ni-kulupler" data-lucide="party-popper"></i><span class="nt-label">Sosyal Kulüpler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><i class="nt-ico ni-bgw" data-lucide="star"></i><span class="nt-label">Belirli Gün &amp; Haftalar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="zumre"><i class="nt-ico ni-zumre" data-lucide="users-round"></i><span class="nt-label">Zümre</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sok"><i class="nt-ico ni-sok" data-lucide="ruler"></i><span class="nt-label">ŞÖK</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><i class="nt-ico ni-bep" data-lucide="book-marked"></i><span class="nt-label">Yıllık / BEP Planı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><i class="nt-ico ni-rehber" data-lucide="compass"></i><span class="nt-label">Rehberlik</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><i class="nt-ico ni-maarif" data-lucide="bar-chart-3"></i><span class="nt-label">Maarif Model Raporlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><i class="nt-ico ni-digrevr" data-lucide="folder-open"></i><span class="nt-label">Diğer Evraklar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><i class="nt-ico ni-aylik" data-lucide="refresh-cw"></i><span class="nt-label">Aylık İşler</span></button>
       </div>
       
-      <button class="nav-tab" data-tab="okulBilgileri"><span class="nt-ico ni-okul">🏫</span><span class="nt-label">Okul Bilgileri</span></button>
-      <button class="nav-tab" data-tab="veri"><span class="nt-ico ni-veri">💾</span><span class="nt-label">Veri</span></button>
-      <button class="nav-tab" data-tab="ayarlar"><span class="nt-ico ni-ayarlar">⚙️</span><span class="nt-label">Ayarlar</span></button>
-      <button class="nav-tab" data-tab="kullaniciYonetimi" style="display:none;"><span class="nt-ico">👑</span><span class="nt-label">Kullanıcı Yönetimi</span></button>
-      <button class="nav-tab" data-tab="istatistikler" style="display:none;" onclick="renderIstatistikler()"><span class="nt-ico">📈</span><span class="nt-label">Kullanıcı İstatistikleri</span></button>
+      <button class="nav-tab" data-tab="okulBilgileri"><i class="nt-ico ni-okul" data-lucide="building-2"></i><span class="nt-label">Okul Bilgileri</span></button>
+      <button class="nav-tab" data-tab="veri"><i class="nt-ico ni-veri" data-lucide="database"></i><span class="nt-label">Veri</span></button>
+      <button class="nav-tab" data-tab="ayarlar"><i class="nt-ico ni-ayarlar" data-lucide="settings"></i><span class="nt-label">Ayarlar</span></button>
+      <button class="nav-tab" data-tab="kullaniciYonetimi" style="display:none;"><i class="nt-ico" data-lucide="crown"></i><span class="nt-label">Kullanıcı Yönetimi</span></button>
+      <button class="nav-tab" data-tab="istatistikler" style="display:none;" onclick="renderIstatistikler()"><i class="nt-ico" data-lucide="trending-up"></i><span class="nt-label">Kullanıcı İstatistikleri</span></button>
     </nav>
     <button class="nav-cikis-btn" id="cikisBtn" title="Uygulamadan çık"><span class="nt-ico"><svg viewBox="0 0 100 100" width="20" height="20" style="display:block;"><circle cx="50" cy="50" r="50" fill="#FF6459"/><path d="M62 30a24 24 0 1 0 0 40" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M38 50h24M52 38l12 12-12 12" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nt-label">Çıkış</span></button>
     </aside>
@@ -211,9 +211,9 @@
       <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:2px;white-space:nowrap;"></div>
       <!-- YENİ: Bildirim zili — takvim/hatırlatıcılar sekmesine götürür, rozet sayısı renderDashboard() tarafından dolduruluyor -->
       <button class="topbar-bell" onclick="sekmeAc('takvim')" title="Hatırlatıcılar" aria-label="Hatırlatıcılar">
-        🔔<span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
+        <i data-lucide="bell" style="width:18px;height:18px;"></i><span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
       </button>
-      <button class="topbar-avatar" id="topbarAvatar" onclick="profilVeyaSecimAc()" title="Kullanıcı Profili">👤</button>
+      <button class="topbar-avatar" id="topbarAvatar" onclick="profilVeyaSecimAc()" title="Kullanıcı Profili"><i data-lucide="user-round" style="width:18px;height:18px;"></i></button>
     </div>
 
     <main class="content">
@@ -1326,29 +1326,29 @@
 
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bn-item active" data-tab="panel" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><span class="bn-ico">🏠</span><span class="bn-label">Ana Sayfa</span></button>
-      <button class="bn-item" id="bnIkinciItem" data-tab="evrak" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><span class="bn-ico">📄</span><span class="bn-label">Evraklar</span></button>
-      <button class="bn-item bn-plus" onclick="hizliEkleModalAc();" title="Yeni İşlem"><span class="bn-plus-ico">+</span></button>
-      <button class="bn-item" data-tab="arama" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><span class="bn-ico">🔍</span><span class="bn-label">Arama</span></button>
-      <button class="bn-item" data-tab="ayarlar" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><span class="bn-ico">⚙️</span><span class="bn-label">Ayarlar</span></button>
+      <button class="bn-item active" data-tab="panel" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="home"></i><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item" id="bnIkinciItem" data-tab="evrak" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="file-text"></i><span class="bn-label">Evraklar</span></button>
+      <button class="bn-item bn-plus" onclick="hizliEkleModalAc();" title="Yeni İşlem"><span class="bn-plus-ico"><i data-lucide="plus"></i></span></button>
+      <button class="bn-item" data-tab="arama" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="search"></i><span class="bn-label">Arama</span></button>
+      <button class="bn-item" data-tab="ayarlar" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="settings"></i><span class="bn-label">Ayarlar</span></button>
     </nav>
 
     <!-- YENİ: Hızlı Ekle Modalı (+ butonu) — dışarı tıklayınca kapanır -->
     <div id="hizliEkleModal" onclick="if(event.target===this)hizliEkleModalKapat()" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.5);align-items:flex-end;">
       <div style="background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;padding:20px;">
-        <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;">➕ Ne eklemek istersiniz?</h3>
+        <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i data-lucide="circle-plus" style="width:19px;height:19px;"></i> Ne eklemek istersiniz?</h3>
         <div style="display:flex;flex-direction:column;gap:10px;">
           <button onclick="hizliEkleModalKapat(); notlarModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
-            <span style="font-size:24px;">📝</span> Yeni Not
+            <i data-lucide="notebook-pen" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Not
           </button>
           <button onclick="hizliEkleModalKapat(); sekmeAc('takvim'); setTimeout(hatirlaticiModalAc,200);" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
-            <span style="font-size:24px;">📅</span> Takvim Etkinliği
+            <i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--brand);"></i> Takvim Etkinliği
           </button>
           <button onclick="hizliEkleModalKapat(); sekmeAc('gorevler'); gorevModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
-            <span style="font-size:24px;">✅</span> Yeni Görev
+            <i data-lucide="square-check-big" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Görev
           </button>
           <button onclick="hizliEkleModalKapat(); sekmeAc('evrak'); evrakModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
-            <span style="font-size:24px;">📄</span> Yeni Evrak
+            <i data-lucide="file-text" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Evrak
           </button>
         </div>
         <button onclick="hizliEkleModalKapat()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--ink-muted);font-size:14px;cursor:pointer;">İptal</button>
@@ -1383,10 +1383,10 @@
         <div class="detay-alt" id="detayAltBaslik"></div>
       </div>
       <div class="detay-head-actions">
-        <button class="btn btn-ghost btn-sm" id="detayMesajArkaplanBtn" style="display:none;" onclick="mesajArkaplanPaneliAc()" title="Sohbet Arka Planı">🎨</button>
-        <button class="btn btn-ghost btn-sm" id="detayRaporBtn" style="background:#0A6E6E;color:#fff;">🖨️ Rapor</button>
-        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn">📝 Düzenle</button>
-        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()">❌ Kapat</button>
+        <button class="btn btn-ghost btn-sm" id="detayMesajArkaplanBtn" style="display:none;" onclick="mesajArkaplanPaneliAc()" title="Sohbet Arka Planı"><i data-lucide="palette" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn-ghost btn-sm" id="detayRaporBtn" style="background:var(--brand);color:#fff;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="printer" style="width:15px;height:15px;"></i> Rapor</button>
+        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="pencil-line" style="width:15px;height:15px;"></i> Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="x" style="width:15px;height:15px;"></i> Kapat</button>
       </div>
     </div>
     <div class="detay-body" id="detayBody"></div>
@@ -1523,5 +1523,47 @@
 <script src="js/ui.js"></script>
 <script src="js/hava-durumu.js"></script>
 <script src="js/widget-bridge.js"></script>
+
+<!-- ============================================================
+     YENİ — FAZ 2: LUCIDE İKON SİSTEMİ
+     ------------------------------------------------------------
+     Bu blok hiçbir mevcut JS dosyasını / fonksiyonunu değiştirmez.
+     Sadece <i data-lucide="..."></i> ile işaretlenmiş elemanları
+     gerçek SVG ikonlara çeviren KÜTÜPHANEYİ ve bunu her DOM
+     değişikliğinde (sekme geçişi, dinamik render vb.) otomatik
+     tekrar çalıştıran küçük bir "köprü" script'i ekler. Böylece
+     ileride başka modüllerde data-lucide eklendikçe otomatik
+     olarak ikona dönüşür — ayrıca bir şey yapmaya gerek kalmaz.
+     ============================================================ -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function ikonlariCiz(){
+      if(window.lucide && typeof lucide.createIcons === 'function'){
+        try{ lucide.createIcons(); }catch(e){ /* sessiz geç, uygulamayı bozma */ }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', ikonlariCiz);
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){ ikonlariCiz(); }
+
+    // Başka JS dosyalarının (örn. kullanici-yonetimi.js) bir ikonu
+    // dinamik olarak değiştirmesi gerektiğinde (ör. rol'e göre farklı
+    // simge) çağırabilmesi için global bir yenileme fonksiyonu.
+    window.ikonYenile = ikonlariCiz;
+
+    // Sekme geçişleri / dinamik render sonrası yeni data-lucide elemanları
+    // VE var olan bir ikonun data-lucide değeri değişmesi otomatik olarak
+    // yeniden çizilsin diye DOM'u izliyoruz (debounce'lu, hafif).
+    var zamanlayici = null;
+    var izleyici = new MutationObserver(function(){
+      clearTimeout(zamanlayici);
+      zamanlayici = setTimeout(ikonlariCiz, 120);
+    });
+    document.addEventListener('DOMContentLoaded', function(){
+      var app = document.getElementById('app') || document.body;
+      izleyici.observe(app, { childList:true, subtree:true, attributes:true, attributeFilter:['data-lucide'] });
+    });
+  })();
+</script>
 </body>
 </html>
