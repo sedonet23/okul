@@ -290,7 +290,6 @@ function servisModalAc(id){
         <option value="Pasif" ${s&&s.durum==='Pasif'?'selected':''}>Pasif</option>
       </select>
     </div>
-    <div class="form-row">
     <div class="form-group"><label>Öğrenci Sayısı</label><input id="f_svOgrenci" type="number" min="0" value="${s&&s.ogrenciSayisi!=null?s.ogrenciSayisi:0}"></div>
     <div class="form-group">
       <label>👑 Servis Başkanı / Başkanları</label>
