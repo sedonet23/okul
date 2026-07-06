@@ -117,168 +117,172 @@
       .join('');
   }
 
-  function _sayfaHtml() {
+
+  // --- Tam ekran overlay (in-page) önizleme — pop-up engelleyiciden etkilenmez ---
+
+  // --- Form CSS (hem önizleme hem print için) ---
+  function _formCss() {
+    return `
+      .sd-wrap { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #fff;
+        display: flex; flex-direction: column; padding: 7mm; box-sizing: border-box; }
+      .sd-baslik { text-align: center; margin-bottom: 3px; }
+      .sd-baslik-okul { font-size: 11pt; font-weight: 800; letter-spacing: .2px; }
+      .sd-baslik-1 { font-size: 8pt; font-weight: 700; margin-top: 1px; }
+      .sd-baslik-2 { font-size: 9pt; font-weight: 800; margin-top: 1px; }
+      .sd-baslik-3 { font-size: 6.8pt; font-style: italic; color: #333; margin-top: 1px; }
+      .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 7.6pt; }
+      .sd-bilgi-tablo td { border: 1px solid #333; padding: 2.5px 5px; background: #fff; }
+      .sd-bilgi-tablo .sd-lbl { font-weight: 800; white-space: nowrap; width: 21%; }
+      .sd-bilgi-tablo .sd-val { width: 29%; font-weight: 600; }
+      .sd-madde-tablo { width: 100%; border-collapse: collapse; font-size: 7.1pt; margin-top: 3px; }
+      .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 2.5px 3px; border: 1.4px solid #333; background: #fff; }
+      .sd-th-konu { width: 57%; text-align: left !important; padding-left: 5px !important; }
+      .sd-th-cevap { width: 7%; }
+      .sd-th-aciklama { width: 29%; }
+      .sd-madde-tablo td { border: 1px solid #555; padding: 2px 4px; vertical-align: top; background: #fff; }
+      .sd-madde-tablo tr { background: #fff; }
+      .sd-konu-hucre { text-align: left; line-height: 1.18; }
+      .sd-madde-ref { font-size: 6pt; color: #555; font-style: italic; }
+      .sd-cevap-hucre { text-align: center; vertical-align: middle; }
+      .sd-not { font-size: 5.8pt; color: #333; margin-top: 4px; line-height: 1.25; }
+      .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 10px; }
+      .sd-imza-kutu { text-align: center; min-width: 140px; }
+      .sd-imza-baslik { font-size: 7.5pt; font-weight: 700; margin-bottom: 14px; }
+      .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 2px; }
+      .sd-imza-ad { font-size: 7.8pt; font-weight: 700; min-height: 11px; }
+      .sd-imza-unvan { font-size: 7pt; color: #444; margin-top: 1px; }
+      .sd-readonly { color: #333; }
+      .sd-nobetci-select { font-family: inherit; font-size: 7.8pt; font-weight: 700;
+        border: none; border-bottom: 1px solid #999; background: transparent;
+        text-align: center; width: 100%; cursor: pointer; padding: 0; }
+    `;
+  }
+
+  // --- Form gövdesi (sadece içerik, sarmalayıcı div ile) ---
+  function _formGovdesi() {
     const s = _servis || {};
     const { okulBasligi, mudurAd, mudurYrdAd } = _getOkulVeMuduBilgileri();
     const ogrenciSayisi = _ogrenciSayisiHesapla(_servisId);
 
-    return `<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<title>${_escape(s.plaka || 'Servis')} — Okul Servis Aracı Denetim Formu</title>
-<style>
-  @page { size: A4 portrait; margin: 7mm 7mm; }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #fff; display: flex; flex-direction: column; height: 100%; }
+    return `
+  <div class="sd-wrap">
+    <div class="sd-baslik">
+      <div class="sd-baslik-okul">${_escape(okulBasligi)}</div>
+      <div class="sd-baslik-1">TAŞIMA YOLUYLA EĞİTİME ERİŞİM YÖNETMELİĞİ KAPSAMINDA HİZMET SUNAN</div>
+      <div class="sd-baslik-2">OKUL SERVİS ARACI DENETİM FORMU</div>
+      <div class="sd-baslik-3">(TAŞIMA MERKEZİ OKUL/KURUM MÜDÜRLÜĞÜNCE KULLANILACAK)</div>
+    </div>
 
-  .sd-baslik { text-align: center; margin-bottom: 3px; flex: 0 0 auto; }
-  .sd-baslik-okul { font-size: 11pt; font-weight: 800; letter-spacing: .2px; }
-  .sd-baslik-1 { font-size: 8pt; font-weight: 700; margin-top: 1px; }
-  .sd-baslik-2 { font-size: 9pt; font-weight: 800; margin-top: 1px; }
-  .sd-baslik-3 { font-size: 6.8pt; font-style: italic; color: #333; margin-top: 1px; }
+    <table class="sd-bilgi-tablo">
+      <tr>
+        <td class="sd-lbl">ARACIN PLAKASI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.plaka)}</td>
+        <td class="sd-lbl">TELEFON / GSM</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforTelefon)}</td>
+      </tr>
+      <tr>
+        <td class="sd-lbl">ŞOFÖRÜN ADI SOYADI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforAdi)}</td>
+        <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val sd-readonly">${_escape(ogrenciSayisi)}</td>
+      </tr>
+      <tr>
+        <td class="sd-lbl">ARACIN GÜZERGÂHI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.guzergah)}</td>
+        <td class="sd-lbl">DENETLEME TARİHİ</td><td class="sd-val" contenteditable="true" spellcheck="false">…… / …… / 20……</td>
+      </tr>
+      <tr>
+        <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.modelYili)}</td>
+        <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.ehliyetYili)}${s.ehliyetSinifi ? ' / ' + _escape(s.ehliyetSinifi) : ''}</td>
+      </tr>
+    </table>
 
-  /* Not: Bazı yazıcı/PDF sürücüleri arkaplan renklerini tarama (zebra/dither)
-     desenine çevirerek yazdırıyor. Bu yüzden başlık hücreleri renkli dolgu
-     yerine kalın çerçeve + kalın yazı ile ayrıştırılıyor. */
-  .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 7.6pt; flex: 0 0 auto; }
-  .sd-bilgi-tablo td { border: 1px solid #333; padding: 2.5px 5px; }
-  .sd-bilgi-tablo .sd-lbl { font-weight: 800; white-space: nowrap; width: 21%; }
-  .sd-bilgi-tablo .sd-val { width: 29%; font-weight: 600; }
+    ${_maddelerTablosuHtml()}
 
-  .sd-madde-tablo { width: 100%; border-collapse: collapse; font-size: 7.1pt; margin-top: 3px; flex: 1 1 auto; }
-  .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 2.5px 3px; border: 1.4px solid #333; background: #fff; }
-  .sd-th-konu { width: 57%; text-align: left !important; padding-left: 5px !important; }
-  .sd-th-cevap { width: 7%; }
-  .sd-th-aciklama { width: 29%; }
-  .sd-madde-tablo td { border: 1px solid #555; padding: 2px 4px; vertical-align: top; background: #fff; }
-  .sd-madde-tablo tr { background: #fff; }
-  .sd-konu-hucre { text-align: left; line-height: 1.18; }
-  .sd-madde-ref { font-size: 6pt; color: #555; font-style: italic; }
-  .sd-cevap-hucre { text-align: center; vertical-align: middle; }
+    <div class="sd-not">
+      Not: 1) Okul servis araçları her haftanın ilk iş günü denetlenip bu form tutanak haline getirilerek ay sonu puantajları ile birlikte
+      milli eğitim müdürlüğüne bildirilecek ve okul/kurum müdürlüğü dosyasında imzalı ve onaylı bir şekilde saklanacaktır. (bkz. Teknik Şartname)<br>
+      2) Çizelgede yer alan denetim maddeleri ile ilgili "Evet / Hayır" bölümü işaretlendikten sonra gerek duyulması halinde "AÇIKLAMALAR" bölümü kullanılacaktır.
+    </div>
 
-  .sd-not { font-size: 5.8pt; color: #333; margin-top: 4px; line-height: 1.25; flex: 0 0 auto; }
-
-  .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 10px; flex: 0 0 auto; }
-  .sd-imza-kutu { text-align: center; min-width: 140px; }
-  .sd-imza-baslik { font-size: 7.5pt; font-weight: 700; margin-bottom: 14px; }
-  .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 2px; }
-  .sd-imza-ad { font-size: 7.8pt; font-weight: 700; min-height: 11px; }
-  .sd-imza-unvan { font-size: 7pt; color: #444; margin-top: 1px; }
-
-  /* Düzenlenebilir alan vurgusu — yalnızca ekranda görünür */
-  [contenteditable="true"]:focus { outline: 1px dashed #1B3A5C; background: #f0f6ff; border-radius: 2px; }
-  .sd-readonly { color: #333; }
-
-  /* Nöbetçi öğretmen seçimi */
-  .sd-nobetci-select {
-    font-family: inherit; font-size: 7.8pt; font-weight: 700;
-    border: none; border-bottom: 1px solid #999; background: transparent;
-    text-align: center; width: 100%; cursor: pointer; padding: 0;
-  }
-  .sd-nobetci-select:focus { outline: 1px dashed #1B3A5C; background: #f0f6ff; }
-
-  /* Yazdırmada: sadece seçili değer gösterilir, select kutusu gizlenir */
-  @media print {
-    [contenteditable="true"] { outline: none !important; background: transparent !important; }
-    .sd-nobetci-select { border: none; -webkit-appearance: none; appearance: none; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    body, table, tr, td, th { background: #fff !important; background-color: #fff !important; }
-    .sd-bilgi-tablo .sd-lbl { background: #fff !important; }
-  }
-</style>
-</head>
-<body>
-  <div class="sd-baslik">
-    <div class="sd-baslik-okul">${_escape(okulBasligi)}</div>
-    <div class="sd-baslik-1">TAŞIMA YOLUYLA EĞİTİME ERİŞİM YÖNETMELİĞİ KAPSAMINDA HİZMET SUNAN</div>
-    <div class="sd-baslik-2">OKUL SERVİS ARACI DENETİM FORMU</div>
-    <div class="sd-baslik-3">(TAŞIMA MERKEZİ OKUL/KURUM MÜDÜRLÜĞÜNCE KULLANILACAK)</div>
-  </div>
-
-  <table class="sd-bilgi-tablo">
-    <tr>
-      <td class="sd-lbl">ARACIN PLAKASI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.plaka)}</td>
-      <td class="sd-lbl">TELEFON / GSM</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforTelefon)}</td>
-    </tr>
-    <tr>
-      <td class="sd-lbl">ŞOFÖRÜN ADI SOYADI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforAdi)}</td>
-      <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val sd-readonly">${_escape(ogrenciSayisi)}</td>
-    </tr>
-    <tr>
-      <td class="sd-lbl">ARACIN GÜZERGÂHI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.guzergah)}</td>
-      <td class="sd-lbl">DENETLEME TARİHİ</td><td class="sd-val" contenteditable="true" spellcheck="false">…… / …… / 20……</td>
-    </tr>
-    <tr>
-      <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.modelYili)}</td>
-      <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.ehliyetYili)}${s.ehliyetSinifi ? ' / ' + _escape(s.ehliyetSinifi) : ''}</td>
-    </tr>
-  </table>
-
-  ${_maddelerTablosuHtml()}
-
-  <div class="sd-not">
-    Not: 1) Okul servis araçları her haftanın ilk iş günü denetlenip bu form tutanak haline getirilerek ay sonu puantajları ile birlikte
-    milli eğitim müdürlüğüne bildirilecek ve okul/kurum müdürlüğü dosyasında imzalı ve onaylı bir şekilde saklanacaktır. (bkz. Teknik Şartname)<br>
-    2) Çizelgede yer alan denetim maddeleri ile ilgili "Evet / Hayır" bölümü işaretlendikten sonra gerek duyulması halinde "AÇIKLAMALAR" bölümü kullanılacaktır.
-  </div>
-
-  <div class="sd-imza-satir">
-    <div class="sd-imza-kutu">
-      <div class="sd-imza-baslik">Denetleyen</div>
-      <div class="sd-imza-cizgi">
-        <div class="sd-imza-ad">
-          <select class="sd-nobetci-select">
-            <option value=""></option>
-            ${_nobetciOgretmenSecenekleri()}
-          </select>
+    <div class="sd-imza-satir">
+      <div class="sd-imza-kutu">
+        <div class="sd-imza-baslik">Denetleyen</div>
+        <div class="sd-imza-cizgi">
+          <div class="sd-imza-ad">
+            <select class="sd-nobetci-select">
+              <option value=""></option>
+              ${_nobetciOgretmenSecenekleri()}
+            </select>
+          </div>
+          <div class="sd-imza-unvan">Nöbetçi Öğretmen</div>
         </div>
-        <div class="sd-imza-unvan">Nöbetçi Öğretmen</div>
+      </div>
+      <div class="sd-imza-kutu">
+        <div class="sd-imza-baslik">Denetleyen</div>
+        <div class="sd-imza-cizgi">
+          <div class="sd-imza-ad">${_escape(mudurYrdAd)}</div>
+          <div class="sd-imza-unvan">Müdür Yardımcısı</div>
+        </div>
+      </div>
+      <div class="sd-imza-kutu">
+        <div class="sd-imza-baslik">Denetleyen</div>
+        <div class="sd-imza-cizgi">
+          <div class="sd-imza-ad">${_escape(mudurAd)}</div>
+          <div class="sd-imza-unvan">Okul Müdürü</div>
+        </div>
       </div>
     </div>
-    <div class="sd-imza-kutu">
-      <div class="sd-imza-baslik">Denetleyen</div>
-      <div class="sd-imza-cizgi">
-        <div class="sd-imza-ad">${_escape(mudurYrdAd)}</div>
-        <div class="sd-imza-unvan">Müdür Yardımcısı</div>
-      </div>
-    </div>
-    <div class="sd-imza-kutu">
-      <div class="sd-imza-baslik">Denetleyen</div>
-      <div class="sd-imza-cizgi">
-        <div class="sd-imza-ad">${_escape(mudurAd)}</div>
-        <div class="sd-imza-unvan">Okul Müdürü</div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
+  </div>`;
   }
 
-  // --- Tam ekran overlay (in-page) önizleme — pop-up engelleyiciden etkilenmez ---
-
+  // --- Tam ekran overlay ---
   function _overlayOlustur() {
-    if (document.getElementById('sdOverlay')) return document.getElementById('sdOverlay');
+    // Varsa kapat ve yeniden oluştur (servis değişmiş olabilir)
+    const mevcutOv = document.getElementById('sdOverlay');
+    if (mevcutOv) mevcutOv.remove();
+
+    // Print stili — ana sayfada bir kez tanımlanır
+    let ps = document.getElementById('sd-print-style');
+    if (!ps) {
+      ps = document.createElement('style');
+      ps.id = 'sd-print-style';
+      ps.textContent = `
+        @media print {
+          @page { size: A4 portrait; margin: 7mm; }
+          body > *:not(#sdOverlay) { display: none !important; }
+          #sdOverlay { position: static !important; background: white !important;
+            display: block !important; }
+          #sdToolbar { display: none !important; }
+          #sdFormIcerik { overflow: visible !important; padding: 0 !important; }
+          .sd-wrap { padding: 0 !important; }
+          [contenteditable="true"] { outline: none !important; background: transparent !important; }
+          .sd-nobetci-select { -webkit-appearance: none; appearance: none; border: none; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      `;
+      document.head.appendChild(ps);
+    }
+
+    // Form CSS'i sayfaya ekle (önizleme için)
+    let fs = document.getElementById('sd-form-style');
+    if (!fs) {
+      fs = document.createElement('style');
+      fs.id = 'sd-form-style';
+      fs.textContent = _formCss();
+      document.head.appendChild(fs);
+    }
 
     const ov = document.createElement('div');
     ov.id = 'sdOverlay';
-    ov.style.cssText = `
-      position:fixed; inset:0; z-index:99999; background:#525659;
-      display:flex; flex-direction:column;
-    `;
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#525659;display:flex;flex-direction:column;';
     ov.innerHTML = `
-      <div id="sdToolbar" style="
-        display:flex; align-items:center; justify-content:center; gap:10px;
-        background: linear-gradient(135deg,#14304a,#1B3A5C); color:#fff;
-        padding:10px 14px; flex-wrap:wrap; flex:0 0 auto;
-      ">
+      <div id="sdToolbar" style="display:flex;align-items:center;justify-content:center;gap:10px;
+        background:linear-gradient(135deg,#14304a,#1B3A5C);color:#fff;
+        padding:10px 14px;flex-wrap:wrap;flex:0 0 auto;">
         <span style="font-weight:700;font-size:13px;">Okul Servis Aracı Denetim Formu</span>
         <button id="sdPrintBtn" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">🖨️ Yazdır / PDF</button>
         <button id="sdCloseBtn" style="background:rgba(220,0,0,.4);border:none;color:#fff;border-radius:7px;padding:6px 14px;font-size:13px;font-weight:700;">✕ Kapat</button>
       </div>
-      <div style="flex:1 1 auto; overflow:auto; padding:16px 0 40px; display:flex; justify-content:center;">
-        <iframe id="sdFrame" style="width:210mm; min-height:297mm; border:none; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.4);"></iframe>
+      <div id="sdFormIcerik" style="flex:1 1 auto;overflow:auto;padding:16px;background:#525659;">
+        <div style="width:210mm;margin:0 auto;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.4);">
+          ${_formGovdesi()}
+        </div>
       </div>
     `;
     document.body.appendChild(ov);
@@ -289,47 +293,7 @@
       document.body.classList.remove('sd-overlay-acik');
     };
 
-    // Yazdır: iframe içeriğini gizli div olarak ana sayfaya ekle → window.print() → kaldır
-    // WebView/Capacitor'da en güvenilir yöntem budur
-    ov.querySelector('#sdPrintBtn').onclick = () => {
-      const fr = ov.querySelector('#sdFrame');
-      const fdoc = fr.contentDocument || fr.contentWindow.document;
-      if (!fdoc) return;
-
-      // iframe'den güncel form içeriğini al
-      const formBody = fdoc.body.innerHTML;
-      const formStyle = fdoc.head.innerHTML;
-
-      // Gizli print konteyneri oluştur
-      const printDiv = document.createElement('div');
-      printDiv.id = 'sd-print-container';
-      printDiv.innerHTML = formBody;
-      document.body.appendChild(printDiv);
-
-      // Print stilleri: overlay gizle, print konteyneri göster
-      const styleEl = document.createElement('style');
-      styleEl.id = 'sd-print-style';
-      styleEl.textContent = `
-        @media print {
-          body > *:not(#sd-print-container) { display: none !important; }
-          #sd-print-container {
-            display: block !important;
-            position: fixed; inset: 0;
-            background: white;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #111;
-          }
-          ${fdoc.head.querySelector('style') ? fdoc.head.querySelector('style').textContent : ''}
-        }
-      `;
-      document.head.appendChild(styleEl);
-
-      window.print();
-
-      // Temizle
-      document.body.removeChild(printDiv);
-      document.head.removeChild(styleEl);
-    };
+    ov.querySelector('#sdPrintBtn').onclick = () => window.print();
 
     return ov;
   }
@@ -341,12 +305,7 @@
       _servis = (typeof servisler !== 'undefined')
         ? servisler.find(s => s.id === servisId) || null
         : null;
-
-      const html = _sayfaHtml();
-      const ov = _overlayOlustur();
-      const fr = ov.querySelector('#sdFrame');
-      fr.setAttribute('data-html', html);
-      fr.srcdoc = html;
+      _overlayOlustur();
     }
   };
 
