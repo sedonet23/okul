@@ -148,11 +148,12 @@
   .sd-bilgi-tablo .sd-val { width: 29%; font-weight: 600; }
 
   .sd-madde-tablo { width: 100%; border-collapse: collapse; font-size: 7.1pt; margin-top: 3px; flex: 1 1 auto; }
-  .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 2.5px 3px; border: 1.4px solid #333; }
+  .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 2.5px 3px; border: 1.4px solid #333; background: #fff; }
   .sd-th-konu { width: 57%; text-align: left !important; padding-left: 5px !important; }
   .sd-th-cevap { width: 7%; }
   .sd-th-aciklama { width: 29%; }
-  .sd-madde-tablo td { border: 1px solid #555; padding: 2px 4px; vertical-align: top; }
+  .sd-madde-tablo td { border: 1px solid #555; padding: 2px 4px; vertical-align: top; background: #fff; }
+  .sd-madde-tablo tr { background: #fff; }
   .sd-konu-hucre { text-align: left; line-height: 1.18; }
   .sd-madde-ref { font-size: 6pt; color: #555; font-style: italic; }
   .sd-cevap-hucre { text-align: center; vertical-align: middle; }
@@ -182,6 +183,9 @@
   @media print {
     [contenteditable="true"] { outline: none !important; background: transparent !important; }
     .sd-nobetci-select { border: none; -webkit-appearance: none; appearance: none; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body, table, tr, td, th { background: #fff !important; background-color: #fff !important; }
+    .sd-bilgi-tablo .sd-lbl { background: #fff !important; }
   }
 </style>
 </head>
