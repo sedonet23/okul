@@ -543,7 +543,8 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
 }
 .qa-item:hover{ transform: translateY(-3px); box-shadow: var(--nm-lg); background: var(--nm-bg-dark); }
 .qa-icon{
-  width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:19px;
+  width:48px; height:48px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+  font-size:23px; line-height:1; text-align:center;
 }
 .qa-icon.qa-evrak{ background: rgba(59,130,246,0.15); color: var(--color-student); }
 .qa-icon.qa-nobet{ background: rgba(249,115,22,0.15); color: var(--color-staff); }
@@ -2361,7 +2362,7 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .qa-item{ background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); border-radius:16px; padding:12px 6px; display:flex; flex-direction:column; align-items:center; gap:7px; cursor:pointer; transition:transform .2s ease, box-shadow .2s ease; }
 #tab-panel.dash-modern .qa-item:active{ transform:scale(.96); }
 #tab-panel.dash-modern .qa-item:hover{ box-shadow:0 6px 18px -4px rgba(16,24,40,.12); transform:translateY(-2px); }
-#tab-panel.dash-modern .qa-icon{ width:38px; height:38px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:17px; }
+#tab-panel.dash-modern .qa-icon{ width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:23px; line-height:1; text-align:center; }
 #tab-panel.dash-modern .qa-icon.qa-personel{ background:#EFF4FF; color:#2563EB; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-personel{ background:#22324A; color:#7CA8FF; }
 #tab-panel.dash-modern .qa-icon.qa-evrak{ background:#EFF4FF; color:#2563EB; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-evrak{ background:#22324A; color:#7CA8FF; }
 #tab-panel.dash-modern .qa-icon.qa-nobet{ background:#FFF1E6; color:#F97316; } [data-theme="dark"] #tab-panel.dash-modern .qa-icon.qa-nobet{ background:#3A2A1A; color:#FDBA74; }
@@ -2506,7 +2507,7 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 
 #tab-panel.dash-modern .zil-ikon-daire{ width:54px; height:54px; font-size:25px; }
 #tab-panel.dash-modern .stat-card-ico{ width:46px; height:46px; font-size:21px; border-radius:14px; }
-#tab-panel.dash-modern .qa-icon{ width:46px; height:46px; font-size:21px; border-radius:14px; }
+#tab-panel.dash-modern .qa-icon{ width:48px; height:48px; font-size:23px; border-radius:14px; }
 #tab-panel.dash-modern .hb-ico{ font-size:19px; }
 #tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-ico{ font-size:21px; }
 
