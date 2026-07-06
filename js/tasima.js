@@ -116,6 +116,7 @@ function servisDetayAc(id){
         ${s.notlar ? `<div class="detay-row detay-row-muted">📝 ${escapeHtml(s.notlar)}</div>` : ''}
         <div class="detay-row" style="margin-top:8px;">
           <button class="btn-takip-cizelge" onclick="TasimaTakipAc('${s.id}')">📋 Aylık Takip Çizelgesi</button>
+          <button class="btn-denetim-formu" onclick="ServisDenetimAc('${s.id}')">📄 Denetim Formu Yazdır</button>
         </div>
       </div>
       <div class="detay-card">
