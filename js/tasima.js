@@ -278,13 +278,19 @@ function servisModalAc(id){
     </div>
     <div class="form-row">
       <div class="form-group"><label>Plaka</label><input id="f_svPlaka" value="${s?escapeHtml(s.plaka||''):''}" placeholder="örn: 34 ABC 123" style="text-transform:uppercase;"></div>
-      <div class="form-group"><label>Durum</label>
-        <select id="f_svDurum">
-          <option value="Aktif" ${!s||s.durum==='Aktif'?'selected':''}>Aktif</option>
-          <option value="Pasif" ${s&&s.durum==='Pasif'?'selected':''}>Pasif</option>
-        </select>
-      </div>
+      <div class="form-group"><label>Model Yılı</label><input id="f_svModelYili" type="number" min="1990" max="2099" value="${s?escapeHtml(s.modelYili||''):''}" placeholder="örn: 2018"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ehliyet Sınıfı</label><input id="f_svEhliyetSinifi" value="${s?escapeHtml(s.ehliyetSinifi||''):''}" placeholder="örn: D"></div>
+      <div class="form-group"><label>Ehliyet Yılı</label><input id="f_svEhliyetYili" type="number" min="1970" max="2099" value="${s?escapeHtml(s.ehliyetYili||''):''}" placeholder="örn: 2010"></div>
+    </div>
+    <div class="form-group"><label>Durum</label>
+      <select id="f_svDurum">
+        <option value="Aktif" ${!s||s.durum==='Aktif'?'selected':''}>Aktif</option>
+        <option value="Pasif" ${s&&s.durum==='Pasif'?'selected':''}>Pasif</option>
+      </select>
+    </div>
+    <div class="form-row">
     <div class="form-group"><label>Öğrenci Sayısı</label><input id="f_svOgrenci" type="number" min="0" value="${s&&s.ogrenciSayisi!=null?s.ogrenciSayisi:0}"></div>
     <div class="form-group">
       <label>👑 Servis Başkanı / Başkanları</label>
@@ -303,6 +309,9 @@ function servisModalAc(id){
       soforAdi: document.getElementById('f_svSofor').value.trim(),
       soforTelefon: document.getElementById('f_svTel').value.trim(),
       plaka: document.getElementById('f_svPlaka').value.trim().toUpperCase(),
+      modelYili: document.getElementById('f_svModelYili').value.trim(),
+      ehliyetSinifi: document.getElementById('f_svEhliyetSinifi').value.trim().toUpperCase(),
+      ehliyetYili: document.getElementById('f_svEhliyetYili').value.trim(),
       ogrenciSayisi: parseInt(document.getElementById('f_svOgrenci').value)||0,
       durum: document.getElementById('f_svDurum').value,
       baskanlar: seciliBaskanlar,

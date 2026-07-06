@@ -207,8 +207,8 @@
       <td class="sd-lbl">DENETLEME TARİHİ</td><td class="sd-val" contenteditable="true" spellcheck="false">…… / …… / 20……</td>
     </tr>
     <tr>
-      <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val" contenteditable="true" spellcheck="false"></td>
-      <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val" contenteditable="true" spellcheck="false"></td>
+      <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.modelYili)}</td>
+      <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.ehliyetYili)}${s.ehliyetSinifi ? ' / ' + _escape(s.ehliyetSinifi) : ''}</td>
     </tr>
   </table>
 
@@ -226,7 +226,7 @@
       <div class="sd-imza-cizgi">
         <div class="sd-imza-ad">
           <select class="sd-nobetci-select">
-            <option value="">— Seçiniz —</option>
+            <option value=""></option>
             ${_nobetciOgretmenSecenekleri()}
           </select>
         </div>
