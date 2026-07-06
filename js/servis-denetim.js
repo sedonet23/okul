@@ -293,7 +293,51 @@
       document.body.classList.remove('sd-overlay-acik');
     };
 
-    ov.querySelector('#sdPrintBtn').onclick = () => window.print();
+    ov.querySelector('#sdPrintBtn').onclick = () => {
+      // Overlay DOM'undan güncel içeriği al (contenteditable + select değerleriyle)
+      const govdeEl = ov.querySelector('#sdFormIcerik .sd-wrap');
+      if (!govdeEl) return;
+
+      // Select'teki nöbetçi öğretmen adını düz metne çevir (print WebView'da select render edilmeyebilir)
+      const selectEl = govdeEl.querySelector('.sd-nobetci-select');
+      const nobetciAd = selectEl ? selectEl.value : '';
+      if (selectEl) {
+        const span = document.createElement('span');
+        span.textContent = nobetciAd;
+        selectEl.parentNode.replaceChild(span, selectEl);
+      }
+
+      const govdeHtml = govdeEl.outerHTML;
+
+      // Select'i geri koy (overlay'de görünmeye devam etsin)
+      if (selectEl) {
+        const span = govdeEl.querySelector('.sd-imza-ad span');
+        if (span) span.parentNode.replaceChild(selectEl, span);
+      }
+
+      // uygulamaHtmlYazdir'a geçilecek tam HTML
+      const plaka = (_servis && _servis.plaka) ? _servis.plaka : 'Denetim';
+      const tamHtml = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
+        <title>${_escape(plaka)} — Denetim Formu</title>
+        <style>
+          @page { size: A4 portrait; margin: 7mm; }
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body { background: #fff; }
+          ${_formCss()}
+        </style>
+        </head><body>${govdeHtml}</body></html>`;
+
+      if (typeof uygulamaHtmlYazdir === 'function') {
+        uygulamaHtmlYazdir(tamHtml, `${plaka}_Denetim`, 'dikey');
+      } else {
+        // PWA / tarayıcı fallback
+        const blob = new Blob([tamHtml], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) { toast('Açılır pencere engellendi.'); return; }
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      }
+    };
 
     return ov;
   }
