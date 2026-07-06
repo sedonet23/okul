@@ -77,7 +77,7 @@
     return { okulBasligi: baslikParcalari.join(' '), mudurAd, mudurYrdAd };
   }
 
-  // --- Denetim maddeleri tablosu (Evet/Hayır/Açıklama elle doldurulur) ---
+  // --- Denetim maddeleri tablosu (Evet/Hayır elle işaretlenir; madde metni ve açıklama düzenlenebilir) ---
   function _maddelerTablosuHtml() {
     return `
     <table class="sd-madde-tablo">
@@ -92,13 +92,29 @@
       <tbody>
         ${DENETIM_MADDELERI.map(m => `
         <tr>
-          <td class="sd-konu-hucre">${_escape(m.s)} <span class="sd-madde-ref">(${_escape(m.r)})</span></td>
+          <td class="sd-konu-hucre">
+            <span class="sd-madde-metin" contenteditable="true" spellcheck="false">${_escape(m.s)}</span>
+            <span class="sd-madde-ref" contenteditable="true" spellcheck="false">(${_escape(m.r)})</span>
+          </td>
           <td class="sd-cevap-hucre"></td>
           <td class="sd-cevap-hucre"></td>
-          <td class="sd-aciklama-hucre"></td>
+          <td class="sd-aciklama-hucre" contenteditable="true" spellcheck="false"></td>
         </tr>`).join('')}
       </tbody>
     </table>`;
+  }
+
+  // Nöbetçi öğretmen listesi: Müdür ve Müdür Yardımcısı hariç tüm öğretmenler
+  function _nobetciOgretmenSecenekleri() {
+    if (typeof ogretmenler === 'undefined' || !Array.isArray(ogretmenler)) return '';
+    const okul = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari) || {};
+    return ogretmenler
+      .filter(o => o.id !== okul.mudurId && (o.unvan || '').trim() !== 'Müdür Yardımcısı')
+      .map(o => {
+        const ad = `${o.ad || ''} ${o.soyad || ''}`.trim();
+        return `<option value="${_escape(ad)}">${_escape(ad)}</option>`;
+      })
+      .join('');
   }
 
   function _sayfaHtml() {
@@ -149,6 +165,24 @@
   .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 2px; }
   .sd-imza-ad { font-size: 7.8pt; font-weight: 700; min-height: 11px; }
   .sd-imza-unvan { font-size: 7pt; color: #444; margin-top: 1px; }
+
+  /* Düzenlenebilir alan vurgusu — yalnızca ekranda görünür */
+  [contenteditable="true"]:focus { outline: 1px dashed #1B3A5C; background: #f0f6ff; border-radius: 2px; }
+  .sd-readonly { color: #333; }
+
+  /* Nöbetçi öğretmen seçimi */
+  .sd-nobetci-select {
+    font-family: inherit; font-size: 7.8pt; font-weight: 700;
+    border: none; border-bottom: 1px solid #999; background: transparent;
+    text-align: center; width: 100%; cursor: pointer; padding: 0;
+  }
+  .sd-nobetci-select:focus { outline: 1px dashed #1B3A5C; background: #f0f6ff; }
+
+  /* Yazdırmada: sadece seçili değer gösterilir, select kutusu gizlenir */
+  @media print {
+    [contenteditable="true"] { outline: none !important; background: transparent !important; }
+    .sd-nobetci-select { border: none; -webkit-appearance: none; appearance: none; }
+  }
 </style>
 </head>
 <body>
@@ -161,20 +195,20 @@
 
   <table class="sd-bilgi-tablo">
     <tr>
-      <td class="sd-lbl">ARACIN PLAKASI</td><td class="sd-val">${_escape(s.plaka)}</td>
-      <td class="sd-lbl">TELEFON / GSM</td><td class="sd-val">${_escape(s.soforTelefon)}</td>
+      <td class="sd-lbl">ARACIN PLAKASI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.plaka)}</td>
+      <td class="sd-lbl">TELEFON / GSM</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforTelefon)}</td>
     </tr>
     <tr>
-      <td class="sd-lbl">ŞOFÖRÜN ADI SOYADI</td><td class="sd-val">${_escape(s.soforAdi)}</td>
-      <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val">${_escape(ogrenciSayisi)}</td>
+      <td class="sd-lbl">ŞOFÖRÜN ADI SOYADI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.soforAdi)}</td>
+      <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val sd-readonly">${_escape(ogrenciSayisi)}</td>
     </tr>
     <tr>
-      <td class="sd-lbl">ARACIN GÜZERGÂHI</td><td class="sd-val">${_escape(s.guzergah)}</td>
-      <td class="sd-lbl">DENETLEME TARİHİ</td><td class="sd-val">…… / …… / 20……</td>
+      <td class="sd-lbl">ARACIN GÜZERGÂHI</td><td class="sd-val" contenteditable="true" spellcheck="false">${_escape(s.guzergah)}</td>
+      <td class="sd-lbl">DENETLEME TARİHİ</td><td class="sd-val" contenteditable="true" spellcheck="false">…… / …… / 20……</td>
     </tr>
     <tr>
-      <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val"></td>
-      <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val"></td>
+      <td class="sd-lbl">ARACIN MODEL YILI</td><td class="sd-val" contenteditable="true" spellcheck="false"></td>
+      <td class="sd-lbl">SÜRÜCÜ BELGESİ YIL / SINIFI</td><td class="sd-val" contenteditable="true" spellcheck="false"></td>
     </tr>
   </table>
 
@@ -190,7 +224,12 @@
     <div class="sd-imza-kutu">
       <div class="sd-imza-baslik">Denetleyen</div>
       <div class="sd-imza-cizgi">
-        <div class="sd-imza-ad">&nbsp;</div>
+        <div class="sd-imza-ad">
+          <select class="sd-nobetci-select">
+            <option value="">— Seçiniz —</option>
+            ${_nobetciOgretmenSecenekleri()}
+          </select>
+        </div>
         <div class="sd-imza-unvan">Nöbetçi Öğretmen</div>
       </div>
     </div>
