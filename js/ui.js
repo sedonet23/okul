@@ -37,6 +37,30 @@ function renkPaketiBaslat(){
   renkUygula(kayitli);
 }
 
+/* ---------- YENİ: Görünüm paketi ("Klasik" / "Modern Açık") seçimi ----------
+   "Klasik" mevcut (neumorphic + zaten var olan modern Genel Bakış/Sidebar)
+   görünümü hiç değiştirmeden korur. "Modern Açık" bu dili tüm uygulamaya
+   yayan alternatif bir paket olarak css/tema-modern-acik.css ile devreye
+   girer (bkz. <html data-skin="modern">). Bkz. gorunumUygula çağrıları,
+   Ayarlar > Tema akordeonundaki "Görünüm Stili" düğmeleri. */
+const GORUNUM_PAKETLERI = ['klasik','modern'];
+function gorunumUygula(gorunum){
+  if(!GORUNUM_PAKETLERI.includes(gorunum)) gorunum = 'klasik';
+  if(gorunum === 'modern'){
+    document.documentElement.setAttribute('data-skin','modern');
+  } else {
+    document.documentElement.removeAttribute('data-skin');
+  }
+  localStorage.setItem('oyGorunum', gorunum);
+  document.querySelectorAll('.gorunum-secenek').forEach(el=>{
+    el.classList.toggle('aktif', el.dataset.gorunum === gorunum);
+  });
+}
+function gorunumBaslat(){
+  const kayitli = localStorage.getItem('oyGorunum') || 'klasik';
+  gorunumUygula(kayitli);
+}
+
 function menuDaralt(){ document.body.classList.toggle('nav-collapsed'); }
 function menuAcKapat(){
   document.body.classList.toggle('nav-open');
@@ -71,6 +95,7 @@ function uygulamadanCik(){
 document.addEventListener('DOMContentLoaded', ()=>{
   temaUygula(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light');
   renkPaketiBaslat();
+  gorunumBaslat();
 
   // YENİ: Karşılamayı sayfa yüklenince hemen güncelle (Firestore bekleme)
   (function selamGuncelle(){
