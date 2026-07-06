@@ -2351,10 +2351,10 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 /* ---- Hızlı Bakış (ikincil özet rozetleri) ---- */
 #tab-panel.dash-modern .dash-hizlibakis{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
 @media (min-width:560px){ #tab-panel.dash-modern .dash-hizlibakis{ grid-template-columns:repeat(4,1fr); } }
-#tab-panel.dash-modern .hb-chip{ display:flex; align-items:center; gap:8px; background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); border-radius:14px; padding:10px; cursor:pointer; }
-#tab-panel.dash-modern .hb-ico{ font-size:16px; }
-#tab-panel.dash-modern .hb-num{ font-family:'Inter'; font-size:14px; font-weight:800; color:var(--dm-ink); }
-#tab-panel.dash-modern .hb-label{ font-family:'Inter'; font-size:10px; font-weight:600; color:var(--dm-ink-muted); }
+#tab-panel.dash-modern .hb-chip{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; background:var(--dm-soft-bg); border:1px solid var(--dm-card-bd); border-radius:14px; padding:14px 8px; cursor:pointer; }
+#tab-panel.dash-modern .hb-ico{ font-size:22px; line-height:1; }
+#tab-panel.dash-modern .hb-num{ font-family:'Inter'; font-size:15px; font-weight:800; color:var(--dm-ink); }
+#tab-panel.dash-modern .hb-label{ font-family:'Inter'; font-size:10.5px; font-weight:600; color:var(--dm-ink-muted); }
 
 /* ---- 4. Hızlı İşlemler (2x4, M3 renkli ikon rozetleri) ---- */
 #tab-panel.dash-modern .qa-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
@@ -2508,7 +2508,7 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 #tab-panel.dash-modern .zil-ikon-daire{ width:54px; height:54px; font-size:25px; }
 #tab-panel.dash-modern .stat-card-ico{ width:46px; height:46px; font-size:21px; border-radius:14px; }
 #tab-panel.dash-modern .qa-icon{ width:48px; height:48px; font-size:23px; border-radius:14px; }
-#tab-panel.dash-modern .hb-ico{ font-size:19px; }
+#tab-panel.dash-modern .hb-ico{ font-size:22px; }
 #tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-ico{ font-size:21px; }
 
 .bn-item .bn-ico{ font-size:24px; }
@@ -2780,8 +2780,8 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    YENİ: STAT KARTI YENİ TASARIM (büyük ikon üstte, Tümü sağ altta)
    ========================================================================= */
 #tab-panel.dash-modern .stat-card{
-  display:flex; flex-direction:column; align-items:flex-start; position:relative;
-  padding:16px 14px 12px; min-height:130px;
+  display:flex; flex-direction:column; align-items:center; text-align:center; position:relative;
+  padding:18px 14px 14px; min-height:150px;
 }
 #tab-panel.dash-modern .stat-card-ico-lg{
   width:52px; height:52px; border-radius:var(--icon-shape,16px);
@@ -2796,12 +2796,15 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-green{ background:#1E3A2C; color:#4ADE80; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-purple{ background:#2E2A45; color:#C4A6FF; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-amber{ background:#3A2A1A; color:#FDBA74; }
+#tab-panel.dash-modern .stat-card-footer{
+  width:100%; display:flex; justify-content:space-between; align-items:center;
+  margin-top:auto; padding-top:10px; border-top:1px solid var(--border);
+}
 #tab-panel.dash-modern .stat-card-tumu-bottom{
-  position:absolute; right:12px; bottom:10px;
   font-family:'Inter'; font-size:11px; font-weight:700; color:var(--dm-accent);
 }
 #tab-panel.dash-modern .stat-card-cinsiyet{
-  display:block; font-size:10.5px; font-weight:600; color:var(--dm-ink-muted); margin-top:2px;
+  font-size:10.5px; font-weight:600; color:var(--dm-ink-muted);
 }
 
 /* =========================================================================
@@ -2821,8 +2824,8 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   width:64px !important; height:64px !important; font-size:30px !important;
 }
 #tab-panel.dash-modern .stat-card-cinsiyet{
-  display:block; font-size:11.5px; font-weight:600;
-  color:var(--dm-ink-muted); margin-top:2px; letter-spacing:.01em;
+  font-size:11.5px; font-weight:600;
+  color:var(--dm-ink-muted); letter-spacing:.01em;
 }
 
 /* =========================================================================
