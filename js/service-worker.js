@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v121';
+const CACHE_ADI = 'oy-cache-v122';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -14,6 +14,9 @@ const ONBELLEGE_ALINACAKLAR = [
   './manifest.json',
   /* CSS */
   './css/styles.css',
+  './css/tasima-takip.css',
+  './css/servis-denetim.css',
+  './css/dilekce.css',
   /* JS — çekirdek */
   './js/firebase-init.js',
   './js/auth.js',
@@ -25,10 +28,15 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/core/utils.js',
   './js/core/store.js',
   './js/core/event-bus.js',
+  './js/core/services/istatistik.service.js',
+  './js/core/repositories/kullanici-yonetimi.repository.js',
+  './js/core/services/kullanici-yonetimi.service.js',
   './js/core/repositories/nobet.repository.js',
   './js/core/services/nobet.service.js',
   './js/core/repositories/siniflar.repository.js',
   './js/core/services/siniflar.service.js',
+  './js/core/repositories/takvim.repository.js',
+  './js/core/services/takvim.service.js',
   './js/core/repositories/personel.repository.js',
   './js/core/services/personel.service.js',
   './js/core/repositories/tasima.repository.js',
@@ -49,6 +57,12 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/core/services/harita.service.js',
   './js/core/repositories/cizelgeler.repository.js',
   './js/core/services/cizelgeler.service.js',
+  './js/core/repositories/push.repository.js',
+  './js/core/services/push.service.js',
+  './js/core/repositories/haberler.repository.js',
+  './js/core/services/haberler.service.js',
+  './js/core/repositories/periyodik.repository.js',
+  './js/core/services/periyodik.service.js',
   './js/core/repositories/mesajlasma.repository.js',
   './js/core/services/mesajlasma.service.js',
   './js/core/repositories/duyurular.repository.js',
@@ -67,11 +81,13 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/tasima.js',
   './js/tasima-takip.js',
   './js/servis-oturma.js',
+  './js/servis-denetim.js',
   './js/haberler.js',
   './js/mevzuat-asistan.js',
   './js/raporlama.js',
   './js/sinavlar.js',
   './js/notlar.js',
+  './js/istatistikler.js',
   './js/siniflar.js',
   './js/ogretmen-detay.js',
   './js/ogretmen-izin.js',
@@ -95,6 +111,21 @@ const ONBELLEGE_ALINACAKLAR = [
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-180.png',
+  /* Firebase SDK — internet olmadan da uygulama açılabilsin diye ÖNCEDEN önbelleklenir
+     (bkz. fetch stratejisi: artık gstatic.com burada hariç tutulmuyor) */
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js',
+  'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js',
+  /* Harita kütüphanesi (Leaflet) */
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  /* Excel / PDF / Word işleme kütüphaneleri */
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js',
 ];
 
 /* ---- INSTALL: tüm dosyaları önbellekle ---- */
@@ -132,15 +163,15 @@ self.addEventListener('fetch', (event) => {
 
   const url = event.request.url;
 
-  /* 1. Firebase / Google API trafiği → her zaman ağdan, SW karışmaz
-        (Firestore kendi offline katmanını yönetir) */
+  /* 1. Firestore/Auth/FCM CANLI API trafiği → her zaman ağdan, SW karışmaz
+        (Firestore kendi offline katmanını IndexedDB üzerinden yönetir).
+        DİKKAT: Bu sadece *.googleapis.com ve accounts.google.com'u kapsar.
+        Firebase SDK'nın kendisi (www.gstatic.com/firebasejs/...) STATİK bir
+        dosyadır ve buraya dahil EDİLMEZ — aksi halde internet yokken SDK
+        hiç yüklenemez ve uygulama Firestore'a gelmeden çöker (bkz. kural 3). */
   if (
-    url.includes('firestore.googleapis.com') ||
     url.includes('googleapis.com') ||
-    url.includes('gstatic.com') ||
-    url.includes('accounts.google.com') ||
-    url.includes('fcm.googleapis.com') ||
-    url.includes('firebase') && url.includes('googleapis')
+    url.includes('accounts.google.com')
   ) {
     return;
   }
