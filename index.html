@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="css/tasima-takip.css">
   <link rel="stylesheet" href="css/servis-denetim.css">
   <link rel="stylesheet" href="css/dilekce.css">
+  <link rel="stylesheet" href="css/tema-modern-acik.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -34,6 +35,12 @@
     // YENİ: kayıtlı renk paketi (tema paketi) — varsayılan 'teal'
     var kayitliRenk = localStorage.getItem('oyRenkPaketi');
     document.documentElement.setAttribute('data-accent', kayitliRenk || 'teal');
+    // YENİ: kayıtlı görünüm paketi ('klasik' veya 'modern') — varsayılan 'klasik'.
+    // Sayfa boyanmadan ÖNCE uygulanır ki geçişte kısa bir "yanlış tema" titremesi olmasın.
+    var kayitliGorunum = localStorage.getItem('oyGorunum');
+    if(kayitliGorunum === 'modern'){
+      document.documentElement.setAttribute('data-skin','modern');
+    }
   })();
   if('serviceWorker' in navigator){
     window.addEventListener('load', function(){
@@ -1157,6 +1164,19 @@
           <span>🎨 Tema</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content open">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;font-weight:700;">
+            Görünüm Stili
+          </p>
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+            "Modern Açık", Genel Bakış sayfasındaki temiz/beyaz tasarımı tüm uygulamaya (menü, kartlar, tablolar, formlar) yayar. "Klasik" mevcut görünümü korur. Bu tercih sadece bu cihazda geçerlidir.
+          </p>
+          <div class="renk-paketi-grid gorunum-grid" style="margin-bottom:18px;">
+            <button class="renk-paketi-secenek gorunum-secenek" data-gorunum="klasik" onclick="gorunumUygula('klasik')" title="Klasik">🌗 Klasik</button>
+            <button class="renk-paketi-secenek gorunum-secenek" data-gorunum="modern" onclick="gorunumUygula('modern')" title="Modern Açık">🪟 Modern Açık</button>
+          </div>
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;font-weight:700;">
+            Vurgu Rengi
+          </p>
           <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
             Bir vurgu rengi seçin. Açık/koyu mod seçimi ayrı çalışır (üst bardaki 🌙/☀️ düğmesi).
           </p>
