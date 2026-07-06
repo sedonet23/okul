@@ -1,0 +1,180 @@
+/* =========================================================================
+   TEMA PAKETİ: "Modern Açık" (data-skin="modern")
+   ---------------------------------------------------------------------
+   Bu dosya YENİ bir alternatif görünüm paketi ekler; mevcut "Klasik"
+   (neumorphic zemin + zaten var olan modern Genel Bakış/Sidebar/Alt
+   Navigasyon) görünümü DEĞİŞTİRMEZ, sadece kullanıcı ayarlardan
+   "Modern Açık" seçtiğinde <html data-skin="modern"> ile devreye girer.
+
+   NASIL ÇALIŞIYOR:
+   styles.css içindeki hemen hemen tüm bileşenler (buton, kart, tablo,
+   modal, akordeon, form elemanı) zaten --nm-*, --ink*, --border*,
+   --radius-* gibi CSS değişkenleri üzerinden tanımlı. Bu dosya sadece bu
+   değişkenlerin KÖK değerlerini, dashboard'da zaten kullanılan aynı açık/
+   temiz tasarım diline (beyaz kart, yumuşak geniş gölge, squircle
+   köşeler, kayrak/lacivert metin) göre yeniden tanımlıyor. Böylece
+   Öğretmenler, Sınıflar, Puantaj, Nöbet, Ayarlar vb. TÜM diğer sekmeler
+   tek satır değişiklik yapılmadan otomatik olarak aynı görünüme kavuşuyor.
+
+   Marka/vurgu rengi seçimi (Ayarlar > Tema > Vurgu Rengi, data-accent)
+   bu paketle birlikte de normal şekilde çalışmaya devam eder.
+   ========================================================================= */
+
+html[data-skin="modern"]{
+  /* Zemin — kart ile zemin farklı: kart saf beyaz, zemin ultra açık gri-mavi */
+  --nm-bg:       #F8FAFC;
+  --nm-bg-light: #FFFFFF;
+  --nm-bg-dark:  #EEF2F7;
+
+  /* Neumorphic gölgeler yerine yumuşak, tek yönlü "ambient" gölgeler */
+  --nm-out: 0 8px 30px rgba(15,23,42,0.06);
+  --nm-in:  inset 0 1px 3px rgba(15,23,42,0.07);
+  --nm-sm:  0 4px 16px rgba(15,23,42,0.05);
+  --nm-lg:  0 16px 44px rgba(15,23,42,0.09);
+
+  --el-4: 0 20px 50px rgba(15,23,42,0.10);
+  --shadow-sm: var(--nm-sm);
+  --shadow-md: var(--nm-out);
+  --shadow-lg: var(--el-4);
+
+  /* Metin — derin kayrak/lacivert, maksimum kontrast */
+  --ink:              #0F172A;
+  --ink-soft:         #1E293B;
+  --ink-muted:        #64748B;
+  --ink-on-dark:      #F8FAFC;
+  --ink-on-dark-muted:#CBD5E1;
+
+  /* Kenarlık — ince ve soft */
+  --border:      #EEF1F6;
+  --border-soft: #F1F4F9;
+
+  /* Squircle radius ölçeği */
+  --radius-xs: 10px;
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+}
+
+/* Koyu mod + Modern Açık birlikte seçilirse (kullanıcı hem koyu temayı hem
+   Modern Açık paketini seçebilir) — dashboard'daki koyu palete uyumlu. */
+[data-theme="dark"][data-skin="modern"]{
+  --nm-bg:       #141F22;
+  --nm-bg-light: #1C2A2E;
+  --nm-bg-dark:  #20302F;
+
+  --nm-out: 0 8px 26px rgba(0,0,0,0.30);
+  --nm-in:  inset 0 1px 3px rgba(0,0,0,0.35);
+  --nm-sm:  0 4px 14px rgba(0,0,0,0.28);
+  --nm-lg:  0 16px 40px rgba(0,0,0,0.36);
+
+  --ink:       #F1F8F8;
+  --ink-soft:  #E2ECEC;
+  --ink-muted: #94AFAF;
+
+  --border:      #263437;
+  --border-soft: #2A3A3E;
+}
+
+/* ---------- Genel yüzey / gövde ---------- */
+html[data-skin="modern"] body{
+  background: var(--nm-bg);
+}
+
+/* ---------- Kartlar: neumorphic kabartma yerine düz + soft gölge ---------- */
+html[data-skin="modern"] .card{
+  background: var(--nm-bg-light);
+  box-shadow: var(--nm-out);
+  border: 1px solid var(--border);
+}
+html[data-skin="modern"] .card:hover{ box-shadow: var(--nm-lg); }
+
+html[data-skin="modern"] .card > h3::before,
+html[data-skin="modern"] .page-title::before{
+  box-shadow: none;
+  opacity: .9;
+}
+
+/* ---------- Butonlar ---------- */
+html[data-skin="modern"] .btn{
+  background: var(--nm-bg-light);
+  border: 1px solid var(--border);
+  box-shadow: var(--nm-sm);
+}
+html[data-skin="modern"] .btn:hover{ background: var(--nm-bg-dark); }
+html[data-skin="modern"] .btn:active{ box-shadow: var(--nm-in) !important; }
+
+html[data-skin="modern"] .btn-primary{
+  border: none;
+  box-shadow: 0 10px 24px -8px rgba(37,99,235,.45);
+}
+html[data-skin="modern"] .btn-primary:hover{ box-shadow: 0 14px 30px -8px rgba(37,99,235,.55); }
+html[data-skin="modern"] .btn-primary:active{ box-shadow: inset 0 2px 6px rgba(0,0,0,.18) !important; }
+
+html[data-skin="modern"] .btn-amber{
+  border: none;
+  box-shadow: 0 10px 24px -8px rgba(217,119,6,.35);
+}
+html[data-skin="modern"] .btn-amber:hover{ box-shadow: 0 14px 30px -8px rgba(217,119,6,.45); }
+
+html[data-skin="modern"] .btn-ghost{
+  background: var(--nm-bg-light);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+html[data-skin="modern"] .btn-ghost:hover{ background: var(--nm-bg-dark); box-shadow: none; }
+
+html[data-skin="modern"] .btn-danger{
+  background: var(--nm-bg-light);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+/* ---------- Form elemanları ---------- */
+html[data-skin="modern"] input[type=text], html[data-skin="modern"] input[type=email],
+html[data-skin="modern"] input[type=password], html[data-skin="modern"] input[type=date],
+html[data-skin="modern"] input[type=time], html[data-skin="modern"] input[type=number],
+html[data-skin="modern"] input[type=file], html[data-skin="modern"] select, html[data-skin="modern"] textarea{
+  background: var(--nm-bg-dark);
+  box-shadow: none;
+  border: 1px solid transparent;
+}
+html[data-skin="modern"] input:focus, html[data-skin="modern"] select:focus, html[data-skin="modern"] textarea:focus{
+  background: var(--nm-bg-light);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-light);
+}
+
+/* ---------- Tablolar ---------- */
+html[data-skin="modern"] .table tbody tr:hover,
+html[data-skin="modern"] .maarif-tablo tbody tr:nth-child(even){
+  background: var(--nm-bg-dark);
+}
+html[data-skin="modern"] .maarif-tablo thead tr{
+  background: var(--nm-bg-dark);
+}
+
+/* ---------- Modal / çekmece paneller ---------- */
+html[data-skin="modern"] .modal{
+  box-shadow: 0 30px 70px -12px rgba(15,23,42,0.28);
+  border: 1px solid var(--border);
+}
+html[data-skin="modern"] .detay-panel{ box-shadow: var(--nm-lg); }
+html[data-skin="modern"] .detay-card{
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+/* ---------- Akordeon ---------- */
+html[data-skin="modern"] .accordion-header{ box-shadow: none; border: 1px solid var(--border); }
+html[data-skin="modern"] .accordion-content.open{
+  box-shadow: none;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--brand);
+}
+
+/* ---------- Görünüm paketi seçici (Ayarlar sayfası) ---------- */
+.gorunum-secenek{ font-weight:700; }
+
+/* ---------- Odak halkası (erişilebilirlik) korunuyor ---------- */
+html[data-skin="modern"] :focus-visible{ outline: 2px solid var(--brand); outline-offset: 3px; }
