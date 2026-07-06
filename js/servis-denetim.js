@@ -288,10 +288,29 @@
       ov.remove();
       document.body.classList.remove('sd-overlay-acik');
     };
+
+    // Yazdır: iframe'deki güncel (düzenlenmiş) içeriği yeni pencerede aç
     ov.querySelector('#sdPrintBtn').onclick = () => {
       const fr = ov.querySelector('#sdFrame');
-      fr.contentWindow.focus();
-      fr.contentWindow.print();
+      const doc = fr.contentDocument || fr.contentWindow.document;
+      if (!doc) return;
+      // Nöbetçi öğretmen select değerini ilgili div'e yaz (print'te select gizlenir)
+      const sel = doc.querySelector('.sd-nobetci-select');
+      if (sel) {
+        let span = sel.parentElement.querySelector('.sd-nobetci-yazili');
+        if (!span) { span = doc.createElement('span'); span.className = 'sd-nobetci-yazili'; sel.parentElement.appendChild(span); }
+        span.textContent = sel.value;
+        span.style.cssText = 'display:none;font-size:7.8pt;font-weight:700;';
+        // print CSS'te select gizle, span göster ekle
+      }
+      const html = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
+      const pw = window.open('', '_blank', 'width=900,height=700');
+      if (!pw) { alert('Açılır pencere engellendi. Tarayıcı ayarlarından izin verin.'); return; }
+      pw.document.open();
+      pw.document.write(html);
+      pw.document.close();
+      // contenteditable içerik zaten DOM'da; print başlatılır
+      setTimeout(() => { pw.focus(); pw.print(); }, 400);
     };
 
     return ov;
@@ -305,8 +324,11 @@
         ? servisler.find(s => s.id === servisId) || null
         : null;
 
+      const html = _sayfaHtml();
       const ov = _overlayOlustur();
-      ov.querySelector('#sdFrame').srcdoc = _sayfaHtml();
+      const fr = ov.querySelector('#sdFrame');
+      fr.setAttribute('data-html', html);
+      fr.srcdoc = html;
     }
   };
 
