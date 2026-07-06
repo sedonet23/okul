@@ -985,30 +985,40 @@ function renderDashboard(){
       <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
       <div class="stat-card-num">${ogretmenler.length}</div>
       <div class="stat-card-label">Personel</div>
-      ${kadinPersonel||erkekPersonel ? `<div class="stat-card-cinsiyet">🚺${kadinPersonel} 🚹${erkekPersonel}</div>` : ''}
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span class="stat-card-cinsiyet">${kadinPersonel||erkekPersonel ? `🚺${kadinPersonel} 🚹${erkekPersonel}` : ''}</span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     ogrenciler: gorebilir('ogrenciler') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
       <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
       <div class="stat-card-num">${toplamOgrenci}</div>
       <div class="stat-card-label">Öğrenciler</div>
-      ${kizOgrenci||erkekOgrenci ? `<div class="stat-card-cinsiyet">🚺${kizOgrenci} 🚹${erkekOgrenci}</div>` : ''}
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span class="stat-card-cinsiyet">${kizOgrenci||erkekOgrenci ? `🚺${kizOgrenci} 🚹${erkekOgrenci}` : ''}</span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     servis: gorebilir('tasima') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('tasima')">
       <div class="stat-card-ico-lg stat-card-ico-purple">🚌</div>
       <div class="stat-card-num">${servisSayisi}</div>
       <div class="stat-card-label">Servis Sayısı</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     evrak: gorebilir('evrak') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('evrak')">
       <div class="stat-card-ico-lg stat-card-ico-amber">📄</div>
       <div class="stat-card-num">${acikEvrakSayisi}</div>
       <div class="stat-card-label">Bekleyen Evrak</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     // YENİ: Öğretmen hesaplarında admin-only kartlar (Personel/Öğrenciler/
     // Servis) boş kaldığı için eklendi — bunlar herkese bağlı öğretmen
@@ -1018,28 +1028,40 @@ function renderDashboard(){
       <div class="stat-card-ico-lg stat-card-ico-blue">📝</div>
       <div class="stat-card-num">${sinavlar.filter(s=>s.ogretmenId===_statBenOgretmen.id && s.tarih>=todayISO()).length}</div>
       <div class="stat-card-label">Yaklaşan Sınavlarım</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     okunmamisMesaj: (gorebilir('mesajlasma') && typeof MesajlasmaService!=='undefined' && typeof konusmalar!=='undefined') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('mesajlasma')">
       <div class="stat-card-ico-lg stat-card-ico-green">💬</div>
       <div class="stat-card-num">${MesajlasmaService.toplamOkunmayan(konusmalar)}</div>
       <div class="stat-card-label">Okunmamış Mesaj</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     okunmamisDuyuru: (gorebilir('duyurular') && typeof duyurular!=='undefined') ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('duyurular')">
       <div class="stat-card-ico-lg stat-card-ico-amber">📢</div>
       <div class="stat-card-num">${duyurular.filter(d=>!(d.okuyanlar && d.okuyanlar[_statBenUid])).length}</div>
       <div class="stat-card-label">Okunmamış Duyuru</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
     bugunkuDersim: (_statBenOgretmen && gorebilir('dersProgrami')) ? `
     <div class="stat-card stat-card-clickable" onclick="sekmeAc('dersNobetProgramim')">
       <div class="stat-card-ico-lg stat-card-ico-purple">📚</div>
       <div class="stat-card-num">${dersProgrami.filter(d=>d.ogretmenId===_statBenOgretmen.id && d.gun===GUNADI[new Date().getDay()]).length}</div>
       <div class="stat-card-label">Bugünkü Ders Sayım</div>
-      <div class="stat-card-tumu-bottom">Tümü ›</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
     </div>` : '',
   };
   const _statSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('istatistikSeridi') : Object.keys(_statTanimlari);
@@ -1057,11 +1079,11 @@ function renderDashboard(){
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
     const _hbTanimlari = {
-      sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div></div>` : '',
-      bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div></div>` : '',
-      acikGorev: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div></div>` : '',
-      hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div></div>` : '',
-      sinavlarim: (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div></div>` : '',
+      sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div>` : '',
+      bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div>` : '',
+      acikGorev: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div>` : '',
+      hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div>` : '',
+      sinavlarim: (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div>` : '',
     };
     const _hbSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliBakis') : Object.keys(_hbTanimlari);
     hizliBakisEl.innerHTML = _hbSirasi.map(id => _hbTanimlari[id] || '').join('');
