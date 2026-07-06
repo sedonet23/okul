@@ -45,6 +45,15 @@
     return (typeof escapeHtml === 'function') ? escapeHtml(t || '') : String(t || '');
   }
 
+  // Gerçek öğrenci sayısı: o servise atanmış veli/öğrenci kayıtlarından sayılır
+  // (bkz. js/tasima.js servisDetayAc — aynı filtre: veliler.filter(v=>v.servisId===id))
+  function _ogrenciSayisiHesapla(servisId) {
+    if (typeof veliler !== 'undefined' && Array.isArray(veliler)) {
+      return veliler.filter(v => v.servisId === servisId).length;
+    }
+    return (_servis && _servis.ogrenciSayisi) || '';
+  }
+
   // --- Okul / müdür / müdür yardımcısı bilgileri (bkz. js/tasima-takip.js _getMudurBilgileri) ---
   function _getOkulVeMuduBilgileri() {
     const okul = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari) || {};
@@ -83,9 +92,9 @@
       <tbody>
         ${DENETIM_MADDELERI.map(m => `
         <tr>
-          <td class="sd-konu-hucre">${_escape(m.s)}<div class="sd-madde-ref">(${_escape(m.r)})</div></td>
-          <td class="sd-cevap-hucre"><span class="sd-kutu"></span></td>
-          <td class="sd-cevap-hucre"><span class="sd-kutu"></span></td>
+          <td class="sd-konu-hucre">${_escape(m.s)} <span class="sd-madde-ref">(${_escape(m.r)})</span></td>
+          <td class="sd-cevap-hucre"></td>
+          <td class="sd-cevap-hucre"></td>
           <td class="sd-aciklama-hucre"></td>
         </tr>`).join('')}
       </tbody>
@@ -95,6 +104,7 @@
   function _sayfaHtml() {
     const s = _servis || {};
     const { okulBasligi, mudurAd, mudurYrdAd } = _getOkulVeMuduBilgileri();
+    const ogrenciSayisi = _ogrenciSayisiHesapla(_servisId);
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -102,45 +112,43 @@
 <meta charset="UTF-8">
 <title>${_escape(s.plaka || 'Servis')} — Okul Servis Aracı Denetim Formu</title>
 <style>
-  @page { size: A4 portrait; margin: 9mm 8mm; }
+  @page { size: A4 portrait; margin: 7mm 7mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #fff; }
+  html, body { height: 100%; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #fff; display: flex; flex-direction: column; height: 100%; }
 
-  .sd-baslik { text-align: center; margin-bottom: 6px; }
-  .sd-baslik-okul { font-size: 12.5pt; font-weight: 800; letter-spacing: .3px; }
-  .sd-baslik-1 { font-size: 9.5pt; font-weight: 700; margin-top: 2px; }
-  .sd-baslik-2 { font-size: 10.5pt; font-weight: 800; margin-top: 1px; }
-  .sd-baslik-3 { font-size: 8pt; font-style: italic; color: #333; margin-top: 1px; }
+  .sd-baslik { text-align: center; margin-bottom: 3px; flex: 0 0 auto; }
+  .sd-baslik-okul { font-size: 11pt; font-weight: 800; letter-spacing: .2px; }
+  .sd-baslik-1 { font-size: 8pt; font-weight: 700; margin-top: 1px; }
+  .sd-baslik-2 { font-size: 9pt; font-weight: 800; margin-top: 1px; }
+  .sd-baslik-3 { font-size: 6.8pt; font-style: italic; color: #333; margin-top: 1px; }
 
-  .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 8.3pt; }
-  .sd-bilgi-tablo td { border: 1px solid #888; padding: 4px 6px; }
-  .sd-bilgi-tablo .sd-lbl { background: #dbe7f0; font-weight: 700; white-space: nowrap; color: #14304a; width: 21%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Not: Bazı yazıcı/PDF sürücüleri arkaplan renklerini tarama (zebra/dither)
+     desenine çevirerek yazdırıyor. Bu yüzden başlık hücreleri renkli dolgu
+     yerine kalın çerçeve + kalın yazı ile ayrıştırılıyor. */
+  .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 5px 0; font-size: 7.6pt; flex: 0 0 auto; }
+  .sd-bilgi-tablo td { border: 1px solid #333; padding: 2.5px 5px; }
+  .sd-bilgi-tablo .sd-lbl { font-weight: 800; white-space: nowrap; width: 21%; }
   .sd-bilgi-tablo .sd-val { width: 29%; font-weight: 600; }
 
-  .sd-madde-tablo { width: 100%; border-collapse: collapse; font-size: 7.6pt; margin-top: 4px; }
-  .sd-madde-tablo th { background: #dbe7f0; font-weight: 800; text-align: center; padding: 4px 3px; border: 1px solid #888; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .sd-th-konu { width: 55%; text-align: left !important; padding-left: 6px !important; }
-  .sd-th-cevap { width: 8%; }
+  .sd-madde-tablo { width: 100%; border-collapse: collapse; font-size: 7.1pt; margin-top: 3px; flex: 1 1 auto; }
+  .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 2.5px 3px; border: 1.4px solid #333; }
+  .sd-th-konu { width: 57%; text-align: left !important; padding-left: 5px !important; }
+  .sd-th-cevap { width: 7%; }
   .sd-th-aciklama { width: 29%; }
-  .sd-madde-tablo td { border: 1px solid #888; padding: 3px 5px; vertical-align: top; }
-  .sd-konu-hucre { text-align: left; line-height: 1.28; }
-  .sd-madde-ref { font-size: 6.4pt; color: #555; font-style: italic; margin-top: 1.5px; }
+  .sd-madde-tablo td { border: 1px solid #555; padding: 2px 4px; vertical-align: top; }
+  .sd-konu-hucre { text-align: left; line-height: 1.18; }
+  .sd-madde-ref { font-size: 6pt; color: #555; font-style: italic; }
   .sd-cevap-hucre { text-align: center; vertical-align: middle; }
-  .sd-kutu { display: inline-block; width: 10px; height: 10px; border: 1.3px solid #333; }
-  .sd-aciklama-hucre { min-height: 26px; }
 
-  .sd-not { font-size: 6.6pt; color: #333; margin-top: 6px; line-height: 1.35; }
+  .sd-not { font-size: 5.8pt; color: #333; margin-top: 4px; line-height: 1.25; flex: 0 0 auto; }
 
-  .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 20px; }
-  .sd-imza-kutu { text-align: center; min-width: 150px; }
-  .sd-imza-baslik { font-size: 8pt; font-weight: 700; margin-bottom: 22px; }
-  .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 3px; }
-  .sd-imza-ad { font-size: 8.3pt; font-weight: 700; min-height: 12px; }
-  .sd-imza-unvan { font-size: 7.5pt; color: #444; margin-top: 2px; }
-
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
+  .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 10px; flex: 0 0 auto; }
+  .sd-imza-kutu { text-align: center; min-width: 140px; }
+  .sd-imza-baslik { font-size: 7.5pt; font-weight: 700; margin-bottom: 14px; }
+  .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 2px; }
+  .sd-imza-ad { font-size: 7.8pt; font-weight: 700; min-height: 11px; }
+  .sd-imza-unvan { font-size: 7pt; color: #444; margin-top: 1px; }
 </style>
 </head>
 <body>
@@ -158,7 +166,7 @@
     </tr>
     <tr>
       <td class="sd-lbl">ŞOFÖRÜN ADI SOYADI</td><td class="sd-val">${_escape(s.soforAdi)}</td>
-      <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val">${_escape(s.ogrenciSayisi)}</td>
+      <td class="sd-lbl">ÖĞRENCİ SAYISI</td><td class="sd-val">${_escape(ogrenciSayisi)}</td>
     </tr>
     <tr>
       <td class="sd-lbl">ARACIN GÜZERGÂHI</td><td class="sd-val">${_escape(s.guzergah)}</td>
