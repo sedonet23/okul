@@ -1,0 +1,36 @@
+/* =============================================
+   css/servis-denetim.css
+   OKUL SERVİS ARACI DENETİM FORMU — Servis Kartı Butonu
+   (Form sayfa içi bir overlay'de açılır; bu dosya tetikleyici
+   butonu ve overlay açıkken yazdırma davranışını stiller.)
+   ============================================= */
+
+.btn-denetim-formu {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, #14304a, #1B3A5C);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+  transition: all 0.18s;
+  margin-top: 5px;
+  margin-left: 6px;
+}
+.btn-denetim-formu:hover {
+  background: linear-gradient(135deg, #1B3A5C, #2b527a);
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.25);
+}
+
+/* Overlay açıkken yazdırma tetiklenirse ana sayfanın geri kalanı
+   gizlensin, sadece overlay içindeki iframe içeriği yazdırılsın. */
+@media print {
+  body.sd-overlay-acik > *:not(#sdOverlay) { display: none !important; }
+  #sdOverlay #sdToolbar { display: none !important; }
+}
