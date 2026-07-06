@@ -25,7 +25,7 @@ function temaDegistir(){
 /* ---------- YENİ: Tema paketi (vurgu rengi) seçimi ---------- */
 const RENK_PAKETLERI = ['teal','mavi','yesil','mor','turuncu','kirmizi'];
 function renkUygula(paket){
-  if(!RENK_PAKETLERI.includes(paket)) paket = 'teal';
+  if(!RENK_PAKETLERI.includes(paket)) paket = 'yesil';
   document.documentElement.setAttribute('data-accent', paket);
   localStorage.setItem('oyRenkPaketi', paket);
   document.querySelectorAll('.renk-paketi-secenek').forEach(el=>{
@@ -33,7 +33,8 @@ function renkUygula(paket){
   });
 }
 function renkPaketiBaslat(){
-  const kayitli = localStorage.getItem('oyRenkPaketi') || 'teal';
+  // Faz 0 — UI/UX dönüşümü: varsayılan marka rengi artık 'yesil' (okul logosu rengi).
+  const kayitli = localStorage.getItem('oyRenkPaketi') || 'yesil';
   renkUygula(kayitli);
 }
 
