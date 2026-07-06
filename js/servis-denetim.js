@@ -289,28 +289,46 @@
       document.body.classList.remove('sd-overlay-acik');
     };
 
-    // Yazdır: iframe'deki güncel (düzenlenmiş) içeriği yeni pencerede aç
+    // Yazdır: iframe içeriğini gizli div olarak ana sayfaya ekle → window.print() → kaldır
+    // WebView/Capacitor'da en güvenilir yöntem budur
     ov.querySelector('#sdPrintBtn').onclick = () => {
       const fr = ov.querySelector('#sdFrame');
-      const doc = fr.contentDocument || fr.contentWindow.document;
-      if (!doc) return;
-      // Nöbetçi öğretmen select değerini ilgili div'e yaz (print'te select gizlenir)
-      const sel = doc.querySelector('.sd-nobetci-select');
-      if (sel) {
-        let span = sel.parentElement.querySelector('.sd-nobetci-yazili');
-        if (!span) { span = doc.createElement('span'); span.className = 'sd-nobetci-yazili'; sel.parentElement.appendChild(span); }
-        span.textContent = sel.value;
-        span.style.cssText = 'display:none;font-size:7.8pt;font-weight:700;';
-        // print CSS'te select gizle, span göster ekle
-      }
-      const html = '<!DOCTYPE html>' + doc.documentElement.outerHTML;
-      const pw = window.open('', '_blank', 'width=900,height=700');
-      if (!pw) { alert('Açılır pencere engellendi. Tarayıcı ayarlarından izin verin.'); return; }
-      pw.document.open();
-      pw.document.write(html);
-      pw.document.close();
-      // contenteditable içerik zaten DOM'da; print başlatılır
-      setTimeout(() => { pw.focus(); pw.print(); }, 400);
+      const fdoc = fr.contentDocument || fr.contentWindow.document;
+      if (!fdoc) return;
+
+      // iframe'den güncel form içeriğini al
+      const formBody = fdoc.body.innerHTML;
+      const formStyle = fdoc.head.innerHTML;
+
+      // Gizli print konteyneri oluştur
+      const printDiv = document.createElement('div');
+      printDiv.id = 'sd-print-container';
+      printDiv.innerHTML = formBody;
+      document.body.appendChild(printDiv);
+
+      // Print stilleri: overlay gizle, print konteyneri göster
+      const styleEl = document.createElement('style');
+      styleEl.id = 'sd-print-style';
+      styleEl.textContent = `
+        @media print {
+          body > *:not(#sd-print-container) { display: none !important; }
+          #sd-print-container {
+            display: block !important;
+            position: fixed; inset: 0;
+            background: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #111;
+          }
+          ${fdoc.head.querySelector('style') ? fdoc.head.querySelector('style').textContent : ''}
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      window.print();
+
+      // Temizle
+      document.body.removeChild(printDiv);
+      document.head.removeChild(styleEl);
     };
 
     return ov;
