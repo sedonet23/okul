@@ -143,22 +143,25 @@ function _bnIkinciItemAyarla(){
   if(adminMi){
     btn.dataset.tab = 'sosyalKulupler';
     btn.setAttribute('onclick', "sekmeAc('sosyalKulupler'); bottomNavAktifYap(this);");
-    if(ikon) ikon.textContent = '📊';
+    if(ikon) ikon.setAttribute('data-lucide', 'bar-chart-3');
     if(etiket) etiket.textContent = 'Çizelgeler';
     btn.style.display = '';
   } else if(ben){
     btn.dataset.tab = 'dersNobetProgramim';
     btn.setAttribute('onclick', "sekmeAc('dersNobetProgramim'); bottomNavAktifYap(this);");
-    if(ikon) ikon.textContent = '📚';
+    if(ikon) ikon.setAttribute('data-lucide', 'book-open');
     if(etiket) etiket.textContent = 'Programım';
     btn.style.display = '';
   } else {
     btn.dataset.tab = 'evrak';
     btn.setAttribute('onclick', "sekmeAc('evrak'); bottomNavAktifYap(this);");
-    if(ikon) ikon.textContent = '📄';
+    if(ikon) ikon.setAttribute('data-lucide', 'file-text');
     if(etiket) etiket.textContent = 'Evraklar';
     btn.style.display = gorebilir('evrak') ? '' : 'none';
   }
+  // İkon Lucide SVG'sine dönüştüğü için textContent artık işe yaramaz;
+  // data-lucide attribute'u yukarıda güncellendi, gerçek çizim burada.
+  if(typeof window.ikonYenile === 'function') window.ikonYenile();
 }
 
 /* ---------- Anasayfa (Genel Bakış) kişiselleştirme ----------
