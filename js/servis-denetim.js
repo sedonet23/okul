@@ -127,36 +127,36 @@
     return `
       .sd-wrap { font-family: 'Segoe UI', Arial, sans-serif; color: #111; background: #fff;
         display: flex; flex-direction: column; padding: 7mm; box-sizing: border-box;
-        width: 100%; height: 283mm; min-height: 283mm; }
-      .sd-baslik { text-align: center; margin-bottom: 5px; flex: 0 0 auto; }
-      .sd-baslik-okul { font-size: 14pt; font-weight: 800; letter-spacing: .2px; }
-      .sd-baslik-1 { font-size: 10pt; font-weight: 700; margin-top: 3px; }
-      .sd-baslik-2 { font-size: 12pt; font-weight: 800; margin-top: 3px; }
-      .sd-baslik-3 { font-size: 8.5pt; font-style: italic; color: #333; margin-top: 3px; }
-      .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.5pt; flex: 0 0 auto; }
-      .sd-bilgi-tablo td { border: 1px solid #333; padding: 5px 8px; background: #fff; }
+        width: 100%; min-height: 283mm; }
+      .sd-baslik { text-align: center; margin-bottom: 4px; flex: 0 0 auto; }
+      .sd-baslik-okul { font-size: 12.5pt; font-weight: 800; letter-spacing: .2px; }
+      .sd-baslik-1 { font-size: 9pt; font-weight: 700; margin-top: 2px; }
+      .sd-baslik-2 { font-size: 10.5pt; font-weight: 800; margin-top: 2px; }
+      .sd-baslik-3 { font-size: 7.5pt; font-style: italic; color: #333; margin-top: 2px; }
+      .sd-bilgi-tablo { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 8.5pt; flex: 0 0 auto; }
+      .sd-bilgi-tablo td { border: 1px solid #333; padding: 3.5px 7px; background: #fff; }
       .sd-bilgi-tablo .sd-lbl { font-weight: 800; white-space: nowrap; width: 21%; }
       .sd-bilgi-tablo .sd-val { width: 29%; font-weight: 600; }
       .sd-madde-wrap { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; margin-top: 4px; }
-      .sd-madde-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: 9pt; table-layout: fixed; }
-      .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 6px 4px; border: 1.4px solid #333; background: #fff; }
-      .sd-th-konu { width: 57%; text-align: left !important; padding-left: 8px !important; }
+      .sd-madde-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: 8pt; table-layout: fixed; }
+      .sd-madde-tablo th { font-weight: 800; text-align: center; padding: 4px 4px; border: 1.4px solid #333; background: #fff; }
+      .sd-th-konu { width: 57%; text-align: left !important; padding-left: 7px !important; }
       .sd-th-cevap { width: 7%; }
       .sd-th-aciklama { width: 29%; }
-      .sd-madde-tablo td { border: 1px solid #555; padding: 5px 8px; vertical-align: middle; background: #fff; }
+      .sd-madde-tablo td { border: 1px solid #555; padding: 3.5px 6px; vertical-align: middle; background: #fff; }
       .sd-madde-tablo tr { background: #fff; }
-      .sd-konu-hucre { text-align: left; line-height: 1.3; vertical-align: middle !important; }
-      .sd-madde-ref { font-size: 7.5pt; color: #555; font-style: italic; }
+      .sd-konu-hucre { text-align: left; line-height: 1.25; vertical-align: middle !important; }
+      .sd-madde-ref { font-size: 6.5pt; color: #555; font-style: italic; }
       .sd-cevap-hucre { text-align: center; vertical-align: middle; }
-      .sd-not { font-size: 7.5pt; color: #333; margin-top: 8px; line-height: 1.4; flex: 0 0 auto; }
-      .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 18px; flex: 0 0 auto; }
-      .sd-imza-kutu { text-align: center; min-width: 160px; }
-      .sd-imza-baslik { font-size: 9.5pt; font-weight: 700; margin-bottom: 20px; }
-      .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 4px; }
-      .sd-imza-ad { font-size: 10pt; font-weight: 700; min-height: 14px; }
-      .sd-imza-unvan { font-size: 9pt; color: #444; margin-top: 2px; }
+      .sd-not { font-size: 6.5pt; color: #333; margin-top: 6px; line-height: 1.3; flex: 0 0 auto; }
+      .sd-imza-satir { display: flex; justify-content: space-around; margin-top: 14px; flex: 0 0 auto; }
+      .sd-imza-kutu { text-align: center; min-width: 150px; }
+      .sd-imza-baslik { font-size: 8.3pt; font-weight: 700; margin-bottom: 16px; }
+      .sd-imza-cizgi { border-top: 1px solid #333; padding-top: 3px; }
+      .sd-imza-ad { font-size: 8.6pt; font-weight: 700; min-height: 12px; }
+      .sd-imza-unvan { font-size: 7.6pt; color: #444; margin-top: 1px; }
       .sd-readonly { color: #333; }
-      .sd-nobetci-select { font-family: inherit; font-size: 10pt; font-weight: 700;
+      .sd-nobetci-select { font-family: inherit; font-size: 8.6pt; font-weight: 700;
         border: none; border-bottom: 1px solid #999; background: transparent;
         text-align: center; width: 100%; cursor: pointer; padding: 0; }
     `;
