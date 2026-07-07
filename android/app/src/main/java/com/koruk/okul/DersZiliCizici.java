@@ -156,7 +156,7 @@ public class DersZiliCizici {
             int kalanDakika = veri.optInt("kalanDakika", 0);
             Paint kalanEtiketPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             kalanEtiketPaint.setColor(Color.parseColor("#9DB3AD"));
-            kalanEtiketPaint.setTextSize(8.5f * yogunluk);
+            kalanEtiketPaint.setTextSize(5f * yogunluk);
             kalanEtiketPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
             kalanEtiketPaint.setTextAlign(Paint.Align.CENTER);
             kalanEtiketPaint.setLetterSpacing(0.1f);
