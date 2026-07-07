@@ -55,6 +55,19 @@
                 android:resource="@xml/okul_widget_info" />
         </receiver>
 
+        <!-- Ders Zili Geri Sayım Widget'ı -->
+        <receiver
+            android:name=".DersZiliWidget"
+            android:exported="true"
+            android:label="Ders Zili Geri Sayım">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/ders_zili_widget_info" />
+        </receiver>
+
         <!-- FCM Servis -->
         <service
             android:name=".OkulFirebaseMessagingService"
