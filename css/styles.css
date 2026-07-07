@@ -3326,3 +3326,19 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
 
 /* Genel buton içi ikon+metin hizası (Rapor/Düzenle/Kapat gibi) */
 .btn [data-lucide]{ vertical-align:-3px; }
+
+/* =========================================================================
+   YENİ — HATA DÜZELTMESİ: Zil sayacı ilk açılışta yanlış an gösterme
+   ---------------------------------------------------------------------
+   Ders saatleri verisi Firestore'dan gelene kadar (genelde <1sn) hero
+   kartında nötr bir "yükleniyor" durumu gösterilir; artık tatil modu
+   aktifken bile bir anlığına "1. Ders" gibi yanlış içerik görünmez.
+   ========================================================================= */
+.zil-yukleniyor .zil-yukleniyor-metin{
+  opacity:.75;
+  animation: zilYukleniyorNabiz 1.1s ease-in-out infinite;
+}
+@keyframes zilYukleniyorNabiz{
+  0%,100%{ opacity:.5; }
+  50%{ opacity:.9; }
+}
