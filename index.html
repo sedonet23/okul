@@ -211,10 +211,14 @@
         <div class="topbar-title">Koruk İlk-Ortaokulu</div>
       </div>
       <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:2px;white-space:nowrap;"></div>
-      <!-- YENİ: Bildirim zili — takvim/hatırlatıcılar sekmesine götürür, rozet sayısı renderDashboard() tarafından dolduruluyor -->
-      <button class="topbar-bell" onclick="sekmeAc('takvim')" title="Hatırlatıcılar" aria-label="Hatırlatıcılar">
-        <i data-lucide="bell" style="width:18px;height:18px;"></i><span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
-      </button>
+      <!-- YENİ: Bildirim zili — artık sekmeye gitmiyor, altına küçük bir bildirim
+           listesi açıyor (bekleyen hatırlatıcılar + okunmamış duyurular) -->
+      <div style="position:relative;">
+        <button class="topbar-bell" onclick="bildirimZiliAcKapat(event)" title="Bildirimler" aria-label="Bildirimler">
+          <i data-lucide="bell" style="width:18px;height:18px;"></i><span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
+        </button>
+        <div id="bildirimZiliPaneli" class="card" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:300px;max-width:85vw;max-height:360px;overflow-y:auto;z-index:500;box-shadow:0 10px 28px rgba(0,0,0,.22);padding:0;"></div>
+      </div>
       <button class="topbar-avatar" id="topbarAvatar" onclick="profilVeyaSecimAc()" title="Kullanıcı Profili"><i data-lucide="user-round" style="width:18px;height:18px;"></i></button>
     </div>
 

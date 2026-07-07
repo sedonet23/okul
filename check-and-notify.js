@@ -97,7 +97,7 @@ async function kontrolEt() {
           // 'notification' alanı yerine sadece 'data' göndermek, ön/arka plan
           // fark etmeksizin bildirimin kendi Java kodumuzdan (özel logo/ikon)
           // geçmesini garantiler.
-          data: { kategori: 'genel', baslik: item.baslik, icerik: item.govde }
+          data: { kategori: 'takvim', baslik: item.baslik, icerik: item.govde }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
@@ -133,7 +133,7 @@ async function kontrolEt() {
       try {
         const yanit = await admin.messaging().sendEachForMulticast({
           tokens: aliciTokenlari,
-          data: { kategori: 'genel', baslik: `💬 ${baslik}`, icerik: k.sonMesaj.metin.slice(0, 120) }
+          data: { kategori: 'mesaj', baslik: `💬 ${baslik}`, icerik: k.sonMesaj.metin.slice(0, 120) }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
