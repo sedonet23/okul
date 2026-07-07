@@ -25,6 +25,27 @@ const OL_HAZIR_SUTUNLAR = [
 
 let _olSeciliSinif = '';
 let _olOzelSutunSayaci = 0;
+let _olLogoDataUri = null;
+
+/* ---------- okul logosunu data URI olarak önbellekle ----------
+   Yazdırma penceresi/PDF, sayfanın normal DOM bağlamının dışında
+   (blob URL / native plugin) render edildiği için "assets/..." gibi
+   göreli yollar çözülemiyor — bu yüzden logoyu bir kere base64'e
+   çevirip önbellekte tutuyoruz. */
+async function olLogoDataUriGetir() {
+  if (_olLogoDataUri) return _olLogoDataUri;
+  try {
+    const resp = await fetch('assets/icon-192.png');
+    const blob = await resp.blob();
+    _olLogoDataUri = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(blob);
+    });
+  } catch (e) { console.warn('Okul logosu yüklenemedi:', e); _olLogoDataUri = ''; }
+  return _olLogoDataUri;
+}
 
 /* ---------- öğretmenin girdiği sınıflar ---------- */
 function olKendiSiniflarim() {
@@ -57,6 +78,7 @@ function ogretmenListeSekmesiAc() {
 
   const siniflarim = olKendiSiniflarim();
   const secenekler = siniflarim.map(ad => `<option value="${escapeHtml(ad)}">${escapeHtml(ad)}</option>`).join('');
+  olLogoDataUriGetir(); // arka planda önbelleğe al, sonucu bekleme
 
   document.getElementById('olIcerik').innerHTML = `
     <div class="card" style="margin-bottom:14px;">
@@ -88,6 +110,7 @@ async function olSinifSecildi(sinifAdi) {
 
   const seciliKeyler = sablon?.secilenKeyler || OL_HAZIR_SUTUNLAR.map(c => c.key);
   const ozelSutunlar = sablon?.ozelSutunlar || [];
+  const bs = sablon?.baslikBilgisi || {};
 
   const checkboxler = OL_HAZIR_SUTUNLAR.map(col => `
     <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">
@@ -98,9 +121,47 @@ async function olSinifSecildi(sinifAdi) {
   _olOzelSutunSayaci = 0;
   const ozelSutunHtml = ozelSutunlar.map(ad => olOzelSutunSatiri(ad)).join('');
 
+  // Varsayılan değerler
+  const ben = bagliOgretmenimGetir();
+  const _okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const _yil = (() => { const y = new Date().getFullYear(); return `${y}-${y + 1}`; })();
+  const _ogretmenAdSoyad = ben ? `${ben.ad || ''} ${ben.soyad || ''}`.trim() : '';
+  const _ogretmenBrans = ben ? (ben.brans || '') : '';
+  const _mudur = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mudurId)
+    ? ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId) : null;
+  const _mudurAdSoyad = _mudur ? `${_mudur.ad || ''} ${_mudur.soyad || ''}`.trim() : '';
+
+  const inputStil = 'width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;';
+  const satir = (id, placeholder, deger, gosterVarsayilan) => `
+    <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:6px;">
+      <input id="${id}" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(deger)}" style="${inputStil}">
+      <label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;cursor:pointer;">
+        <input type="checkbox" id="${id}Goster" ${gosterVarsayilan ? 'checked' : ''}> Göster
+      </label>
+    </div>`;
+
   alan.innerHTML = `
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Sütunları Seç</div>
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Başlık Bilgileri (İsteğe Bağlı)</div>
+      <div style="display:grid;gap:7px;">
+        ${satir('olOkulAdi', 'Okul Adı', bs.okulAdi ?? _okulAdi, bs.okulAdiGoster ?? true)}
+        ${satir('olEgitimYili', 'Eğitim-Öğretim Yılı', bs.egitimYili ?? _yil, bs.egitimYiliGoster ?? true)}
+        ${satir('olAltBaslik', 'Alt Başlık (isteğe bağlı, örn: Veli Toplantısı Listesi)', bs.altBaslik ?? '', bs.altBaslikGoster ?? false)}
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">İmza / Onay Satırı (İsteğe Bağlı)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="display:grid;gap:7px;">
+          ${satir('olOgretmenAdSoyad', 'Öğretmen Ad Soyad', bs.ogretmenAdSoyad ?? _ogretmenAdSoyad, bs.ogretmenGoster ?? true)}
+          ${satir('olOgretmenBrans', 'Branş', bs.ogretmenBrans ?? _ogretmenBrans, bs.ogretmenBransGoster ?? true)}
+        </div>
+        <div style="display:grid;gap:7px;">
+          ${satir('olMudurAdSoyad', 'Okul Müdürü Ad Soyad', bs.mudurAdSoyad ?? _mudurAdSoyad, bs.mudurGoster ?? true)}
+          ${satir('olMudurUnvan', 'Ünvan', bs.mudurUnvan ?? 'Okul Müdürü', bs.mudurUnvanGoster ?? true)}
+        </div>
+      </div>
+
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Sütunları Seç</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:2px 16px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
         ${checkboxler}
       </div>
@@ -112,10 +173,10 @@ async function olSinifSecildi(sinifAdi) {
       <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Sayfa Yönü</div>
       <div style="display:flex;gap:16px;">
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <input type="radio" name="olYon" value="portrait" checked> Dikey (A4)
+          <input type="radio" name="olYon" value="portrait" ${(bs.yon ?? 'portrait') === 'portrait' ? 'checked' : ''}> Dikey (A4)
         </label>
         <label style="display:flex;align-items:center;gap:5px;cursor:pointer;">
-          <input type="radio" name="olYon" value="landscape"> Yatay (A4)
+          <input type="radio" name="olYon" value="landscape" ${bs.yon === 'landscape' ? 'checked' : ''}> Yatay (A4)
         </label>
       </div>
 
@@ -166,6 +227,23 @@ function olTumSutunlariGetir() {
   return [...seciliSutunlar, ...ozelSutunlar];
 }
 
+/* ---------- başlık / imza bilgilerini topla ---------- */
+function olBaslikBilgisiGetir() {
+  const g = id => document.getElementById(id);
+  const gv = id => g(id)?.value?.trim() || '';
+  const gc = id => g(id)?.checked ?? false;
+  return {
+    yon: document.querySelector('input[name="olYon"]:checked')?.value || 'portrait',
+    okulAdi: gv('olOkulAdi'), okulAdiGoster: gc('olOkulAdiGoster'),
+    egitimYili: gv('olEgitimYili'), egitimYiliGoster: gc('olEgitimYiliGoster'),
+    altBaslik: gv('olAltBaslik'), altBaslikGoster: gc('olAltBaslikGoster'),
+    ogretmenAdSoyad: gv('olOgretmenAdSoyad'), ogretmenGoster: gc('olOgretmenGoster'),
+    ogretmenBrans: gv('olOgretmenBrans'), ogretmenBransGoster: gc('olOgretmenBransGoster'),
+    mudurAdSoyad: gv('olMudurAdSoyad'), mudurGoster: gc('olMudurGoster'),
+    mudurUnvan: gv('olMudurUnvan'), mudurUnvanGoster: gc('olMudurUnvanGoster'),
+  };
+}
+
 function olOgrencileriGetir() {
   const s = siniflar.find(x => x.ad === _olSeciliSinif);
   const sinifId = s ? s.id : _olSeciliSinif;
@@ -211,6 +289,7 @@ async function olSablonKaydet() {
       sinif: _olSeciliSinif,
       secilenKeyler: seciliKeyler,
       ozelSutunlar: ozelSutunlar,
+      baslikBilgisi: olBaslikBilgisiGetir(),
       guncellenme: new Date().toISOString(),
     });
     toast('Şablon kaydedildi. Bu sınıf için tekrar açtığınızda otomatik yüklenecek.');
@@ -221,20 +300,32 @@ async function olSablonKaydet() {
 }
 
 /* ---------- yazdırma (dikey/yatay seçilebilir + zebra desen) ---------- */
-function olYazdir() {
+async function olYazdir() {
   const sutunlar = olTumSutunlariGetir();
   const ogrenciler = olOgrencileriGetir();
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
 
-  const yon = document.querySelector('input[name="olYon"]:checked')?.value || 'portrait';
-  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
-  const ben = bagliOgretmenimGetir();
-  const ogretmenAdSoyad = ben ? `${ben.ad || ''} ${ben.soyad || ''}`.trim() : '';
+  const bs = olBaslikBilgisiGetir();
+  const logo = await olLogoDataUriGetir();
 
   const thHTML = sutunlar.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
   const trHTML = ogrenciler.map((v, i) =>
     `<tr>${sutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
   ).join('');
+
+  const metaParcalar = [];
+  if (bs.egitimYiliGoster && bs.egitimYili) metaParcalar.push(escapeHtml(bs.egitimYili) + ' Eğitim-Öğretim Yılı');
+  metaParcalar.push(new Date().toLocaleDateString('tr-TR'));
+
+  const imzaSol = bs.ogretmenGoster
+    ? `Öğretmen: <strong>${escapeHtml(bs.ogretmenAdSoyad || '...............................')}</strong>` +
+      (bs.ogretmenBransGoster && bs.ogretmenBrans ? `<br>${escapeHtml(bs.ogretmenBrans)}` : '') +
+      `<br><br>İmza: .......................`
+    : '';
+  const imzaSag = bs.mudurGoster
+    ? `${bs.mudurUnvanGoster && bs.mudurUnvan ? escapeHtml(bs.mudurUnvan) : 'Okul Müdürü'}: <strong>${escapeHtml(bs.mudurAdSoyad || '...............................')}</strong>` +
+      `<br><br>İmza: .......................`
+    : '';
 
   const html = `<!DOCTYPE html>
 <html lang="tr">
@@ -242,12 +333,16 @@ function olYazdir() {
 <meta charset="UTF-8">
 <title>${escapeHtml(_olSeciliSinif)} Öğrenci Listesi</title>
 <style>
-  @page { size: A4 ${yon}; margin: 1.2cm; }
+  @page { size: A4 ${bs.yon}; margin: 1.2cm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; }
-  .header { text-align: center; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+  .header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+  .header .logo { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
+  .header .metin { flex: 1; text-align: center; }
+  .header .logo-bosluk { width: 46px; flex-shrink: 0; }
   .header .okul { font-size: 15px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
   .header .baslik { font-size: 13px; font-weight: 600; margin-top: 5px; }
+  .header .alt-baslik { font-size: 11px; margin-top: 3px; color: #444; }
   .header .meta { font-size: 10px; color: #666; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
   th { background: #1B3A5C; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; }
@@ -255,27 +350,34 @@ function olYazdir() {
   tr:nth-child(even) td { background: #f7f7f7; }
   tr:last-child td { border-bottom: 2px solid #333; }
   .ogrenci-sayisi { margin-top: 8px; font-size: 10px; color: #444; text-align: right; }
+  .footer { margin-top: 16px; display: flex; justify-content: space-between; font-size: 10px; color: #444; line-height: 1.8; }
   @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 </style>
 </head>
 <body>
   <div class="header">
-    ${okulAdi ? `<div class="okul">${escapeHtml(okulAdi)}</div>` : ''}
-    <div class="baslik">${escapeHtml(_olSeciliSinif)} Sınıfı Öğrenci Listesi</div>
-    <div class="meta">${ogretmenAdSoyad ? escapeHtml(ogretmenAdSoyad) + ' &nbsp;·&nbsp; ' : ''}${new Date().toLocaleDateString('tr-TR')}</div>
+    ${logo ? `<img class="logo" src="${logo}" alt="Okul Logosu">` : ''}
+    <div class="metin">
+      ${bs.okulAdiGoster && bs.okulAdi ? `<div class="okul">${escapeHtml(bs.okulAdi)}</div>` : ''}
+      <div class="baslik">${escapeHtml(_olSeciliSinif)} Sınıfı Öğrenci Listesi</div>
+      ${bs.altBaslikGoster && bs.altBaslik ? `<div class="alt-baslik">${escapeHtml(bs.altBaslik)}</div>` : ''}
+      <div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>
+    </div>
+    ${logo ? `<div class="logo-bosluk"></div>` : ''}
   </div>
   <table>
     <thead><tr>${thHTML}</tr></thead>
     <tbody>${trHTML}</tbody>
   </table>
   <div class="ogrenci-sayisi">Toplam öğrenci sayısı: <strong>${ogrenciler.length}</strong></div>
+  ${(imzaSol || imzaSag) ? `<div class="footer"><div>${imzaSol}</div><div style="text-align:right;">${imzaSag}</div></div>` : ''}
 </body>
 </html>`;
 
-  const w = window.open('', '_blank', 'width=900,height=700');
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => { w.focus(); w.print(); };
+  // Android'de window.open + window.print() çıplak WebView'de çalışmıyor —
+  // uygulama genelinde kullanılan ortak yazdırma yardımcısı (native
+  // PrintPlugin / blob-URL fallback) üzerinden yazdırılıyor.
+  uygulamaHtmlYazdir(html, `${_olSeciliSinif}_Ogrenci_Listesi`, bs.yon === 'landscape' ? 'yatay' : 'dikey');
 }
 
 /* ---------- Excel'e aktar ---------- */
@@ -285,38 +387,110 @@ function olExcelAktar() {
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
   if (typeof XLSX === 'undefined') { toast('Excel kütüphanesi yüklenemedi.'); return; }
 
+  const bs = olBaslikBilgisiGetir();
+  const sutunSayisi = sutunlar.length;
+
+  // Not: Bu projede kullanılan SheetJS'in ücretsiz sürümü .xlsx içine
+  // resim (logo) gömmeyi desteklemiyor — bu yüzden Excel çıktısında
+  // logo yerine metin tabanlı başlık satırları kullanılıyor.
+  const baslikSatirlari = [];
+  if (bs.okulAdiGoster && bs.okulAdi) baslikSatirlari.push([bs.okulAdi]);
+  baslikSatirlari.push([`${_olSeciliSinif} Sınıfı Öğrenci Listesi`]);
+  if (bs.altBaslikGoster && bs.altBaslik) baslikSatirlari.push([bs.altBaslik]);
+  const metaSatir = [];
+  if (bs.egitimYiliGoster && bs.egitimYili) metaSatir.push(`${bs.egitimYili} Eğitim-Öğretim Yılı`);
+  metaSatir.push(new Date().toLocaleDateString('tr-TR'));
+  baslikSatirlari.push([metaSatir.join('   ·   ')]);
+  baslikSatirlari.push([]); // boş satır
+
   const basliklar = sutunlar.map(c => c.label);
   const satirlar = ogrenciler.map((v, i) => sutunlar.map(c => c.fn(v, i)));
-  const ws = XLSX.utils.aoa_to_sheet([basliklar, ...satirlar]);
+  const ws = XLSX.utils.aoa_to_sheet([...baslikSatirlari, basliklar, ...satirlar]);
+
+  // Başlık satırlarını sütunlar boyunca birleştir (ortala görünsün diye)
+  ws['!merges'] = baslikSatirlari.map((_, i) => ({ s: { r: i, c: 0 }, e: { r: i, c: sutunSayisi - 1 } }));
+  ws['!cols'] = sutunlar.map(() => ({ wch: 18 }));
+
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, (_olSeciliSinif || 'Liste').slice(0, 31));
-  XLSX.writeFile(wb, `${_olSeciliSinif}_Ogrenci_Listesi.xlsx`);
+
+  const dosyaAdi = `${_olSeciliSinif}_Ogrenci_Listesi.xlsx`;
+  const mimeTuru = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+  // Android'in çıplak WebView'i <a download> ile blob indirmeyi
+  // desteklemiyor — bu yüzden uygulama genelindeki ortak kaydetme
+  // yardımcısı (native SavePlugin / blob fallback) kullanılıyor.
+  if (typeof uygulamaDosyaKaydet === 'function') {
+    const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru);
+  } else {
+    XLSX.writeFile(wb, dosyaAdi); // yardımcı yoksa eski yönteme dön
+  }
 }
 
 /* ---------- PDF'e aktar ---------- */
-function olPdfAktar() {
+async function olPdfAktar() {
   const sutunlar = olTumSutunlariGetir();
   const ogrenciler = olOgrencileriGetir();
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
   if (typeof window.jspdf === 'undefined') { toast('PDF kütüphanesi yüklenemedi.'); return; }
 
-  const yon = document.querySelector('input[name="olYon"]:checked')?.value || 'portrait';
+  const bs = olBaslikBilgisiGetir();
+  const logo = await olLogoDataUriGetir();
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: yon === 'landscape' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: bs.yon === 'landscape' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
 
-  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
+  const metinX = logo ? 26 : 14;
+  if (logo) {
+    try { doc.addImage(logo, 'PNG', 14, 10, 14, 14); } catch (e) { console.warn('PDF logo eklenemedi:', e); }
+  }
+
+  let y = 14;
+  if (bs.okulAdiGoster && bs.okulAdi) { doc.setFontSize(9); doc.text(bs.okulAdi, metinX, y); y += 6; }
   doc.setFontSize(12);
-  doc.text(`${_olSeciliSinif} Sınıfı Öğrenci Listesi`, 14, 14);
-  if (okulAdi) { doc.setFontSize(9); doc.text(okulAdi, 14, 20); }
+  doc.text(`${_olSeciliSinif} Sınıfı Öğrenci Listesi`, metinX, y); y += 6;
+  if (bs.altBaslikGoster && bs.altBaslik) { doc.setFontSize(9); doc.text(bs.altBaslik, metinX, y); y += 5; }
+  if (bs.egitimYiliGoster && bs.egitimYili) { doc.setFontSize(8); doc.setTextColor(100); doc.text(`${bs.egitimYili} Eğitim-Öğretim Yılı`, metinX, y); doc.setTextColor(0); y += 4; }
+  y = Math.max(y, logo ? 26 : y);
 
   doc.autoTable({
-    startY: okulAdi ? 24 : 20,
+    startY: y + 2,
     head: [sutunlar.map(c => c.label)],
     body: ogrenciler.map((v, i) => sutunlar.map(c => c.fn(v, i))),
     styles: { fontSize: 8, cellPadding: 1.5 },
     headStyles: { fillColor: [27, 58, 92], textColor: 255 },
     alternateRowStyles: { fillColor: [247, 247, 247] }, // zebra desen
+    didDrawPage: (data) => {
+      // İmza/onay satırı — sadece son sayfada
+      if (data.pageNumber === doc.internal.getNumberOfPages() ||
+          data.cursor.y < doc.internal.pageSize.getHeight() - 30) {
+        const yFooter = data.cursor.y + 14;
+        const sayfaGenislik = doc.internal.pageSize.getWidth();
+        doc.setFontSize(8);
+        if (bs.ogretmenGoster) {
+          const brans = bs.ogretmenBransGoster && bs.ogretmenBrans ? ` (${bs.ogretmenBrans})` : '';
+          doc.text(`Öğretmen: ${bs.ogretmenAdSoyad || '...............................'}${brans}`, 14, yFooter);
+          doc.text('İmza: .......................', 14, yFooter + 6);
+        }
+        if (bs.mudurGoster) {
+          const unvan = bs.mudurUnvanGoster && bs.mudurUnvan ? bs.mudurUnvan : 'Okul Müdürü';
+          doc.text(`${unvan}: ${bs.mudurAdSoyad || '...............................'}`, sayfaGenislik - 90, yFooter);
+          doc.text('İmza: .......................', sayfaGenislik - 90, yFooter + 6);
+        }
+      }
+    },
   });
 
-  doc.save(`${_olSeciliSinif}_Ogrenci_Listesi.pdf`);
+  const dosyaAdi = `${_olSeciliSinif}_Ogrenci_Listesi.pdf`;
+
+  // Android'in çıplak WebView'i doc.save() (blob + <a download>) ile
+  // dosya indirmeyi desteklemiyor — bu yüzden ortak kaydetme yardımcısı
+  // (native SavePlugin / blob fallback) üzerinden kaydediliyor.
+  if (typeof uygulamaDosyaKaydet === 'function') {
+    const datauri = doc.output('datauristring');
+    const base64 = datauri.split('base64,')[1];
+    uygulamaDosyaKaydet(base64, dosyaAdi, 'application/pdf');
+  } else {
+    doc.save(dosyaAdi); // yardımcı yoksa eski yönteme dön
+  }
 }
