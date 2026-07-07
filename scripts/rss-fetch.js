@@ -241,7 +241,7 @@ async function bildirimGonder(db, yeniHaberler){
         // tetikleyip özel okul logosunu atlıyordu). Ayrıca 'baslik'/'icerik'
         // alanları hiç gönderilmiyordu — OkulFirebaseMessagingService.java
         // bunları okuyor, eksik olunca bildirim boş/varsayılan çıkıyordu.
-        data: { kategori: 'genel', baslik, icerik: govde }
+        data: { kategori: 'haberler', baslik, icerik: govde }
       });
       res.responses.forEach((r, i) => {
         if(!r.success){
