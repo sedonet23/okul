@@ -1242,6 +1242,13 @@
       </div>
 
       <div class="card" style="margin-bottom:18px;">
+        <h3>Uygulama Güncellemesi</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Android uygulaması Play Store üzerinden değil doğrudan APK olarak dağıtıldığı için otomatik güncellenmez. Yeni bir sürüm çıkıp çıkmadığını buradan kontrol edebilirsiniz.</p>
+        <button class="btn btn-primary" onclick="guncellemeKontrolEt(true)">🔄 Güncellemeleri Kontrol Et</button>
+        <p id="oyKuruluSurumMetni" style="color:var(--ink-muted);font-size:12px;margin-top:8px;"></p>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
         <h3>Push Bildirimleri</h3>
         <p style="color:var(--ink-muted);font-size:13px;">Bu cihazda tarayıcı bildirimi almak için açın. Bildirimlerin gerçek zamanlı tetiklenmesi, GitHub Actions üzerinde her 15 dakikada bir çalışan kontrol betiğine bağlıdır.</p>
         <button class="btn btn-primary" id="bildirimAcBtn">Bildirimleri Aç</button>
