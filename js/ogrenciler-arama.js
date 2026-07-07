@@ -542,39 +542,29 @@ function globalAramaYazdir() {
   const q   = inp ? inp.value.trim() : '';
   const tarih = new Date().toLocaleDateString('tr-TR');
 
-  const pencere = window.open('', '_blank');
-  if (!pencere) { toast('Yazdırma penceresi açılamadı. Pop-up engelleyiciyi kontrol edin.'); return; }
-
-  pencere.document.write(`
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Arama Sonuçları</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 24px; color: #222; }
-        h1 { font-size: 18px; margin-bottom: 2px; }
-        .meta { font-size: 12px; color: #666; margin-bottom: 18px; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; break-inside: avoid; }
-        .card h3 { font-size: 14px; margin: 0 0 8px 0; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-        .detay-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
-        .detay-row:last-child { border-bottom: none; }
-        .detay-row img, .detay-row > div[style*="border-radius"] { display: none; }
-        .detay-row-muted { color: #777; }
-        .badge { font-size: 10px; border: 1px solid #ccc; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
-        a { color: #222; text-decoration: none; }
-        span[style*="font-size:18px"] { display: none; }
-      </style>
-    </head>
-    <body>
+  const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
+    <title>Arama Sonuçları</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 24px; color: #222; }
+      h1 { font-size: 18px; margin-bottom: 2px; }
+      .meta { font-size: 12px; color: #666; margin-bottom: 18px; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; break-inside: avoid; }
+      .card h3 { font-size: 14px; margin: 0 0 8px 0; border-bottom: 1px solid #eee; padding-bottom: 6px; }
+      .detay-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f2f2f2; }
+      .detay-row:last-child { border-bottom: none; }
+      .detay-row img, .detay-row > div[style*="border-radius"] { display: none; }
+      .detay-row-muted { color: #777; }
+      .badge { font-size: 10px; border: 1px solid #ccc; border-radius: 6px; padding: 1px 6px; margin-left: 4px; }
+      a { color: #222; text-decoration: none; }
+      span[style*="font-size:18px"] { display: none; }
+    </style>
+    </head><body>
       <h1>🔍 Arama Sonuçları</h1>
       <div class="meta">${q ? `Arama: "${escapeHtml(q)}" · ` : 'Tüm kayıtlar · '}${tarih}</div>
       ${out.innerHTML}
-    </body>
-    </html>
-  `);
-  pencere.document.close();
-  pencere.focus();
-  setTimeout(() => pencere.print(), 300);
+    </body></html>`;
+
+  uygulamaHtmlYazdir(html, 'Arama_Sonuclari', 'dikey');
 }
 
 /* ---- Filtre chip CSS yardımcısı (JS'ten ekleniyor) ---- */
