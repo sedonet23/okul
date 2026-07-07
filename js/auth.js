@@ -219,6 +219,16 @@ function authDinleyiciKur(){
 
       sidebarHesapGuncelle(user);
 
+      // Hesaba bağlı tema rengi tercihini geri yükle (tarayıcı verileri
+      // silinmiş olsa bile) — kaydet=false: bu sadece Firestore'dan okunan
+      // değeri UYGULAMAK içindir, tekrar Firestore'a yazmaz.
+      if(typeof renkUygula === 'function'){
+        try{
+          const tercihSnap = await db.collection('oy_kullaniciTercihleri').doc(user.uid).get();
+          if(tercihSnap.exists && tercihSnap.data().renkPaketi) renkUygula(tercihSnap.data().renkPaketi, false);
+        }catch(e){ console.warn('Renk tercihi okunamadı:', e); }
+      }
+
       if(!AKTIF_KULLANICI.aktif){
         onayBekleniyorGoster();
         return;

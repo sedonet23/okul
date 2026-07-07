@@ -254,6 +254,15 @@ function dersSaatleriKaydet(){
   // repository tam üzerine yazdığı için burada koruyoruz, düzenlenemez.
   const tatilModuNotu = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModuNotu) || '';
   const okulAcilisTarihi = (document.getElementById('dsr_okulAcilisTarihi')?document.getElementById('dsr_okulAcilisTarihi').value||'':'');
+
+  // ÖNEMLİ: Firestore çevrimdışıyken de "kaydedildi" der (yazma önce cihazdaki
+  // önbelleğe uygulanır, bağlantı gelince sunucuya senkronize olur). Bağlantı
+  // gelmeden ÖNCE tarayıcı/uygulama verileri temizlenirse bu senkronize
+  // OLMAMIŞ kayıt kaybolur — kullanıcıyı bu konuda uyarıyoruz.
+  if(navigator.onLine === false){
+    toast('İnternet bağlantınız yok — ayar cihazda bekleyecek, bağlantı gelince otomatik senkronize olacak. Bağlantı gelmeden tarayıcı/uygulama verilerini TEMİZLEMEYİN, aksi halde bu değişiklik kaybolabilir.');
+  }
+
   DersSaatleriService.ayarlariKaydet({ donemler, ogleArasi, ogleArasiVarMi, tatilModu, tatilModuNotu, okulAcilisTarihi })
     .then(()=>toast('Ders saatleri kaydedildi.'))
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });

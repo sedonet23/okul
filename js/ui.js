@@ -27,20 +27,29 @@ function temaDegistir(){
   temaUygula(guncelTema);
 }
 
-/* ---------- YENİ: Tema paketi (vurgu rengi) seçimi ---------- */
+/* ---------- YENİ: Tema paketi (vurgu rengi) seçimi ----------
+   Bu tercih localStorage'da anında-yükleme önbelleği olarak tutulur, ama
+   asıl kalıcı kayıt hesaba bağlı Firestore belgesindedir (oy_kullaniciTercihleri)
+   — böylece tarayıcı verileri silinse bile bir sonraki girişte geri gelir.
+   kaydet=false, Firestore'dan OKUNAN bir değeri yeniden uygularken kullanılır
+   (auth.js), aksi halde gereksiz bir "aynı değeri geri yaz" isteği oluşurdu. */
 const RENK_PAKETLERI = ['teal','mavi','yesil','mor','turuncu','kirmizi'];
-function renkUygula(paket){
-  if(!RENK_PAKETLERI.includes(paket)) paket = 'yesil';
+function renkUygula(paket, kaydet){
+  if(kaydet === undefined) kaydet = true;
+  if(!RENK_PAKETLERI.includes(paket)) paket = 'teal';
   document.documentElement.setAttribute('data-accent', paket);
   localStorage.setItem('oyRenkPaketi', paket);
   document.querySelectorAll('.renk-paketi-secenek').forEach(el=>{
     el.classList.toggle('aktif', el.dataset.paket === paket);
   });
+  if(kaydet && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.id && typeof db !== 'undefined'){
+    db.collection('oy_kullaniciTercihleri').doc(AKTIF_KULLANICI.id).set({ renkPaketi: paket }, { merge: true })
+      .catch(e => console.warn('Renk tercihi Firestore\'a kaydedilemedi (cihazda geçerli kalmaya devam eder):', e));
+  }
 }
 function renkPaketiBaslat(){
-  // Faz 0 — UI/UX dönüşümü: varsayılan marka rengi artık 'yesil' (okul logosu rengi).
-  const kayitli = localStorage.getItem('oyRenkPaketi') || 'yesil';
-  renkUygula(kayitli);
+  const kayitli = localStorage.getItem('oyRenkPaketi') || 'teal';
+  renkUygula(kayitli, false);
 }
 
 /* ---------- YENİ: Görünüm paketi ("Klasik" / "Modern Açık") seçimi ----------
