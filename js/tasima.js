@@ -437,7 +437,7 @@ function servisListeOzelSutunEkle() {
   div.innerHTML = `
     <input class="sv-ozel-sutun-input" type="text" placeholder="Sütun adı (örn: İniş Durağı)"
       style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-    <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="this.parentElement.remove()">✕</button>
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>
   `;
   kap.appendChild(div);
 }

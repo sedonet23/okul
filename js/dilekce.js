@@ -658,8 +658,8 @@
 
       <div style="margin-bottom:16px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11.5px;color:#7a5c00;line-height:1.5;">
         💡 Sağdaki A4 sayfasının tamamı (okul adı, metin, tarih, imza alanı, alt bilgiler) üzerine doğrudan tıklayıp serbestçe düzenlenebilir.
-        <button id="dlk_govdeSifirla" style="margin-top:6px;width:100%;padding:6px;border:1px solid #d9b840;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">↺ Bu Dilekçeyi Şablona Sıfırla</button>
-        ${kayitliVarMi ? `<button id="dlk_kayitliSablonSil" style="margin-top:6px;width:100%;padding:6px;border:1px solid #c0392b;color:#c0392b;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">🗑️ Kayıtlı Varsayılan Şablonu Sil (fabrika ayarına dön)</button>` : ''}
+        <button id="dlk_govdeSifirla" class="btn btn-ghost btn-sm btn-block" style="margin-top:6px;">↺ Bu Dilekçeyi Şablona Sıfırla</button>
+        ${kayitliVarMi ? `<button id="dlk_kayitliSablonSil" class="btn btn-danger btn-sm btn-block" style="margin-top:6px;">🗑️ Kayıtlı Varsayılan Şablonu Sil (fabrika ayarına dön)</button>` : ''}
       </div>
 
       <div id="dlk_bilgiKutusu" style="background:#f0f7f0;border-radius:8px;padding:10px;font-size:12px;color:#444;line-height:1.6;"></div>

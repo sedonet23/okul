@@ -385,7 +385,7 @@ function duyuruArsivModalAc(){
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
           <button class="btn btn-ghost btn-sm" onclick="duyuruArsivdenCikarTikla('${d.id}')">↩️ Geri Al</button>
-          <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="duyuruKaliciSilTikla('${d.id}', '${escapeHtml(d.baslik)}')">🗑</button>
+          <button class="btn btn-danger btn-sm" onclick="duyuruKaliciSilTikla('${d.id}', '${escapeHtml(d.baslik)}')">🗑</button>
         </div>
       </div>`).join('');
   modalAc('📦 Arşivlenen Duyurular', body, null, null);
