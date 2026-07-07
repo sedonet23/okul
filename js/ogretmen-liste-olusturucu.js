@@ -37,7 +37,7 @@ let _olPdfFontBase64 = null;
 async function olPdfFontBase64Getir() {
   if (_olPdfFontBase64 !== null) return _olPdfFontBase64;
   try {
-    const resp = await fetch('https://fonts.gstatic.com/s/roboto/v19/KFOmCnqEu92Fr1Mu4mxPKTU1Kg.ttf');
+    const resp = await fetch('https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.12/fonts/Roboto/Roboto-Regular.ttf');
     const buf = await resp.arrayBuffer();
     _olPdfFontBase64 = olArrayBufferToBase64(buf);
   } catch (e) {
@@ -142,11 +142,24 @@ async function olSinifSecildi(sinifAdi) {
   const ozelSutunlar = sablon?.ozelSutunlar || [];
   const bs = sablon?.baslikBilgisi || {};
 
-  const checkboxler = OL_HAZIR_SUTUNLAR.map(col => `
-    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;padding:3px 0;">
-      <input type="checkbox" class="ol-sutun-check" value="${col.key}" ${seciliKeyler.includes(col.key) ? 'checked' : ''} style="cursor:pointer;width:15px;height:15px;">
-      <span>${escapeHtml(col.label)}</span>
-    </label>`).join('');
+  // Kayıtlı bir sıralama varsa onu kullan; yoksa varsayılan tanım sırası.
+  // Şablonda olmayan (yeni eklenmiş) sütunlar listenin sonuna eklenir.
+  let sutunSirasi = (sablon?.sutunSirasi || []).filter(k => OL_HAZIR_SUTUNLAR.some(c => c.key === k));
+  OL_HAZIR_SUTUNLAR.forEach(c => { if (!sutunSirasi.includes(c.key)) sutunSirasi.push(c.key); });
+
+  const checkboxler = sutunSirasi.map(key => {
+    const col = OL_HAZIR_SUTUNLAR.find(c => c.key === key);
+    if (!col) return '';
+    return `
+    <div class="ol-sutun-satir" data-key="${col.key}" style="display:flex;align-items:center;gap:4px;padding:5px 4px;border-bottom:1px solid var(--border);">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;">
+        <input type="checkbox" class="ol-sutun-check" value="${col.key}" ${seciliKeyler.includes(col.key) ? 'checked' : ''} style="cursor:pointer;width:15px;height:15px;flex-shrink:0;">
+        <span>${escapeHtml(col.label)}</span>
+      </label>
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 9px;font-size:13px;" onclick="olSutunTasi(this,-1)" title="Yukarı taşı">▲</button>
+      <button type="button" class="btn btn-ghost btn-sm" style="padding:2px 9px;font-size:13px;" onclick="olSutunTasi(this,1)" title="Aşağı taşı">▼</button>
+    </div>`;
+  }).join('');
 
   _olOzelSutunSayaci = 0;
   const ozelSutunHtml = ozelSutunlar.map(ad => olOzelSutunSatiri(ad)).join('');
@@ -191,8 +204,9 @@ async function olSinifSecildi(sinifAdi) {
         </div>
       </div>
 
-      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Sütunları Seç</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:2px 16px;padding:10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Sütunları Seç ve Sırala</div>
+      <div style="font-size:11.5px;color:var(--ink-muted);margin-bottom:6px;">▲ / ▼ ile sütunların sırasını değiştirebilirsiniz.</div>
+      <div id="olSutunListesi" style="display:flex;flex-direction:column;padding:4px 10px;background:var(--nm-bg,#f0f0f3);border-radius:8px;">
         ${checkboxler}
       </div>
 
@@ -244,11 +258,27 @@ function olOzelSutunEkle() {
   kap.insertAdjacentHTML('beforeend', olOzelSutunSatiri(''));
 }
 
-/* ---------- seçili sütunları topla ---------- */
+/* ---------- sütun sırasını değiştir (yukarı/aşağı) ---------- */
+function olSutunTasi(btn, yon) {
+  const satir = btn.closest('.ol-sutun-satir');
+  if (!satir) return;
+  if (yon < 0) {
+    const onceki = satir.previousElementSibling;
+    if (onceki) satir.parentElement.insertBefore(satir, onceki);
+  } else {
+    const sonraki = satir.nextElementSibling;
+    if (sonraki) satir.parentElement.insertBefore(sonraki, satir);
+  }
+  olOnizlemeGuncelle();
+}
+
+/* ---------- seçili sütunları topla (ekrandaki güncel sıraya göre) ---------- */
 function olTumSutunlariGetir() {
-  const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')]
-    .filter(el => el.checked).map(el => el.value);
-  const seciliSutunlar = OL_HAZIR_SUTUNLAR.filter(c => seciliKeyler.includes(c.key));
+  const seciliSutunlar = [...document.querySelectorAll('.ol-sutun-satir')]
+    .map(satir => satir.querySelector('.ol-sutun-check'))
+    .filter(el => el && el.checked)
+    .map(el => OL_HAZIR_SUTUNLAR.find(c => c.key === el.value))
+    .filter(Boolean);
 
   const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-input')]
     .map(el => el.value.trim()).filter(Boolean)
@@ -309,6 +339,7 @@ function olOnizlemeGuncelle() {
 /* ---------- şablon kaydet ---------- */
 async function olSablonKaydet() {
   if (!_olSeciliSinif) { toast('Önce bir sınıf seçin.'); return; }
+  const sutunSirasi = [...document.querySelectorAll('.ol-sutun-satir')].map(satir => satir.dataset.key);
   const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')].filter(el => el.checked).map(el => el.value);
   const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-input')].map(el => el.value.trim()).filter(Boolean);
   const ben = bagliOgretmenimGetir();
@@ -318,6 +349,7 @@ async function olSablonKaydet() {
       ogretmenId: ben.id,
       sinif: _olSeciliSinif,
       secilenKeyler: seciliKeyler,
+      sutunSirasi: sutunSirasi,
       ozelSutunlar: ozelSutunlar,
       baslikBilgisi: olBaslikBilgisiGetir(),
       guncellenme: new Date().toISOString(),
@@ -522,9 +554,11 @@ async function olPdfAktar() {
   }
   doc.setFont(fontAdi, 'normal');
 
-  const metinX = logo ? 26 : 14;
+  const logoBoyutu = 20; // mm — önceki 14mm çok küçüktü
+  const logoX = 14, logoY = 8;
+  const metinX = logo ? logoX + logoBoyutu + 5 : 14; // logonun sağından yeterli boşluk bırak
   if (logo) {
-    try { doc.addImage(logo, 'PNG', 14, 10, 14, 14); } catch (e) { console.warn('PDF logo eklenemedi:', e); }
+    try { doc.addImage(logo, 'PNG', logoX, logoY, logoBoyutu, logoBoyutu); } catch (e) { console.warn('PDF logo eklenemedi:', e); }
   }
 
   let y = 14;
@@ -533,7 +567,7 @@ async function olPdfAktar() {
   doc.text(`${_olSeciliSinif} Sınıfı Öğrenci Listesi`, metinX, y); y += 6;
   if (bs.altBaslikGoster && bs.altBaslik) { doc.setFontSize(9); doc.text(bs.altBaslik, metinX, y); y += 5; }
   if (bs.egitimYiliGoster && bs.egitimYili) { doc.setFontSize(8); doc.setTextColor(100); doc.text(`${bs.egitimYili} Eğitim-Öğretim Yılı`, metinX, y); doc.setTextColor(0); y += 4; }
-  y = Math.max(y, logo ? 26 : y);
+  y = Math.max(y, logo ? logoY + logoBoyutu + 4 : y);
 
   doc.autoTable({
     startY: y + 2,
