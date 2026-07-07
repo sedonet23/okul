@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v127';
+const CACHE_ADI = 'oy-cache-v128';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -244,14 +244,17 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const kategori = event.notification.data && event.notification.data.kategori;
+  const hedefUrl = kategori ? `./index.html?bildirimKategori=${encodeURIComponent(kategori)}` : './index.html';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       for (const client of list) {
         if (client.url.includes('index.html') || client.url.endsWith('/')) {
+          if (kategori && 'postMessage' in client) client.postMessage({ type: 'BILDIRIM_ACILDI', kategori });
           return client.focus();
         }
       }
-      return clients.openWindow('./index.html');
+      return clients.openWindow(hedefUrl);
     })
   );
 });

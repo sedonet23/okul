@@ -1381,6 +1381,56 @@ function topbarBildirimRozetiGuncelle(){
   bellBadgeEl.style.display = bekleyenSayi>0 ? 'flex' : 'none';
 }
 
+/* ---------- Bildirim zili — küçük açılır liste (artık sekmeye gitmiyor) ---------- */
+function bildirimZiliAcKapat(e){
+  if(e) e.stopPropagation();
+  const panel = document.getElementById('bildirimZiliPaneli');
+  if(!panel) return;
+  const acikMi = panel.style.display !== 'none';
+  if(acikMi){ panel.style.display = 'none'; return; }
+  bildirimZiliDoldur();
+  panel.style.display = 'block';
+  setTimeout(()=>document.addEventListener('click', _bildirimZiliDisTikla, { once:true }), 0);
+}
+function _bildirimZiliDisTikla(e){
+  const panel = document.getElementById('bildirimZiliPaneli');
+  if(panel && !panel.contains(e.target)) panel.style.display = 'none';
+}
+function bildirimZiliKapat(){
+  const panel = document.getElementById('bildirimZiliPaneli');
+  if(panel) panel.style.display = 'none';
+}
+function bildirimZiliDoldur(){
+  const panel = document.getElementById('bildirimZiliPaneli');
+  if(!panel) return;
+
+  const bekleyenHatirlatici = (typeof hatirlaticilar!=='undefined' ? hatirlaticilar : [])
+    .filter(h=>!h.tamamlandi)
+    .sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''))
+    .slice(0,8);
+  const okunmamisDuyuru = (typeof duyurular!=='undefined' && typeof DuyurularService!=='undefined')
+    ? duyurular.filter(d=>!DuyurularService.benOkudumMu(d)).slice(0,8) : [];
+
+  const satirStil = 'padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12.5px;';
+  const satirlar = [];
+
+  bekleyenHatirlatici.forEach(h=>{
+    satirlar.push(`<div style="${satirStil}" onclick="bildirimZiliKapat();sekmeAc('takvim');">
+      <div style="font-weight:600;">⏰ ${escapeHtml(h.baslik||'Hatırlatıcı')}</div>
+      <div style="color:var(--ink-muted);font-size:11.5px;margin-top:2px;">${formatTarih(h.tarih)}${h.saat?' · '+h.saat:''}</div>
+    </div>`);
+  });
+  okunmamisDuyuru.forEach(d=>{
+    satirlar.push(`<div style="${satirStil}" onclick="bildirimZiliKapat();sekmeAc('duyurular');">
+      <div style="font-weight:600;">📢 ${escapeHtml(d.baslik||'Duyuru')}</div>
+    </div>`);
+  });
+
+  panel.innerHTML = satirlar.length
+    ? satirlar.join('')
+    : `<div style="padding:20px 14px;text-align:center;color:var(--ink-muted);font-size:12.5px;">Bekleyen bildirim yok 🎉</div>`;
+}
+
 /* Hızlı İşlemler kartı artık kullanıcı seçimine göre üretiliyor (bkz.
    js/dashboard-ozellestirme.js DASHBOARD_ALT_KATALOG.hizliIslemler). */
 function renderHizliIslemler(){
@@ -2063,6 +2113,41 @@ document.addEventListener('DOMContentLoaded', ()=>{
       sekmeAc(page); // page = 'notlar' — index.html'deki data-tab ile eşleş
     }
   });
+
+  // Push bildirimine dokununca doğru sekmeye git (bkz. OkulFirebaseMessagingService.java
+  // + MainActivity.java — 'kategori' verisini 'bildirimAcildi' olayı olarak iletir).
+  // NOT: 'genel' kategorisi kasıtlı olarak eşlenmiyor — hangi sekmeye gideceği
+  // belirsiz genel/bilinmeyen bir bildirim için hiçbir yere yönlendirme yapmıyoruz,
+  // sadece uygulama ana sayfada açılıyor.
+  const BILDIRIM_KATEGORI_SEKME = {
+    takvim:   'takvim',      // hatırlatıcı / görev / periyodik iş
+    mesaj:    'mesajlasma',
+    haberler: 'haberler',
+    nobet:    'nobet',
+    belge:    'evrak',
+    sinav:    'sinavIslemleri',
+  };
+  window.addEventListener('bildirimAcildi', (e) => {
+    const kategori = e.detail?.kategori;
+    const hedefSekme = BILDIRIM_KATEGORI_SEKME[kategori];
+    if (hedefSekme && typeof sekmeAc === 'function') sekmeAc(hedefSekme);
+  });
+
+  // Web push (tarayıcı) tarafı — service-worker.js notificationclick sırasında
+  // ya postMessage gönderir (uygulama zaten açıksa) ya da ?bildirimKategori=
+  // parametresiyle yeni bir sekme açar (uygulama kapalıysa).
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      if (e.data?.type === 'BILDIRIM_ACILDI' && e.data.kategori) {
+        window.dispatchEvent(new CustomEvent('bildirimAcildi', { detail: { kategori: e.data.kategori } }));
+      }
+    });
+  }
+  const _bildirimKategoriParam = new URLSearchParams(location.search).get('bildirimKategori');
+  if (_bildirimKategoriParam) {
+    history.replaceState(null, '', location.pathname); // URL'i temizle
+    setTimeout(() => window.dispatchEvent(new CustomEvent('bildirimAcildi', { detail: { kategori: _bildirimKategoriParam } })), 800);
+  }
 
   try{
     if(firebaseyiBaslat()){
