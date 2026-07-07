@@ -166,5 +166,23 @@ public class MainActivity extends BridgeActivity {
                 ), 300
             );
         }
+
+        // DÜZELTME: Bu extra daha önce sadece onNewIntent() (uygulama zaten
+        // açıkken bildirime dokunma) içinde okunuyordu. Uygulama KAPALIYKEN
+        // bir bildirime dokunulursa onCreate() çağrılır (onNewIntent değil),
+        // ve bu durumda kategori hiç JS'e iletilmiyordu — bildirim uygulamayı
+        // açıyor ama ilgili sekmeye hiç gitmiyordu. Soğuk başlatmada JS'in
+        // (auth + sekme sistemi) hazır olması için widget'taki gibi bir
+        // gecikme kullanılıyor.
+        String kategori = intent.getStringExtra("kategori");
+        if (kategori != null) {
+            getBridge().getWebView().postDelayed(() ->
+                getBridge().getWebView().evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('bildirimAcildi', " +
+                    "{ detail: { kategori: '" + kategori + "' } }));",
+                    null
+                ), 800
+            );
+        }
     }
 }
