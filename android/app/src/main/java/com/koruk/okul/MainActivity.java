@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WidgetPlugin.class);
         registerPlugin(PushNotificationsPlugin.class);
         registerPlugin(PrintPlugin.class);
+        registerPlugin(StatusBarPlugin.class);
         registerPlugin(SavePlugin.class);
         registerPlugin(PullToRefreshPlugin.class);
         registerPlugin(UpdatePlugin.class);
