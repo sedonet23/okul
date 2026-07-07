@@ -16,6 +16,11 @@ function temaUygula(tema){
   if(b1) b1.textContent = emoji;
   if(b2) b2.textContent = emoji;
   localStorage.setItem('oyTema', tema);
+  // Android durum çubuğu + gezinme çubuğu rengini güncelle
+  if(typeof window.sistemBarTemaUygula === 'function'){
+    // CSS değişkenleri DOM'a yansıdıktan sonra çalışsın
+    setTimeout(window.sistemBarTemaUygula, 50);
+  }
 }
 function temaDegistir(){
   const guncelTema = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
