@@ -43,6 +43,7 @@ let _olPdfFontBase64 = null;
 let _olSatirlar = [];
 let _olAcikCizelgeId = null;   // null = henüz kaydedilmemiş yeni çizelge
 let _olKayitliCizelgeler = []; // seçili sınıf için kayıtlı çizelgelerin önbelleği
+let _olSutunGenislikleri = {}; // { [sutunKey]: genişlik(px) } — kullanıcı elle ayarladığında dolar
 
 /* ---------- PDF fontunu önbellekle ----------
    jsPDF'in yerleşik fontları (Helvetica vb.) WinAnsi kodlamasını
@@ -143,6 +144,7 @@ function ogretmenListeSekmesiAc() {
 async function olSinifSecildi(sinifAdi) {
   _olSeciliSinif = sinifAdi;
   _olAcikCizelgeId = null;
+  _olSutunGenislikleri = {};
   const alan = document.getElementById('olCalismaAlani');
   if (!sinifAdi) { alan.innerHTML = ''; return; }
 
@@ -391,19 +393,30 @@ function olOnizlemeGuncelle() {
   if (!sutunlar.length) { alan.innerHTML = '<div style="color:var(--ink-muted);">En az bir sütun seçin.</div>'; return; }
 
   const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
-  const th = sutunlar.map(c => `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;">${escapeHtml(c.label)}</th>`).join('')
+  const th = sutunlar.map(c => {
+    const genislik = _olSutunGenislikleri[c.key];
+    const genislikStil = genislik ? `width:${genislik}px;min-width:${genislik}px;max-width:${genislik}px;` : '';
+    const kontrol = c.key === 'siraNo' ? '' : `
+      <div style="display:flex;gap:3px;justify-content:center;margin-top:4px;">
+        <button type="button" onclick="olSutunGenislikDegistir('${c.key}',-20)" title="Daralt" style="width:22px;height:19px;font-size:12px;line-height:1;border:none;border-radius:4px;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;">−</button>
+        <button type="button" onclick="olSutunGenislikDegistir('${c.key}',20)" title="Genişlet" style="width:22px;height:19px;font-size:12px;line-height:1;border:none;border-radius:4px;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;">+</button>
+      </div>`;
+    return `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;${genislikStil}white-space:${genislik ? 'normal' : 'nowrap'};">${escapeHtml(c.label)}${kontrol}</th>`;
+  }).join('')
     + `<th style="width:34px;background:#1B3A5C;border:1px solid #1B3A5C;"></th>`;
 
   const tr = _olSatirlar.map((satir, i) => {
     const zebraArkaPlan = i % 2 === 1 ? 'var(--nm-bg)' : 'var(--bg-card)';
     const hucreler = sutunlar.map(c => {
+      const genislik = _olSutunGenislikleri[c.key];
+      const genislikStil = genislik ? `width:${genislik}px;min-width:${genislik}px;max-width:${genislik}px;` : '';
       if (c.key === 'siraNo') {
-        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid var(--border);text-align:center;color:var(--ink-muted);background:${zebraArkaPlan};">${i + 1}</td>`;
+        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid var(--border);text-align:center;color:var(--ink-muted);background:${zebraArkaPlan};${genislikStil}">${i + 1}</td>`;
       }
       const deger = c.fn(satir, i);
-      return `<td style="padding:2px;border:1px solid var(--border);text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};background:${zebraArkaPlan};">
+      return `<td style="padding:2px;border:1px solid var(--border);text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};background:${zebraArkaPlan};${genislikStil}">
         <input type="text" value="${escapeHtml(deger)}" data-row="${i}" data-key="${c.key}" oninput="olHucreDegisti(this)"
-          style="width:100%;min-width:60px;border:none;background:${zebraArkaPlan};padding:4px 6px;font-size:12.5px;text-align:inherit;color:var(--ink);">
+          style="width:100%;min-width:50px;border:none;background:${zebraArkaPlan};padding:4px 6px;font-size:12.5px;text-align:inherit;color:var(--ink);">
       </td>`;
     }).join('');
     return `<tr>${hucreler}
@@ -413,12 +426,15 @@ function olOnizlemeGuncelle() {
   }).join('');
 
   alan.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;">
+    <table style="width:100%;border-collapse:collapse;table-layout:auto;">
       <thead><tr>${th}</tr></thead>
       <tbody>${tr}</tbody>
     </table>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
-      <button class="btn btn-ghost btn-sm" onclick="olSatirEkle()">+ Satır Ekle</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="olSatirEkle()">+ Satır Ekle</button>
+        ${Object.keys(_olSutunGenislikleri).length ? `<button class="btn btn-ghost btn-sm" onclick="olSutunGenislikleriSifirla()">↺ Sütun Genişliklerini Sıfırla</button>` : ''}
+      </div>
       <div style="font-size:12px;color:var(--ink-muted);">Toplam satır: <strong>${_olSatirlar.length}</strong></div>
     </div>
   `;
@@ -441,6 +457,20 @@ function olSatirEkle() {
 function olSatirSil(i) {
   if (!confirm('Bu satırı silmek istiyor musunuz?')) return;
   _olSatirlar.splice(i, 1);
+  olOnizlemeGuncelle();
+}
+
+/* ---------- sütun genişliğini elle ayarla ---------- */
+function olSutunGenislikDegistir(key, delta) {
+  const varsayilan = 100;
+  const mevcut = _olSutunGenislikleri[key] || varsayilan;
+  const yeni = Math.max(50, Math.min(500, mevcut + delta));
+  _olSutunGenislikleri[key] = yeni;
+  olOnizlemeGuncelle();
+}
+
+function olSutunGenislikleriSifirla() {
+  _olSutunGenislikleri = {};
   olOnizlemeGuncelle();
 }
 
@@ -521,6 +551,7 @@ function olYeniCizelge() {
   if (!_olSeciliSinif) { toast('Önce bir sınıf seçin.'); return; }
   _olAcikCizelgeId = null;
   _olSatirlar = olSatirlariRosterdenOlustur();
+  _olSutunGenislikleri = {};
   olCalismaAlaniOlustur(null, '');
   toast('Yeni çizelge — güncel sınıf listesinden dolduruldu. Dilediğiniz gibi düzenleyip bir ad vererek kaydedebilirsiniz.');
 }
@@ -530,6 +561,7 @@ async function olCizelgeAc(id) {
   if (!c) { toast('Çizelge bulunamadı, liste yenileniyor…'); olCizelgeleriYenile(); return; }
   _olAcikCizelgeId = id;
   _olSatirlar = Array.isArray(c.satirlar) ? c.satirlar.map(s => ({ ...s })) : [];
+  _olSutunGenislikleri = c.sutunGenislikleri || {};
   await olCalismaAlaniOlustur({
     secilenKeyler: c.secilenKeyler,
     sutunSirasi: c.sutunSirasi,
@@ -583,6 +615,7 @@ async function olCizelgeyiKaydet() {
       sutunSirasi,
       ozelSutunlar,
       satirlar: _olSatirlar,
+      sutunGenislikleri: _olSutunGenislikleri,
       baslikBilgisi: olBaslikBilgisiGetir(),
       guncellenme: new Date().toISOString(),
     };
