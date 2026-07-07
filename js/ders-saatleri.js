@@ -11,11 +11,16 @@
    ==================================================================== */
 
 let dersSaatleriAyarlari = null; // Firestore'dan gelen { donemler:[...], ogleArasi:{...} } ya da null (henüz kaydedilmemiş)
+// YENİ: veri Firestore'dan gerçekten geldi mi? (null hem "henüz yüklenmedi" hem "kaydedilmemiş"
+// anlamına gelebildiği için, ilk yükleme anındaki yanlış "varsayılan ders programı" görünümünü
+// (asıl veri tatil modu iken bile) önlemek adına bu bayrak eklendi.)
+let dersSaatleriYuklendi = false;
 
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
    Artık doğrudan db.collection() çağrılmıyor — DersSaatleriRepository üzerinden dinleniyor. */
 function dersSaatleriBaglantisiKur(){
   DersSaatleriRepository.ayarlariDinle(v=>{
+    dersSaatleriYuklendi = true;
     dersSaatleriAyarlari = v;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);

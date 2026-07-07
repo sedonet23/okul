@@ -1129,6 +1129,11 @@ function renderDashboard(){
 }
 
 function tatilModuKartlariniUygula(){
+  // YENİ: Ders saatleri verisi Firestore'dan henüz gelmediyse (dersSaatleriYuklendi===false),
+  // kart görünürlüğüne KARAR VERME — aksi halde "tatil modu kapalı" sanıp asıl tatil
+  // modundayken kartları yanlışlıkla bir an için gösterebiliriz. Veri gelince bu fonksiyon
+  // zaten tekrar çağrılıyor (bkz. dersSaatleriBaglantisiKur).
+  if(typeof dersSaatleriYuklendi !== 'undefined' && !dersSaatleriYuklendi) return;
   const tatil = !!(dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
   document.querySelectorAll('.tatil-gizle').forEach(el=>{
     if(tatil){
@@ -1163,6 +1168,19 @@ function renderZilSayaci(bugunGun){
     zilEl.classList.remove('durum-ders','durum-teneffus','durum-ogle','durum-bitti','durum-baslamadi','durum-tatil');
     if(durumAdi) zilEl.classList.add('durum-'+durumAdi);
   }
+
+  // YENİ: Veri Firestore'dan henüz gelmediyse (sayfa yeni açıldı / yenilendi),
+  // "tatil modu kapalı + varsayılan ders programı" varsayıp yanlış bir zil durumu
+  // göstermek yerine kısa bir yükleniyor durumu gösteriyoruz. Gerçek veri gelir
+  // gelmez (genelde <1sn) dersSaatleriBaglantisiKur bu fonksiyonu zaten tekrar çağırıyor.
+  if(typeof dersSaatleriYuklendi !== 'undefined' && !dersSaatleriYuklendi){
+    zilDurumSinifAyarla(null);
+    zilEl.classList.add('zil-yukleniyor');
+    zilEl.innerHTML = `<div class="zil-durum zil-yukleniyor-metin">Yükleniyor…</div>`;
+    if(suankiEl) suankiEl.innerHTML = '';
+    return;
+  }
+  zilEl.classList.remove('zil-yukleniyor');
   // Kart görünürlüğü tatilModuKartlariniUygula() tarafından yönetilir
   const ayar = dersSaatleriAyarlari;
   if(ayar && ayar.tatilModu){
@@ -1280,6 +1298,18 @@ function renderDersNobetProgramim(){
     return;
   }
 
+  // YENİ: Dashboard'daki "Bugünkü Derslerim / Bu Haftaki Nöbetim" kartlarıyla
+  // tutarlı olsun diye, bu tam sayfa görünümü de tatil modunda aynı mesajı
+  // gösterir — geçen dönemden kalma kayıtlar yaz tatilinde yanıltıcı görünmesin.
+  if(typeof dersSaatleriYuklendi !== 'undefined' && !dersSaatleriYuklendi){
+    el.innerHTML = '<p class="empty-state">Yükleniyor…</p>';
+    return;
+  }
+  if(dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu){
+    el.innerHTML = '<div class="card"><p class="empty-state">🏖️ Tatil modu aktif — ders ve nöbet programı okul açılınca güncellenecek.</p></div>';
+    return;
+  }
+
   const bugunGun = GUNADI[new Date().getDay()];
   const bugunISO = todayISO();
 
@@ -1368,11 +1398,37 @@ function renderOgretmenOzelKartlar(){
   if(!ben){ kutu.style.display = 'none'; return; }
   kutu.style.display = '';
 
+  const dersEl = document.getElementById('ogretmenBugunDersleri');
+  const nobetEl = document.getElementById('ogretmenHaftaNobeti');
+  const nobetKarti = document.getElementById('ogretmenNobetKarti');
+
+  // YENİ: Zil sayacındaki gecikme düzeltmesiyle aynı mantık — ders saatleri
+  // verisi Firestore'dan henüz gelmediyse (dersSaatleriYuklendi===false),
+  // "tatil modu kapalı" varsayıp yanlış bir an için ders/nöbet listesi
+  // göstermek yerine nötr bir yükleniyor durumu gösteriyoruz.
+  if(typeof dersSaatleriYuklendi !== 'undefined' && !dersSaatleriYuklendi){
+    if(dersEl) dersEl.innerHTML = '<p class="empty-state">Yükleniyor…</p>';
+    if(nobetEl) nobetEl.innerHTML = '<p class="empty-state">Yükleniyor…</p>';
+    return;
+  }
+
+  // YENİ: Tatil modu aktifken, sitedeki diğer akademik kartlarla (Şu Anki
+  // Ders, Bugünün Ders Programı, Bu Haftanın Nöbetçileri) TUTARLI şekilde
+  // "bugünkü derslerim / bu haftaki nöbetim" de tatil mesajına dönüşür —
+  // aksi halde yaz tatilinde bile geçen dönemden kalma ders/nöbet kayıtları
+  // yanlışlıkla "bugün deriniz var" gibi görünebilirdi.
+  const tatilAktif = !!(dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
+  if(tatilAktif){
+    if(dersEl) dersEl.innerHTML = '<p class="empty-state">🏖️ Tatil modu aktif.</p>';
+    if(nobetEl) nobetEl.innerHTML = '<p class="empty-state">🏖️ Tatil modu aktif.</p>';
+    if(nobetKarti) nobetKarti.classList.remove('ogretmen-bugun-nobetci');
+    return;
+  }
+
   const bugunGun = GUNADI[new Date().getDay()];
   const bugunISO = todayISO();
 
   // ---- Bugünkü Derslerim ----
-  const dersEl = document.getElementById('ogretmenBugunDersleri');
   if(dersEl){
     if(!GUNLER.includes(bugunGun)){
       dersEl.innerHTML = '<p class="empty-state">Bugün hafta sonu — dersiniz yok.</p>';
@@ -1385,8 +1441,6 @@ function renderOgretmenOzelKartlar(){
   }
 
   // ---- Bu Haftaki Nöbetim ----
-  const nobetEl = document.getElementById('ogretmenHaftaNobeti');
-  const nobetKarti = document.getElementById('ogretmenNobetKarti');
   if(nobetEl && typeof nobetHaftaAraligi === 'function'){
     const gunler = nobetHaftaAraligi(bugunISO);
     let buguntNobetciMi = false;
