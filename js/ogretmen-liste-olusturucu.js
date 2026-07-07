@@ -578,7 +578,7 @@ async function olCizelgeyiKaydet() {
       ogretmenId: ben.id,
       sinif: _olSeciliSinif,
       ad,
-      secilenKeyler,
+      secilenKeyler: seciliKeyler,
       sutunSirasi,
       ozelSutunlar,
       satirlar: _olSatirlar,
