@@ -5,5 +5,10 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowBackground">@color/colorPrimary</item>
+        <!-- Uygulama status bar ve nav bar renklerini JS ile kontrol edebilsin -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <!-- Başlangıç rengi (JS tema uygulanana kadar görünür) -->
+        <item name="android:statusBarColor">@color/colorPrimary</item>
+        <item name="android:navigationBarColor">@color/colorPrimary</item>
     </style>
 </resources>
