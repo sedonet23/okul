@@ -207,18 +207,22 @@ input, select, textarea{ font-family: var(--font-body); }
   box-shadow: inset 3px 3px 8px rgba(7,94,94,0.40);
 }
 
-/* Vurgu — mavi-lacivert (turuncu yerine, temaya uygun ve WCAG kontrastlı) */
+/* Vurgu — seçili tema rengine (data-accent) göre otomatik uyarlanır; açık/koyu modda ayrı ton */
 .btn-amber{
-  background: linear-gradient(145deg, #2F5FDB, #1E3A8A);
+  background: linear-gradient(145deg, var(--brand), var(--brand-dark));
   color: #fff;
-  box-shadow: 4px 4px 10px rgba(30,58,138,0.35), -2px -2px 8px rgba(96,165,250,0.20);
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.20), -2px -2px 8px rgba(255,255,255,0.10);
 }
 .btn-amber:hover{
-  box-shadow: 6px 6px 16px rgba(30,58,138,0.45);
+  box-shadow: 6px 6px 16px rgba(0,0,0,0.28);
   transform: translateY(-1px);
 }
-.btn-amber:active{ box-shadow: inset 3px 3px 8px rgba(30,58,138,0.40); }
-[data-theme="dark"] .btn-amber{ color:#fff; }
+.btn-amber:active{ box-shadow: inset 3px 3px 8px rgba(0,0,0,0.30); }
+/* Koyu modda daha parlak/canlı ton + koyu metin (kontrast için) — açık moddan kasıtlı olarak farklı */
+[data-theme="dark"] .btn-amber{
+  background: linear-gradient(145deg, var(--brand-mid), var(--brand));
+  color: #0B1220;
+}
 
 /* Ghost */
 .btn-ghost{
