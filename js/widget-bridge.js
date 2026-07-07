@@ -177,7 +177,15 @@ function dersZiliWidgetVerisiHesapla() {
 
   if (tatilModu) {
     const not = (typeof tatilModuNotuOlustur === 'function') ? tatilModuNotuOlustur(dersSaatleriAyarlari) : '';
-    return { tatilModu: true, tatilNotu: not || 'Okul tatilde' };
+    return {
+      tatilModu: true,
+      tatilNotu: not || 'Okul tatilde',
+      // Native taraf (DersZiliHesaplayici), uygulama kapalıyken de "okula kaç
+      // gün kaldı"yı GÜNCEL tarihe göre hesaplayabilsin diye ham tarihi de
+      // gönderiyoruz — sadece hazır metni (not) göndermek yeterli değil,
+      // çünkü metin donuk kalır, gün sayısı ise her gün azalmalı.
+      okulAcilisTarihi: (dersSaatleriAyarlari && dersSaatleriAyarlari.okulAcilisTarihi) || null
+    };
   }
   if (!ben) return { dersYok: true, durumMetniOzel: 'Uygulamayı açınız' };
 
