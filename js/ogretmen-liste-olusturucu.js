@@ -395,18 +395,19 @@ function olOnizlemeGuncelle() {
     + `<th style="width:34px;background:#1B3A5C;border:1px solid #1B3A5C;"></th>`;
 
   const tr = _olSatirlar.map((satir, i) => {
+    const zebraArkaPlan = i % 2 === 1 ? 'var(--nm-bg)' : 'var(--bg-card)';
     const hucreler = sutunlar.map(c => {
       if (c.key === 'siraNo') {
-        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid #e4e8ec;text-align:center;color:var(--ink-muted);">${i + 1}</td>`;
+        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid var(--border);text-align:center;color:var(--ink-muted);background:${zebraArkaPlan};">${i + 1}</td>`;
       }
       const deger = c.fn(satir, i);
-      return `<td style="padding:2px;border:1px solid #e4e8ec;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};">
+      return `<td style="padding:2px;border:1px solid var(--border);text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};background:${zebraArkaPlan};">
         <input type="text" value="${escapeHtml(deger)}" data-row="${i}" data-key="${c.key}" oninput="olHucreDegisti(this)"
-          style="width:100%;min-width:60px;border:none;background:transparent;padding:4px 6px;font-size:12.5px;text-align:inherit;color:inherit;">
+          style="width:100%;min-width:60px;border:none;background:${zebraArkaPlan};padding:4px 6px;font-size:12.5px;text-align:inherit;color:var(--ink);">
       </td>`;
     }).join('');
-    return `<tr style="${i % 2 === 1 ? 'background:#f2f5f8;' : ''}">${hucreler}
-      <td style="border:1px solid #e4e8ec;text-align:center;">
+    return `<tr>${hucreler}
+      <td style="border:1px solid var(--border);text-align:center;background:${zebraArkaPlan};">
         <button type="button" class="btn btn-ghost btn-sm" style="color:#c0392b;padding:2px 7px;" onclick="olSatirSil(${i})" title="Satırı sil">✕</button>
       </td></tr>`;
   }).join('');
