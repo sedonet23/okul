@@ -3363,3 +3363,60 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
   0%,100%{ opacity:.5; }
   50%{ opacity:.9; }
 }
+
+/* =========================================================================
+   YENİ — ÜST BAR + ALT NAVİGASYON: TEMA RENGİNDE, UÇTAN UCA (EDGE-TO-EDGE)
+   ---------------------------------------------------------------------
+   İstek: durum çubuğunun altındaki üst bar ve alt navigasyonun (güvenli
+   alan/gesture-bar şeridi dahil) beyaz/nötr değil, marka rengiyle (yeşil)
+   dolu olması — telefonun durum çubuğu zaten koyu yeşil olduğu için, üst
+   bar da aynı tonda olunca aradaki beyaz şerit kayboluyor ve tek parça
+   "tam ekran" bir bant hissi oluşuyor. Aynı mantık alt navigasyon +
+   home-indicator şeridi için de uygulandı.
+   ========================================================================= */
+
+/* ---- Üst bar: yeşil gradyan, beyaz metin/ikonlar ---- */
+.topbar{
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.20);
+}
+.topbar-title{ color:#fff; }
+.topbar-logo{ box-shadow: 0 0 0 2px rgba(255,255,255,0.55); }
+.topbar-avatar{ box-shadow: 0 0 0 2px rgba(255,255,255,0.65); }
+.topbar-bell-badge{ box-shadow: 0 0 0 2px var(--brand); }
+
+/* Üst bardaki hamburger + zil: yarı saydam beyaz cam (yeşil zemin üzerinde
+   okunaklı olsun diye) — sidebar açıkken görünen hamburger'a DOKUNMUYOR,
+   çünkü o `.sidebar-head .hamburger-btn` ile ayrı ve daha spesifik. */
+#topbarHamburger, .topbar-bell{
+  background: rgba(255,255,255,0.18) !important;
+  border-color: rgba(255,255,255,0.35) !important;
+  color:#fff;
+}
+#topbarHamburger span{ background:#fff !important; }
+
+/* ---- Alt navigasyon (mobil): yeşil gradyan, güvenli alan şeridi dahil ---- */
+@media (max-width:1100px){
+  .bottom-nav{
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+    backdrop-filter:none; -webkit-backdrop-filter:none;
+    border-top:none;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.25);
+  }
+  [data-theme="dark"] .bottom-nav{
+    background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 100%);
+    border-top:none;
+  }
+}
+.bn-item{ color: rgba(255,255,255,0.62); }
+[data-theme="dark"] .bn-item{ color: rgba(255,255,255,0.55); }
+.bn-item.active{ color:#fff; }
+[data-theme="dark"] .bn-item.active{ color:#fff; }
+
+/* FAB artık yeşil zeminin üzerinde oturuyor — bu yüzden ters renklendi:
+   beyaz zemin + yeşil ikon, böylece bardan net şekilde ayrışıyor. */
+.bn-plus-ico{
+  background:#fff;
+  box-shadow: 0 8px 20px -2px rgba(0,0,0,.35), 0 0 0 4px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+.bn-plus-ico [data-lucide], .bn-plus-ico svg{ color:var(--brand) !important; }
