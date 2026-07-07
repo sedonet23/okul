@@ -26,6 +26,36 @@ const OL_HAZIR_SUTUNLAR = [
 let _olSeciliSinif = '';
 let _olOzelSutunSayaci = 0;
 let _olLogoDataUri = null;
+let _olPdfFontBase64 = null;
+
+/* ---------- PDF fontunu önbellekle ----------
+   jsPDF'in yerleşik fontları (Helvetica vb.) WinAnsi kodlamasını
+   kullanıyor ve Türkçe'ye özgü ı, ğ, ş, İ, Ğ, Ş karakterlerini
+   içermiyor — bu yüzden "Sınıfı" gibi kelimeler "S1n1f1" şeklinde
+   bozuk çıkıyordu. Çözüm: Türkçe karakterleri destekleyen bir Unicode
+   TTF fontu (Roboto) çalışma anında indirip PDF'e gömüyoruz. */
+async function olPdfFontBase64Getir() {
+  if (_olPdfFontBase64 !== null) return _olPdfFontBase64;
+  try {
+    const resp = await fetch('https://fonts.gstatic.com/s/roboto/v19/KFOmCnqEu92Fr1Mu4mxPKTU1Kg.ttf');
+    const buf = await resp.arrayBuffer();
+    _olPdfFontBase64 = olArrayBufferToBase64(buf);
+  } catch (e) {
+    console.warn('PDF fontu yüklenemedi, Türkçe karakterler bozuk görünebilir:', e);
+    _olPdfFontBase64 = '';
+  }
+  return _olPdfFontBase64;
+}
+
+function olArrayBufferToBase64(buffer) {
+  let ikili = '';
+  const bytes = new Uint8Array(buffer);
+  const parcaBoyu = 0x8000; // büyük dosyalarda call-stack taşmasını önlemek için parça parça
+  for (let i = 0; i < bytes.length; i += parcaBoyu) {
+    ikili += String.fromCharCode.apply(null, bytes.subarray(i, i + parcaBoyu));
+  }
+  return btoa(ikili);
+}
 
 /* ---------- okul logosunu data URI olarak önbellekle ----------
    Yazdırma penceresi/PDF, sayfanın normal DOM bağlamının dışında
@@ -237,9 +267,9 @@ function olBaslikBilgisiGetir() {
     okulAdi: gv('olOkulAdi'), okulAdiGoster: gc('olOkulAdiGoster'),
     egitimYili: gv('olEgitimYili'), egitimYiliGoster: gc('olEgitimYiliGoster'),
     altBaslik: gv('olAltBaslik'), altBaslikGoster: gc('olAltBaslikGoster'),
-    ogretmenAdSoyad: gv('olOgretmenAdSoyad'), ogretmenGoster: gc('olOgretmenGoster'),
+    ogretmenAdSoyad: gv('olOgretmenAdSoyad'), ogretmenGoster: gc('olOgretmenAdSoyadGoster'),
     ogretmenBrans: gv('olOgretmenBrans'), ogretmenBransGoster: gc('olOgretmenBransGoster'),
-    mudurAdSoyad: gv('olMudurAdSoyad'), mudurGoster: gc('olMudurGoster'),
+    mudurAdSoyad: gv('olMudurAdSoyad'), mudurGoster: gc('olMudurAdSoyadGoster'),
     mudurUnvan: gv('olMudurUnvan'), mudurUnvanGoster: gc('olMudurUnvanGoster'),
   };
 }
@@ -315,7 +345,6 @@ async function olYazdir() {
 
   const metaParcalar = [];
   if (bs.egitimYiliGoster && bs.egitimYili) metaParcalar.push(escapeHtml(bs.egitimYili) + ' Eğitim-Öğretim Yılı');
-  metaParcalar.push(new Date().toLocaleDateString('tr-TR'));
 
   const imzaSol = bs.ogretmenGoster
     ? `Öğretmen: <strong>${escapeHtml(bs.ogretmenAdSoyad || '...............................')}</strong>` +
@@ -361,7 +390,7 @@ async function olYazdir() {
       ${bs.okulAdiGoster && bs.okulAdi ? `<div class="okul">${escapeHtml(bs.okulAdi)}</div>` : ''}
       <div class="baslik">${escapeHtml(_olSeciliSinif)} Sınıfı Öğrenci Listesi</div>
       ${bs.altBaslikGoster && bs.altBaslik ? `<div class="alt-baslik">${escapeHtml(bs.altBaslik)}</div>` : ''}
-      <div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>
+      ${metaParcalar.length ? `<div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>` : ''}
     </div>
     ${logo ? `<div class="logo-bosluk"></div>` : ''}
   </div>
@@ -380,51 +409,96 @@ async function olYazdir() {
   uygulamaHtmlYazdir(html, `${_olSeciliSinif}_Ogrenci_Listesi`, bs.yon === 'landscape' ? 'yatay' : 'dikey');
 }
 
-/* ---------- Excel'e aktar ---------- */
-function olExcelAktar() {
+/* ---------- Excel'e aktar ----------
+   Not: Bu projede daha önce kullanılan SheetJS'in (XLSX) ücretsiz sürümü
+   .xlsx yazarken hücre biçimlendirmesi (kalın yazı, dolgu rengi, kenarlık,
+   donmuş satır) uygulayamıyor — sadece ham veri yazılabiliyor. Bu yüzden
+   yazma işlemi için, uygulamada zaten yüklü olan ve tam biçimlendirme
+   desteği sunan ExcelJS kütüphanesi kullanılıyor (bkz. dokuman-okuyucu.js
+   içindeki aynı gerekçe). */
+async function olExcelAktar() {
   const sutunlar = olTumSutunlariGetir();
   const ogrenciler = olOgrencileriGetir();
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
-  if (typeof XLSX === 'undefined') { toast('Excel kütüphanesi yüklenemedi.'); return; }
+  if (typeof ExcelJS === 'undefined') { toast('Excel kütüphanesi yüklenemedi.'); return; }
 
   const bs = olBaslikBilgisiGetir();
   const sutunSayisi = sutunlar.length;
 
-  // Not: Bu projede kullanılan SheetJS'in ücretsiz sürümü .xlsx içine
-  // resim (logo) gömmeyi desteklemiyor — bu yüzden Excel çıktısında
-  // logo yerine metin tabanlı başlık satırları kullanılıyor.
-  const baslikSatirlari = [];
-  if (bs.okulAdiGoster && bs.okulAdi) baslikSatirlari.push([bs.okulAdi]);
-  baslikSatirlari.push([`${_olSeciliSinif} Sınıfı Öğrenci Listesi`]);
-  if (bs.altBaslikGoster && bs.altBaslik) baslikSatirlari.push([bs.altBaslik]);
-  const metaSatir = [];
-  if (bs.egitimYiliGoster && bs.egitimYili) metaSatir.push(`${bs.egitimYili} Eğitim-Öğretim Yılı`);
-  metaSatir.push(new Date().toLocaleDateString('tr-TR'));
-  baslikSatirlari.push([metaSatir.join('   ·   ')]);
-  baslikSatirlari.push([]); // boş satır
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet((_olSeciliSinif || 'Liste').slice(0, 31));
+  ws.columns = sutunlar.map(() => ({ width: 18 }));
 
-  const basliklar = sutunlar.map(c => c.label);
-  const satirlar = ogrenciler.map((v, i) => sutunlar.map(c => c.fn(v, i)));
-  const ws = XLSX.utils.aoa_to_sheet([...baslikSatirlari, basliklar, ...satirlar]);
+  let satirNo = 1;
+  const baslikSatiriEkle = (metin, { boyut = 11, renk = 'FF1B3A5C', yukseklik = 18 } = {}) => {
+    ws.mergeCells(satirNo, 1, satirNo, sutunSayisi);
+    const hucre = ws.getCell(satirNo, 1);
+    hucre.value = metin;
+    hucre.alignment = { horizontal: 'center', vertical: 'middle' };
+    hucre.font = { bold: true, size: boyut, color: { argb: renk } };
+    ws.getRow(satirNo).height = yukseklik;
+    satirNo++;
+  };
 
-  // Başlık satırlarını sütunlar boyunca birleştir (ortala görünsün diye)
-  ws['!merges'] = baslikSatirlari.map((_, i) => ({ s: { r: i, c: 0 }, e: { r: i, c: sutunSayisi - 1 } }));
-  ws['!cols'] = sutunlar.map(() => ({ wch: 18 }));
+  if (bs.okulAdiGoster && bs.okulAdi) baslikSatiriEkle(bs.okulAdi, { boyut: 13 });
+  baslikSatiriEkle(`${_olSeciliSinif} Sınıfı Öğrenci Listesi`, { boyut: 12 });
+  if (bs.altBaslikGoster && bs.altBaslik) baslikSatiriEkle(bs.altBaslik, { boyut: 10, renk: 'FF444444' });
+  if (bs.egitimYiliGoster && bs.egitimYili) baslikSatiriEkle(`${bs.egitimYili} Eğitim-Öğretim Yılı`, { boyut: 9, renk: 'FF666666', yukseklik: 16 });
+  satirNo++; // boş satır
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, (_olSeciliSinif || 'Liste').slice(0, 31));
+  const basliklarRowNo = satirNo;
+  const basliklarRow = ws.getRow(basliklarRowNo);
+  sutunlar.forEach((c, i) => {
+    const hucre = basliklarRow.getCell(i + 1);
+    hucre.value = c.label;
+    hucre.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
+    hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
+    hucre.alignment = { horizontal: 'left', vertical: 'middle' };
+  });
+  basliklarRow.height = 20;
+  satirNo++;
+
+  ogrenciler.forEach((v, i) => {
+    const row = ws.getRow(satirNo);
+    sutunlar.forEach((c, ci) => {
+      const hucre = row.getCell(ci + 1);
+      hucre.value = c.fn(v, i);
+      hucre.font = { size: 10 };
+      hucre.border = { bottom: { style: 'thin', color: { argb: 'FFE4E8EC' } } };
+      hucre.alignment = { vertical: 'middle' };
+      if (i % 2 === 1) hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F7F7' } };
+    });
+    satirNo++;
+  });
+
+  const toplamHucre = ws.getCell(satirNo, 1);
+  ws.mergeCells(satirNo, 1, satirNo, sutunSayisi);
+  toplamHucre.value = `Toplam öğrenci sayısı: ${ogrenciler.length}`;
+  toplamHucre.font = { italic: true, size: 9, color: { argb: 'FF444444' } };
+  toplamHucre.alignment = { horizontal: 'right' };
+
+  ws.views = [{ state: 'frozen', ySplit: basliklarRowNo }];
 
   const dosyaAdi = `${_olSeciliSinif}_Ogrenci_Listesi.xlsx`;
   const mimeTuru = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-  // Android'in çıplak WebView'i <a download> ile blob indirmeyi
-  // desteklemiyor — bu yüzden uygulama genelindeki ortak kaydetme
-  // yardımcısı (native SavePlugin / blob fallback) kullanılıyor.
-  if (typeof uygulamaDosyaKaydet === 'function') {
-    const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-    uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru);
-  } else {
-    XLSX.writeFile(wb, dosyaAdi); // yardımcı yoksa eski yönteme dön
+  try {
+    const buffer = await wb.xlsx.writeBuffer();
+    // Android'in çıplak WebView'i <a download> ile blob indirmeyi
+    // desteklemiyor — bu yüzden uygulama genelindeki ortak kaydetme
+    // yardımcısı (native SavePlugin / blob fallback) kullanılıyor.
+    if (typeof uygulamaDosyaKaydet === 'function') {
+      uygulamaDosyaKaydet(olArrayBufferToBase64(buffer), dosyaAdi, mimeTuru);
+    } else {
+      const blob = new Blob([buffer], { type: mimeTuru });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = dosyaAdi; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }
+  } catch (e) {
+    console.error('Excel oluşturulamadı:', e);
+    toast('Excel oluşturulamadı.');
   }
 }
 
@@ -437,8 +511,16 @@ async function olPdfAktar() {
 
   const bs = olBaslikBilgisiGetir();
   const logo = await olLogoDataUriGetir();
+  const fontB64 = await olPdfFontBase64Getir();
+  const fontAdi = fontB64 ? 'Roboto' : 'helvetica'; // Roboto Türkçe karakterleri (ı,ğ,ş,İ,Ğ,Ş) destekliyor
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: bs.yon === 'landscape' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+
+  if (fontB64) {
+    doc.addFileToVFS('Roboto-Regular.ttf', fontB64);
+    doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+  }
+  doc.setFont(fontAdi, 'normal');
 
   const metinX = logo ? 26 : 14;
   if (logo) {
@@ -457,15 +539,15 @@ async function olPdfAktar() {
     startY: y + 2,
     head: [sutunlar.map(c => c.label)],
     body: ogrenciler.map((v, i) => sutunlar.map(c => c.fn(v, i))),
-    styles: { fontSize: 8, cellPadding: 1.5 },
-    headStyles: { fillColor: [27, 58, 92], textColor: 255 },
+    styles: { fontSize: 8, cellPadding: 1.5, font: fontAdi, fontStyle: 'normal' },
+    headStyles: { fillColor: [27, 58, 92], textColor: 255, font: fontAdi, fontStyle: 'normal' },
     alternateRowStyles: { fillColor: [247, 247, 247] }, // zebra desen
     didDrawPage: (data) => {
       // İmza/onay satırı — sadece son sayfada
-      if (data.pageNumber === doc.internal.getNumberOfPages() ||
-          data.cursor.y < doc.internal.pageSize.getHeight() - 30) {
+      if (data.pageNumber === doc.internal.getNumberOfPages()) {
         const yFooter = data.cursor.y + 14;
         const sayfaGenislik = doc.internal.pageSize.getWidth();
+        doc.setFont(fontAdi, 'normal');
         doc.setFontSize(8);
         if (bs.ogretmenGoster) {
           const brans = bs.ogretmenBransGoster && bs.ogretmenBrans ? ` (${bs.ogretmenBrans})` : '';
