@@ -34,10 +34,9 @@
     if(kayitliTema === 'dark'){
       document.documentElement.setAttribute('data-theme','dark');
     }
-    // YENİ: kayıtlı renk paketi (tema paketi) — varsayılan 'yesil' (okul logosu rengi)
-    // Faz 0 — UI/UX dönüşümü: ana marka rengi teal'den yeşile çevrildi.
+    // YENİ: kayıtlı renk paketi (tema paketi) — varsayılan 'teal'
     var kayitliRenk = localStorage.getItem('oyRenkPaketi');
-    document.documentElement.setAttribute('data-accent', kayitliRenk || 'yesil');
+    document.documentElement.setAttribute('data-accent', kayitliRenk || 'teal');
     // YENİ: kayıtlı görünüm paketi ('klasik' veya 'modern') — varsayılan 'klasik'.
     // Sayfa boyanmadan ÖNCE uygulanır ki geçişte kısa bir "yanlış tema" titremesi olmasın.
     var kayitliGorunum = localStorage.getItem('oyGorunum');
@@ -1192,9 +1191,9 @@
             Bir vurgu rengi seçin. Açık/koyu mod seçimi ayrı çalışır (üst bardaki 🌙/☀️ düğmesi).
           </p>
           <div class="renk-paketi-grid">
-            <button class="renk-paketi-secenek" data-paket="yesil" onclick="renkUygula('yesil')" title="Yeşil (Varsayılan)"><span class="renk-paketi-nokta" style="background:#16A34A;"></span>Yeşil</button>
+            <button class="renk-paketi-secenek" data-paket="yesil" onclick="renkUygula('yesil')" title="Yeşil"><span class="renk-paketi-nokta" style="background:#16A34A;"></span>Yeşil</button>
             <button class="renk-paketi-secenek" data-paket="mavi" onclick="renkUygula('mavi')" title="Mavi"><span class="renk-paketi-nokta" style="background:#2563EB;"></span>Mavi</button>
-            <button class="renk-paketi-secenek" data-paket="teal" onclick="renkUygula('teal')" title="Teal"><span class="renk-paketi-nokta" style="background:#0A7A7A;"></span>Teal</button>
+            <button class="renk-paketi-secenek" data-paket="teal" onclick="renkUygula('teal')" title="Teal (Varsayılan)"><span class="renk-paketi-nokta" style="background:#0A7A7A;"></span>Teal</button>
             <button class="renk-paketi-secenek" data-paket="mor" onclick="renkUygula('mor')" title="Mor"><span class="renk-paketi-nokta" style="background:#7C3AED;"></span>Mor</button>
             <button class="renk-paketi-secenek" data-paket="turuncu" onclick="renkUygula('turuncu')" title="Turuncu"><span class="renk-paketi-nokta" style="background:#EA580C;"></span>Turuncu</button>
             <button class="renk-paketi-secenek" data-paket="kirmizi" onclick="renkUygula('kirmizi')" title="Kırmızı"><span class="renk-paketi-nokta" style="background:#DC2626;"></span>Kırmızı</button>
