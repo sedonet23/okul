@@ -55,7 +55,7 @@ async function widgetGuncelle() {
     const tatilModu = !!(typeof dersSaatleriAyarlari !== 'undefined' &&
                          dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
     const tatilNotu = tatilModu
-      ? (dersSaatleriAyarlari.tatilModuNotu || 'Okul tatilde')
+      ? (tatilModuNotuOlustur(dersSaatleriAyarlari) || 'Okul tatilde')
       : null;
 
     // --- Nöbet ---

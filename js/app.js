@@ -5,6 +5,20 @@
 const GUNLER = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma'];
 const GUNADI = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 const AYLAR = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+/* Tatil Modu ekranındaki geri sayım/durum metni. Kullanıcı artık ayrı bir
+   "not" alanı doldurmuyor — girilen açılış tarihinden otomatik üretiliyor,
+   böylece aynı bilgi iki farklı yerde (metin + tarih) elle tekrar
+   girilmiyor. Tarih yoksa, eski kurulumlardan kalma elle yazılmış bir not
+   varsa ona düşer. */
+function tatilModuNotuOlustur(ayar) {
+  if (!ayar) return '';
+  if (ayar.okulAcilisTarihi) {
+    const d = new Date(ayar.okulAcilisTarihi + 'T00:00:00');
+    if (!isNaN(d)) return `Okullar ${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()} tarihinde açılıyor`;
+  }
+  return ayar.tatilModuNotu || '';
+}
 const ONCELIKLER = ['Düşük','Orta','Yüksek'];
 const EVRAK_TURLERI = ['Gelen Evrak','Giden Evrak','İç Yazışma','Tutanak','Diğer'];
 const EVRAK_DURUMLARI = ['Beklemede','İşlemde','Tamamlandı','Arşivlendi'];
@@ -1193,6 +1207,7 @@ function renderZilSayaci(bugunGun){
     // Kart gizleme tatilModuKartlariniUygula() tarafından yapılır
     // Okul açılış sayacı
     const acilisTarihi = ayar.okulAcilisTarihi;
+    const tatilNotu = tatilModuNotuOlustur(ayar);
     let sayacHTML = '';
     if(acilisTarihi){
       const acilis = new Date(acilisTarihi + 'T00:00:00');
@@ -1200,16 +1215,16 @@ function renderZilSayaci(bugunGun){
       const fark = Math.ceil((acilis - bugun) / (1000*60*60*24));
       if(fark > 0){
         sayacHTML = `<div style="display:flex;align-items:center;justify-content:space-between;">
-          <div><div class="zil-etiket">🏖️ Tatil Modu — Okul kapalı</div><div class="zil-alt">${escapeHtml(ayar.tatilModuNotu||'Okulun açılmasına kalan süre')}</div></div>
+          <div><div class="zil-etiket">🏖️ Tatil Modu — Okul kapalı</div><div class="zil-alt">${escapeHtml(tatilNotu||'Okulun açılmasına kalan süre')}</div></div>
           <div class="zil-sayac">${fark} <span>gün</span></div>
         </div>`;
       } else if(fark === 0){
         sayacHTML = `<div class="zil-durum">🎉 Bugün okul açılıyor!</div>`;
       } else {
-        sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${ayar.tatilModuNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(ayar.tatilModuNotu)+'</div>':''}</div>`;
+        sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${tatilNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(tatilNotu)+'</div>':''}</div>`;
       }
     } else {
-      sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${ayar.tatilModuNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(ayar.tatilModuNotu)+'</div>':''}</div>`;
+      sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${tatilNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(tatilNotu)+'</div>':''}</div>`;
     }
     zilDurumSinifAyarla('tatil');
     zilEl.innerHTML = sayacHTML;

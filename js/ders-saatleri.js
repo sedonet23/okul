@@ -187,8 +187,7 @@ function renderDersSaatleriForm(){
         🏖️ Tatil Modu (yaz tatili vb. — ana sayfadaki ders sayacını devre dışı bırakır)
       </label>
       <div id="dsr_tatilModuNotWrap" style="margin-top:8px;display:${ayar.tatilModu?'block':'none'};">
-        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Not (opsiyonel, örn: "Okullar 8 Eylül'de açılıyor")</label>
-        <input type="text" id="dsr_tatilModuNot" value="${escapeHtml(ayar.tatilModuNotu||'')}" placeholder="Okullar ... tarihinde açılıyor" style="margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:4px;">Okulun Açılış Tarihi (opsiyonel — girilirse ana sayfada "X gün kaldı" şeklinde geri sayım gösterilir)</label>
         <input type="date" id="dsr_okulAcilisTarihi" value="${escapeHtml(ayar.okulAcilisTarihi||'')}">
       </div>
     </div>
@@ -249,7 +248,11 @@ function dersSaatleriKaydet(){
     bitis: document.getElementById('dsr_ogleBit').value || ''
   };
   const tatilModu = !!document.getElementById('dsr_tatilModu').checked;
-  const tatilModuNotu = (document.getElementById('dsr_tatilModuNot').value||'').trim();
+  // Not artık elle girilmiyor — Tatil Modu ekranında geri sayım metni
+  // seçilen tarihten otomatik üretiliyor (bkz. app.js: tatilModuNotuOlustur).
+  // Eski kayıtlı bir not varsa (tarih girilmemiş eski kurulumlar için)
+  // repository tam üzerine yazdığı için burada koruyoruz, düzenlenemez.
+  const tatilModuNotu = (dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModuNotu) || '';
   const okulAcilisTarihi = (document.getElementById('dsr_okulAcilisTarihi')?document.getElementById('dsr_okulAcilisTarihi').value||'':'');
   DersSaatleriService.ayarlariKaydet({ donemler, ogleArasi, ogleArasiVarMi, tatilModu, tatilModuNotu, okulAcilisTarihi })
     .then(()=>toast('Ders saatleri kaydedildi.'))
