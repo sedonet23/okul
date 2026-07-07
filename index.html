@@ -22,6 +22,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -161,6 +163,7 @@
         <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><i class="nt-ico ni-dokumanlar" data-lucide="folder"></i><span class="nt-label">Dökümanlar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="notlar"><i class="nt-ico ni-notlar" data-lucide="notebook-pen"></i><span class="nt-label">Notlar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><i class="nt-ico" data-lucide="scale"></i><span class="nt-label">Mevzuat</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogretmenListe" onclick="ogretmenListeSekmesiAc()"><i class="nt-ico" data-lucide="list-checks"></i><span class="nt-label">Öğrenci Listesi Oluştur</span></button>
       </div>
 
       <div class="nav-separator" id="ayiracUlasim">— Ulaşım —</div>
@@ -623,6 +626,13 @@
 
 
 
+
+    <section id="tab-ogretmenListe" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📋 Öğrenci Listesi Oluştur</div><div class="page-sub">Sınıfınızı seçin, istediğiniz sütunlarla kendi listenizi oluşturun</div></div>
+      </div>
+      <div id="olIcerik"></div>
+    </section>
 
     <section id="tab-tasima" class="tab-panel">
       <div class="page-header">
@@ -1516,6 +1526,7 @@
 <script src="js/raporlama.js"></script>
 <script src="js/sinavlar.js"></script>
 <script src="js/notlar.js"></script>
+<script src="js/ogretmen-liste-olusturucu.js"></script>
 <script src="js/istatistikler.js"></script>
 <script src="js/takvim.js"></script>
 <script src="js/app.js"></script>
