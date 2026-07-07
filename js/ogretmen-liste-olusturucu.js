@@ -44,6 +44,21 @@ let _olSatirlar = [];
 let _olAcikCizelgeId = null;   // null = henüz kaydedilmemiş yeni çizelge
 let _olKayitliCizelgeler = []; // seçili sınıf için kayıtlı çizelgelerin önbelleği
 let _olSutunGenislikleri = {}; // { [sutunKey]: genişlik(px) } — kullanıcı elle ayarladığında dolar
+let _olSutunHizalama = {};     // { [sutunKey]: 'left'|'center'|'right' } — kullanıcı elle ayarladığında dolar
+
+/* Sütunun hizalamasını döndürür: kullanıcı elle ayarladıysa onu, yoksa
+   varsayılanı (Sıra No / Öğrenci No ortalı, diğerleri sola dayalı). */
+function olHizaGetir(key) {
+  if (_olSutunHizalama[key]) return _olSutunHizalama[key];
+  return (key === 'siraNo' || key === 'ogrenciNo') ? 'center' : 'left';
+}
+
+function olSutunHizaDegistir(key) {
+  const siradaki = { left: 'center', center: 'right', right: 'left' };
+  const mevcut = olHizaGetir(key);
+  _olSutunHizalama[key] = siradaki[mevcut];
+  olOnizlemeGuncelle();
+}
 
 /* ---------- PDF fontunu önbellekle ----------
    jsPDF'in yerleşik fontları (Helvetica vb.) WinAnsi kodlamasını
@@ -145,6 +160,7 @@ async function olSinifSecildi(sinifAdi) {
   _olSeciliSinif = sinifAdi;
   _olAcikCizelgeId = null;
   _olSutunGenislikleri = {};
+  _olSutunHizalama = {};
   const alan = document.getElementById('olCalismaAlani');
   if (!sinifAdi) { alan.innerHTML = ''; return; }
 
@@ -392,16 +408,19 @@ function olOnizlemeGuncelle() {
 
   if (!sutunlar.length) { alan.innerHTML = '<div style="color:var(--ink-muted);">En az bir sütun seçin.</div>'; return; }
 
-  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
   const th = sutunlar.map(c => {
     const genislik = _olSutunGenislikleri[c.key];
     const genislikStil = genislik ? `width:${genislik}px;min-width:${genislik}px;max-width:${genislik}px;` : '';
+    const hiza = olHizaGetir(c.key);
+    const hizaIkon = { left: '⬅', center: '↔', right: '➡' }[hiza];
+    const hizaEtiket = { left: 'Sola dayalı', center: 'Ortalı', right: 'Sağa dayalı' }[hiza];
     const kontrol = c.key === 'siraNo' ? '' : `
       <div style="display:flex;gap:3px;justify-content:center;margin-top:4px;">
         <button type="button" onclick="olSutunGenislikDegistir('${c.key}',-20)" title="Daralt" style="width:22px;height:19px;font-size:12px;line-height:1;border:none;border-radius:4px;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;">−</button>
         <button type="button" onclick="olSutunGenislikDegistir('${c.key}',20)" title="Genişlet" style="width:22px;height:19px;font-size:12px;line-height:1;border:none;border-radius:4px;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;">+</button>
+        <button type="button" onclick="olSutunHizaDegistir('${c.key}')" title="Hizalama: ${hizaEtiket} (değiştirmek için dokun)" style="width:22px;height:19px;font-size:12px;line-height:1;border:none;border-radius:4px;background:rgba(255,255,255,.22);color:#fff;cursor:pointer;">${hizaIkon}</button>
       </div>`;
-    return `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;${genislikStil}white-space:${genislik ? 'normal' : 'nowrap'};">${escapeHtml(c.label)}${kontrol}</th>`;
+    return `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${hiza};font-size:12px;border:1px solid #1B3A5C;${genislikStil}white-space:${genislik ? 'normal' : 'nowrap'};">${escapeHtml(c.label)}${kontrol}</th>`;
   }).join('')
     + `<th style="width:34px;background:#1B3A5C;border:1px solid #1B3A5C;"></th>`;
 
@@ -410,11 +429,12 @@ function olOnizlemeGuncelle() {
     const hucreler = sutunlar.map(c => {
       const genislik = _olSutunGenislikleri[c.key];
       const genislikStil = genislik ? `width:${genislik}px;min-width:${genislik}px;max-width:${genislik}px;` : '';
+      const hiza = olHizaGetir(c.key);
       if (c.key === 'siraNo') {
-        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid var(--border);text-align:center;color:var(--ink-muted);background:${zebraArkaPlan};${genislikStil}">${i + 1}</td>`;
+        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid var(--border);text-align:${hiza};color:var(--ink-muted);background:${zebraArkaPlan};${genislikStil}">${i + 1}</td>`;
       }
       const deger = c.fn(satir, i);
-      return `<td style="padding:2px;border:1px solid var(--border);text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};background:${zebraArkaPlan};${genislikStil}">
+      return `<td style="padding:2px;border:1px solid var(--border);text-align:${hiza};background:${zebraArkaPlan};${genislikStil}">
         <input type="text" value="${escapeHtml(deger)}" data-row="${i}" data-key="${c.key}" oninput="olHucreDegisti(this)"
           style="width:100%;min-width:50px;border:none;background:${zebraArkaPlan};padding:4px 6px;font-size:12.5px;text-align:inherit;color:var(--ink);">
       </td>`;
@@ -433,7 +453,7 @@ function olOnizlemeGuncelle() {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-ghost btn-sm" onclick="olSatirEkle()">+ Satır Ekle</button>
-        ${Object.keys(_olSutunGenislikleri).length ? `<button class="btn btn-ghost btn-sm" onclick="olSutunGenislikleriSifirla()">↺ Sütun Genişliklerini Sıfırla</button>` : ''}
+        ${(Object.keys(_olSutunGenislikleri).length || Object.keys(_olSutunHizalama).length) ? `<button class="btn btn-ghost btn-sm" onclick="olSutunGenislikleriSifirla()">↺ Sütun Genişlik/Hizalamayı Sıfırla</button>` : ''}
       </div>
       <div style="font-size:12px;color:var(--ink-muted);">Toplam satır: <strong>${_olSatirlar.length}</strong></div>
     </div>
@@ -471,6 +491,7 @@ function olSutunGenislikDegistir(key, delta) {
 
 function olSutunGenislikleriSifirla() {
   _olSutunGenislikleri = {};
+  _olSutunHizalama = {};
   olOnizlemeGuncelle();
 }
 
@@ -552,6 +573,7 @@ function olYeniCizelge() {
   _olAcikCizelgeId = null;
   _olSatirlar = olSatirlariRosterdenOlustur();
   _olSutunGenislikleri = {};
+  _olSutunHizalama = {};
   olCalismaAlaniOlustur(null, '');
   toast('Yeni çizelge — güncel sınıf listesinden dolduruldu. Dilediğiniz gibi düzenleyip bir ad vererek kaydedebilirsiniz.');
 }
@@ -562,6 +584,7 @@ async function olCizelgeAc(id) {
   _olAcikCizelgeId = id;
   _olSatirlar = Array.isArray(c.satirlar) ? c.satirlar.map(s => ({ ...s })) : [];
   _olSutunGenislikleri = c.sutunGenislikleri || {};
+  _olSutunHizalama = c.sutunHizalama || {};
   await olCalismaAlaniOlustur({
     secilenKeyler: c.secilenKeyler,
     sutunSirasi: c.sutunSirasi,
@@ -616,6 +639,7 @@ async function olCizelgeyiKaydet() {
       ozelSutunlar,
       satirlar: _olSatirlar,
       sutunGenislikleri: _olSutunGenislikleri,
+      sutunHizalama: _olSutunHizalama,
       baslikBilgisi: olBaslikBilgisiGetir(),
       guncellenme: new Date().toISOString(),
     };
@@ -646,10 +670,9 @@ async function olYazdir() {
   const bs = olBaslikBilgisiGetir();
   const logo = await olLogoDataUriGetir();
 
-  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
-  const thHTML = sutunlar.map(c => `<th class="${ortalanacakAnahtarlar.includes(c.key) ? 'ortali' : ''}">${escapeHtml(c.label)}</th>`).join('');
+  const thHTML = sutunlar.map(c => `<th style="text-align:${olHizaGetir(c.key)};">${escapeHtml(c.label)}</th>`).join('');
   const trHTML = ogrenciler.map((v, i) =>
-    `<tr>${sutunlar.map(c => `<td class="${ortalanacakAnahtarlar.includes(c.key) ? 'ortali' : ''}">${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
+    `<tr>${sutunlar.map(c => `<td style="text-align:${olHizaGetir(c.key)};">${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
   ).join('');
 
   const metaParcalar = [];
@@ -759,13 +782,12 @@ async function olExcelAktar() {
   const basliklarRowNo = satirNo;
   const basliklarRow = ws.getRow(basliklarRowNo);
   const kenarlikIncGri = { style: 'thin', color: { argb: 'FFB8C2CC' } };
-  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
   sutunlar.forEach((c, i) => {
     const hucre = basliklarRow.getCell(i + 1);
     hucre.value = c.label;
     hucre.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
     hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
-    hucre.alignment = { horizontal: ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left', vertical: 'middle' };
+    hucre.alignment = { horizontal: olHizaGetir(c.key), vertical: 'middle' };
     hucre.border = { top: kenarlikIncGri, left: kenarlikIncGri, bottom: kenarlikIncGri, right: kenarlikIncGri };
   });
   basliklarRow.height = 20;
@@ -778,7 +800,7 @@ async function olExcelAktar() {
       hucre.value = c.fn(v, i);
       hucre.font = { size: 10 };
       hucre.border = { top: kenarlikIncGri, left: kenarlikIncGri, bottom: kenarlikIncGri, right: kenarlikIncGri };
-      hucre.alignment = { vertical: 'middle', horizontal: ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left' };
+      hucre.alignment = { vertical: 'middle', horizontal: olHizaGetir(c.key) };
       if (i % 2 === 1) hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F7F7' } };
     });
     satirNo++;
@@ -850,12 +872,11 @@ async function olPdfAktar() {
   if (bs.egitimYiliGoster && bs.egitimYili) { doc.setFontSize(8); doc.setTextColor(100); doc.text(`${bs.egitimYili} Eğitim-Öğretim Yılı`, metinX, y); doc.setTextColor(0); y += 4; }
   y = Math.max(y, logo ? logoY + logoBoyutu + 4 : y);
 
-  // Sıra No / Öğrenci No sütunları ortaya hizalı olsun (kullanıcı sütun sırasını
-  // değiştirebildiği için indeksi burada, güncel sıraya göre buluyoruz).
-  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
+  // Kullanıcının seçtiği sütun hizalaması (sola/ortalı/sağa) — sütun sırası
+  // değişebildiği için indeksi burada, güncel sıraya göre buluyoruz.
   const sutunStilleri = {};
   sutunlar.forEach((c, i) => {
-    if (ortalanacakAnahtarlar.includes(c.key)) sutunStilleri[i] = { halign: 'center' };
+    sutunStilleri[i] = { halign: olHizaGetir(c.key) };
   });
 
   doc.autoTable({
