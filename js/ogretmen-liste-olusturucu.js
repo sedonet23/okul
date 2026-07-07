@@ -1,12 +1,17 @@
 /* =============================================================
    js/ogretmen-liste-olusturucu.js
-   ÖĞRETMENE ÖZEL ÖĞRENCİ LİSTESİ OLUŞTURUCU
+   ÖĞRETMENE ÖZEL ÖĞRENCİ LİSTESİ OLUŞTURUCU  (Kayıtlı Çizelgeler)
    ---------------------------------------------------------------
    Girişli öğretmen, ders programında girdiği (veya sınıf öğretmeni
    olduğu) sınıflardan birini seçer; istediği sütunları işaretler,
-   isterse boş özel sütun ekler, düzeni şablon olarak kaydedebilir.
-   Çıktı: Yazdır (dikey/yatay, zebra desenli — sınıf listesi ile
-   aynı desen), Excel (.xlsx) ve PDF.
+   isterse boş özel sütun ekler, ÖNİZLEME TABLOSUNDAKİ HER HÜCREYE
+   doğrudan elle veri girebilir (not, imza, açıklama vb.) ve bu
+   tabloyu bir isimle "çizelge" olarak kaydedebilir. Bir sınıf için
+   birden fazla çizelge (ör. "Türkçe 1.Dönem 1.Yazılı", "Yoklama —
+   Ekim") kaydedip, dilediği zaman açıp güncelleyebilir, tekrar
+   yazdırabilir/dışa aktarabilir — kağıt üstünde tuttuğu not
+   çizelgesinin dijital karşılığı gibi.
+   Çıktı: Yazdır (dikey/yatay, zebra desenli), Excel (.xlsx) ve PDF.
    ============================================================= */
 
 const OL_HAZIR_SUTUNLAR = [
@@ -24,9 +29,20 @@ const OL_HAZIR_SUTUNLAR = [
 ];
 
 let _olSeciliSinif = '';
-let _olOzelSutunSayaci = 0;
 let _olLogoDataUri = null;
 let _olPdfFontBase64 = null;
+
+/* ---------- ÇALIŞMA VERİSİ (satırlar) ----------
+   Önizleme tablosundaki tüm hücrelerin GERÇEK kaynağı burasıdır.
+   Sınıf seçildiğinde sınıf listesinden (veliler koleksiyonu) bir
+   "anlık görüntü" olarak doldurulur; sonrasında tamamen elle
+   düzenlenebilir ve bağımsız olarak kaydedilir — yani sınıf listesi
+   sonradan değişse bile kaydedilmiş çizelge kendi verisini korur.
+   Satır nesneleri OL_HAZIR_SUTUNLAR alan adlarıyla birebir eşleşir
+   (ogrenciAdi, ogrenciNo, ...) + özel sütunların kendi id'leri. */
+let _olSatirlar = [];
+let _olAcikCizelgeId = null;   // null = henüz kaydedilmemiş yeni çizelge
+let _olKayitliCizelgeler = []; // seçili sınıf için kayıtlı çizelgelerin önbelleği
 
 /* ---------- PDF fontunu önbellekle ----------
    jsPDF'in yerleşik fontları (Helvetica vb.) WinAnsi kodlamasını
@@ -126,25 +142,55 @@ function ogretmenListeSekmesiAc() {
 /* ---------- sınıf seçildiğinde ---------- */
 async function olSinifSecildi(sinifAdi) {
   _olSeciliSinif = sinifAdi;
+  _olAcikCizelgeId = null;
   const alan = document.getElementById('olCalismaAlani');
   if (!sinifAdi) { alan.innerHTML = ''; return; }
 
   alan.innerHTML = `<div class="card" style="color:var(--ink-muted);">Yükleniyor…</div>`;
 
-  // kayıtlı şablon var mı?
+  // Sınıf için kayıtlı bir "sütun düzeni" şablonu var mı? (isteğe bağlı, sadece kolon tercihleri)
   let sablon = null;
   try {
     const dogSnap = await db.collection('oy_ogretmenListeSablon').doc(olSablonId(sinifAdi)).get();
     if (dogSnap.exists) sablon = dogSnap.data();
   } catch (e) { console.error('Şablon okunamadı:', e); }
 
-  const seciliKeyler = sablon?.secilenKeyler || OL_HAZIR_SUTUNLAR.map(c => c.key);
-  const ozelSutunlar = sablon?.ozelSutunlar || [];
-  const bs = sablon?.baslikBilgisi || {};
+  // Çalışma verisi: sınıf listesinden anlık görüntü al
+  _olSatirlar = olSatirlariRosterdenOlustur();
+
+  await olCalismaAlaniOlustur(sablon, '');
+}
+
+/* ---------- sınıf listesinden (veliler) satır anlık görüntüsü oluştur ---------- */
+function olSatirlariRosterdenOlustur() {
+  return olOgrencileriGetir().map(v => ({
+    ogrenciAdi: v.ogrenciAdi || '',
+    ogrenciNo:  v.ogrenciNo  || '',
+    cinsiyet:   v.cinsiyet   || '',
+    veliAdi:    v.veliAdi    || '',
+    yakinlik1:  v.yakinlik1 || v.yakinlik || '',
+    telefon1:   v.telefon1 || v.telefon || '',
+    telefon2:   v.telefon2   || '',
+    adres:      v.adres      || '',
+    servisAdi:  v.servisAdi  || '',
+    notlar:     v.notlar     || '',
+  }));
+}
+
+/* ---------- çalışma alanını (form + önizleme) çiz ----------
+   sablon: { secilenKeyler, sutunSirasi, ozelSutunlar, baslikBilgisi } biçiminde
+   hem "sütun düzeni şablonu" hem de kayıtlı bir "çizelge" olabilir. */
+async function olCalismaAlaniOlustur(sablon, cizelgeAdi) {
+  const alan = document.getElementById('olCalismaAlani');
+  sablon = sablon || {};
+
+  const seciliKeyler = sablon.secilenKeyler || OL_HAZIR_SUTUNLAR.map(c => c.key);
+  const ozelSutunlarKaynak = sablon.ozelSutunlar || [];
+  const bs = sablon.baslikBilgisi || {};
 
   // Kayıtlı bir sıralama varsa onu kullan; yoksa varsayılan tanım sırası.
   // Şablonda olmayan (yeni eklenmiş) sütunlar listenin sonuna eklenir.
-  let sutunSirasi = (sablon?.sutunSirasi || []).filter(k => OL_HAZIR_SUTUNLAR.some(c => c.key === k));
+  let sutunSirasi = (sablon.sutunSirasi || []).filter(k => OL_HAZIR_SUTUNLAR.some(c => c.key === k));
   OL_HAZIR_SUTUNLAR.forEach(c => { if (!sutunSirasi.includes(c.key)) sutunSirasi.push(c.key); });
 
   const checkboxler = sutunSirasi.map(key => {
@@ -161,10 +207,12 @@ async function olSinifSecildi(sinifAdi) {
     </div>`;
   }).join('');
 
-  _olOzelSutunSayaci = 0;
-  const ozelSutunHtml = ozelSutunlar.map(ad => olOzelSutunSatiri(ad)).join('');
+  // Eski şablonlarda ozelSutunlar düz string dizisiydi (["Konuşma","Yazılı"]) —
+  // geriye dönük uyumluluk için burada {id,label} nesnesine çeviriyoruz.
+  const ozelSutunHtml = ozelSutunlarKaynak
+    .map(k => olOzelSutunSatiri(typeof k === 'string' ? { label: k } : k))
+    .join('');
 
-  // Varsayılan değerler
   const ben = bagliOgretmenimGetir();
   const _okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) ? okulBilgileriAyari.okulAdi : '';
   const _yil = (() => { const y = new Date().getFullYear(); return `${y}-${y + 1}`; })();
@@ -184,6 +232,21 @@ async function olSinifSecildi(sinifAdi) {
     </div>`;
 
   alan.innerHTML = `
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Kayıtlı Çizelgeler</div>
+      <p style="font-size:12.5px;color:var(--ink-muted);margin-bottom:10px;">Bu sınıf için birden fazla çizelge (not çizelgesi, yoklama vb.) oluşturup adlandırarak kaydedebilir, istediğiniz zaman açıp düzenleyebilirsiniz.</p>
+      <div id="olCizelgeListesi" style="margin-bottom:10px;">
+        <div style="font-size:12.5px;color:var(--ink-muted);padding:6px 2px;">Yükleniyor…</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="olYeniCizelge()">+ Yeni Çizelge</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <label style="font-weight:600;font-size:13px;display:block;margin-bottom:6px;">Çizelge Adı</label>
+      <input id="olCizelgeAdi" placeholder="Örn: Türkçe 1. Dönem 1. Yazılı Not Çizelgesi" value="${escapeHtml(cizelgeAdi || '')}" style="${inputStil}max-width:420px;">
+      <div id="olCizelgeDurumMetni" style="font-size:11.5px;color:var(--ink-muted);margin-top:6px;">${_olAcikCizelgeId ? 'Mevcut bir çizelgeyi düzenliyorsunuz — "Çizelgeyi Kaydet" değişiklikleri üzerine yazar.' : 'Kaydettiğinizde yeni bir çizelge olarak eklenir.'}</div>
+    </div>
+
     <div class="card" style="margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Başlık Bilgileri (İsteğe Bağlı)</div>
       <div style="display:grid;gap:7px;">
@@ -210,7 +273,8 @@ async function olSinifSecildi(sinifAdi) {
         ${checkboxler}
       </div>
 
-      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Özel Sütun Ekle (Boş)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">Özel Sütun Ekle</div>
+      <div style="font-size:11.5px;color:var(--ink-muted);margin-bottom:6px;">Not, puan, imza vb. elle dolduracağınız sütunlar için kullanın — aşağıdaki önizleme tablosundaki hücrelere doğrudan yazabilirsiniz.</div>
       <div id="olOzelSutunListesi" style="display:flex;flex-direction:column;gap:6px;">${ozelSutunHtml}</div>
       <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="olOzelSutunEkle()">+ Özel Sütun Ekle</button>
 
@@ -225,8 +289,9 @@ async function olSinifSecildi(sinifAdi) {
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
-        <button class="btn btn-amber" onclick="olOnizlemeGuncelle()">🔄 Önizlemeyi Güncelle</button>
-        <button class="btn btn-ghost" onclick="olSablonKaydet()">💾 Şablonu Kaydet</button>
+        <button class="btn btn-amber" onclick="olCizelgeyiKaydet()">💾 Çizelgeyi Kaydet</button>
+        <button class="btn btn-ghost" onclick="olOnizlemeGuncelle()">🔄 Önizlemeyi Güncelle</button>
+        <button class="btn btn-ghost" onclick="olSablonKaydet()">📌 Sütun Düzenini Şablon Yap</button>
         <button class="btn btn-ghost" onclick="olYazdir()">🖨️ Yazdır</button>
         <button class="btn btn-ghost" onclick="olExcelAktar()">📊 Excel'e Aktar</button>
         <button class="btn btn-ghost" onclick="olPdfAktar()">📄 PDF'e Aktar</button>
@@ -234,28 +299,31 @@ async function olSinifSecildi(sinifAdi) {
     </div>
 
     <div class="card">
-      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Önizleme</div>
+      <div style="font-size:11px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Önizleme — hücrelere doğrudan tıklayıp yazabilirsiniz</div>
       <div id="olOnizlemeAlani" style="overflow-x:auto;"></div>
     </div>
   `;
 
   olOnizlemeGuncelle();
+  olCizelgeleriYenile(); // kayıtlı çizelge listesini arka planda getir
 }
 
-function olOzelSutunSatiri(ad) {
-  _olOzelSutunSayaci++;
+function olOzelSutunSatiri(kolon) {
+  const id = (kolon && kolon.id) || ('ozel_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+  const label = (kolon && kolon.label) || '';
   return `
-    <div style="display:flex;gap:6px;align-items:center;">
-      <input class="ol-ozel-sutun-input" type="text" placeholder="Sütun adı (örn: İmza)" value="${escapeHtml(ad || '')}"
-        style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
-      <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="this.parentElement.remove()">✕</button>
+    <div class="ol-ozel-sutun-satir" data-id="${id}" style="display:flex;gap:6px;align-items:center;">
+      <input class="ol-ozel-sutun-input" type="text" placeholder="Sütun adı (örn: Konuşma, Yazılı, İmza)" value="${escapeHtml(label)}"
+        style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;" oninput="olOnizlemeGuncelle()">
+      <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="this.parentElement.remove();olOnizlemeGuncelle()">✕</button>
     </div>`;
 }
 
 function olOzelSutunEkle() {
   const kap = document.getElementById('olOzelSutunListesi');
   if (!kap) return;
-  kap.insertAdjacentHTML('beforeend', olOzelSutunSatiri(''));
+  kap.insertAdjacentHTML('beforeend', olOzelSutunSatiri(null));
+  olOnizlemeGuncelle();
 }
 
 /* ---------- sütun sırasını değiştir (yukarı/aşağı) ---------- */
@@ -280,9 +348,10 @@ function olTumSutunlariGetir() {
     .map(el => OL_HAZIR_SUTUNLAR.find(c => c.key === el.value))
     .filter(Boolean);
 
-  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-input')]
-    .map(el => el.value.trim()).filter(Boolean)
-    .map(label => ({ key: '_ozel_' + label, label, fn: () => '' }));
+  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-satir')]
+    .map(el => ({ id: el.dataset.id, label: (el.querySelector('.ol-ozel-sutun-input')?.value || '').trim() }))
+    .filter(o => o.label)
+    .map(o => ({ key: o.id, label: o.label, fn: v => v[o.id] || '' }));
 
   return [...seciliSutunlar, ...ozelSutunlar];
 }
@@ -304,6 +373,7 @@ function olBaslikBilgisiGetir() {
   };
 }
 
+/* ---------- canlı sınıf listesi (veliler koleksiyonu) ---------- */
 function olOgrencileriGetir() {
   const s = siniflar.find(x => x.ad === _olSeciliSinif);
   const sinifId = s ? s.id : _olSeciliSinif;
@@ -312,37 +382,75 @@ function olOgrencileriGetir() {
     .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
 }
 
-/* ---------- önizleme ---------- */
+/* ---------- önizleme (düzenlenebilir tablo) ---------- */
 function olOnizlemeGuncelle() {
   const alan = document.getElementById('olOnizlemeAlani');
   if (!alan) return;
   const sutunlar = olTumSutunlariGetir();
-  const ogrenciler = olOgrencileriGetir();
 
   if (!sutunlar.length) { alan.innerHTML = '<div style="color:var(--ink-muted);">En az bir sütun seçin.</div>'; return; }
 
   const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
-  const th = sutunlar.map(c => `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;">${escapeHtml(c.label)}</th>`).join('');
-  const tr = ogrenciler.map((v, i) => `
-    <tr style="${i % 2 === 1 ? 'background:#f2f5f8;' : ''}">
-      ${sutunlar.map(c => `<td style="padding:5px 8px;font-size:12.5px;border:1px solid #e4e8ec;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};">${escapeHtml(c.fn(v, i))}</td>`).join('')}
-    </tr>`).join('');
+  const th = sutunlar.map(c => `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;">${escapeHtml(c.label)}</th>`).join('')
+    + `<th style="width:34px;background:#1B3A5C;border:1px solid #1B3A5C;"></th>`;
+
+  const tr = _olSatirlar.map((satir, i) => {
+    const hucreler = sutunlar.map(c => {
+      if (c.key === 'siraNo') {
+        return `<td style="padding:5px 8px;font-size:12.5px;border:1px solid #e4e8ec;text-align:center;color:var(--ink-muted);">${i + 1}</td>`;
+      }
+      const deger = c.fn(satir, i);
+      return `<td style="padding:2px;border:1px solid #e4e8ec;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};">
+        <input type="text" value="${escapeHtml(deger)}" data-row="${i}" data-key="${c.key}" oninput="olHucreDegisti(this)"
+          style="width:100%;min-width:60px;border:none;background:transparent;padding:4px 6px;font-size:12.5px;text-align:inherit;color:inherit;">
+      </td>`;
+    }).join('');
+    return `<tr style="${i % 2 === 1 ? 'background:#f2f5f8;' : ''}">${hucreler}
+      <td style="border:1px solid #e4e8ec;text-align:center;">
+        <button type="button" class="btn btn-ghost btn-sm" style="color:#c0392b;padding:2px 7px;" onclick="olSatirSil(${i})" title="Satırı sil">✕</button>
+      </td></tr>`;
+  }).join('');
 
   alan.innerHTML = `
     <table style="width:100%;border-collapse:collapse;">
       <thead><tr>${th}</tr></thead>
       <tbody>${tr}</tbody>
     </table>
-    <div style="margin-top:8px;font-size:12px;color:var(--ink-muted);">Toplam öğrenci: <strong>${ogrenciler.length}</strong></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="olSatirEkle()">+ Satır Ekle</button>
+      <div style="font-size:12px;color:var(--ink-muted);">Toplam satır: <strong>${_olSatirlar.length}</strong></div>
+    </div>
   `;
 }
 
-/* ---------- şablon kaydet ---------- */
+/* Bir hücreye yazıldıkça anında çalışma verisine (_olSatirlar) yaz —
+   tüm tabloyu yeniden çizmiyoruz ki yazarken imleç/odak kaybolmasın. */
+function olHucreDegisti(input) {
+  const i = parseInt(input.dataset.row, 10);
+  const key = input.dataset.key;
+  if (!_olSatirlar[i] || !key) return;
+  _olSatirlar[i][key] = input.value;
+}
+
+function olSatirEkle() {
+  _olSatirlar.push({ ogrenciAdi: '', ogrenciNo: '', cinsiyet: '', veliAdi: '', yakinlik1: '', telefon1: '', telefon2: '', adres: '', servisAdi: '', notlar: '' });
+  olOnizlemeGuncelle();
+}
+
+function olSatirSil(i) {
+  if (!confirm('Bu satırı silmek istiyor musunuz?')) return;
+  _olSatirlar.splice(i, 1);
+  olOnizlemeGuncelle();
+}
+
+/* ---------- sütun düzenini "şablon" olarak kaydet (sadece kolon tercihleri, veri yok) ---------- */
 async function olSablonKaydet() {
   if (!_olSeciliSinif) { toast('Önce bir sınıf seçin.'); return; }
   const sutunSirasi = [...document.querySelectorAll('.ol-sutun-satir')].map(satir => satir.dataset.key);
   const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')].filter(el => el.checked).map(el => el.value);
-  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-input')].map(el => el.value.trim()).filter(Boolean);
+  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-satir')]
+    .map(el => ({ id: el.dataset.id, label: (el.querySelector('.ol-ozel-sutun-input')?.value || '').trim() }))
+    .filter(o => o.label);
   const ben = bagliOgretmenimGetir();
 
   try {
@@ -355,17 +463,148 @@ async function olSablonKaydet() {
       baslikBilgisi: olBaslikBilgisiGetir(),
       guncellenme: new Date().toISOString(),
     });
-    toast('Şablon kaydedildi. Bu sınıf için tekrar açtığınızda otomatik yüklenecek.');
+    toast('Sütun düzeni şablon olarak kaydedildi. Bu sınıf için yeni bir çizelge oluşturduğunuzda varsayılan olarak gelecek.');
   } catch (e) {
     console.error(e);
     toast('Şablon kaydedilemedi.');
   }
 }
 
+/* ====================================================================
+   KAYITLI ÇİZELGELER — isimli, kalıcı, elle düzenlenebilir tablolar.
+   Bir sınıf için istenildiği kadar çizelge oluşturulup saklanabilir.
+   ==================================================================== */
+
+async function olKayitliCizelgeleriGetir(sinifAdi) {
+  const ben = bagliOgretmenimGetir();
+  if (!ben) return [];
+  try {
+    const qs = await db.collection('oy_ogretmenListeKayit')
+      .where('ogretmenId', '==', ben.id)
+      .where('sinif', '==', sinifAdi)
+      .get();
+    return qs.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.guncellenme || '').localeCompare(a.guncellenme || ''));
+  } catch (e) {
+    console.error('Kayıtlı çizelgeler okunamadı:', e);
+    return [];
+  }
+}
+
+async function olCizelgeleriYenile() {
+  const kap = document.getElementById('olCizelgeListesi');
+  if (!kap) return;
+  const liste = await olKayitliCizelgeleriGetir(_olSeciliSinif);
+  _olKayitliCizelgeler = liste;
+
+  if (!kap) return; // sınıf değiştirilmiş olabilir, DOM artık farklı
+
+  if (!liste.length) {
+    kap.innerHTML = `<div style="font-size:12.5px;color:var(--ink-muted);padding:6px 2px;">Bu sınıf için henüz kayıtlı bir çizelge yok. Aşağıdaki formu doldurup "Çizelgeyi Kaydet" ile ilkini oluşturabilirsiniz.</div>`;
+    return;
+  }
+
+  kap.innerHTML = liste.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:1px solid var(--border);${c.id === _olAcikCizelgeId ? 'background:var(--nm-bg,#f0f0f3);border-radius:8px;' : ''}">
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:600;font-size:13px;">${escapeHtml(c.ad || 'İsimsiz Çizelge')}${c.id === _olAcikCizelgeId ? ' <span style="font-weight:400;color:var(--ink-muted);font-size:11.5px;">(açık)</span>' : ''}</div>
+        <div style="font-size:11.5px;color:var(--ink-muted);">${c.guncellenme ? new Date(c.guncellenme).toLocaleDateString('tr-TR') : ''} · ${(c.satirlar || []).length} satır</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="olCizelgeAc('${c.id}')">Aç</button>
+      <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="olCizelgeSil('${c.id}')">Sil</button>
+    </div>`).join('');
+}
+
+function olYeniCizelge() {
+  if (!_olSeciliSinif) { toast('Önce bir sınıf seçin.'); return; }
+  _olAcikCizelgeId = null;
+  _olSatirlar = olSatirlariRosterdenOlustur();
+  olCalismaAlaniOlustur(null, '');
+  toast('Yeni çizelge — güncel sınıf listesinden dolduruldu. Dilediğiniz gibi düzenleyip bir ad vererek kaydedebilirsiniz.');
+}
+
+async function olCizelgeAc(id) {
+  const c = (_olKayitliCizelgeler || []).find(x => x.id === id);
+  if (!c) { toast('Çizelge bulunamadı, liste yenileniyor…'); olCizelgeleriYenile(); return; }
+  _olAcikCizelgeId = id;
+  _olSatirlar = Array.isArray(c.satirlar) ? c.satirlar.map(s => ({ ...s })) : [];
+  await olCalismaAlaniOlustur({
+    secilenKeyler: c.secilenKeyler,
+    sutunSirasi: c.sutunSirasi,
+    ozelSutunlar: c.ozelSutunlar,
+    baslikBilgisi: c.baslikBilgisi,
+  }, c.ad || '');
+  toast(`"${c.ad || 'Çizelge'}" açıldı — düzenleyip tekrar kaydedebilirsiniz.`);
+}
+
+async function olCizelgeSil(id) {
+  const c = (_olKayitliCizelgeler || []).find(x => x.id === id);
+  if (!confirm(`"${c ? c.ad : 'Bu çizelgeyi'}" silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return;
+  try {
+    await db.collection('oy_ogretmenListeKayit').doc(id).delete();
+    if (_olAcikCizelgeId === id) {
+      _olAcikCizelgeId = null;
+      const adEl = document.getElementById('olCizelgeAdi');
+      if (adEl) adEl.value = '';
+      const durumEl = document.getElementById('olCizelgeDurumMetni');
+      if (durumEl) durumEl.textContent = 'Kaydettiğinizde yeni bir çizelge olarak eklenir.';
+    }
+    toast('Çizelge silindi.');
+    olCizelgeleriYenile();
+  } catch (e) {
+    console.error(e);
+    toast('Çizelge silinemedi.');
+  }
+}
+
+async function olCizelgeyiKaydet() {
+  if (!_olSeciliSinif) { toast('Önce bir sınıf seçin.'); return; }
+  const adEl = document.getElementById('olCizelgeAdi');
+  const ad = (adEl?.value || '').trim();
+  if (!ad) { toast('Lütfen çizelgeye bir ad verin (örn: "Türkçe 1. Dönem 1. Yazılı").'); adEl?.focus(); return; }
+
+  const sutunSirasi = [...document.querySelectorAll('.ol-sutun-satir')].map(satir => satir.dataset.key);
+  const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')].filter(el => el.checked).map(el => el.value);
+  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-satir')]
+    .map(el => ({ id: el.dataset.id, label: (el.querySelector('.ol-ozel-sutun-input')?.value || '').trim() }))
+    .filter(o => o.label);
+  const ben = bagliOgretmenimGetir();
+
+  const veri = {
+    ogretmenId: ben.id,
+    sinif: _olSeciliSinif,
+    ad,
+    secilenKeyler,
+    sutunSirasi,
+    ozelSutunlar,
+    satirlar: _olSatirlar,
+    baslikBilgisi: olBaslikBilgisiGetir(),
+    guncellenme: new Date().toISOString(),
+  };
+
+  try {
+    if (_olAcikCizelgeId) {
+      await db.collection('oy_ogretmenListeKayit').doc(_olAcikCizelgeId).update(veri);
+    } else {
+      veri.olusturulma = veri.guncellenme;
+      const ref = await db.collection('oy_ogretmenListeKayit').add(veri);
+      _olAcikCizelgeId = ref.id;
+      const durumEl = document.getElementById('olCizelgeDurumMetni');
+      if (durumEl) durumEl.textContent = 'Mevcut bir çizelgeyi düzenliyorsunuz — "Çizelgeyi Kaydet" değişiklikleri üzerine yazar.';
+    }
+    toast(`"${ad}" kaydedildi.`);
+    olCizelgeleriYenile();
+  } catch (e) {
+    console.error(e);
+    toast('Çizelge kaydedilemedi.');
+  }
+}
+
 /* ---------- yazdırma (dikey/yatay seçilebilir + zebra desen) ---------- */
 async function olYazdir() {
   const sutunlar = olTumSutunlariGetir();
-  const ogrenciler = olOgrencileriGetir();
+  const ogrenciler = _olSatirlar;
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
 
   const bs = olBaslikBilgisiGetir();
@@ -453,7 +692,7 @@ async function olYazdir() {
    içindeki aynı gerekçe). */
 async function olExcelAktar() {
   const sutunlar = olTumSutunlariGetir();
-  const ogrenciler = olOgrencileriGetir();
+  const ogrenciler = _olSatirlar;
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
   if (typeof ExcelJS === 'undefined') { toast('Excel kütüphanesi yüklenemedi.'); return; }
 
@@ -543,7 +782,7 @@ async function olExcelAktar() {
 /* ---------- PDF'e aktar ---------- */
 async function olPdfAktar() {
   const sutunlar = olTumSutunlariGetir();
-  const ogrenciler = olOgrencileriGetir();
+  const ogrenciler = _olSatirlar;
   if (!sutunlar.length) { toast('En az bir sütun seçin.'); return; }
   if (typeof window.jspdf === 'undefined') { toast('PDF kütüphanesi yüklenemedi.'); return; }
 
