@@ -1940,29 +1940,49 @@ function uygulamaBaslat(){
    ==================================================================== */
 const GUNCELLEME_REPO = 'sedonet23/okul';
 
-async function guncellemeKontrolEt(){
+async function guncellemeKontrolEt(elle){
   const nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-  if(!nativeMi) return; // web sürümü zaten kendiliğinden güncelleniyor (service worker)
+  if(!nativeMi){
+    if(elle) toast('Bu kontrol sadece Android uygulamasında (APK) çalışır — web sürümü tarayıcıda kendiliğinden güncellenir.');
+    return;
+  }
+
+  if(elle) toast('Güncellemeler kontrol ediliyor…');
 
   try{
     const yerelRes = await fetch('version.json');
     const yerel = await yerelRes.json();
 
+    // Ayarlar ekranındaki "Kurulu sürüm" yazısını güncelle (varsa)
+    const surumEl = document.getElementById('oyKuruluSurumMetni');
+    if(surumEl) surumEl.textContent = `Kurulu sürüm: v${yerel.kod}`;
+
     const sonRes = await fetch(`https://api.github.com/repos/${GUNCELLEME_REPO}/releases/latest`);
-    if(!sonRes.ok) return; // sessizce vazgeç — internet yok / API limiti vb.
+    if(!sonRes.ok){
+      if(elle) toast('Güncelleme kontrol edilemedi (GitHub\'a ulaşılamadı).');
+      return;
+    }
     const son = await sonRes.json();
     const sonKod = parseInt(String(son.tag_name || '').replace(/[^0-9]/g,''), 10);
-    if(!sonKod || sonKod <= yerel.kod) return; // güncel
+
+    if(!sonKod || sonKod <= yerel.kod){
+      if(elle) toast(`Uygulama güncel (v${yerel.kod}).`);
+      return;
+    }
 
     const apkAsset = (son.assets || []).find(a => (a.name||'').endsWith('.apk'));
-    if(!apkAsset) return;
+    if(!apkAsset){
+      if(elle) toast(`Yeni sürüm bulundu (v${sonKod}) ama kurulum dosyası henüz yayınlanmamış.`);
+      return;
+    }
 
     if(!confirm(`Yeni bir sürüm mevcut (v${sonKod}). Şimdi indirip kurmak ister misiniz?`)) return;
 
     toast('Güncelleme indiriliyor, birazdan kurulum ekranı açılacak…');
     await window.Capacitor.Plugins.UpdatePlugin.indirVeKur({ url: apkAsset.browser_download_url });
   }catch(e){
-    console.warn('Güncelleme kontrolü başarısız (sessizce atlandı):', e);
+    console.warn('Güncelleme kontrolü başarısız:', e);
+    if(elle) toast('Güncelleme kontrol edilemedi: ' + e.message);
   }
 }
 
