@@ -207,18 +207,18 @@ input, select, textarea{ font-family: var(--font-body); }
   box-shadow: inset 3px 3px 8px rgba(7,94,94,0.40);
 }
 
-/* Amber — vurgu */
+/* Vurgu — mavi-lacivert (turuncu yerine, temaya uygun ve WCAG kontrastlı) */
 .btn-amber{
-  background: linear-gradient(145deg, #F0B030, var(--amber-deep));
-  color: #1A0A00;
-  box-shadow: 4px 4px 10px rgba(192,120,16,0.35), -2px -2px 8px rgba(255,210,80,0.22);
+  background: linear-gradient(145deg, #2F5FDB, #1E3A8A);
+  color: #fff;
+  box-shadow: 4px 4px 10px rgba(30,58,138,0.35), -2px -2px 8px rgba(96,165,250,0.20);
 }
 .btn-amber:hover{
-  box-shadow: 6px 6px 16px rgba(192,120,16,0.45);
+  box-shadow: 6px 6px 16px rgba(30,58,138,0.45);
   transform: translateY(-1px);
 }
-.btn-amber:active{ box-shadow: inset 3px 3px 8px rgba(192,120,16,0.35); }
-[data-theme="dark"] .btn-amber{ color:#0F0800; }
+.btn-amber:active{ box-shadow: inset 3px 3px 8px rgba(30,58,138,0.40); }
+[data-theme="dark"] .btn-amber{ color:#fff; }
 
 /* Ghost */
 .btn-ghost{
