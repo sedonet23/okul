@@ -321,10 +321,11 @@ function olOnizlemeGuncelle() {
 
   if (!sutunlar.length) { alan.innerHTML = '<div style="color:var(--ink-muted);">En az bir sütun seçin.</div>'; return; }
 
-  const th = sutunlar.map(c => `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:left;font-size:12px;">${escapeHtml(c.label)}</th>`).join('');
+  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
+  const th = sutunlar.map(c => `<th style="padding:6px 8px;background:#1B3A5C;color:#fff;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};font-size:12px;border:1px solid #1B3A5C;">${escapeHtml(c.label)}</th>`).join('');
   const tr = ogrenciler.map((v, i) => `
     <tr style="${i % 2 === 1 ? 'background:#f2f5f8;' : ''}">
-      ${sutunlar.map(c => `<td style="padding:5px 8px;font-size:12.5px;border-bottom:1px solid #e4e8ec;">${escapeHtml(c.fn(v, i))}</td>`).join('')}
+      ${sutunlar.map(c => `<td style="padding:5px 8px;font-size:12.5px;border:1px solid #e4e8ec;text-align:${ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left'};">${escapeHtml(c.fn(v, i))}</td>`).join('')}
     </tr>`).join('');
 
   alan.innerHTML = `
@@ -370,9 +371,10 @@ async function olYazdir() {
   const bs = olBaslikBilgisiGetir();
   const logo = await olLogoDataUriGetir();
 
-  const thHTML = sutunlar.map(c => `<th>${escapeHtml(c.label)}</th>`).join('');
+  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
+  const thHTML = sutunlar.map(c => `<th class="${ortalanacakAnahtarlar.includes(c.key) ? 'ortali' : ''}">${escapeHtml(c.label)}</th>`).join('');
   const trHTML = ogrenciler.map((v, i) =>
-    `<tr>${sutunlar.map(c => `<td>${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
+    `<tr>${sutunlar.map(c => `<td class="${ortalanacakAnahtarlar.includes(c.key) ? 'ortali' : ''}">${escapeHtml(c.fn(v, i))}</td>`).join('')}</tr>`
   ).join('');
 
   const metaParcalar = [];
@@ -398,16 +400,17 @@ async function olYazdir() {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111; }
   .header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-  .header .logo { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
+  .header .logo { width: 64px; height: 64px; object-fit: contain; flex-shrink: 0; }
   .header .metin { flex: 1; text-align: center; }
-  .header .logo-bosluk { width: 46px; flex-shrink: 0; }
+  .header .logo-bosluk { width: 64px; flex-shrink: 0; }
   .header .okul { font-size: 15px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
   .header .baslik { font-size: 13px; font-weight: 600; margin-top: 5px; }
   .header .alt-baslik { font-size: 11px; margin-top: 3px; color: #444; }
   .header .meta { font-size: 10px; color: #666; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  th { background: #1B3A5C; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; }
-  td { padding: 4px 6px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { background: #1B3A5C; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; font-weight: 600; white-space: nowrap; border: 1px solid #1B3A5C; }
+  td { padding: 4px 6px; border: 1px solid #ddd; vertical-align: top; }
+  th.ortali, td.ortali { text-align: center; }
   tr:nth-child(even) td { background: #f7f7f7; }
   tr:last-child td { border-bottom: 2px solid #333; }
   .ogrenci-sayisi { margin-top: 8px; font-size: 10px; color: #444; text-align: right; }
@@ -480,12 +483,15 @@ async function olExcelAktar() {
 
   const basliklarRowNo = satirNo;
   const basliklarRow = ws.getRow(basliklarRowNo);
+  const kenarlikIncGri = { style: 'thin', color: { argb: 'FFB8C2CC' } };
+  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
   sutunlar.forEach((c, i) => {
     const hucre = basliklarRow.getCell(i + 1);
     hucre.value = c.label;
     hucre.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } };
     hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B3A5C' } };
-    hucre.alignment = { horizontal: 'left', vertical: 'middle' };
+    hucre.alignment = { horizontal: ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left', vertical: 'middle' };
+    hucre.border = { top: kenarlikIncGri, left: kenarlikIncGri, bottom: kenarlikIncGri, right: kenarlikIncGri };
   });
   basliklarRow.height = 20;
   satirNo++;
@@ -496,8 +502,8 @@ async function olExcelAktar() {
       const hucre = row.getCell(ci + 1);
       hucre.value = c.fn(v, i);
       hucre.font = { size: 10 };
-      hucre.border = { bottom: { style: 'thin', color: { argb: 'FFE4E8EC' } } };
-      hucre.alignment = { vertical: 'middle' };
+      hucre.border = { top: kenarlikIncGri, left: kenarlikIncGri, bottom: kenarlikIncGri, right: kenarlikIncGri };
+      hucre.alignment = { vertical: 'middle', horizontal: ortalanacakAnahtarlar.includes(c.key) ? 'center' : 'left' };
       if (i % 2 === 1) hucre.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF7F7F7' } };
     });
     satirNo++;
@@ -554,8 +560,8 @@ async function olPdfAktar() {
   }
   doc.setFont(fontAdi, 'normal');
 
-  const logoBoyutu = 20; // mm — önceki 14mm çok küçüktü
-  const logoX = 14, logoY = 8;
+  const logoBoyutu = 26; // mm — daha büyük logo
+  const logoX = 12, logoY = 8;
   const metinX = logo ? logoX + logoBoyutu + 5 : 14; // logonun sağından yeterli boşluk bırak
   if (logo) {
     try { doc.addImage(logo, 'PNG', logoX, logoY, logoBoyutu, logoBoyutu); } catch (e) { console.warn('PDF logo eklenemedi:', e); }
@@ -569,12 +575,22 @@ async function olPdfAktar() {
   if (bs.egitimYiliGoster && bs.egitimYili) { doc.setFontSize(8); doc.setTextColor(100); doc.text(`${bs.egitimYili} Eğitim-Öğretim Yılı`, metinX, y); doc.setTextColor(0); y += 4; }
   y = Math.max(y, logo ? logoY + logoBoyutu + 4 : y);
 
+  // Sıra No / Öğrenci No sütunları ortaya hizalı olsun (kullanıcı sütun sırasını
+  // değiştirebildiği için indeksi burada, güncel sıraya göre buluyoruz).
+  const ortalanacakAnahtarlar = ['siraNo', 'ogrenciNo'];
+  const sutunStilleri = {};
+  sutunlar.forEach((c, i) => {
+    if (ortalanacakAnahtarlar.includes(c.key)) sutunStilleri[i] = { halign: 'center' };
+  });
+
   doc.autoTable({
     startY: y + 2,
     head: [sutunlar.map(c => c.label)],
     body: ogrenciler.map((v, i) => sutunlar.map(c => c.fn(v, i))),
-    styles: { fontSize: 8, cellPadding: 1.5, font: fontAdi, fontStyle: 'normal' },
-    headStyles: { fillColor: [27, 58, 92], textColor: 255, font: fontAdi, fontStyle: 'normal' },
+    theme: 'grid', // sütunlar arasında da kenarlık olsun
+    styles: { fontSize: 8, cellPadding: 1.5, font: fontAdi, fontStyle: 'normal', lineWidth: 0.1, lineColor: [200, 200, 200] },
+    headStyles: { fillColor: [27, 58, 92], textColor: 255, font: fontAdi, fontStyle: 'normal', lineColor: [27, 58, 92] },
+    columnStyles: sutunStilleri,
     alternateRowStyles: { fillColor: [247, 247, 247] }, // zebra desen
     didDrawPage: (data) => {
       // İmza/onay satırı — sadece son sayfada
