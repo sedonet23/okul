@@ -65,7 +65,7 @@
     }
   }
 
-  async function _pdfSayfaRenderEt(ov, index) {
+  async function _pdfSayfaRenderEt(ov, index, carpanOverride) {
     const page = await _pdfDoc.getPage(index + 1);
     const canvas = ov.querySelector('#dokOkuyucuCanvas');
     const govde = ov.querySelector('#dokOkuyucuGovde');
@@ -73,9 +73,19 @@
     const maxYukseklik = govde.clientHeight - 20;
     const taban = page.getViewport({ scale: 1 });
     const sigmaOlcek = Math.min(maxGenislik / taban.width, maxYukseklik / taban.height);
-    // Zoom için ekstra çözünürlük payı bırakmak adına 2x fazla render ediyoruz —
-    // CSS transform ile 2x'e kadar zoom pikselleşmeden kalır.
-    const viewport = page.getViewport({ scale: sigmaOlcek * 2 });
+    // DÜZELTME (kalite): Eskiden sabit "2x fazla" render ediliyordu ve ekranın
+    // gerçek piksel yoğunluğu (devicePixelRatio) hiç hesaba katılmıyordu — bu
+    // yüzden yüksek yoğunluklu (retina benzeri) telefon ekranlarında normal
+    // görünümde bile bulanık çıkıyordu, 4x zoom'da ise iyice pikselleşiyordu.
+    // Artık: (a) devicePixelRatio'ya göre daha yüksek çözünürlükte render
+    // ediyoruz, (b) kullanıcı daha da yakınlaştırdıkça (bkz. _pdfKaliteyiGuncelle)
+    // sayfayı canlı olarak DAHA YÜKSEK çözünürlükte yeniden render ediyoruz.
+    // Cihazı zorlamamak için toplam canvas genişliğine bir üst sınır koyuyoruz.
+    const dpr = window.devicePixelRatio || 1;
+    const MAKS_CANVAS_GENISLIK = 4096;
+    const istenenCarpan = carpanOverride || Math.max(3, dpr * 2.5);
+    const carpan = Math.min(istenenCarpan, MAKS_CANVAS_GENISLIK / (taban.width * sigmaOlcek || 1));
+    const viewport = page.getViewport({ scale: sigmaOlcek * carpan });
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     canvas.style.width = (taban.width * sigmaOlcek) + 'px';
@@ -84,7 +94,24 @@
     canvas.style.transformOrigin = 'center center';
     await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
     _state.sayfaIndex = index;
+    _state.pdfRenderCarpani = carpan;
     _sayacGuncelle(ov);
+    _zoomUygula(ov); // Yeniden render sırasında sıfırlanan transform'u güncel zoom/pan'e göre tekrar uygula.
+  }
+
+  /* Kullanıcı pinch-zoom ile mevcut render çözünürlüğünün ötesine geçtiğinde
+     (yaklaşık %85'ini aştığında) sayfayı daha yüksek çözünürlükte yeniden
+     render eder — sürekli tetiklenmesin diye kısa bir gecikmeyle (debounce). */
+  let _pdfKaliteZamanlayici = null;
+  function _pdfKaliteyiGuncelle(ov) {
+    if (_state.tur !== 'pdf') return;
+    if (_state.zoom <= (_state.pdfRenderCarpani || 3) * 0.85) return;
+    clearTimeout(_pdfKaliteZamanlayici);
+    _pdfKaliteZamanlayici = setTimeout(() => {
+      const dpr = window.devicePixelRatio || 1;
+      const hedefCarpan = _state.zoom * dpr;
+      _pdfSayfaRenderEt(ov, _state.sayfaIndex, hedefCarpan);
+    }, 220);
   }
 
   function _pdfThumbLazyKur(ov, bar) {
@@ -238,6 +265,16 @@
   }
 
   /* ---- Word (mammoth.js + yaklaşık A4 yüksekliğine göre sayfalama) ---- */
+  // DÜZELTME: mammoth.js dönüşümü tabloları düz <table>/<tr>/<td> olarak
+  // verir, kenarlık (border) bilgisi taşımaz — bu yüzden Word'de görünen
+  // tablo kenarlıkları okuyucuda hiç görünmüyordu. Standart bir Word tablo
+  // görünümü (ince gri kenarlıklar) için burada sabit bir stil ekliyoruz.
+  const DOCX_TABLO_STIL = `<style>
+    #dokOkuyucuDocxSarici table { border-collapse: collapse; width: auto; max-width: 100%; margin: 6px 0; }
+    #dokOkuyucuDocxSarici table, #dokOkuyucuDocxSarici th, #dokOkuyucuDocxSarici td { border: 1px solid #444; }
+    #dokOkuyucuDocxSarici th, #dokOkuyucuDocxSarici td { padding: 4px 8px; vertical-align: top; }
+  </style>`;
+
   async function _docxYukle(ov, url) {
     const govde = ov.querySelector('#dokOkuyucuGovde');
     try {
@@ -250,7 +287,7 @@
       govde.style.touchAction = 'pan-x pan-y';
       govde.style.alignItems = 'flex-start';
       govde.style.justifyContent = 'flex-start';
-      govde.innerHTML = `<div id="dokOkuyucuDocxSarici" style="background:#fff;width:max-content;min-width:210mm;min-height:250mm;padding:18mm;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12pt;line-height:1.5;color:#111;flex-shrink:0;transform-origin:top left;"></div>`;
+      govde.innerHTML = `${DOCX_TABLO_STIL}<div id="dokOkuyucuDocxSarici" style="background:#fff;width:max-content;min-width:210mm;min-height:250mm;padding:18mm;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif;font-size:12pt;line-height:1.5;color:#111;flex-shrink:0;transform-origin:top left;"></div>`;
       _docxSayfaRenderEt(ov, 0);
       _thumbBarKur(ov);
     } catch (e) {
@@ -263,26 +300,62 @@
   // bloklarını ölçüp yaklaşık A4 yüksekliğine göre "sanal sayfalara"
   // bölüyoruz — orijinal Word sayfa numaralarıyla birebir eşleşmeyebilir,
   // ama sayfa çevirme deneyimini işlevsel şekilde sağlar.
+  //
+  // DÜZELTME: Belgenin tamamı tek bir büyük <table> ise (örn. formlar/kriter
+  // cetvelleri gibi belgeler), eskiden bu tablo TEK bir üst-seviye öğe olarak
+  // ölçüldüğü için bölünmüyor, tüm belge tek bir "sayfa" gibi gösteriliyordu.
+  // Artık sayfa yüksekliğini aşan bir tablo, kendi SATIRLARI (tr) üzerinden
+  // sayfalara bölünüyor (varsa <thead> her sayfada tekrarlanır).
   function _htmlSayfalaraBol(html) {
     const olcum = document.createElement('div');
     olcum.style.cssText = 'position:absolute; left:-9999px; top:0; width:174mm; font-family:Segoe UI,Arial,sans-serif; font-size:12pt; line-height:1.5;';
     document.body.appendChild(olcum);
     olcum.innerHTML = html;
+
     const SAYFA_YUKSEKLIK_PX = 950; // ~A4 içerik alanı yaklaşık değeri
     const sayfalar = [];
     let mevcut = '';
     let yukseklik = 0;
+
+    function sayfayiBitir() {
+      if (mevcut) { sayfalar.push(mevcut); mevcut = ''; yukseklik = 0; }
+    }
+    function parcaEkle(parcaHtml, h) {
+      if (yukseklik + h > SAYFA_YUKSEKLIK_PX && mevcut) sayfayiBitir();
+      mevcut += parcaHtml;
+      yukseklik += h;
+    }
+    // Tek başına sayfa yüksekliğini aşan bir <table>'ı satır satır sayfalara böler.
+    function tabloEkle(tablo) {
+      const acilisEtiketi = tablo.outerHTML.slice(0, tablo.outerHTML.indexOf('>') + 1);
+      const baslik = tablo.tHead ? tablo.tHead.outerHTML : '';
+      const baslikYuksekligi = tablo.tHead ? (tablo.tHead.offsetHeight || 0) : 0;
+      const govdeSatirlari = Array.from(tablo.rows).filter(r => !tablo.tHead || r.parentElement !== tablo.tHead);
+
+      let altHtml = '';
+      let altYukseklik = baslikYuksekligi;
+      const altSayfaHtml = () => acilisEtiketi + baslik + altHtml + '</table>';
+
+      govdeSatirlari.forEach((satir) => {
+        const h = satir.offsetHeight || 20;
+        if (altYukseklik + h > SAYFA_YUKSEKLIK_PX && altHtml) {
+          parcaEkle(altSayfaHtml(), altYukseklik);
+          altHtml = '';
+          altYukseklik = baslikYuksekligi;
+        }
+        altHtml += satir.outerHTML;
+        altYukseklik += h;
+      });
+      if (altHtml) parcaEkle(altSayfaHtml(), altYukseklik);
+    }
+
     Array.from(olcum.children).forEach((c) => {
       const h = c.offsetHeight || 20;
-      if (yukseklik + h > SAYFA_YUKSEKLIK_PX && mevcut) {
-        sayfalar.push(mevcut);
-        mevcut = '';
-        yukseklik = 0;
-      }
-      mevcut += c.outerHTML;
-      yukseklik += h;
+      if (c.tagName === 'TABLE' && h > SAYFA_YUKSEKLIK_PX) tabloEkle(c);
+      else parcaEkle(c.outerHTML, h);
     });
-    if (mevcut) sayfalar.push(mevcut);
+
+    sayfayiBitir();
     document.body.removeChild(olcum);
     return sayfalar.length ? sayfalar : [html];
   }
@@ -380,9 +453,10 @@
     govde.addEventListener('touchmove', (e) => {
       if (e.touches.length === 2) {
         const mesafe = _mesafe(e.touches[0], e.touches[1]);
-        _state.zoom = Math.min(4, Math.max(1, baslangicZoom * (mesafe / baslangicMesafe)));
+        _state.zoom = Math.min(10, Math.max(1, baslangicZoom * (mesafe / baslangicMesafe)));
         if (_state.zoom <= 1.02) { _state.panX = 0; _state.panY = 0; }
         _zoomUygula(ov);
+        _pdfKaliteyiGuncelle(ov);
       } else if (e.touches.length === 1 && surukleniyor) {
         _state.panX = panBaslangicX + (e.touches[0].clientX - surukleBaslangicX);
         _state.panY = panBaslangicY + (e.touches[0].clientY - surukleBaslangicY);
@@ -398,6 +472,7 @@
           else _sayfayaGit(ov, _state.sayfaIndex - 1);
         }
       }
+      _pdfKaliteyiGuncelle(ov);
       swipeBaslangicX = null;
       surukleniyor = false;
     });
