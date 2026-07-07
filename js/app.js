@@ -1794,7 +1794,7 @@ function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); if(typeof renderBugunIzinliOgretmenler==='function') renderBugunIzinliOgretmenler(); if(typeof sidebarHesapGuncelle==='function' && typeof auth!=='undefined' && auth && auth.currentUser) sidebarHesapGuncelle(auth.currentUser); }, hataGoster);
-  db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); }, hataGoster);
+  db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500); }, hataGoster);
   sinifBaglantilariKur();
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
@@ -2126,6 +2126,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     nobet:    'nobet',
     belge:    'evrak',
     sinav:    'sinavIslemleri',
+    dersProgrami: 'dersProgrami', // Ders Zili Geri Sayım widget'ına dokununca
   };
   window.addEventListener('bildirimAcildi', (e) => {
     const kategori = e.detail?.kategori;

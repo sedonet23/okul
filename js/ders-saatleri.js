@@ -24,6 +24,7 @@ function dersSaatleriBaglantisiKur(){
     dersSaatleriAyarlari = v;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
+    if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
   });
 }
 

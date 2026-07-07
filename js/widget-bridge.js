@@ -153,5 +153,61 @@ async function widgetGuncelle() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     setTimeout(widgetGuncelle, 1500);
+    setTimeout(dersZiliWidgetGuncelle, 1500);
   }
 });
+
+/* ====================================================================
+   Ders Zili Geri Sayım widget'ı — bkz. DersZiliWidget.java / DersZiliCizici.java
+   Burada SADECE veri hesaplanır (kalan dakika, ilerleme oranı, aktif/sonraki
+   ders, zaman çizelgesi); görsel çizim tamamen native tarafta yapılıyor.
+   ==================================================================== */
+function dersZiliEtiketGetir(seg, ben, bugunGun, _dersProgrami) {
+  if (!seg) return { baslik: '—', yer: '' };
+  if (seg.tip === 'ogle') return { baslik: 'Öğle Arası', yer: '' };
+  const kayit = _dersProgrami.find(d => d.ogretmenId === ben.id && d.gun === bugunGun && d.saat === seg.saat);
+  return kayit
+    ? { baslik: kayit.ders || 'Ders', yer: kayit.sinif ? `(${kayit.sinif})` : '' }
+    : { baslik: `${seg.saat}. Ders`, yer: '' };
+}
+
+function dersZiliWidgetVerisiHesapla() {
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+  const tatilModu = !!(typeof dersSaatleriAyarlari !== 'undefined' && dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
+
+  if (tatilModu) {
+    const not = (typeof tatilModuNotuOlustur === 'function') ? tatilModuNotuOlustur(dersSaatleriAyarlari) : '';
+    return { tatilModu: true, tatilNotu: not || 'Okul tatilde' };
+  }
+  if (!ben) return { dersYok: true, durumMetniOzel: 'Uygulamayı açınız' };
+
+  const bugunGun = _bugunGunAdi();
+  const segmentler = (typeof dersSaatleriSegmentleri === 'function') ? dersSaatleriSegmentleri() : [];
+  if (!segmentler.length) return { dersYok: true, durumMetniOzel: 'Zil programı yok' };
+
+  const _dersProgrami = (typeof dersProgrami !== 'undefined') ? dersProgrami : [];
+  const et = (seg) => dersZiliEtiketGetir(seg, ben, bugunGun, _dersProgrami);
+
+  // NOT: "kalan dakika/ilerleme oranı" burada HESAPLANMIYOR — sadece o günün
+  // ham saat aralıkları + başlıkları gönderiliyor. Gerçek geri sayım, widget
+  // her çizildiğinde (uygulama kapalıyken de) GÜNCEL saate göre native
+  // tarafta (DersZiliHesaplayici.java) hesaplanıyor.
+  return {
+    segmentler: segmentler.map(s => {
+      const e = et(s);
+      return { bas: s.bas, bit: s.bit, baslik: e.baslik, yer: e.yer };
+    })
+  };
+}
+
+async function dersZiliWidgetGuncelle() {
+  if (!_kapasitorVarMi()) return;
+  const plugin = _widgetPlugin();
+  if (!plugin || !plugin.dersZiliGuncelle) return;
+  try {
+    const veri = dersZiliWidgetVerisiHesapla();
+    await plugin.dersZiliGuncelle({ veriJson: JSON.stringify(veri) });
+  } catch (e) {
+    console.warn('[Widget] Ders zili widget\'ı güncellenemedi:', e);
+  }
+}
