@@ -187,7 +187,7 @@ const DASHBOARD_ALT_KATALOG = {
     {id:'bugunkuDers',  ad:'📚 Bugünkü Ders Sayısı'},
     {id:'acikGorev',    ad:'📌 Açık Görev Sayısı'},
     {id:'hatirlatici',  ad:'⏰ Hatırlatıcı Sayısı'},
-    {id:'sinavlarim',   ad:'📝 Sınavlarım (sadece öğretmen hesabında)'},
+    {id:'sinavlarim',   ad:'📝 Sınavlarım / Sınav Sayısı'},
   ]},
   istatistikSeridi: { limit:4, ogeler:[
     {id:'personel',   ad:'👨‍🏫 Personel Sayısı'},

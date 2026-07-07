@@ -128,15 +128,29 @@ function dokumanSatirHtml(d) {
 
 /* ================================================================
    Dosya açma / indirme
-   Resim ve PDF tarayıcıda doğrudan açılabildiği için yeni sekmede
-   açılır; diğer türler (Word/Excel vb.) indirmeye yönlendirilir.
+   Desteklenen türler (pdf, xlsx, xls, docx) js/dokuman-okuyucu.js'deki
+   UYGULAMA İÇİ okuyucuda (tam ekran, sayfa çevirici, zoom) açılır.
+
+   DÜZELTME (Android): dokuman-okuyucu.js zaten index.html'de yükleniyordu
+   ama dokumanAc() hiç ona yönlendirmiyordu — bu yüzden her tür için
+   window.open(url,'_blank') çalışıyordu. Native (Capacitor) WebView'de
+   bu, "harici" bir bağlantı gibi Intent.ACTION_VIEW ile sisteme
+   devrediliyor; cihazda bunun karşılığı bir görüntüleyici değil de
+   doğrudan İndirme Yöneticisi olduğundan "önizle" butonu da indirme
+   yapıyormuş gibi davranıyordu. Resim gibi desteklenmeyen türlerde
+   (okuyucunun kendisi de böyle davranıyor) eski window.open korunur.
    ================================================================ */
 function dokumanAc(id) {
   const d = dokumanlarListesi.find(x => x.id === id);
   if (!d) return;
   const url = d.hariciUrl || d.dosyaUrl;
   if (!url) { toast('Bu dökümanın dosyası bulunamadı.'); return; }
-  window.open(url, '_blank');
+  const ad = d.dosyaAdi || d.hariciUrl || '';
+  if (typeof window.DokumanOkuyucu !== 'undefined' && window.DokumanOkuyucu.destekliMi(ad)) {
+    window.DokumanOkuyucu.ac(url, ad);
+  } else {
+    window.open(url, '_blank');
+  }
 }
 
 function dokumanIndir(id) {
@@ -152,6 +166,7 @@ function dokumanIndir(id) {
   a.click();
   document.body.removeChild(a);
 }
+
 
 /* ================================================================
    Yükleme modalı

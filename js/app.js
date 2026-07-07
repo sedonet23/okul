@@ -1073,17 +1073,22 @@ function renderDashboard(){
   // YENİ: Öğretmene özel — hesabına bağlı bir öğretmen kaydı varsa,
   // yaklaşan (bugün dahil, bugünden ileri) kendi sınav sayısını gösterir.
   const _hbBenOgretmen = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
-  const yaklasanSinavSayisi = _hbBenOgretmen
-    ? (typeof sinavlar!=='undefined' ? sinavlar : []).filter(s=>s.ogretmenId===_hbBenOgretmen.id && s.tarih>=todayISO()).length
-    : 0;
+  // Öğretmen: kendi sınav sayısı (tümü, sadece yaklaşanlar değil).
+  // Admin/idari (bağlı öğretmen kaydı yok): tüm sınavların toplam sayısı.
+  const _hbTumSinavlar = (typeof sinavlar!=='undefined' ? sinavlar : []);
+  const _hbSinavSayisi = _hbBenOgretmen
+    ? _hbTumSinavlar.filter(s=>s.ogretmenId===_hbBenOgretmen.id).length
+    : _hbTumSinavlar.length;
+  const _hbSinavEtiket = _hbBenOgretmen ? 'Sınavlarım' : 'Sınavlar';
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
     const _hbTanimlari = {
       sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div>` : '',
       bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div>` : '',
-      sinavSayisi: gorebilir('sinavIslemleri') ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${(typeof sinavlar!=='undefined' ? sinavlar : []).length}</div><div class="hb-label">Sınav</div></div>` : '',
       hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div>` : '',
-      sinavlarim: (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div>` : '',
+      // Herkese açık: admin tüm sınav sayısını, öğretmen kendi eklediği/kendine ait
+      // sınav sayısını görür. Tıklayınca (yetkisine göre) tüm sınavları görebilir.
+      sinavlarim: gorebilir('sinavIslemleri') ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${_hbSinavSayisi}</div><div class="hb-label">${_hbSinavEtiket}</div></div>` : '',
     };
     const _hbSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliBakis') : Object.keys(_hbTanimlari);
     hizliBakisEl.innerHTML = _hbSirasi.map(id => _hbTanimlari[id] || '').join('');
