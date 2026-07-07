@@ -1081,7 +1081,7 @@ function renderDashboard(){
     const _hbTanimlari = {
       sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div>` : '',
       bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div>` : '',
-      acikGorev: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('gorevler')"><span class="hb-ico">📌</span><div class="hb-num">${gorevler.filter(g=>g.durum!=='tamamlandi').length}</div><div class="hb-label">Açık Görev</div></div>` : '',
+      sinavSayisi: gorebilir('sinavIslemleri') ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${(typeof sinavlar!=='undefined' ? sinavlar : []).length}</div><div class="hb-label">Sınav</div></div>` : '',
       hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div>` : '',
       sinavlarim: (_hbBenOgretmen && gorebilir('sinavIslemleri')) ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${yaklasanSinavSayisi}</div><div class="hb-label">Sınavlarım</div></div>` : '',
     };
