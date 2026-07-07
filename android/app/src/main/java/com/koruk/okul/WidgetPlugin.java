@@ -43,4 +43,16 @@ public class WidgetPlugin extends Plugin {
         ret.put("zil",   p.getString(OkulWidget.KEY_ZIL,   ""));
         call.resolve(ret);
     }
+
+    /* ---------- Ders Zili Geri Sayım widget'ı (bkz. DersZiliWidget/DersZiliCizici) ----------
+       JS tek bir JSON string gönderir — o günün HAM segment listesi (bas/bit dakika +
+       başlık/yer). Gerçek "kalan dakika" hesaplaması JS'de DEĞİL, native tarafta
+       (DersZiliHesaplayici) her çizimde güncel saate göre yapılır — böylece uygulama
+       kapalıyken de sayaç doğru kalır. */
+    @PluginMethod
+    public void dersZiliGuncelle(PluginCall call) {
+        String veriJson = call.getString("veriJson", "{}");
+        DersZiliWidget.veriGuncelle(getContext(), veriJson);
+        call.resolve();
+    }
 }

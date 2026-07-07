@@ -9,9 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.os.Bundle;
 import android.widget.RemoteViews;
 import java.util.Calendar;
@@ -104,32 +101,13 @@ public class DersZiliWidget extends AppWidgetProvider {
         float yogunluk = context.getResources().getDisplayMetrics().density;
         int minWidthDp = secenekler.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 280);
         int minHeightDp = secenekler.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 170);
-        // ÖNEMLİ DÜZELTME: getInt(...) sadece anahtar HİÇ YOKSA varsayılanı döner —
-        // bazı launcher'lar (özellikle widget ilk eklendiği ilk anda) bu değerleri
-        // 0 olarak bildiriyor, bu da 1x1 piksellik görünmez bir bitmap'e ve widget'ın
-        // "eklendi ama boş görünüyor" haline yol açıyordu.
-        if (minWidthDp <= 0) minWidthDp = 280;
-        if (minHeightDp <= 0) minHeightDp = 170;
         int widthPx = Math.round(minWidthDp * yogunluk);
         int heightPx = Math.round(minHeightDp * yogunluk);
 
+        Bitmap bmp = DersZiliCizici.ciz(context, veri, widthPx, heightPx);
+
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_ders_zili);
-        try {
-            Bitmap bmp = DersZiliCizici.ciz(context, veri, widthPx, heightPx);
-            views.setImageViewBitmap(R.id.widget_dz_gorsel, bmp);
-        } catch (Exception e) {
-            // Çizimde beklenmedik bir hata olsa bile widget TAMAMEN BOŞ kalmasın —
-            // en azından okunabilir bir uyarı göster (sessiz başarısızlık yerine).
-            Bitmap yedek = Bitmap.createBitmap(Math.max(widthPx, 200), Math.max(heightPx, 100), Bitmap.Config.ARGB_8888);
-            Canvas yedekCanvas = new Canvas(yedek);
-            yedekCanvas.drawColor(Color.parseColor("#101A1E"));
-            Paint yedekPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            yedekPaint.setColor(Color.WHITE);
-            yedekPaint.setTextSize(13 * yogunluk);
-            yedekPaint.setTextAlign(Paint.Align.CENTER);
-            yedekCanvas.drawText("Widget yüklenemedi", yedek.getWidth() / 2f, yedek.getHeight() / 2f, yedekPaint);
-            views.setImageViewBitmap(R.id.widget_dz_gorsel, yedek);
-        }
+        views.setImageViewBitmap(R.id.widget_dz_gorsel, bmp);
 
         // Widget'a tıklayınca uygulamayı Ders Programı sekmesinde aç
         // (bkz. MainActivity.handleIntent + js/app.js BILDIRIM_KATEGORI_SEKME —
