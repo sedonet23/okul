@@ -106,7 +106,7 @@ async function kontrolEt() {
           // (dolayısıyla özel okul logosu/büyük ikon kodunu) tamamen ATLIYORDU.
           // Sadece 'data' göndermek, HER durumda (ön/arka plan fark etmeksizin)
           // bildirimin bizim kendi Java kodumuzdan geçmesini garantiler.
-          data: { kategori: 'genel', baslik: item.baslik, icerik: item.govde }
+          data: { kategori: 'takvim', baslik: item.baslik, icerik: item.govde }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
@@ -146,7 +146,7 @@ async function kontrolEt() {
         const yanit = await admin.messaging().sendEachForMulticast({
           tokens: aliciTokenlari,
           // DÜZELTME: bkz. yukarıdaki genel bildirim notu — aynı sebep.
-          data: { kategori: 'genel', baslik: `💬 ${baslik}`, icerik: k.sonMesaj.metin.slice(0, 120) }
+          data: { kategori: 'mesaj', baslik: `💬 ${baslik}`, icerik: k.sonMesaj.metin.slice(0, 120) }
         });
         yanit.responses.forEach((r, i) => {
           if (!r.success) {
