@@ -564,26 +564,28 @@ async function olCizelgeyiKaydet() {
   const ad = (adEl?.value || '').trim();
   if (!ad) { toast('Lütfen çizelgeye bir ad verin (örn: "Türkçe 1. Dönem 1. Yazılı").'); adEl?.focus(); return; }
 
-  const sutunSirasi = [...document.querySelectorAll('.ol-sutun-satir')].map(satir => satir.dataset.key);
-  const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')].filter(el => el.checked).map(el => el.value);
-  const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-satir')]
-    .map(el => ({ id: el.dataset.id, label: (el.querySelector('.ol-ozel-sutun-input')?.value || '').trim() }))
-    .filter(o => o.label);
-  const ben = bagliOgretmenimGetir();
-
-  const veri = {
-    ogretmenId: ben.id,
-    sinif: _olSeciliSinif,
-    ad,
-    secilenKeyler,
-    sutunSirasi,
-    ozelSutunlar,
-    satirlar: _olSatirlar,
-    baslikBilgisi: olBaslikBilgisiGetir(),
-    guncellenme: new Date().toISOString(),
-  };
-
   try {
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    if (!ben || !ben.id) { toast('Öğretmen kaydınız bulunamadı, çizelge kaydedilemedi.'); return; }
+
+    const sutunSirasi = [...document.querySelectorAll('.ol-sutun-satir')].map(satir => satir.dataset.key);
+    const seciliKeyler = [...document.querySelectorAll('.ol-sutun-check')].filter(el => el.checked).map(el => el.value);
+    const ozelSutunlar = [...document.querySelectorAll('.ol-ozel-sutun-satir')]
+      .map(el => ({ id: el.dataset.id, label: (el.querySelector('.ol-ozel-sutun-input')?.value || '').trim() }))
+      .filter(o => o.label);
+
+    const veri = {
+      ogretmenId: ben.id,
+      sinif: _olSeciliSinif,
+      ad,
+      secilenKeyler,
+      sutunSirasi,
+      ozelSutunlar,
+      satirlar: _olSatirlar,
+      baslikBilgisi: olBaslikBilgisiGetir(),
+      guncellenme: new Date().toISOString(),
+    };
+
     if (_olAcikCizelgeId) {
       await db.collection('oy_ogretmenListeKayit').doc(_olAcikCizelgeId).update(veri);
     } else {
@@ -596,8 +598,8 @@ async function olCizelgeyiKaydet() {
     toast(`"${ad}" kaydedildi.`);
     olCizelgeleriYenile();
   } catch (e) {
-    console.error(e);
-    toast('Çizelge kaydedilemedi.');
+    console.error('Çizelge kaydedilemedi (detay):', e);
+    toast('Çizelge kaydedilemedi: ' + (e && e.message ? e.message : 'bilinmeyen hata — ayrıntı için konsola bakın'));
   }
 }
 
