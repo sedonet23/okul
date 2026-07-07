@@ -379,14 +379,20 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
   position:sticky; top:0; z-index:60;
 }
 .hamburger-btn{
-  width:38px; height:38px; border-radius: var(--radius-sm); border:1px solid var(--border); background: var(--bg-card);
+  width:38px; height:38px; border-radius: var(--radius-sm);
+  border:1.5px solid rgba(22,163,74,0.35); /* eski tarayıcı yedeği */
+  border:1.5px solid color-mix(in srgb, var(--brand) 35%, transparent);
+  background: rgba(22,163,74,0.08); /* eski tarayıcı yedeği */
+  background: color-mix(in srgb, var(--brand) 8%, var(--bg-card));
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; flex-shrink:0;
 }
-.hamburger-btn span{ display:block; width:18px; height:2px; background: var(--ink-soft); border-radius:2px; transition: transform .2s ease, opacity .2s ease; }
+.hamburger-btn span{ display:block; width:18px; height:2px; background: var(--ink); border-radius:2px; transition: transform .2s ease, opacity .2s ease; }
 
-/* Sidebar hamburger menü butonunu daha açık yap */
-.sidebar-head .hamburger-btn{ background: rgba(175, 184, 74, 0.15) !important; border-color: rgba(175, 184, 74, 0.3) !important; }
-.sidebar-head .hamburger-btn span{ background: rgba(239, 245, 223, 0.8) !important; }
+/* Sidebar (açıkken) hamburger menü butonu — tema değişkenleriyle otomatik
+   açık/koyu mod uyumu. Önceki sabit sarımsı-krem renkler açık modda
+   neredeyse görünmez oluyordu (krem çizgiler krem/açık zemin üzerinde). */
+.sidebar-head .hamburger-btn{ background: var(--sb-bg-2, var(--bg-card)); border-color: var(--sb-border, var(--border)); }
+.sidebar-head .hamburger-btn span{ background: var(--sb-ink, var(--ink)); }
 .topbar-title{ font-family: var(--font-display); font-weight:600; font-size:14.5px; flex:1; }
 .theme-toggle{
   width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background: var(--bg-card);
@@ -2265,7 +2271,12 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 .topbar-logo{ width:32px; height:32px; border-radius:9px; object-fit:cover; flex-shrink:0; }
 .topbar-title{ font-family:'Inter',var(--font-display); font-weight:700; font-size:14.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .topbar-bell{
-  position:relative; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:var(--bg-card);
+  position:relative; width:38px; height:38px; border-radius:50%;
+  border:1.5px solid rgba(22,163,74,0.35); /* eski tarayıcı yedeği */
+  border:1.5px solid color-mix(in srgb, var(--brand) 35%, transparent);
+  background: rgba(22,163,74,0.08); /* eski tarayıcı yedeği */
+  background: color-mix(in srgb, var(--brand) 8%, var(--bg-card));
+  color: var(--ink);
   display:flex; align-items:center; justify-content:center; font-size:17px; cursor:pointer; flex-shrink:0;
 }
 .topbar-bell-badge{
@@ -2604,10 +2615,12 @@ html[data-accent="kirmizi"] .sidebar{ --sb-accent:#DC2626; --sb-accent-wash:#FEE
 [data-theme="dark"][data-accent="kirmizi"] .sidebar{ --sb-accent:#FCA5A5; --sb-accent-wash:#3A1A1A; }
 
 /* ---- YENİ: Her temaya özgü İKON ŞEKLİ ----
-   Sidebar (.nt-ico), Hızlı İşlemler (.qa-icon), İstatistik kartları
-   (.stat-card-ico), Zil ikonu (.zil-ikon-daire), üst bar zil/avatar ve
-   alt navigasyon "+" butonu — hepsi tema paketine göre farklı köşe/çerçeve
-   stiline bürünür. Renk/boyut değişmez, sadece şekil.                       */
+   Hızlı İşlemler (.qa-icon), İstatistik kartları (.stat-card-ico), Zil ikonu
+   (.zil-ikon-daire), üst bar avatar/logo ve alt navigasyon "+" butonu — hepsi
+   tema paketine göre farklı köşe/çerçeve stiline bürünür. Renk/boyut değişmez,
+   sadece şekil. NOT: Sol menüdeki modül ikonları (.nt-ico) artık BURADAN
+   ÇIKARILDI — tutarlılık için her zaman tam daire olmalılar (aşağıda ayrı
+   kural), tema paketine göre değişmiyorlar.                                */
 :root{ --icon-shape:12px; --icon-ring:none; }
 
 /* Teal → standart yuvarlak köşe kare (varsayılan) */
@@ -2623,14 +2636,22 @@ html[data-accent="turuncu"]{ --icon-shape:6px; --icon-ring:none; }
 /* Kırmızı → yuvarlak köşeli dikdörtgen + halka */
 html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--brand-light); }
 
-.nav-tab .nt-ico, .nav-group-toggle .nt-ico, .nav-group .nav-sub-tab .nt-ico,
 #tab-panel.dash-modern .qa-icon, #tab-panel.dash-modern .stat-card-ico,
-#tab-panel.dash-modern .zil-ikon-daire, .topbar-bell, .topbar-avatar, .topbar-logo,
+#tab-panel.dash-modern .zil-ikon-daire, .topbar-logo,
 .bn-plus-ico{
   border-radius: var(--icon-shape) !important;
   outline: var(--icon-ring);
   outline-offset: 2px;
   transition: border-radius .25s ease;
+}
+
+/* YENİ: Sol menüdeki TÜM modül ikonları (üst seviye sekmeler, akordion
+   başlıkları, akordion içindeki alt sekmeler, çıkış) her zaman tam daire —
+   önceden akordion başlıkları (Program/İletişim/... ) zaten daireydi ama
+   üst seviye sekmeler (Genel Bakış/Arama) ve alt sekmeler tema paketine göre
+   değişen köşeli bir şekil alıyordu; artık hepsi tutarlı, tam yuvarlak. */
+.nav-tab .nt-ico, .nav-group-toggle .nt-ico, .nav-group .nav-sub-tab .nt-ico, .nav-cikis-btn .nt-ico{
+  border-radius:50% !important;
 }
 
 /* ---- Ayarlar > Tema paketi seçim kartları ---- */
