@@ -67,10 +67,22 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         indicatorLp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
         indicatorLp.topMargin = topMarginPx;
         indicator.setTranslationY(hiddenTranslationY);
+        indicator.setVisibility(INVISIBLE); // konum/kırpma her ne olursa olsun kesin gizli başlasın
 
         addView(webView, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         addView(indicator, indicatorLp);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // Savunma amaçlı: Activity yeniden oluşturulsa/WebView korunsa bile
+        // her ihtimale karşı temiz bir başlangıç durumu garanti edilir.
+        webView.setTranslationY(0f);
+        indicator.setTranslationY(hiddenTranslationY);
+        indicator.setVisibility(INVISIBLE);
+        currentDampedDy = 0f;
     }
 
     public void setOnRefreshListener(OnRefreshListener listener) {
@@ -155,13 +167,14 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         return false;
     }
 
-    /** Çekme sırasında hem içeriği hem göstergeyi parmak mesafesine göre günceller. */
+    /** Çekme sırasında SADECE göstergeyi (üstte şeffaf bir katman olarak) hareket
+        ettirir — içerik (WebView) yerinde sabit kalır, ekran aşağı kaymaz. */
     private void applyPull(float dampedDy) {
         currentDampedDy = dampedDy;
-        webView.setTranslationY(dampedDy);
         float revealed = hiddenTranslationY + dampedDy;
         indicator.setTranslationY(Math.min(0f, revealed));
         indicator.setProgress(dampedDy / triggerDistancePx);
+        indicator.setVisibility(dampedDy > 0.5f ? VISIBLE : INVISIBLE);
     }
 
     /** Belirtilen mesafeye (0 = tamamen kapalı, triggerDistancePx = tam açık) yumuşakça döner. */
