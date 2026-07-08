@@ -171,15 +171,31 @@
     html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
     html += '</div>';
 
+    // Rüzgar yönü oku
+    function ruzgarYonu(derece){
+      var yonler = ['K','KD','D','GD','G','GB','B','KB'];
+      return yonler[Math.round(derece / 45) % 8];
+    }
+
     // Anlık büyük kart
     html += '<div style="padding:24px 20px 16px;text-align:center;">';
     html += '<div style="font-size:72px;line-height:1;margin-bottom:8px;">' + anlik.e + '</div>';
     html += '<div style="font-size:52px;font-weight:800;color:#fff;line-height:1;">' + Math.round(v.current.temperature_2m) + '°C</div>';
     html += '<div style="color:rgba(255,255,255,.75);font-size:15px;margin-top:6px;">' + anlik.t + '</div>';
-    html += '<div style="display:flex;justify-content:center;gap:20px;margin-top:14px;">';
+
+    // Satır 1: nem, rüzgar, hissedilen
+    html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:14px;flex-wrap:wrap;">';
     html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">💧 ' + v.current.relative_humidity_2m + '%</span>';
-    html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">💨 ' + Math.round(v.current.wind_speed_10m) + ' km/s</span>';
+    html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">💨 ' + Math.round(v.current.wind_speed_10m) + ' km/s ' + ruzgarYonu(v.current.wind_direction_10m) + '</span>';
     html += '<span style="color:rgba(255,255,255,.70);font-size:13px;">🌡️ ' + Math.round(v.current.apparent_temperature) + '°C</span>';
+    html += '</div>';
+
+    // Satır 2: basınç, görüş mesafesi, UV, yağış
+    html += '<div style="display:flex;justify-content:center;gap:16px;margin-top:8px;flex-wrap:wrap;">';
+    html += '<span style="color:rgba(255,255,255,.60);font-size:12px;">⬇️ ' + Math.round(v.current.surface_pressure) + ' hPa</span>';
+    html += '<span style="color:rgba(255,255,255,.60);font-size:12px;">👁 ' + (v.current.visibility >= 1000 ? Math.round(v.current.visibility/1000) + ' km' : v.current.visibility + ' m') + '</span>';
+    html += '<span style="color:rgba(255,255,255,.60);font-size:12px;">☀️ UV ' + (v.current.uv_index || 0) + '</span>';
+    if(v.current.precipitation > 0) html += '<span style="color:rgba(255,255,255,.60);font-size:12px;">🌧 ' + v.current.precipitation + ' mm</span>';
     html += '</div></div>';
 
     // Sekme çubuğu
@@ -200,10 +216,13 @@
         var hBilgi = havaKoduOku(v.hourly.weather_code[h]);
         var hSaat = v.hourly.time[h].split('T')[1] || (h%24)+':00';
         var aktifMi = h===baslangic;
-        html += '<div style="flex:0 0 64px;text-align:center;padding:12px 6px;border-radius:14px;background:' + (aktifMi?'rgba(255,255,255,.25)':'rgba(255,255,255,.08)') + ';border:1px solid ' + (aktifMi?'rgba(255,255,255,.5)':'rgba(255,255,255,.1)') + ';">';
+        var hYagis = v.hourly.precipitation_probability ? v.hourly.precipitation_probability[h] : 0;
+        html += '<div style="flex:0 0 68px;text-align:center;padding:12px 6px;border-radius:14px;background:' + (aktifMi?'rgba(255,255,255,.25)':'rgba(255,255,255,.08)') + ';border:1px solid ' + (aktifMi?'rgba(255,255,255,.5)':'rgba(255,255,255,.1)') + ';">';
         html += '<div style="color:rgba(255,255,255,.70);font-size:11px;">' + (aktifMi?'Şimdi':hSaat) + '</div>';
         html += '<div style="font-size:22px;margin:6px 0;">' + hBilgi.e + '</div>';
         html += '<div style="color:#fff;font-size:13px;font-weight:700;">' + Math.round(v.hourly.temperature_2m[h]) + '°</div>';
+        if(v.hourly.relative_humidity_2m) html += '<div style="color:rgba(255,255,255,.55);font-size:10px;margin-top:3px;">💧' + v.hourly.relative_humidity_2m[h] + '%</div>';
+        if(hYagis > 0) html += '<div style="color:rgba(100,180,255,.85);font-size:10px;">🌧' + hYagis + '%</div>';
         html += '</div>';
       }
     }
@@ -215,10 +234,26 @@
     for(var g=0; g<v.daily.time.length; g++){
       var gBilgi = havaKoduOku(v.daily.weather_code[g]);
       var gEtiket = g===0?'Bugün':g===1?'Yarın':new Date(v.daily.time[g]).toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'short'});
-      html += '<div style="display:flex;align-items:center;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;gap:12px;">';
+      var gYagis = v.daily.precipitation_sum ? v.daily.precipitation_sum[g] : 0;
+      var gYagisOlas = v.daily.precipitation_probability_max ? v.daily.precipitation_probability_max[g] : 0;
+      var gUV = v.daily.uv_index_max ? v.daily.uv_index_max[g] : 0;
+      var gRuzgar = v.daily.wind_speed_10m_max ? Math.round(v.daily.wind_speed_10m_max[g]) : 0;
+      var gDogus = v.daily.sunrise ? v.daily.sunrise[g].split('T')[1] : '';
+      var gBatis = v.daily.sunset ? v.daily.sunset[g].split('T')[1] : '';
+      html += '<div style="background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px 16px;">';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
       html += '<span style="font-size:28px;flex-shrink:0;">' + gBilgi.e + '</span>';
       html += '<div style="flex:1;"><div style="color:#fff;font-size:13px;font-weight:700;">' + gEtiket + '</div><div style="color:rgba(255,255,255,.60);font-size:11px;margin-top:2px;">' + gBilgi.t + '</div></div>';
       html += '<div style="text-align:right;"><div style="color:#fff;font-size:15px;font-weight:800;">' + Math.round(v.daily.temperature_2m_max[g]) + '°</div><div style="color:rgba(255,255,255,.55);font-size:12px;">' + Math.round(v.daily.temperature_2m_min[g]) + '°</div></div>';
+      html += '</div>';
+      // Alt detay satırı
+      html += '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">';
+      if(gYagisOlas > 0) html += '<span style="color:rgba(100,180,255,.85);font-size:11px;">🌧 ' + gYagisOlas + '%' + (gYagis > 0 ? ' · ' + gYagis + ' mm' : '') + '</span>';
+      if(gRuzgar > 0) html += '<span style="color:rgba(255,255,255,.55);font-size:11px;">💨 ' + gRuzgar + ' km/s</span>';
+      if(gUV > 0) html += '<span style="color:rgba(255,255,255,.55);font-size:11px;">☀️ UV ' + gUV + '</span>';
+      if(gDogus) html += '<span style="color:rgba(255,200,80,.75);font-size:11px;">🌅 ' + gDogus + '</span>';
+      if(gBatis) html += '<span style="color:rgba(255,150,50,.75);font-size:11px;">🌇 ' + gBatis + '</span>';
+      html += '</div>';
       html += '</div>';
     }
     html += '</div></div>';
@@ -262,9 +297,9 @@
   function havaDurumuGetir(lat, lon){
     var url = 'https://api.open-meteo.com/v1/forecast'
       + '?latitude=' + lat + '&longitude=' + lon
-      + '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,apparent_temperature'
-      + '&hourly=temperature_2m,weather_code'
-      + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
+      + '&current=temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m,wind_direction_10m,apparent_temperature,precipitation,surface_pressure,visibility,uv_index'
+      + '&hourly=temperature_2m,weather_code,relative_humidity_2m,precipitation_probability,wind_speed_10m,uv_index'
+      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,uv_index_max,wind_speed_10m_max,sunrise,sunset'
       + '&timezone=auto&forecast_days=7';
 
     fetch(url)
