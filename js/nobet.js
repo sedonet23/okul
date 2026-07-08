@@ -44,14 +44,27 @@ function nobetAyDegistir(delta){
 function nobetYeriEkle(){
   const ad = prompt('Yeni nöbet yeri adı (örn: Bahçe):');
   if(!ad || !ad.trim()) return;
-  NobetService.yeriEkle(ad.trim())
+  // GÜVENLİK: Aynı isimde (boşluk/büyük-küçük harf farkı olsa bile) bir nöbet
+  // yeri zaten varsa uyar — "Bahçe" ve "Okul Binası" gibi yerlerin yanlışlıkla
+  // iki kez eklenip aylık çizelgede ve gün/hafta özetlerinde ikişer kez
+  // görünmesi (birbirinden bağımsız iki ayrı sütun/atama seti) buradan
+  // kaynaklanıyordu.
+  const temizAd = ad.trim().replace(/\s+/g,' ');
+  const cakisan = nobetYerleri.find(y => (y.ad||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr') === temizAd.toLocaleLowerCase('tr'));
+  if(cakisan){
+    if(!confirm(`"${cakisan.ad}" adında bir nöbet yeri zaten var. Yine de AYRI (ikinci) bir yer olarak eklemek istediğinize emin misiniz?\n\n(Muhtemelen istediğiniz bu değil — muhtemelen mevcut "${cakisan.ad}" yerini kullanmak istiyorsunuz.)`)) return;
+  }
+  NobetService.yeriEkle(temizAd)
     .then(()=>toast('Nöbet yeri eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function nobetYeriDuzenle(id){
   const yer = nobetYerleri.find(y=>y.id===id); if(!yer) return;
   const yeniAd = prompt('Nöbet yerini yeniden adlandır:', yer.ad);
   if(!yeniAd || !yeniAd.trim() || yeniAd.trim()===yer.ad) return;
-  NobetService.yeriGuncelle(id, yeniAd.trim())
+  const temizAd = yeniAd.trim().replace(/\s+/g,' ');
+  const cakisan = nobetYerleri.find(y => y.id!==id && (y.ad||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr') === temizAd.toLocaleLowerCase('tr'));
+  if(cakisan && !confirm(`"${cakisan.ad}" adında başka bir nöbet yeri zaten var. Yine de bu ismi kullanmak istediğinize emin misiniz?`)) return;
+  NobetService.yeriGuncelle(id, temizAd)
     .then(()=>toast('Nöbet yeri güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 async function nobetYeriSil(id){
