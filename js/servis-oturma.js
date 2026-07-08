@@ -255,6 +255,9 @@ function _soRenderArac(servisId) {
   </div>`;
   if (servislerData?.plaka) html += `<div class="sye-plaka">${escapeHtml(servislerData.plaka)}</div>`;
   html += `<div class="sye-koltuk-bolum">`;
+  if (sablon === 'ozel' && !elements.length) {
+    html += `<div class="sye-ozel-bos">🛠️ Şasi boş.<br>Aşağıdaki butonlarla sıra ekleyerek başlayın.</div>`;
+  }
 
   siralar.forEach(siraIdx => {
     const yuvalar = siraMap[siraIdx];
@@ -313,10 +316,10 @@ function _soRenderArac(servisId) {
   html += `<div class="sye-arka-tampon"></div>`;
   html += `</div>`; // sye-govde
   html += `</div>`; // sye-arac
-  html += _soDuzenlemeAcik ? '' : `<div class="sye-sira-ekle-ana">
+  html += _soDuzenlemeAcik ? '' : (sablon === 'ozel' ? _sozelBuilderHtml(servisId) : `<div class="sye-sira-ekle-ana">
     <button class="btn btn-ghost btn-sm" onclick="soSiraEkle('${servisId}','${sablon}')">➕ Sıra Ekle</button>
     <button class="btn btn-ghost btn-sm sye-sira-sil-btn" onclick="soSiraSil('${servisId}','${sablon}')">➖ Sıra Sil</button>
-  </div>`;
+  </div>`);
 
   hedef.innerHTML = html;
 
@@ -549,6 +552,91 @@ function _soEditTakasUygula(idA, idB, servisId, sablon) {
   _soEditBuffer = yeni;
   _soRenderArac(servisId);
   toast(`${a.seatNumber}. ↔ ${b.seatNumber}. koltuk yer değiştirdi.`);
+}
+
+/* ================================================================
+   FAZ 3 — MANUEL ŞASİ OLUŞTURUCU ("Özel Tasarım" şablonu)
+   Sıfırdan araç: kullanıcı istediği tipte sıraları alt alta ekleyerek
+   şasiyi kurar. Mevcut "elements" render/rapor motorunu DEĞİŞTİRMEDEN
+   kullanır — sadece eski {sira,konum,kapiSag,soforYani} yerleşim
+   şeklinde satır üretip _soYerlesimKoltuklariElementeCevir ile
+   elements'e çevirir (tüm şablonların kullandığı aynı dönüştürücü).
+   ================================================================ */
+function _sozelBuilderHtml(servisId) {
+  const btn = (tip, ikon, etiket) =>
+    `<button class="sye-tool-btn" onclick="sozelSiraEkle('${servisId}','${tip}')">
+      <span class="sye-tool-ikon">${ikon}</span>${etiket}</button>`;
+  return `<div class="sye-ozel-olusturucu">
+    <div class="sye-ozel-baslik">🛠️ Şasi Oluşturucu — sıra ekleyerek araç şeklini kur</div>
+    <div class="sye-toolbar sye-ozel-toolbar">
+      ${btn('sofor', '🧑‍✈️', 'Şoför Sırası')}
+      ${btn('tekli', '🪑', 'Tekli Koltuk')}
+      ${btn('ikili', '🪑🪑', 'İkili Koltuk')}
+      ${btn('uclu21', '🪑🪑🪑', '2+1 Sıra')}
+      ${btn('dortlu22', '🪑🪑🪑🪑', '2+2 Sıra')}
+      ${btn('kapi', '🚪', 'Kapı Sırası')}
+      ${btn('arka4', '🛋️', 'Arka Sıra (4\'lü)')}
+      <div class="sye-tool-ayirici"></div>
+      <button class="sye-tool-btn" onclick="sozelSonSiraSil('${servisId}')"><span class="sye-tool-ikon">↩</span>Son Sırayı Sil</button>
+      <button class="sye-tool-btn" onclick="sozelTumunuSil('${servisId}')"><span class="sye-tool-ikon">🗑️</span>Şasiyi Sıfırla</button>
+    </div>
+  </div>`;
+}
+
+/* Yeni bir sıra ekler — eski {sira,konum,...} yerleşim biçiminde üretir,
+   mevcut dönüştürücüyle elements'e çevirip kaydeder. */
+function sozelSiraEkle(servisId, tip) {
+  const mevcut   = servisOturmaPlani.find(p => p.servisId === servisId);
+  const yerlesim = mevcut?.yerlesim ? [...mevcut.yerlesim] : [];
+  const yeniSira = yerlesim.length ? Math.max(...yerlesim.map(y => y.sira)) + 1 : 0;
+
+  const satirlar = {
+    sofor:    [{ sira: yeniSira, konum: 'sol-dis', soforYani: true, aktif: true }],
+    tekli:    [{ sira: yeniSira, konum: 'sol-dis', aktif: true }],
+    ikili:    [{ sira: yeniSira, konum: 'sol-dis', aktif: true }, { sira: yeniSira, konum: 'sol-ic', aktif: true }],
+    uclu21:   [{ sira: yeniSira, konum: 'sol-dis', aktif: true }, { sira: yeniSira, konum: 'sol-ic', aktif: true }, { sira: yeniSira, konum: 'sag-dis', aktif: true }],
+    dortlu22: [{ sira: yeniSira, konum: 'sol-dis', aktif: true }, { sira: yeniSira, konum: 'sol-ic', aktif: true }, { sira: yeniSira, konum: 'sag-ic', aktif: true }, { sira: yeniSira, konum: 'sag-dis', aktif: true }],
+    kapi:     [{ sira: yeniSira, konum: 'sol-dis', kapiSag: true, aktif: true }, { sira: yeniSira, konum: 'sol-ic', kapiSag: true, aktif: true }],
+    arka4:    [0, 1, 2, 3].map(() => ({ sira: yeniSira, konum: 'arka', aktif: true })),
+  }[tip];
+  if (!satirlar) return;
+
+  const yeniYerlesim = [...yerlesim, ...satirlar];
+  const elements = _soYerlesimKoltuklariElementeCevir(yeniYerlesim, mevcut?.koltuklar || []);
+  _soPlanKaydetElements(servisId, 'ozel', elements, false)
+    .then(() => toast('Sıra eklendi.'))
+    .catch(err => { if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
+}
+
+/* En son eklenen sırayı (en yüksek "sira" indeksi) tamamen kaldırır. */
+function sozelSonSiraSil(servisId) {
+  const mevcut   = servisOturmaPlani.find(p => p.servisId === servisId);
+  const yerlesim = mevcut?.yerlesim ? [...mevcut.yerlesim] : [];
+  if (!yerlesim.length) { toast('Silinecek sıra yok.'); return; }
+
+  const sonSira = Math.max(...yerlesim.map(y => y.sira));
+  const silinecekYuvalar = yerlesim.map((y, idx) => ({ ...y, no: idx + 1 })).filter(y => y.sira === sonSira);
+  const atamaliVar = silinecekYuvalar.some(y => {
+    const k = (mevcut?.koltuklar || []).find(k => k.no === y.no);
+    return k && (k.ogrenciId || k.ogrenciAdi || k.rezerve);
+  });
+  if (atamaliVar && !confirm('Son sırada atanmış koltuk var. Silmek atamaları da kaldırır. Devam?')) return;
+
+  const yeniYerlesim   = yerlesim.filter(y => y.sira !== sonSira);
+  const silinecekNolar = new Set(silinecekYuvalar.map(y => y.no));
+  const koltuklar      = (mevcut?.koltuklar || []).filter(k => !silinecekNolar.has(k.no));
+  const elements = _soYerlesimKoltuklariElementeCevir(yeniYerlesim, koltuklar);
+  _soPlanKaydetElements(servisId, 'ozel', elements, false)
+    .then(() => toast('Son sıra silindi.'))
+    .catch(err => { if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
+}
+
+/* Tüm şasiyi sıfırlar (boş elements). */
+function sozelTumunuSil(servisId) {
+  if (!confirm('Tüm şasi ve atamalar silinecek, sıfırdan başlayacaksınız. Emin misiniz?')) return;
+  _soPlanKaydetElements(servisId, 'ozel', [], false)
+    .then(() => toast('Şasi sıfırlandı.'))
+    .catch(err => { if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
 }
 
 /* ================================================================
