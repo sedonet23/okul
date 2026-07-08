@@ -60,10 +60,19 @@ async function widgetGuncelle() {
       ? (typeof tatilModuNotuOlustur === 'function' ? tatilModuNotuOlustur(dersSaatleriAyarlari) : null) || 'Okul tatilde'
       : null;
 
-    // --- Sayfa 1: Etkinlikler (bugünün ders programı) ---
+    // --- Sayfa 1: Etkinlikler (bugünün ders programı, tatilde ajandadaki yaklaşan görevler) ---
     let etkinlikler = [];
     if (tatilModu) {
-      etkinlikler = [{ emoji: '🏖️', saat: '', baslik: tatilNotu }];
+      const _hatirlaticilar = (typeof hatirlaticilar !== 'undefined') ? hatirlaticilar : [];
+      const yaklasanlar = _hatirlaticilar
+        .filter(h => !h.tamamlandi && h.tarih && h.tarih >= bugunISO)
+        .sort((a, b) => (a.tarih + (a.saat || '')).localeCompare(b.tarih + (b.saat || '')))
+        .slice(0, 4)
+        .map(h => {
+          const tarihKisa = h.tarih ? new Date(h.tarih + 'T00:00:00').toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' }) : '';
+          return { emoji: '🗓️', saat: h.saat || tarihKisa, baslik: h.baslik || '(Başlıksız)' };
+        });
+      etkinlikler = yaklasanlar.length ? yaklasanlar : [{ emoji: '🏖️', saat: '', baslik: tatilNotu }];
     } else {
       const _dersProgrami = (typeof dersProgrami !== 'undefined') ? dersProgrami : [];
       etkinlikler = _dersProgrami
