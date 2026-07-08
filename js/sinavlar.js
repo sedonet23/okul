@@ -494,39 +494,27 @@ function sinavRaporYazdir() {
   `).join('');
 
   const metaParcalar = [tarih].filter(Boolean);
+  const toplamKayit = sinavlar.filter(s=>{const ss=(s.siniflar||s.sinif||'').split(',').map(x=>x.trim());return ss.some(sn=>seciliSiniflar.includes(sn));}).length;
 
-  const html = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8">
-<title>${baslik||'Yazılı Sınav Takvimi'}</title>
-<style>
-  @page{size:A4 ${yon};margin:1.2cm;}
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#111;}
-  .header{text-align:center;margin-bottom:14px;border-bottom:2px solid #333;padding-bottom:10px;}
-  .header .okul{font-size:15px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
-  .header .baslik{font-size:13px;font-weight:600;margin-top:5px;}
-  .header .meta{font-size:10px;color:#666;margin-top:4px;}
-  table{width:100%;border-collapse:collapse;margin-top:4px;}
-  th{background:#e8f0f7;color:#1a2e44;padding:5px 6px;text-align:left;font-size:10px;font-weight:700;white-space:nowrap;border:1px solid #b8cfe0;}
-  td{padding:4px 6px;border:1px solid #ddd;vertical-align:top;}
-  tr:nth-child(even) td{background:#f7f9fc;}
-  .toplam{margin-top:8px;font-size:10px;color:#444;text-align:right;}
-  @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-</style></head><body>
-<div class="header">
-  ${okulAdi?`<div class="okul">${okulAdi}</div>`:''}
-  ${baslik?`<div class="baslik">${baslik}</div>`:''}
-  ${metaParcalar.length?`<div class="meta">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>`:''}
-</div>
-<table>
-  <thead><tr>${thHTML}</tr></thead>
-  <tbody>${tabloHTML}</tbody>
-</table>
-<div class="toplam">Toplam: ${sinavlar.filter(s=>{const ss=(s.siniflar||s.sinif||'').split(',').map(x=>x.trim());return ss.some(sn=>seciliSiniflar.includes(sn));}).length} kayıt</div>
-</body></html>`;
+  // İçerik (tablo) — sayfa kabuğu/logo/başlık/yazdır-paylaş araç çubuğunu
+  // _raporPenceresiniAc kendi üretir, burada sadece gövde HTML'i gerekir.
+  const icerikHtml = `
+    ${metaParcalar.length ? `<div style="font-size:10px;color:#666;margin-bottom:8px;">${metaParcalar.join(' &nbsp;·&nbsp; ')}</div>` : ''}
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>${thHTML}</tr></thead>
+      <tbody>${tabloHTML}</tbody>
+    </table>
+    <div style="margin-top:8px;font-size:10px;color:#444;text-align:right;">Toplam: ${toplamKayit} kayıt</div>`;
 
   modalKapat();
-  const w = window.open('','_blank','width=900,height=700');
-  w.document.write(html);
-  w.document.close();
-  w.onload = ()=>{ w.focus(); w.print(); };
+  // DÜZELTME: eskiden window.open('','_blank')+document.write+window.print()
+  // kullanılıyordu — bu yöntem Android WebView'de (Capacitor) çalışmıyor,
+  // "Rapor" hiçbir şey yapmıyormuş gibi görünüyordu. Uygulamadaki diğer tüm
+  // raporların kullandığı, hem web hem native (APK) ortamda kanıtlanmış
+  // şekilde çalışan ortak fonksiyona geçirildi (bkz. js/raporlama.js).
+  if (typeof _raporPenceresiniAc === 'function') {
+    _raporPenceresiniAc(icerikHtml, baslik || 'Yazılı Sınav Takvimi', { yon: yon === 'landscape' ? 'yatay' : 'dikey' });
+  } else {
+    toast('Rapor penceresi açılamadı.');
+  }
 }
