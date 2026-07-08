@@ -985,7 +985,7 @@ function soRaporGovdeHtml(servis, plan) {
   const sabitMM    = 12 + 4;
   const koltukH    = kullH_max - sabitMM;
   const n          = toplamSira;
-  const katsayi_h  = 2.1 + (n - 2) + 1.3 + (n - 1) * 0.1;
+  const katsayi_h  = 3.1 + (n - 2) + 1.3 + (n - 1) * 0.1;
   const K_h        = koltukH / katsayi_h;
 
   const K    = Math.max(4, Math.min(K_w, K_h));
@@ -998,10 +998,10 @@ function soRaporGovdeHtml(servis, plan) {
 
   const fontAdPt    = Math.max(5, Math.min(8, K * 0.38));
   const fontSinifPt = Math.max(4, Math.min(6, K * 0.28));
-  const fontSoforPt = Math.max(6, Math.min(9, K * 0.42));
+  const fontSoforPt = Math.max(9, Math.min(14, K * 0.55));
   const fontBadgePt = Math.max(3.5, Math.min(5.5, K * 0.22));
-  const soforIkonMM = Math.max(7, K * 0.55);
-  const soforSiraH  = K * 2.0;
+  const soforIkonMM = Math.max(11, K * 0.75);
+  const soforSiraH  = K * 3.0;
   const borderRmm   = K * 0.12;
   const kolcakW     = K * 0.07;
 
