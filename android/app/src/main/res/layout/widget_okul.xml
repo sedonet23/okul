@@ -21,9 +21,12 @@
 
     <!--
       4 sayfa burada ÜST ÜSTE (FrameLayout) durur, aynı anda sadece biri
-      "visible" olur, diğerleri "gone". Sayfa değişimi KAYDIRMA ile değil
-      DOKUNMA ile olur (bkz. OkulWidget.java) — bu yöntem StackView'dan
-      farklı olarak MIUI/Xiaomi dahil TÜM launcher'larda güvenilir çalışır.
+      "visible" olur, diğerleri "gone". Her sayfanın kök layout'u KENDİ
+      benzersiz id'sini taşıyor (root_etkinlikler / root_notlar / root_nobet /
+      root_haberler) — <include android:id=...> ile id override etmeye
+      GÜVENİLMİYOR çünkü bazı launcher'larda (MIUI) RemoteViews inflate
+      sırasında bu override güvenilir çalışmayıp widget'ın tamamen
+      yüklenememesine ("Araç yüklenemiyor") sebep olabiliyor.
     -->
     <FrameLayout
         android:id="@+id/widget_sayfa_alani"
@@ -31,21 +34,10 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <include
-            android:id="@+id/wrap_etkinlikler"
-            layout="@layout/widget_page_etkinlikler" />
-
-        <include
-            android:id="@+id/wrap_notlar"
-            layout="@layout/widget_page_notlar" />
-
-        <include
-            android:id="@+id/wrap_nobet"
-            layout="@layout/widget_page_nobet" />
-
-        <include
-            android:id="@+id/wrap_haberler"
-            layout="@layout/widget_page_haberler" />
+        <include layout="@layout/widget_page_etkinlikler" />
+        <include layout="@layout/widget_page_notlar" />
+        <include layout="@layout/widget_page_nobet" />
+        <include layout="@layout/widget_page_haberler" />
     </FrameLayout>
 
 </LinearLayout>
