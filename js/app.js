@@ -810,6 +810,8 @@ function hatirlaticiFiltreSec(f){
   renderHatirlaticilar();
 }
 function renderHatirlaticilar(){
+  const hedef = document.getElementById('hatirlaticiListesi');
+  if(!hedef) return; // Hatırlatıcılar sekmesi Takvim moduluyle değiştirildi — eski konteyner artık yok
   let liste = [...hatirlaticilar];
   if(hatirlaticiFiltre==='bekleyen') liste = liste.filter(h=>!h.tamamlandi);
   if(hatirlaticiFiltre==='tamamlanan') liste = liste.filter(h=>h.tamamlandi);
@@ -859,6 +861,7 @@ function hatirlaticiModalAc(id){
 /* ============== GÖREVLER ============== */
 function renderGorevler(){
   const kolonlar = { yapilacak: document.getElementById('kolonYapilacak'), yapiliyor: document.getElementById('kolonYapiliyor'), tamamlandi: document.getElementById('kolonTamamlandi') };
+  if(!kolonlar.yapilacak || !kolonlar.yapiliyor || !kolonlar.tamamlandi) return; // Görevler sekmesi Takvim moduluyle değiştirildi — eski kolonlar artık yok
   Object.values(kolonlar).forEach(k=>k.innerHTML='');
   const sayac = { yapilacak:0, yapiliyor:0, tamamlandi:0 };
   const bugun = todayISO();
