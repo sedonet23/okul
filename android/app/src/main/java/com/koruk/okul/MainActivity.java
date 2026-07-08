@@ -4,13 +4,13 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.webkit.WebView;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+// (androidx SwipeRefreshLayout artık kullanılmıyor — bkz. LogoSwipeRefreshLayout)
 import com.getcapacitor.BridgeActivity;
 import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 public class MainActivity extends BridgeActivity {
 
-    private SwipeRefreshLayout swipeRefresh;
+    private LogoSwipeRefreshLayout swipeRefresh;
     private long sonGeriTusuZamani = 0;
 
     @Override
@@ -84,7 +84,7 @@ public class MainActivity extends BridgeActivity {
     /* JS tarafından (bkz. PullToRefreshPlugin) modal/detay paneli açıkken
        yenileme jestini geçici olarak kapatmak/açmak için çağrılır. */
     public void setPullToRefreshEnabled(boolean enabled) {
-        if (swipeRefresh != null) swipeRefresh.setEnabled(enabled);
+        if (swipeRefresh != null) swipeRefresh.setPullEnabled(enabled);
     }
 
     private void setupPullToRefresh() {
@@ -92,52 +92,29 @@ public class MainActivity extends BridgeActivity {
         android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
         if (parent == null) return;
 
-        // ÖNEMLİ: Standart SwipeRefreshLayout, sayfanın en üstte olup
-        // olmadığını Android'in genel View kaydırma sistemine göre
-        // (canScrollVertically) kontrol eder. WebView'in kendi iç kaydırma
-        // durumu bu genel sistemle her zaman senkron olmuyor — bu yüzden
-        // sayfa ortasındayken bile "en üstteyim" sanıp yenileme jestini
-        // tetikliyor, kullanıcı yukarı kaydıramıyor. Bunun yerine
-        // WebView'in GERÇEK scrollY değerini doğrudan okuyan özel bir
-        // SwipeRefreshLayout kullanıyoruz.
-        swipeRefresh = new WebViewAwareSwipeRefreshLayout(this, webView);
-        swipeRefresh.setColorSchemeColors(0xFF0A6E6E, 0xFF1A9E9E);
-
         int index = parent.indexOfChild(webView);
-        parent.removeView(webView);
+        parent.removeView(webView); // ÖNEMLİ: yeni konteynerin constructor'ı webView'i kendine
+                                     // ekliyor (addView) — önce eski parent'tan çıkarılmalı,
+                                     // aksi halde "child already has a parent" hatası oluşur.
+
+        // ÖNEMLİ: LogoSwipeRefreshLayout, WebView'in GERÇEK scrollY
+        // değerini doğrudan okuyarak "en üstteyim" kararını verir — bkz.
+        // LogoSwipeRefreshLayout.canChildScrollUp() içindeki gerekçe
+        // (Android'in genel View kaydırma sistemi WebView'in iç durumuyla
+        // her zaman senkron olmuyor).
+        swipeRefresh = new LogoSwipeRefreshLayout(this, webView);
 
         android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.MATCH_PARENT
         );
         swipeRefresh.setLayoutParams(lp);
-        swipeRefresh.addView(webView);
         parent.addView(swipeRefresh, index);
 
         swipeRefresh.setOnRefreshListener(() -> {
             webView.reload();
             swipeRefresh.setRefreshing(false);
         });
-    }
-
-    /* WebView'in scrollY'sini doğrudan kontrol eden SwipeRefreshLayout —
-       "sayfa ortasındayken yenileme tetiklenmesin" sorununu çözer. */
-    private static class WebViewAwareSwipeRefreshLayout extends SwipeRefreshLayout {
-        private final WebView izlenenWebView;
-
-        WebViewAwareSwipeRefreshLayout(android.content.Context context, WebView webView) {
-            super(context);
-            this.izlenenWebView = webView;
-        }
-
-        @Override
-        public boolean canChildScrollUp() {
-            if (izlenenWebView == null) return super.canChildScrollUp();
-            // WebView en üstteyken (scrollY <= 0) yenileme jestine izin ver;
-            // aksi halde (sayfanın herhangi bir yerindeyken) WebView'in
-            // kendi kaydırmasına bırak, yenileme tetiklenmesin.
-            return izlenenWebView.getScrollY() > 0;
-        }
     }
 
     @Override
