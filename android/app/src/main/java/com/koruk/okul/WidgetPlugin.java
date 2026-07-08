@@ -12,21 +12,26 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * WidgetPlugin – JavaScript'ten native widget'a veri köprüsü.
  * Kullanım (JS tarafı):
  *   import { WidgetPlugin } from './widget-plugin';
- *   WidgetPlugin.guncelle({ okul, tarih, nobet, ders, belge, zil });
+ *   WidgetPlugin.sayfalariGuncelle({ okul, etkinlikJson, notJson, nobetJson, haberJson,
+ *                                     havaIkon, havaSicaklik, havaAciklama });
  */
 @CapacitorPlugin(name = "WidgetPlugin")
 public class WidgetPlugin extends Plugin {
 
+    /** Ana ekran widget'ının 4 sayfasını (Etkinlikler/Notlarım/Nöbetçiler/Haberler) günceller. */
     @PluginMethod
-    public void guncelle(PluginCall call) {
-        String okul  = call.getString("okul",  "");
-        String tarih = call.getString("tarih", "");
-        String nobet = call.getString("nobet", "");
-        String ders  = call.getString("ders",  "");
-        String belge = call.getString("belge", "");
-        String zil   = call.getString("zil",   "");
+    public void sayfalariGuncelle(PluginCall call) {
+        String okul         = call.getString("okul", "");
+        String etkinlikJson = call.getString("etkinlikJson", "[]");
+        String notJson      = call.getString("notJson", "[]");
+        String nobetJson    = call.getString("nobetJson", "[]");
+        String haberJson    = call.getString("haberJson", "[]");
+        String havaIkon     = call.getString("havaIkon", "⛅");
+        String havaSicaklik = call.getString("havaSicaklik", "--°");
+        String havaAciklama = call.getString("havaAciklama", "—");
 
-        OkulWidget.veriGuncelle(getContext(), okul, tarih, nobet, ders, belge, zil);
+        OkulWidget.sayfalariGuncelle(getContext(), okul, etkinlikJson, notJson,
+                nobetJson, haberJson, havaIkon, havaSicaklik, havaAciklama);
         call.resolve();
     }
 
@@ -35,12 +40,11 @@ public class WidgetPlugin extends Plugin {
         android.content.SharedPreferences p = getContext()
             .getSharedPreferences(OkulWidget.PREFS_NAME, android.content.Context.MODE_PRIVATE);
         JSObject ret = new JSObject();
-        ret.put("okul",  p.getString(OkulWidget.KEY_OKUL,  ""));
-        ret.put("tarih", p.getString(OkulWidget.KEY_TARIH, ""));
-        ret.put("nobet", p.getString(OkulWidget.KEY_NOBET, ""));
-        ret.put("ders",  p.getString(OkulWidget.KEY_DERS,  ""));
-        ret.put("belge", p.getString(OkulWidget.KEY_BELGE, ""));
-        ret.put("zil",   p.getString(OkulWidget.KEY_ZIL,   ""));
+        ret.put("okul",         p.getString(OkulWidget.KEY_OKUL, ""));
+        ret.put("etkinlikJson", p.getString(OkulWidget.KEY_ETKINLIK_JSON, "[]"));
+        ret.put("notJson",      p.getString(OkulWidget.KEY_NOT_JSON, "[]"));
+        ret.put("nobetJson",    p.getString(OkulWidget.KEY_NOBET_JSON, "[]"));
+        ret.put("haberJson",    p.getString(OkulWidget.KEY_HABER_JSON, "[]"));
         call.resolve(ret);
     }
 
