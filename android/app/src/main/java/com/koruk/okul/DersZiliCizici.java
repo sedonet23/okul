@@ -109,6 +109,14 @@ public class DersZiliCizici {
         JSONArray zamanListesi = veri.optJSONArray("zaman");
         boolean genisMod = (zamanListesi == null);
 
+        // Genis modda (tatil vb.) halkanin altina yazilacak aciklama satiri var mi?
+        // Halka boyutunu hesaplamadan ONCE bunu bilmemiz lazim, yoksa halka tum
+        // alani kaplayip bu yaziyi widget'in disina itiyor (kirpiliyor).
+        String altNot = veri.optString("altNot", null);
+        boolean altNotVar = genisMod && altNot != null && !altNot.isEmpty() && !"null".equals(altNot);
+        // ~2 satira kadar sarabilen bir yazi icin guvenli pay (yazi boyutu + araBosluk).
+        float altNotRezerve = altNotVar ? 38 * yogunluk : 0f;
+
         // ---------- Sol taraf: "Bir Sonraki Zil" + halka ----------
         float solGenislik = genisMod ? iw : iw * 0.46f;
         float solMerkezX = ix + solGenislik / 2f;
@@ -124,7 +132,8 @@ public class DersZiliCizici {
 
         // Halka artik neredeyse tum dikey/yatay alani kapliyor (onceki surumde
         // kenar paylari cok fazlaydi, bu yuzden "buyume olmadi" hissi veriyordu).
-        float halkaBoyut = Math.min(solGenislik - 2 * yogunluk, govdeH - 14 * yogunluk);
+        // altNotRezerve, alttaki aciklama satirinin kirpilmemesi icin ayrilan pay.
+        float halkaBoyut = Math.min(solGenislik - 2 * yogunluk, govdeH - 14 * yogunluk - altNotRezerve);
         halkaBoyut = Math.max(halkaBoyut, genisMod ? 100 * yogunluk : 82 * yogunluk);
         float halkaCx = solMerkezX;
         float halkaCy = altBaslikY + 6 * yogunluk + halkaBoyut / 2f;
@@ -249,13 +258,14 @@ public class DersZiliCizici {
         }
 
         // Genis modda (tatil vb.) halkanin altina ek bir aciklama satiri (orn. tam tarih)
-        String altNot = veri.optString("altNot", null);
-        if (genisMod && altNot != null && !altNot.isEmpty() && !"null".equals(altNot)) {
+        if (altNotVar) {
             Paint altNotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             altNotPaint.setColor(Color.parseColor("#9DB3AD"));
             altNotPaint.setTextSize(10.5f * yogunluk);
             altNotPaint.setTextAlign(Paint.Align.CENTER);
             float altNotY = halkaCy + halkaR + 24 * yogunluk;
+            // Guvenlik siniri: cok kucuk/kisa widget'larda dahi yazi alt kenardan tasmasin.
+            altNotY = Math.min(altNotY, icKutu.bottom - 14 * yogunluk);
             drawSarilmisMetin(c, altNot, halkaCx, altNotY, solGenislik - 24 * yogunluk, altNotPaint, 13 * yogunluk);
         }
 
