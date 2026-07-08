@@ -1,52 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<!-- ============================================================
-     GEÇİCİ HATA YAKALAYICI — konsola erişim olmadan JS hatalarını
-     ekranda göstermek için. Sorun çözülünce bu bloğu kaldırabilirsin.
-     ============================================================ -->
-<script>
-(function(){
-  var kutu = null, sayac = 0;
-  function kutuOlustur(){
-    if (kutu) return kutu;
-    kutu = document.createElement('div');
-    kutu.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:999999;max-height:60vh;overflow:auto;'
-      + 'background:#7f1d1d;color:#fff;font:12px/1.4 monospace;padding:10px;box-shadow:0 -4px 14px rgba(0,0,0,.4);';
-    var baslik = document.createElement('div');
-    baslik.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:bold;';
-    baslik.innerHTML = '<span>⚠️ JS Hataları (dokununca kopyalanır)</span>';
-    var kapatBtn = document.createElement('button');
-    kapatBtn.textContent = '✕ Kapat';
-    kapatBtn.style.cssText = 'background:#fff;color:#7f1d1d;border:none;border-radius:6px;padding:4px 10px;font-weight:bold;';
-    kapatBtn.onclick = function(){ kutu.remove(); kutu = null; };
-    baslik.appendChild(kapatBtn);
-    kutu.appendChild(baslik);
-    document.body.appendChild(kutu);
-    return kutu;
-  }
-  function goster(metin){
-    sayac++;
-    var k = kutuOlustur();
-    var satir = document.createElement('div');
-    satir.style.cssText = 'border-top:1px solid rgba(255,255,255,.25);padding:6px 0;white-space:pre-wrap;word-break:break-all;';
-    satir.textContent = '#' + sayac + ' — ' + metin;
-    satir.onclick = function(){
-      if (navigator.clipboard) navigator.clipboard.writeText(metin).then(function(){ satir.style.background = 'rgba(255,255,255,.15)'; });
-    };
-    k.appendChild(satir);
-  }
-  window.addEventListener('error', function(e){
-    var msg = e.message || 'Bilinmeyen hata';
-    var kaynak = (e.filename || '') + ':' + (e.lineno || '?') + ':' + (e.colno || '?');
-    goster(msg + '\n   ' + kaynak);
-  });
-  window.addEventListener('unhandledrejection', function(e){
-    var r = e.reason;
-    goster('Promise hatası: ' + (r && r.message ? r.message : String(r)) + (r && r.stack ? ('\n   ' + r.stack.split('\n')[1]) : ''));
-  });
-})();
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Koruk İlk-Ortaokulu Yönetim Paneli</title>
