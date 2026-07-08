@@ -382,6 +382,15 @@
     prevBtn.onclick = () => { _ay--; if (_ay < 0) { _ay = 11; _yil--; } yazFrame(); };
     nextBtn.onclick = () => { _ay++; if (_ay > 11) { _ay = 0; _yil++; } yazFrame(); };
     printBtn.onclick = () => {
+      // DÜZELTME: diğer modüllerdeki (dilekçe, tebliğ-tebellüğ, kriter dağıtım)
+      // gibi native kontrolü hiç yoktu — Android'de (Capacitor WebView)
+      // window.print() desteklenmediği için buton sessizce hiçbir şey
+      // yapmıyordu. Native köprü varsa önce onu kullan, yoksa (web) eski
+      // davranışa (iframe.print()) devam et.
+      if (typeof uygulamaHtmlYazdir === 'function') {
+        uygulamaHtmlYazdir(_sayfaHtml(), `Tasima_Takip_${AY_ISIMLERI[_ay]}_${_yil}`, 'dikey');
+        return;
+      }
       const fr = ov.querySelector('#ttFrame');
       fr.contentWindow.focus();
       fr.contentWindow.print();
