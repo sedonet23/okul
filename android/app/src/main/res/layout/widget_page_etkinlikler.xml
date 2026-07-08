@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/page_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <include layout="@layout/widget_page_header" />
+
+    <!-- Haftalık takvim satırı (bugünün haftası, sadece görüntüleme) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp">
+
+        <!-- Gün 0 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal0_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal0_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 1 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal1_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal1_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 2 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal2_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal2_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 3 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal3_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal3_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 4 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal4_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal4_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 5 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal5_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal5_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+        <!-- Gün 6 -->
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+            <TextView android:id="@+id/cal6_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
+            <TextView android:id="@+id/cal6_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Etkinlik listesi + Saat/Hava kartı -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/etkinlik_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical" />
+
+        <LinearLayout
+            android:layout_width="86dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:background="@drawable/widget_info_card_bg"
+            android:padding="8dp">
+
+            <TextClock
+                android:id="@+id/widget_clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="HH:mm"
+                android:format24Hour="HH:mm"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextClock
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="d MMM"
+                android:format24Hour="d MMM"
+                android:textColor="#CCFFFFFF"
+                android:textSize="9sp"
+                android:layout_marginBottom="6dp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#26FFFFFF"
+                android:layout_marginBottom="6dp" />
+
+            <TextView
+                android:id="@+id/weather_icon"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:text="⛅" />
+
+            <TextView
+                android:id="@+id/weather_temp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:text="--°" />
+
+            <TextView
+                android:id="@+id/weather_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#B8FFFFFF"
+                android:textSize="8sp"
+                android:text="—" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

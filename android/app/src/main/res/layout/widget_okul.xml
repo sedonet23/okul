@@ -5,123 +5,26 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="8dp">
 
-    <!-- Başlık: Okul adı + tarih -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingBottom="4dp">
-
-        <TextView
-            android:id="@+id/widget_okul_adi"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Okul Yönetim Paneli"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
-
-        <TextView
-            android:id="@+id/widget_tarih"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="&#8212;"
-            android:textColor="#CCE8E8"
-            android:textSize="9sp" />
-    </LinearLayout>
-
-    <!-- Nöbet -->
+    <!-- Okul adı - tüm sayfalarda sabit üst şerit -->
     <TextView
+        android:id="@+id/widget_okul_adi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="&#128737; BUGÜN NÖBET"
-        android:textColor="#ABDEDE"
-        android:textSize="8sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_nobet_icerik"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Nöbet verisi yok."
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:paddingBottom="3dp" />
-
-    <!-- Zil -->
-    <TextView
-        android:id="@+id/widget_zil_icerik"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&#128276; &#8212;"
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
+        android:text="Okul Yönetim Paneli"
+        android:textColor="#CCE8E8"
+        android:textSize="9sp"
         android:maxLines="1"
         android:ellipsize="end"
-        android:paddingBottom="3dp" />
+        android:paddingBottom="4dp" />
 
-    <!-- Bugünkü Dersler — kalan tüm alanı doldurur -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&#128197; BUGÜN DERSLER"
-        android:textColor="#ABDEDE"
-        android:textSize="8sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_ders_icerik"
+    <!-- Kaydırmalı sayfa yığını: Etkinlikler / Notlarım / Nöbetçiler / Haberler -->
+    <StackView
+        android:id="@+id/widget_stack"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:text="Ders programı yok."
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
-        android:maxLines="20"
-        android:ellipsize="end"
-        android:gravity="top"
-        android:paddingBottom="3dp" />
-
-    <!-- Yaklaşan Belgeler -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&#128203; YAKLAŞAN BELGELER"
-        android:textColor="#ABDEDE"
-        android:textSize="8sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/widget_belge_icerik"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&#8212;"
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:paddingBottom="6dp" />
-
-    <!-- Not Ekle butonu — her zaman en altta -->
-    <TextView
-        android:id="@+id/widget_not_btn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&#9999;&#65039;  Not Ekle"
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:background="#33FFFFFF"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp" />
+        android:loopViews="true" />
 
 </LinearLayout>
