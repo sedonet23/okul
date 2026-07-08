@@ -330,6 +330,7 @@ function tasimaBaglantilariKur(){
     if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
     if(typeof globalAramaYap === 'function') globalAramaYap();
     if(typeof onbellekKaydet === 'function') onbellekKaydet();
+    if(document.getElementById('oturmaServislerListesi') && typeof renderOturmaServisler === 'function') renderOturmaServisler();
   });
 }
 
