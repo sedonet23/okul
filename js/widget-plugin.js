@@ -8,7 +8,10 @@
  *   import { hesaplaZilSayaci } from './widget-plugin.js';
  *
  *   const zil = hesaplaZilSayaci(zilListesi); // ["08:00","08:40","09:30",...]
- *   WidgetPlugin.guncelle({ okul, tarih, nobet, ders, belge, zil });
+ *   WidgetPlugin.sayfalariGuncelle({
+ *     okul, etkinlikJson, notJson, nobetJson, haberJson,
+ *     havaIkon, havaSicaklik, havaAciklama
+ *   });
  */
 
 let _plugin = null;
@@ -21,8 +24,8 @@ async function _getPlugin() {
   } catch {
     // Tarayıcıda çalışıyor, plugin yok
     _plugin = {
-      guncelle: async () => {},
-      veriAl:   async () => ({})
+      sayfalariGuncelle: async () => {},
+      veriAl:            async () => ({})
     };
   }
   return _plugin;
@@ -61,9 +64,9 @@ export function hesaplaZilSayaci(zilSaatleri) {
 }
 
 export const WidgetPlugin = {
-  async guncelle(data) {
+  async sayfalariGuncelle(data) {
     const p = await _getPlugin();
-    return p.guncelle(data);
+    return p.sayfalariGuncelle(data);
   },
   async veriAl() {
     const p = await _getPlugin();

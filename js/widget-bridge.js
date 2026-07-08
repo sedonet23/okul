@@ -37,6 +37,10 @@ function _bugunTarihStr() {
   });
 }
 
+/**
+ * Ana ekran widget'ının 4 sayfasını (Etkinlikler / Notlarım / Nöbetçiler / Haberler)
+ * ve saat/hava kartını besler. bkz. OkulWidget.java / OkulWidgetStackService.java
+ */
 async function widgetGuncelle() {
   if (!_kapasitorVarMi()) return;
 
@@ -48,101 +52,100 @@ async function widgetGuncelle() {
 
   try {
     const bugunGun = _bugunGunAdi();
-    const tarih = _bugunTarihStr();
     const bugunISO = new Date().toISOString().slice(0, 10);
 
-    // --- Tatil Modu Kontrolü ---
     const tatilModu = !!(typeof dersSaatleriAyarlari !== 'undefined' &&
                          dersSaatleriAyarlari && dersSaatleriAyarlari.tatilModu);
     const tatilNotu = tatilModu
-      ? (tatilModuNotuOlustur(dersSaatleriAyarlari) || 'Okul tatilde')
+      ? (typeof tatilModuNotuOlustur === 'function' ? tatilModuNotuOlustur(dersSaatleriAyarlari) : null) || 'Okul tatilde'
       : null;
 
-    // --- Nöbet ---
-    let nobetMetin = tatilModu ? `🏖️ ${tatilNotu}` : 'Nöbet yok';
+    // --- Sayfa 1: Etkinlikler (bugünün ders programı) ---
+    let etkinlikler = [];
+    if (tatilModu) {
+      etkinlikler = [{ emoji: '🏖️', saat: '', baslik: tatilNotu }];
+    } else {
+      const _dersProgrami = (typeof dersProgrami !== 'undefined') ? dersProgrami : [];
+      etkinlikler = _dersProgrami
+        .filter(d => d.gun === bugunGun)
+        .sort((a, b) => (a.saat || 0) - (b.saat || 0))
+        .slice(0, 4)
+        .map(d => ({ emoji: '📚', saat: `${d.saat}.`, baslik: `${d.sinif} - ${d.ders}` }));
+    }
+
+    // --- Sayfa 2: Notlarım (bana ait en güncel notlar) ---
+    let notlarListe = [];
+    if (typeof notlar !== 'undefined' && notlar.length) {
+      const benimUid = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser.uid : null;
+      notlarListe = notlar
+        .filter(n => !n.sahipUid || n.sahipUid === benimUid)
+        .sort((a, b) => (b.eklenmeTarihi || '').localeCompare(a.eklenmeTarihi || ''))
+        .slice(0, 4)
+        .map(n => ({
+          emoji: '📝',
+          baslik: n.baslik || '(Başlıksız)',
+          alt: (n.eklenmeTarihi || '').slice(0, 10)
+        }));
+    }
+
+    // --- Sayfa 3: Nöbetçiler (bugün) ---
+    let nobetciListe = [];
     const _nobetAtamalari = (typeof nobetAtamalari !== 'undefined') ? nobetAtamalari : [];
     const _nobetYerleri   = (typeof nobetYerleri   !== 'undefined') ? nobetYerleri   : [];
-    if (!tatilModu && _nobetAtamalari.length) {
-      const bugunNobetler = _nobetAtamalari.filter(n => n.tarih === bugunISO);
-      if (bugunNobetler.length) {
-        nobetMetin = bugunNobetler.map(n => {
-          const yer = _nobetYerleri.find(y => y.id === n.yerId)?.ad || '?';
-          const ogr = typeof ogretmenAdi === 'function'
-            ? ogretmenAdi(n.ogretmenId)
-            : (n.ogretmenAdSoyad || n.ogretmenId || '?');
-          return `${ogr} · ${yer}`;
-        }).join('\n');
-      }
+    if (tatilModu) {
+      nobetciListe = [{ emoji: '🏖️', ad: tatilNotu, yer: '' }];
+    } else if (_nobetAtamalari.length) {
+      nobetciListe = _nobetAtamalari
+        .filter(n => n.tarih === bugunISO)
+        .slice(0, 4)
+        .map(n => ({
+          emoji: '🧑‍🏫',
+          ad: typeof ogretmenAdi === 'function' ? ogretmenAdi(n.ogretmenId) : (n.ogretmenAdSoyad || n.ogretmenId || '?'),
+          yer: _nobetYerleri.find(y => y.id === n.yerId)?.ad || ''
+        }));
     }
 
-    // --- Bugünkü Dersler ---
-    let dersMetin = tatilModu ? `🏖️ ${tatilNotu}` : 'Ders yok';
-    const _dersProgrami = (typeof dersProgrami !== 'undefined') ? dersProgrami : [];
-    if (!tatilModu && _dersProgrami.length) {
-      const bugunDersler = _dersProgrami
-        .filter(d => d.gun === bugunGun)
-        .sort((a, b) => (a.saat || 0) - (b.saat || 0));
-      if (bugunDersler.length) {
-        dersMetin = bugunDersler.map(d => `${d.saat}. ${d.sinif} → ${d.ders}`).join('\n');
-      }
+    // --- Sayfa 4: Haberler (en güncel) ---
+    let haberlerListe = [];
+    if (typeof haberler !== 'undefined' && haberler.length) {
+      haberlerListe = [...haberler]
+        .sort((a, b) => (b.tarih || '').localeCompare(a.tarih || ''))
+        .slice(0, 4)
+        .map(h => ({
+          emoji: '📰',
+          baslik: h.baslik || 'Başlıksız',
+          alt: typeof haberZamanEtiketi === 'function' ? haberZamanEtiketi(h.tarih) : (h.tarih || '').slice(0, 10)
+        }));
     }
 
-    // --- Yaklaşan Belgeler ---
-    let belgeMetin = '—';
-    const yaklasanlar = [];
-    const limitISO = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    if (typeof sinavlar !== 'undefined' && sinavlar.length) {
-      sinavlar
-        .filter(s => s.tarih >= bugunISO && s.tarih <= limitISO)
-        .forEach(s => yaklasanlar.push(`${s.ders} (${s.siniflar || s.sinif}) · ${s.tarih}`));
+    // --- Hava durumu (window.sonHavaVerisi, bkz. hava-durumu.js) ---
+    let havaIkon = '⛅', havaSicaklik = '--°', havaAciklama = '—';
+    try {
+      const hv = (typeof window !== 'undefined') ? window.sonHavaVerisi : null;
+      if (hv && typeof window.havaKoduOku === 'function') {
+        const bilgi = window.havaKoduOku(hv.kod);
+        havaIkon = bilgi.e;
+        havaAciklama = bilgi.t;
+        havaSicaklik = `${Math.round(hv.sicaklik)}°`;
+      }
+    } catch (we) {
+      console.warn('[Widget] Hava durumu okunamadı:', we);
     }
-    if (yaklasanlar.length) belgeMetin = yaklasanlar.slice(0, 3).join('\n');
 
     // --- Okul Adı ---
     const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari?.okulAdi)
       ? okulBilgileriAyari.okulAdi : 'Okul Yönetim Paneli';
 
-    // --- Zil Sayacı ---
-    let zilMetin = tatilModu ? '' : 'Zil programı yok';
-    if (!tatilModu) try {
-      if (typeof dersSaatleriSegmentleri === 'function') {
-        const segmentler = dersSaatleriSegmentleri();
-        const simdiDk = new Date().getHours() * 60 + new Date().getMinutes();
-        const zilSaatleri = segmentler.map(s => {
-          const h = Math.floor(s.bas / 60);
-          const m = s.bas % 60;
-          return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-        });
-        if (typeof hesaplaZilSayaci === 'function') {
-          zilMetin = hesaplaZilSayaci(zilSaatleri);
-        } else {
-          for (const saat of zilSaatleri) {
-            const [h, m] = saat.split(':').map(Number);
-            const fark = (h * 60 + m) - simdiDk;
-            if (fark > 0) {
-              zilMetin = fark < 60
-                ? `Sonraki zil: ${saat} · ${fark} dk`
-                : `Sonraki zil: ${saat} · ${Math.floor(fark/60)}s ${fark%60>0?fark%60+'dk':''}`.trim();
-              break;
-            }
-          }
-          if (zilMetin === 'Zil programı yok') zilMetin = 'Dersler bitti';
-        }
-      }
-    } catch(ze) {
-      console.warn('[Widget] Zil hesap hatası:', ze);
-    }
-
-    await plugin.guncelle({
-      okul:  okulAdi,
-      tarih: tarih,
-      nobet: nobetMetin,
-      ders:  dersMetin,
-      belge: belgeMetin,
-      zil:   zilMetin
+    await plugin.sayfalariGuncelle({
+      okul: okulAdi,
+      etkinlikJson: JSON.stringify(etkinlikler),
+      notJson: JSON.stringify(notlarListe),
+      nobetJson: JSON.stringify(nobetciListe),
+      haberJson: JSON.stringify(haberlerListe),
+      havaIkon, havaSicaklik, havaAciklama
     });
 
-    console.log('[Widget] Güncellendi:', { nobet: nobetMetin, ders: dersMetin });
+    console.log('[Widget] Güncellendi:', { etkinlikler, notlarListe, nobetciListe, haberlerListe });
 
   } catch (e) {
     console.warn('[Widget] Güncellenemedi:', e);

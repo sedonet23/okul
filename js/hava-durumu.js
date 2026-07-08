@@ -275,6 +275,12 @@
       .then(function(veri){
         if(!veri || !veri.current || !veri.daily) throw new Error('Beklenmeyen yanıt biçimi');
         _sonLat = lat; _sonLon = lon; _sonVeri = veri;
+        // Ana ekran widget'ı (widget-bridge.js) bu modülün içine giremediği için
+        // son hava durumu verisini window üzerinden dışa açıyoruz.
+        window.sonHavaVerisi = {
+          kod: veri.current.weather_code,
+          sicaklik: veri.current.temperature_2m
+        };
         topbarRenderEt(veri.current.weather_code, veri.current.temperature_2m);
         kartRenderEt(veri);
       })
@@ -309,5 +315,6 @@
   konumIsteVeBaslat();
   window.havaDurumuDetayAc = havaDurumuDetayAc;
   window.konumIsteVeBaslat = konumIsteVeBaslat;
+  window.havaKoduOku = havaKoduOku; // widget-bridge.js widget'a emoji/açıklama çevirmek için kullanır
 
 })();
