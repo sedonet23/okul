@@ -1,0 +1,804 @@
+/* ============================================================================
+   SERVIS YERLEŞIM EDITÖRÜ - Material Design 3 Teması
+   ============================================================================
+   Modern, mobil-öncelikli, tamamen responsif tasarım
+   Dark mode desteği ile
+   ============================================================================ */
+
+/* ------ Root değişkenleri ------ */
+:root {
+  --soe-bg-light: #F5F7FA;
+  --soe-card-bg: #FFFFFF;
+  --soe-seat-empty: #FFFFFF;
+  --soe-seat-full: var(--green);
+  --soe-seat-selected: #FFC107;
+  --soe-seat-disabled: #EF5350;
+  --soe-seat-editing: #2196F3;
+  --soe-seat-shadow: rgba(0, 0, 0, 0.08);
+  --soe-seat-shadow-hover: rgba(0, 0, 0, 0.16);
+  --soe-corridor: #E8E8E8;
+  --soe-door-color: #757575;
+  --soe-driver-bg: #E3F2FD;
+  --soe-driver-border: #1976D2;
+  --soe-emergency-color: #F44336;
+  --soe-transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --soe-radius: 20px;
+  --soe-card-radius: 12px;
+  --soe-button-radius: 10px;
+}
+
+[data-theme="dark"] {
+  --soe-bg-light: #121212;
+  --soe-card-bg: #1E1E1E;
+  --soe-seat-empty: #2D2D2D;
+  --soe-seat-disabled: #D32F2F;
+  --soe-seat-shadow: rgba(0, 0, 0, 0.3);
+  --soe-seat-shadow-hover: rgba(0, 0, 0, 0.5);
+  --soe-corridor: #3A3A3A;
+  --soe-door-color: #BDBDBD;
+  --soe-driver-bg: #0D47A1;
+  --soe-driver-border: #64B5F6;
+  --soe-emergency-color: #F44336;
+}
+
+/* ------ Servis Yerleşim Editörü Ana Konteyner ------ */
+.soe-container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 0;
+}
+
+/* ------ Bilgi Kartı (Hero) ------ */
+.soe-info-card {
+  background: linear-gradient(135deg, var(--green) 0%, rgba(5, 56, 39, 0.8) 100%);
+  color: white;
+  border-radius: var(--soe-radius);
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(5, 56, 39, 0.16);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  animation: slideInUp 300ms ease-out;
+}
+
+[data-theme="dark"] .soe-info-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.soe-info-card-left, .soe-info-card-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.soe-info-card h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.soe-info-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soe-info-card-label {
+  font-size: 12px;
+  opacity: 0.85;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.soe-info-card-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.soe-capacity-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.soe-capacity-fill {
+  height: 100%;
+  background: #4CAF50;
+  border-radius: 4px;
+  transition: width 500ms ease-out;
+}
+
+/* ------ Araç Tipi Seçimi ------ */
+.soe-vehicle-selector {
+  background: var(--soe-card-bg);
+  border-radius: var(--soe-card-radius);
+  padding: 18px;
+  box-shadow: 0 1px 3px var(--soe-seat-shadow);
+}
+
+.soe-vehicle-selector h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.soe-vehicle-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.soe-vehicle-btn {
+  padding: 10px 16px;
+  border: 2px solid var(--border);
+  background: var(--soe-card-bg);
+  color: var(--ink);
+  border-radius: var(--soe-button-radius);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: var(--soe-transition);
+}
+
+.soe-vehicle-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.soe-vehicle-btn.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+  box-shadow: 0 4px 12px rgba(5, 56, 39, 0.24);
+}
+
+/* ------ Düzenleme Modu Toolbar ------ */
+.soe-toolbar {
+  background: var(--soe-card-bg);
+  border-radius: var(--soe-card-radius);
+  padding: 12px;
+  box-shadow: 0 1px 3px var(--soe-seat-shadow);
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.soe-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.soe-tool-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: var(--soe-card-bg);
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--soe-transition);
+  white-space: nowrap;
+}
+
+.soe-tool-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.soe-tool-btn.danger {
+  border-color: #EF5350;
+  color: #EF5350;
+}
+
+.soe-tool-btn.danger:hover {
+  background: rgba(239, 83, 80, 0.1);
+}
+
+.soe-tool-btn.success {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+
+.soe-tool-btn.success:hover {
+  box-shadow: 0 4px 12px rgba(5, 56, 39, 0.24);
+}
+
+/* ------ Araç Şasisi Görünümü ------ */
+.soe-canvas-wrapper {
+  background: var(--soe-bg-light);
+  border-radius: var(--soe-card-radius);
+  padding: 20px;
+  box-shadow: 0 1px 3px var(--soe-seat-shadow);
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 70vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.soe-canvas {
+  background: var(--soe-card-bg);
+  border: 3px solid var(--soe-bg-light);
+  border-radius: 16px;
+  padding: 20px;
+  min-width: 300px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 2px 8px var(--soe-seat-shadow);
+  position: relative;
+}
+
+/* Araç şasisi dış kenarı */
+.soe-vehicle-frame {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--soe-bg-light);
+  position: relative;
+}
+
+/* ------ Şoför Alanı ------ */
+.soe-driver-area {
+  background: var(--soe-driver-bg);
+  border: 2px dashed var(--soe-driver-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--soe-driver-border);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.soe-driver-area.filled {
+  background: var(--soe-driver-border);
+  color: white;
+  border-style: solid;
+}
+
+/* ------ Kapı İkonu ------ */
+.soe-door {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--soe-door-color);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 4px 0;
+  position: relative;
+}
+
+/* ------ Acil Çıkış ------ */
+.soe-emergency-exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--soe-emergency-color);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  margin: 4px 0;
+  position: relative;
+}
+
+/* ------ Koridor ------ */
+.soe-corridor-line {
+  height: 2px;
+  background: var(--soe-corridor);
+  margin: 8px 0;
+  border-radius: 1px;
+}
+
+/* ------ Satır Düzeni ------ */
+.soe-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 200ms ease;
+}
+
+.soe-row.editing-mode {
+  background: rgba(33, 150, 243, 0.05);
+  border: 1px dashed #2196F3;
+}
+
+.soe-row-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  min-width: 30px;
+  text-align: center;
+}
+
+.soe-seats-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+/* ------ Koltuk Kartı ------ */
+.soe-seat {
+  min-width: 70px;
+  min-height: 70px;
+  max-width: 80px;
+  padding: 8px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--soe-seat-empty);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: var(--soe-transition);
+  font-size: 12px;
+  text-align: center;
+  box-shadow: 0 2px 4px var(--soe-seat-shadow);
+  user-select: none;
+  overflow: hidden;
+}
+
+.soe-seat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.soe-seat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--soe-seat-shadow-hover);
+}
+
+.soe-seat:hover::before {
+  opacity: 1;
+}
+
+/* Boş koltuk */
+.soe-seat.empty {
+  border: 2px dashed var(--border);
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.soe-seat.empty::after {
+  content: '＋';
+  font-size: 24px;
+  animation: pulse-plus 2s ease-in-out infinite;
+}
+
+@keyframes pulse-plus {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Dolu koltuk */
+.soe-seat.filled {
+  background: var(--soe-seat-full);
+  border-color: rgba(5, 56, 39, 0.3);
+  color: white;
+  font-weight: 700;
+}
+
+.soe-seat.filled .soe-seat-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.soe-seat.filled .soe-seat-class {
+  font-size: 10px;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+
+/* Seçili koltuk */
+.soe-seat.selected {
+  border-color: var(--soe-seat-selected);
+  background: #FFFDE7;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.32);
+}
+
+[data-theme="dark"] .soe-seat.selected {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+/* Devre dışı koltuk */
+.soe-seat.disabled {
+  background: var(--soe-seat-disabled);
+  border-color: rgba(239, 83, 80, 0.3);
+  color: white;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.soe-seat.disabled::after {
+  content: '✕';
+  font-size: 20px;
+}
+
+/* Düzenleniyor */
+.soe-seat.editing {
+  background: var(--soe-seat-editing);
+  border-color: rgba(33, 150, 243, 0.3);
+  color: white;
+}
+
+/* Koltuk Badge (Numara) */
+.soe-seat-number {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.soe-seat.filled .soe-seat-number {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+/* Avatar koltukta */
+.soe-seat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--border);
+  margin-bottom: 4px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ------ Drag & Drop Görselleri ------ */
+.soe-seat.dragging {
+  opacity: 0.7;
+  transform: scale(0.95);
+  z-index: 1000;
+}
+
+.soe-seat.drag-over {
+  border-style: solid;
+  border-color: var(--green);
+  background: rgba(5, 56, 39, 0.05);
+}
+
+[data-theme="dark"] .soe-seat.drag-over {
+  background: rgba(76, 175, 80, 0.1);
+}
+
+/* ------ Bottom Sheet (Koltuk Özellikleri) ------ */
+.soe-bottom-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--soe-card-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -4px 12px var(--soe-seat-shadow);
+  z-index: 2000;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUpBottomSheet 300ms ease-out;
+  padding-bottom: 30px;
+}
+
+@keyframes slideUpBottomSheet {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.soe-bottom-sheet-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--soe-card-bg);
+  border-radius: 20px 20px 0 0;
+}
+
+.soe-bottom-sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.soe-bottom-sheet-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--ink-muted);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: var(--soe-transition);
+}
+
+.soe-bottom-sheet-close:hover {
+  background: var(--bg-hover);
+}
+
+.soe-bottom-sheet-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.soe-property-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.soe-property-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.soe-property-value {
+  font-size: 14px;
+  color: var(--ink);
+  padding: 10px 12px;
+  background: var(--bg-hover);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.soe-property-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--soe-card-bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.soe-bottom-sheet-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 12px;
+}
+
+/* ------ Overlay Modal ------ */
+.soe-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  animation: fadeIn 200ms ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ------ Responsive Tasarım ------ */
+@media (max-width: 768px) {
+  .soe-container {
+    gap: 12px;
+  }
+
+  .soe-info-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .soe-canvas {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .soe-vehicle-frame {
+    padding: 12px;
+  }
+
+  .soe-seat {
+    min-width: 60px;
+    min-height: 60px;
+    max-width: 70px;
+    font-size: 10px;
+    padding: 6px;
+  }
+
+  .soe-toolbar {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .soe-tool-btn {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .soe-canvas-wrapper {
+    max-height: 50vh;
+    padding: 12px;
+  }
+
+  .soe-bottom-sheet {
+    max-height: 90vh;
+  }
+
+  .soe-row {
+    gap: 8px;
+  }
+
+  .soe-seats-group {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .soe-info-card h2 {
+    font-size: 18px;
+  }
+
+  .soe-info-card-value {
+    font-size: 14px;
+  }
+
+  .soe-seat {
+    min-width: 50px;
+    min-height: 50px;
+    max-width: 60px;
+  }
+
+  .soe-vehicle-buttons {
+    gap: 6px;
+  }
+
+  .soe-vehicle-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .soe-toolbar {
+    padding: 8px;
+  }
+
+  .soe-tool-btn {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .soe-canvas {
+    padding: 10px;
+  }
+}
+
+/* ------ Yazdırma Stilleri ------ */
+@media print {
+  .soe-toolbar,
+  .soe-vehicle-selector,
+  .page-header-actions {
+    display: none !important;
+  }
+
+  .soe-canvas-wrapper {
+    background: white;
+    max-height: none;
+    padding: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .soe-canvas {
+    box-shadow: none;
+    border: 1px solid #000;
+    max-width: 100%;
+  }
+}
+
+/* ------ Animasyonlar ------ */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ------ Util Sınıfları ------ */
+.soe-hidden {
+  display: none !important;
+}
+
+.soe-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.soe-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
