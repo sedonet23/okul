@@ -3503,3 +3503,11 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
 [data-theme="dark"] .sye-nokta-bos{ background:#374151; border-color:rgba(255,255,255,.2); }
 [data-theme="dark"] .sye-badge{ color:#0F172A; }
 [data-theme="dark"] .sye-kilit-ikon{ background:#1F2937; }
+
+/* ── FAZ 3: Manuel Şasi Oluşturucu (Özel Tasarım) ────────────────── */
+.sye-ozel-bos{
+  padding:28px 16px; text-align:center; color:var(--ink-muted); font-size:13px; line-height:1.6;
+}
+.sye-ozel-olusturucu{ margin-top:12px; }
+.sye-ozel-baslik{ font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; padding:0 2px; }
+.sye-ozel-toolbar{ flex-wrap:wrap; }
