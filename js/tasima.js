@@ -538,8 +538,6 @@ function servisListesiYazdir(servisId) {
 </html>`;
 
   modalKapat();
-  const w = window.open('', '_blank', 'width=900,height=700');
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => { w.focus(); w.print(); };
+  const yonTr = (yon === 'landscape') ? 'yatay' : 'dikey';
+  uygulamaHtmlYazdir(html, (s.servisAdi || 'Servis') + '_Ogrenci_Listesi', yonTr);
 }

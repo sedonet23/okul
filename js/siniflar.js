@@ -598,8 +598,6 @@ function sinifListesiYazdir(sinifId) {
 </html>`;
 
   modalKapat();
-  const w = window.open('', '_blank', 'width=900,height=700');
-  w.document.write(html);
-  w.document.close();
-  w.onload = () => { w.focus(); w.print(); };
+  const yonTr = (yon === 'landscape') ? 'yatay' : 'dikey';
+  uygulamaHtmlYazdir(html, (s.ad || 'Sinif') + '_Ogrenci_Listesi', yonTr);
 }
