@@ -115,19 +115,21 @@ public class DersZiliCizici {
 
         Paint altBaslikPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         altBaslikPaint.setColor(Color.parseColor("#EEF2F3"));
-        altBaslikPaint.setTextSize(13.5f * yogunluk);
+        altBaslikPaint.setTextSize(12f * yogunluk);
         altBaslikPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
         altBaslikPaint.setTextAlign(Paint.Align.CENTER);
         altBaslikPaint.setLetterSpacing(0.01f);
-        float altBaslikY = govdeY + 12 * yogunluk;
+        float altBaslikY = govdeY + 10 * yogunluk;
         c.drawText("BİR SONRAKİ ZİL", solMerkezX, altBaslikY, altBaslikPaint);
 
-        float halkaBoyut = Math.min(solGenislik - 4 * yogunluk, govdeH - 22 * yogunluk);
-        halkaBoyut = Math.max(halkaBoyut, genisMod ? 90 * yogunluk : 70 * yogunluk);
+        // Halka artik neredeyse tum dikey/yatay alani kapliyor (onceki surumde
+        // kenar paylari cok fazlaydi, bu yuzden "buyume olmadi" hissi veriyordu).
+        float halkaBoyut = Math.min(solGenislik - 2 * yogunluk, govdeH - 14 * yogunluk);
+        halkaBoyut = Math.max(halkaBoyut, genisMod ? 100 * yogunluk : 82 * yogunluk);
         float halkaCx = solMerkezX;
-        float halkaCy = altBaslikY + 10 * yogunluk + halkaBoyut / 2f;
-        float kalinlik = 12 * yogunluk;
-        float halkaR = halkaBoyut / 2f - kalinlik / 2f - 2 * yogunluk;
+        float halkaCy = altBaslikY + 6 * yogunluk + halkaBoyut / 2f;
+        float kalinlik = 13 * yogunluk;
+        float halkaR = halkaBoyut / 2f - kalinlik / 2f - 1 * yogunluk;
         RectF halkaRect = new RectF(halkaCx - halkaR, halkaCy - halkaR, halkaCx + halkaR, halkaCy + halkaR);
 
         Paint halkaArkaPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -146,16 +148,36 @@ public class DersZiliCizici {
         halkaPaint.setStyle(Paint.Style.STROKE);
         halkaPaint.setStrokeWidth(kalinlik);
         halkaPaint.setStrokeCap(Paint.Cap.ROUND);
+
+        // ÖNEMLİ: SweepGradient rengi daima tam 360° üzerine sabit konumlarla
+        // yerleştirilir. Halka her zaman -90°'den (saat 12) başlayıp sadece
+        // sweepAci kadar çizildiği için, sabit 0–1 konumlu bir gradyan kullanılırsa
+        // dolan kısım kısaysa (örn. birkaç dakika kaldığında) sadece dar bir renk
+        // dilimi görünüyor, dolan kısım uzunsa da eski renk dizisinin başı ve sonu
+        // aynı olmadığından (yeşil ≠ koyu turuncu) tam da halkanın açılma
+        // noktasında SERT bir dikiş (ani renk sıçraması) oluşuyordu — "sadece 2
+        // renk var" şikayeti buradan geliyordu.
+        // Çözüm: renk duraklarını HER SEFERİNDE mevcut sweepAci'ye göre ölçekle,
+        // böylece yeşilden turuncuya tam geçiş her zaman çizilen kısmın TAMAMINA
+        // yayılır (kısa dilimde de, uzun dilimde de kademeli görünür) ve
+        // görünmeyen kısımda kalan dikiş hiç çizilmez.
+        float t = Math.max(sweepAci / 360f, 0.0001f);
+        float[] temelKonum = {0f, 0.25f, 0.5f, 0.75f, 1f};
+        float[] olcekliKonum = new float[temelKonum.length];
+        for (int i = 0; i < temelKonum.length; i++) olcekliKonum[i] = temelKonum[i] * t;
+
         SweepGradient sweep = new SweepGradient(halkaCx, halkaCy,
             new int[]{
-                Color.parseColor("#4FBF6A"),
-                Color.parseColor("#8CC24E"),
-                Color.parseColor("#E0B23F"),
-                Color.parseColor("#E0983F"),
-                Color.parseColor("#E0703F"),
-                Color.parseColor("#E0703F")
+                Color.parseColor("#4FBF6A"), // yeşil (halka başlangıcı)
+                Color.parseColor("#8CC24E"), // yeşil-sarı arası
+                Color.parseColor("#E0B23F"), // sarı-turuncu
+                Color.parseColor("#E0983F"), // orta turuncu
+                Color.parseColor("#E0703F")  // koyu turuncu (halkanın ucu / şimdiki an)
             },
-            new float[]{0f, 0.30f, 0.55f, 0.75f, 0.999f, 1f});
+            olcekliKonum);
+        android.graphics.Matrix sweepMatrix = new android.graphics.Matrix();
+        sweepMatrix.postRotate(-90, halkaCx, halkaCy);
+        sweep.setLocalMatrix(sweepMatrix);
         halkaPaint.setShader(sweep);
         c.drawArc(halkaRect, -90, sweepAci, false, halkaPaint);
 
@@ -171,10 +193,16 @@ public class DersZiliCizici {
         } else {
             // Ders/teneffus icin dakika, tatil modu icin gun sayisi - alanlar genericlestirildi
             // (bkz DersZiliHesaplayici: kalanDeger/kalanBirim/kalanEtiket, geriye donuk
-            // uyumluluk icin kalanDakika/"DAKIKA"/"KALDI" varsayilanlarina duser).
+            // uyumluluk icin kalanDakika/"DAKIKA" varsayilanlarina duser).
+            // Kullanicinin istegiyle: "KALDI 3 DAKİKA" yerine, alt satirda "3 dakika
+            // kaldi" seklinde dogal okunan bir sira kullaniliyor. Ust etiket satiri
+            // sadece acikca verilmisse (orn. tatil modunda "OKULA KALAN") gosterilir.
             int kalanDeger = veri.optInt("kalanDeger", veri.optInt("kalanDakika", 0));
             String birim = veri.optString("kalanBirim", "DAKİKA");
-            String etiket = veri.optString("kalanEtiket", "KALDI");
+            String etiket = veri.optString("kalanEtiket", "");
+            java.util.Locale trLocale = new java.util.Locale("tr", "TR");
+            String altYazi = birim.toLowerCase(trLocale) + " kaldı";
+            boolean etiketVar = etiket != null && !etiket.isEmpty();
 
             Paint kalanEtiketPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             kalanEtiketPaint.setColor(Color.parseColor("#9DB3AD"));
@@ -185,36 +213,39 @@ public class DersZiliCizici {
 
             Paint sayiPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             sayiPaint.setColor(Color.WHITE);
-            sayiPaint.setTextSize(clampPx(halkaR * 0.78f, 16f * yogunluk, 34f * yogunluk));
+            sayiPaint.setTextSize(clampPx(halkaR * 0.82f, 18f * yogunluk, 36f * yogunluk));
             sayiPaint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
             sayiPaint.setTextAlign(Paint.Align.CENTER);
 
             Paint birimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             birimPaint.setColor(Color.parseColor("#CFE0DA"));
-            birimPaint.setTextSize(clampPx(halkaR * 0.19f, 6.5f * yogunluk, 8.5f * yogunluk));
+            birimPaint.setTextSize(clampPx(halkaR * 0.20f, 7f * yogunluk, 9.5f * yogunluk));
             birimPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
             birimPaint.setTextAlign(Paint.Align.CENTER);
-            birimPaint.setLetterSpacing(0.08f);
+            birimPaint.setLetterSpacing(0.02f);
 
-            // Uc satiri, gercek yukseklikleriyle (FontMetrics) dikeyde ortalayarak
-            // diz - boylece halka boyutu/font boyutu ne olursa olsun satirlar
-            // birbirine girmez (onceki sabit ofsetli duzende bu oluyordu).
+            // Satirlari, gercek yukseklikleriyle (FontMetrics) dikeyde ortalayarak
+            // diz - boylece halka/font boyutu ne olursa olsun satirlar birbirine
+            // girmez (eski sabit ofsetli duzende bu oluyordu).
             Paint.FontMetrics fmE = kalanEtiketPaint.getFontMetrics();
             Paint.FontMetrics fmS = sayiPaint.getFontMetrics();
             Paint.FontMetrics fmB = birimPaint.getFontMetrics();
-            float etiketH = fmE.descent - fmE.ascent;
+            float etiketH = etiketVar ? (fmE.descent - fmE.ascent) : 0f;
             float sayiH = fmS.descent - fmS.ascent;
             float birimH = fmB.descent - fmB.ascent;
             float araBosluk = Math.max(halkaR * 0.05f, 2 * yogunluk);
+            float ustBosluk = etiketVar ? araBosluk : 0f;
 
-            float toplamY = etiketH + araBosluk + sayiH + araBosluk + birimH;
+            float toplamY = etiketH + ustBosluk + sayiH + araBosluk + birimH;
             float baslangicY = halkaCy - toplamY / 2f;
 
-            c.drawText(etiket, halkaCx, baslangicY - fmE.ascent, kalanEtiketPaint);
+            if (etiketVar) {
+                c.drawText(etiket, halkaCx, baslangicY - fmE.ascent, kalanEtiketPaint);
+            }
             c.drawText(String.valueOf(kalanDeger), halkaCx,
-                baslangicY + etiketH + araBosluk - fmS.ascent, sayiPaint);
-            c.drawText(birim, halkaCx,
-                baslangicY + etiketH + araBosluk + sayiH + araBosluk - fmB.ascent, birimPaint);
+                baslangicY + etiketH + ustBosluk - fmS.ascent, sayiPaint);
+            c.drawText(altYazi, halkaCx,
+                baslangicY + etiketH + ustBosluk + sayiH + araBosluk - fmB.ascent, birimPaint);
         }
 
         // Genis modda (tatil vb.) halkanin altina ek bir aciklama satiri (orn. tam tarih)
