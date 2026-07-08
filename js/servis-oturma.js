@@ -1080,8 +1080,11 @@ function soRaporGovdeHtml(servis, plan) {
       return;
     }
 
-    /* Şoför sırası (row 0) — normal sıralarla AYNI grid şablonunu kullanır */
-    if (siraIdx === 0 && yuvalar.some(el => el.type === 'sofor')) {
+    /* Şoför sırası (row 0) — normal sıralarla AYNI grid şablonunu kullanır.
+       NOT: Ducato ailesinde şoför bir veri elemanı DEĞİLDİR (sadece Büyük
+       Servis/Midibüs'te soforYani:true elemanı vardır) — bu yüzden şart
+       "sofor elemanı var mı"ya değil, doğrudan "bu satır 0 mı"ya bağlı. */
+    if (siraIdx === 0) {
       const soforEl = yuvalar.find(el => el.type === 'sofor');
       html += `<div style="display:grid;grid-template-columns:${gridCols};gap:${m(G)};width:${m(aracIcW)};">`;
       html += `<div style="grid-column:1/${solSutun+1};height:${m(K*1.5)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
@@ -1090,7 +1093,7 @@ function soRaporGovdeHtml(servis, plan) {
       </div>`;
       html += `<div style="grid-column:${solSutun+1};height:${m(K*1.5)};"></div>`;
       const digerYuvalar = yuvalar.filter(el => el.type !== 'sofor');
-      if (!digerYuvalar.length && soforEl.properties?.kapiSag) {
+      if (!digerYuvalar.length && soforEl?.properties?.kapiSag) {
         html += `<div style="grid-column:${solSutun+2}/${solSutun+sagSutun+2};height:${m(K*1.5)};display:flex;align-items:center;justify-content:center;">
           <div style="font-size:${Math.max(5,K*0.14).toFixed(1)}mm;font-weight:800;color:#374151;">│GİRİŞ│</div>
         </div>`;
