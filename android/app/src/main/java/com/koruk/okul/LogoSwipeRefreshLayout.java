@@ -30,10 +30,10 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         void onRefresh();
     }
 
-    private static final float DAMPING              = 0.5f; // parmak mesafesi -> görsel mesafe oranı
-    private static final int   TRIGGER_DISTANCE_DP   = 64;   // bu kadar (dp) çekilince yenileme tetiklenir
+    private static final float DAMPING              = 0.6f; // parmak mesafesi -> görsel mesafe oranı
+    private static final int   TRIGGER_DISTANCE_DP   = 135;  // bu kadar (dp) çekilince yenileme tetiklenir
     private static final int   INDICATOR_SIZE_DP     = 48;
-    private static final int   INDICATOR_TOP_MARGIN_DP = 14;
+    private static final int   INDICATOR_TOP_MARGIN_DP = 80; // eskiden 14dp — çok üstte/başlığın içinde kalıyordu
     private static final int   SPRING_BACK_MS        = 220;
 
     private final WebView webView;
