@@ -95,7 +95,7 @@ public class DersZiliWidget extends AppWidgetProvider {
 
         Calendar simdi = Calendar.getInstance();
         int simdiDk = simdi.get(Calendar.HOUR_OF_DAY) * 60 + simdi.get(Calendar.MINUTE);
-        JSONObject veri = DersZiliHesaplayici.hesapla(hamVeri, simdiDk);
+        JSONObject veri = DersZiliHesaplayici.hesapla(hamVeri, simdiDk, simdi.getTimeInMillis());
 
         Bundle secenekler = mgr.getAppWidgetOptions(widgetId);
         float yogunluk = context.getResources().getDisplayMetrics().density;

@@ -24,13 +24,28 @@ import org.json.JSONObject;
  */
 public class DersZiliHesaplayici {
 
-    public static JSONObject hesapla(JSONObject ham, int simdiDk) {
+    public static JSONObject hesapla(JSONObject ham, int simdiDk, long simdiMillis) {
         JSONObject sonuc = new JSONObject();
         try {
             if (ham == null) { sonuc.put("durumMetni", "Uygulamayı açınız"); return sonuc; }
 
             if (ham.optBoolean("tatilModu", false)) {
-                sonuc.put("durumMetni", ham.optString("tatilNotu", "Okul tatilde"));
+                String tatilNotu = ham.optString("tatilNotu", "Okul tatilde");
+                Integer kalanGun = gunFarkiHesapla(ham.optString("okulAcilisTarihi", null), simdiMillis);
+
+                if (kalanGun != null && kalanGun > 0) {
+                    // Halka merkezinde ders/teneffüs ile aynı düzende (etiket + büyük
+                    // sayı + birim) gün sayısını göster; alt not olarak tam tarihi ekle.
+                    sonuc.put("kalanDeger", (int) kalanGun);
+                    sonuc.put("kalanBirim", "GÜN");
+                    sonuc.put("kalanEtiket", "OKULA KALAN");
+                    sonuc.put("altNot", tatilNotu);
+                } else if (kalanGun != null && kalanGun == 0) {
+                    sonuc.put("durumMetni", "Bugün okul açılıyor! \uD83C\uDF89");
+                } else {
+                    // Tarih girilmemiş veya geçmişte kalmış — eski davranışa (düz metin) düş.
+                    sonuc.put("durumMetni", tatilNotu);
+                }
                 return sonuc;
             }
             if (ham.optBoolean("dersYok", false)) {
@@ -104,5 +119,38 @@ public class DersZiliHesaplayici {
             try { sonuc.put("durumMetni", "Veri okunamadı"); } catch (Exception ignored) {}
         }
         return sonuc;
+    }
+
+    /**
+     * "YYYY-MM-DD" biçimindeki okul açılış tarihi ile şu anki zaman arasındaki
+     * TAM GÜN farkını hesaplar (saat farkını yok sayıp gece yarısına göre
+     * karşılaştırır, böylece "bugün" her zaman 0 çıkar). Tarih boşsa/okunamazsa
+     * null döner (çağıran taraf eski metin-tabanlı davranışa düşer).
+     */
+    private static Integer gunFarkiHesapla(String tarihStr, long simdiMillis) {
+        if (tarihStr == null || tarihStr.isEmpty() || "null".equals(tarihStr)) return null;
+        try {
+            String[] parcalar = tarihStr.split("-");
+            if (parcalar.length != 3) return null;
+            int yil = Integer.parseInt(parcalar[0]);
+            int ay = Integer.parseInt(parcalar[1]) - 1;
+            int gun = Integer.parseInt(parcalar[2]);
+
+            java.util.Calendar hedef = java.util.Calendar.getInstance();
+            hedef.set(yil, ay, gun, 0, 0, 0);
+            hedef.set(java.util.Calendar.MILLISECOND, 0);
+
+            java.util.Calendar bugun = java.util.Calendar.getInstance();
+            bugun.setTimeInMillis(simdiMillis);
+            bugun.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            bugun.set(java.util.Calendar.MINUTE, 0);
+            bugun.set(java.util.Calendar.SECOND, 0);
+            bugun.set(java.util.Calendar.MILLISECOND, 0);
+
+            long farkMs = hedef.getTimeInMillis() - bugun.getTimeInMillis();
+            return (int) Math.round(farkMs / 86400000.0);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

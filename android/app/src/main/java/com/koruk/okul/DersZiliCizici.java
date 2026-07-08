@@ -20,16 +20,19 @@ import org.json.JSONObject;
  * zaman çizelgesi ve rozetler için). Tasarım, onaylanan HTML önizlemesiyle
  * birebir eşleşecek şekilde koordinatlandırılmıştır.
  *
- * Beklenen JSON veri biçimi (bkz. js/widget-bridge.js):
+ * Beklenen JSON veri biçimi (bkz. js/widget-bridge.js ve DersZiliHesaplayici):
  * {
- *   "kalanDakika": 14,
+ *   "kalanDeger": 14,            // "kalanDakika" da desteklenir (geriye dönük uyumluluk)
+ *   "kalanBirim": "DAKİKA",      // örn. tatil modunda "GÜN"
+ *   "kalanEtiket": "KALDI",      // örn. tatil modunda "OKULA KALAN"
  *   "ilerlemeOran": 0.64,        // 0–1, halkada dolu görünen kısım (kalan süre oranı)
  *   "aktifBaslik": "FİZİK",
  *   "aktifYer": "(102)",
  *   "sonrakiBaslik": "TARİH",
  *   "sonrakiYer": "(205)",
  *   "durumMetni": null,          // doluysa (örn. "Bugün ders yok") halka yerine bu gösterilir
- *   "zaman": [ {"saat":"08:30","etiket":"1. Ders","simdi":false}, ... ]
+ *   "altNot": null,              // "zaman" yokken (geniş mod) halkanın altına yazılan ek not
+ *   "zaman": [ {"saat":"08:30","etiket":"1. Ders","simdi":false}, ... ]  // varsa dar mod (rozet+çizelge) kullanılır
  * }
  */
 public class DersZiliCizici {
@@ -100,8 +103,14 @@ public class DersZiliCizici {
         float govdeY = ayracY + 20 * yogunluk;
         float govdeH = icKutu.bottom - 14 * yogunluk - govdeY;
 
+        // "zaman" listesi sadece normal ders gunlerinde dolar (bkz. DersZiliHesaplayici).
+        // Tatil modu / "ders yok" gibi durumlarda sag taraftaki rozet+cizelge paneli
+        // gosterilecek bir sey olmadigindan, halkayi tum genisleyen genis moda gecilir.
+        JSONArray zamanListesi = veri.optJSONArray("zaman");
+        boolean genisMod = (zamanListesi == null);
+
         // ---------- Sol taraf: "Bir Sonraki Zil" + halka ----------
-        float solGenislik = iw * 0.46f;
+        float solGenislik = genisMod ? iw : iw * 0.46f;
         float solMerkezX = ix + solGenislik / 2f;
 
         Paint altBaslikPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -113,17 +122,17 @@ public class DersZiliCizici {
         float altBaslikY = govdeY + 12 * yogunluk;
         c.drawText("BİR SONRAKİ ZİL", solMerkezX, altBaslikY, altBaslikPaint);
 
-        float halkaBoyut = Math.min(solGenislik - 8 * yogunluk, govdeH - 34 * yogunluk);
-        halkaBoyut = Math.max(halkaBoyut, 60 * yogunluk);
+        float halkaBoyut = Math.min(solGenislik - 4 * yogunluk, govdeH - 22 * yogunluk);
+        halkaBoyut = Math.max(halkaBoyut, genisMod ? 90 * yogunluk : 70 * yogunluk);
         float halkaCx = solMerkezX;
-        float halkaCy = altBaslikY + 16 * yogunluk + halkaBoyut / 2f;
-        float halkaR = halkaBoyut / 2f - 6 * yogunluk;
+        float halkaCy = altBaslikY + 10 * yogunluk + halkaBoyut / 2f;
+        float kalinlik = 12 * yogunluk;
+        float halkaR = halkaBoyut / 2f - kalinlik / 2f - 2 * yogunluk;
         RectF halkaRect = new RectF(halkaCx - halkaR, halkaCy - halkaR, halkaCx + halkaR, halkaCy + halkaR);
 
-        // Halka arka planı (soluk)
         Paint halkaArkaPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         halkaArkaPaint.setStyle(Paint.Style.STROKE);
-        halkaArkaPaint.setStrokeWidth(9 * yogunluk);
+        halkaArkaPaint.setStrokeWidth(kalinlik);
         halkaArkaPaint.setColor(Color.argb(20, 255, 255, 255));
         c.drawOval(halkaRect, halkaArkaPaint);
 
@@ -135,11 +144,18 @@ public class DersZiliCizici {
 
         Paint halkaPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         halkaPaint.setStyle(Paint.Style.STROKE);
-        halkaPaint.setStrokeWidth(9 * yogunluk);
+        halkaPaint.setStrokeWidth(kalinlik);
         halkaPaint.setStrokeCap(Paint.Cap.ROUND);
         SweepGradient sweep = new SweepGradient(halkaCx, halkaCy,
-            new int[]{Color.parseColor("#4FBF6A"), Color.parseColor("#E0B23F"), Color.parseColor("#E0703F"), Color.parseColor("#E0703F")},
-            new float[]{0f, 0.55f, 0.999f, 1f});
+            new int[]{
+                Color.parseColor("#4FBF6A"),
+                Color.parseColor("#8CC24E"),
+                Color.parseColor("#E0B23F"),
+                Color.parseColor("#E0983F"),
+                Color.parseColor("#E0703F"),
+                Color.parseColor("#E0703F")
+            },
+            new float[]{0f, 0.30f, 0.55f, 0.75f, 0.999f, 1f});
         halkaPaint.setShader(sweep);
         c.drawArc(halkaRect, -90, sweepAci, false, halkaPaint);
 
@@ -153,32 +169,70 @@ public class DersZiliCizici {
             durumPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
             drawSarilmisMetin(c, durumMetni, halkaCx, halkaCy, halkaR * 1.5f, durumPaint, 13 * yogunluk);
         } else {
-            int kalanDakika = veri.optInt("kalanDakika", 0);
+            // Ders/teneffus icin dakika, tatil modu icin gun sayisi - alanlar genericlestirildi
+            // (bkz DersZiliHesaplayici: kalanDeger/kalanBirim/kalanEtiket, geriye donuk
+            // uyumluluk icin kalanDakika/"DAKIKA"/"KALDI" varsayilanlarina duser).
+            int kalanDeger = veri.optInt("kalanDeger", veri.optInt("kalanDakika", 0));
+            String birim = veri.optString("kalanBirim", "DAKİKA");
+            String etiket = veri.optString("kalanEtiket", "KALDI");
+
             Paint kalanEtiketPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             kalanEtiketPaint.setColor(Color.parseColor("#9DB3AD"));
-            kalanEtiketPaint.setTextSize(5f * yogunluk);
+            kalanEtiketPaint.setTextSize(clampPx(halkaR * 0.20f, 7f * yogunluk, 9f * yogunluk));
             kalanEtiketPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
             kalanEtiketPaint.setTextAlign(Paint.Align.CENTER);
             kalanEtiketPaint.setLetterSpacing(0.1f);
-            c.drawText("KALDI", halkaCx, halkaCy - 14 * yogunluk, kalanEtiketPaint);
 
             Paint sayiPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             sayiPaint.setColor(Color.WHITE);
-            sayiPaint.setTextSize(Math.min(halkaR * 0.95f, 30 * yogunluk));
+            sayiPaint.setTextSize(clampPx(halkaR * 0.78f, 16f * yogunluk, 34f * yogunluk));
             sayiPaint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
             sayiPaint.setTextAlign(Paint.Align.CENTER);
-            c.drawText(String.valueOf(kalanDakika), halkaCx, halkaCy + 8 * yogunluk, sayiPaint);
 
             Paint birimPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             birimPaint.setColor(Color.parseColor("#CFE0DA"));
-            birimPaint.setTextSize(8.5f * yogunluk);
+            birimPaint.setTextSize(clampPx(halkaR * 0.19f, 6.5f * yogunluk, 8.5f * yogunluk));
             birimPaint.setTypeface(Typeface.create(Typeface.DEFAULT_BOLD, Typeface.BOLD));
             birimPaint.setTextAlign(Paint.Align.CENTER);
             birimPaint.setLetterSpacing(0.08f);
-            c.drawText("DAKİKA", halkaCx, halkaCy + 19 * yogunluk, birimPaint);
+
+            // Uc satiri, gercek yukseklikleriyle (FontMetrics) dikeyde ortalayarak
+            // diz - boylece halka boyutu/font boyutu ne olursa olsun satirlar
+            // birbirine girmez (onceki sabit ofsetli duzende bu oluyordu).
+            Paint.FontMetrics fmE = kalanEtiketPaint.getFontMetrics();
+            Paint.FontMetrics fmS = sayiPaint.getFontMetrics();
+            Paint.FontMetrics fmB = birimPaint.getFontMetrics();
+            float etiketH = fmE.descent - fmE.ascent;
+            float sayiH = fmS.descent - fmS.ascent;
+            float birimH = fmB.descent - fmB.ascent;
+            float araBosluk = Math.max(halkaR * 0.05f, 2 * yogunluk);
+
+            float toplamY = etiketH + araBosluk + sayiH + araBosluk + birimH;
+            float baslangicY = halkaCy - toplamY / 2f;
+
+            c.drawText(etiket, halkaCx, baslangicY - fmE.ascent, kalanEtiketPaint);
+            c.drawText(String.valueOf(kalanDeger), halkaCx,
+                baslangicY + etiketH + araBosluk - fmS.ascent, sayiPaint);
+            c.drawText(birim, halkaCx,
+                baslangicY + etiketH + araBosluk + sayiH + araBosluk - fmB.ascent, birimPaint);
+        }
+
+        // Genis modda (tatil vb.) halkanin altina ek bir aciklama satiri (orn. tam tarih)
+        String altNot = veri.optString("altNot", null);
+        if (genisMod && altNot != null && !altNot.isEmpty() && !"null".equals(altNot)) {
+            Paint altNotPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            altNotPaint.setColor(Color.parseColor("#9DB3AD"));
+            altNotPaint.setTextSize(10.5f * yogunluk);
+            altNotPaint.setTextAlign(Paint.Align.CENTER);
+            float altNotY = halkaCy + halkaR + 24 * yogunluk;
+            drawSarilmisMetin(c, altNot, halkaCx, altNotY, solGenislik - 24 * yogunluk, altNotPaint, 13 * yogunluk);
         }
 
         // ---------- Sağ taraf: ders rozetleri + zaman çizelgesi ----------
+        // Genis modda (tatil / ders yok) gosterilecek rozet ya da zaman satiri
+        // olmadigindan bu blok tamamen atlanir; halka zaten tum genisligi kaplar.
+        if (genisMod) return bmp;
+
         float sagX = ix + solGenislik + 10 * yogunluk;
         float sagGenislik = iw - solGenislik - 10 * yogunluk;
 
@@ -223,7 +277,6 @@ public class DersZiliCizici {
         cizgiPaint.setPathEffect(dash);
         c.drawPath(dashPath, cizgiPaint);
 
-        JSONArray zamanListesi = veri.optJSONArray("zaman");
         if (zamanListesi != null) {
             float satirYuk = 15.5f * yogunluk;
             float mevcutY = zamanY;
@@ -262,6 +315,11 @@ public class DersZiliCizici {
         }
 
         return bmp;
+    }
+
+    /** Bir degeri [min,max] araligina sikistirir - font boyutlarini halka boyutuna gore olceklerken kullanilir. */
+    private static float clampPx(float deger, float min, float max) {
+        return Math.max(min, Math.min(deger, max));
     }
 
     /** Rozetleri (renkli yuvarlatılmış kare + baş harf + ders adı + yer) çizer. */
