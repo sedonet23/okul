@@ -1,0 +1,211 @@
+<!-- ============================================================================
+     SERVIS YERLEŞIM EDITÖRÜ - HTML Modülü
+     ============================================================================
+     Oturma planı sekme içeriği - index.html'e entegre edilecek
+     ============================================================================ -->
+
+<section id="tab-servis-oturma-editor" class="tab-panel" style="display: none;">
+  <div class="page-header">
+    <div>
+      <div class="page-title">💺 Servis Yerleşim Editörü</div>
+      <div class="page-sub">Araç koltuk düzenini sürükle-bırak ile düzenleyin</div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="ServisYerlesimiEditor.state.editMode ? location.reload() : alert('Düzenleme modunu aç')">
+        🔄 Yenile
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="window.print()">
+        🖨️ Yazdır
+      </button>
+      <button class="btn btn-amber" id="soe-edit-toggle" onclick="ServisYerlesimiEditor.toggleEditMode()">
+        ✏️ Düzenlemeyi Aç
+      </button>
+    </div>
+  </div>
+
+  <!-- Ana Konteyner -->
+  <div class="soe-container" data-service-id="">
+    
+    <!-- 1. BİLGİ KARTI (HERO) -->
+    <div class="card">
+      <div class="soe-info-card">
+        <div class="soe-info-card-left">
+          <h2>🚌 Servis Adı</h2>
+          <div class="soe-info-card-row">
+            <span class="soe-info-card-label">Şoför</span>
+            <span class="soe-info-card-value">—</span>
+          </div>
+          <div class="soe-info-card-row">
+            <span class="soe-info-card-label">Araç</span>
+            <span class="soe-info-card-value">—</span>
+          </div>
+        </div>
+        <div class="soe-info-card-right">
+          <div class="soe-info-card-row">
+            <span class="soe-info-card-label">Koltuk</span>
+            <span class="soe-info-card-value">0 / 0</span>
+          </div>
+          <div class="soe-info-card-row">
+            <span class="soe-info-card-label">Doluluk</span>
+            <span class="soe-info-card-value">%0</span>
+          </div>
+          <div class="soe-capacity-bar">
+            <div class="soe-capacity-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. ARAÇ TİPİ SEÇİMİ -->
+    <div class="soe-vehicle-selector">
+      <h3>🚐 Araç Tipi Seçin</h3>
+      <div class="soe-vehicle-buttons">
+        <!-- JavaScript tarafından doldurulacak -->
+      </div>
+    </div>
+
+    <!-- 3. DÜZENLEME TOOLBAR (Gizli - editMode açılınca görünür) -->
+    <div class="soe-toolbar" style="display: none;">
+      <!-- JavaScript tarafından doldurulacak -->
+    </div>
+
+    <!-- 4. ARAÇ ŞASISI CANVAS -->
+    <div class="card">
+      <h3 style="margin: 0 0 16px 0; font-size: 14px;">
+        🎯 Yerleşim Düzeni
+        <span style="float: right; font-size: 12px; color: var(--ink-muted);">
+          Koltuk seçmek için tıklayın • Sürükleyerek taşıyın
+        </span>
+      </h3>
+      
+      <div class="soe-canvas-wrapper">
+        <div class="soe-canvas">
+          <!-- JavaScript tarafından render edilecek -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. HIZLI REFERANS -->
+    <div class="card">
+      <h3 style="margin: 0 0 12px 0; font-size: 14px;">📋 Referans & Açıklamalar</h3>
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        
+        <!-- Boş Koltuk -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-seat empty" style="min-width: 50px; min-height: 50px;"></div>
+            <span style="font-weight: 600;">Boş Koltuk</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Öğrenci atanmamış</p>
+        </div>
+
+        <!-- Dolu Koltuk -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-seat filled" style="min-width: 50px; min-height: 50px;">
+              <span style="font-size: 16px;">👤</span>
+            </div>
+            <span style="font-weight: 600;">Dolu Koltuk</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Öğrenci atanmış</p>
+        </div>
+
+        <!-- Seçili Koltuk -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-seat selected" style="min-width: 50px; min-height: 50px;"></div>
+            <span style="font-weight: 600;">Seçili</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Düzenleme için seçilmiş</p>
+        </div>
+
+        <!-- Devre Dışı -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-seat disabled" style="min-width: 50px; min-height: 50px;"></div>
+            <span style="font-weight: 600;">Devre Dışı</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Kullanılamaz koltuk</p>
+        </div>
+
+        <!-- Kapı -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-door">🚪</div>
+            <span style="font-weight: 600;">Kapı</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Araç girişi</p>
+        </div>
+
+        <!-- Acil Çıkış -->
+        <div style="padding: 12px; background: var(--bg-hover); border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <div class="soe-emergency-exit">🚨</div>
+            <span style="font-weight: 600;">Acil Çıkış</span>
+          </div>
+          <p style="font-size: 12px; color: var(--ink-muted); margin: 0;">Güvenlik çıkışı</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. KLAVYE KISAYOLLARI -->
+    <div class="card" style="background: var(--bg-hover); border-left: 4px solid var(--green);">
+      <h3 style="margin: 0 0 8px 0; font-size: 13px;">⌨️ Klavye Kısayolları</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; font-size: 12px;">
+        <div><strong>Ctrl + S</strong> → Kaydet</div>
+        <div><strong>Ctrl + Z</strong> → Geri Al</div>
+        <div><strong>Ctrl + Shift + Z</strong> → Yinele</div>
+        <div><strong>Drag & Drop</strong> → Koltuk taşı</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================================================
+     MODAL: KOLTUKİŞLEMLERİ BOTTOM SHEET
+     ============================================================================
+     Bu, JavaScript tarafından dinamik olarak oluşturulacak
+     ============================================================================ -->
+
+<!-- Stil dosyasına dahil et -->
+<link rel="stylesheet" href="css/servis-oturma-editor.css">
+
+<!-- Script dosyasına dahil et -->
+<script src="js/servis-oturma-editor.js" defer></script>
+
+<!-- ============================================================================
+     ENTEGRASYON NOTU
+     ============================================================================
+
+     Bu HTML'i index.html'e entegre etmek için:
+
+     1. Yukarıdaki <section id="tab-servis-oturma-editor"> bloğunu,
+        "tab-tasima" sekmesinden sonra ekle
+
+     2. index.html <head> bölümüne CSS ekle:
+        <link rel="stylesheet" href="css/servis-oturma-editor.css">
+
+     3. index.html'in sonuna JS ekle (diğer script'lerden sonra):
+        <script src="js/servis-oturma-editor.js" defer></script>
+
+     4. Navigation menüsüne buton ekle:
+        <button class="nav-tab nav-sub-tab" data-tab="servis-oturma-editor">
+          <i class="nt-ico" data-lucide="chair"></i>
+          <span class="nt-label">Oturma Düzeni</span>
+        </button>
+
+     5. Servis listesinden Editörü açmak için:
+        <button onclick="acServisOturamaEdt('serviceId')">
+          💺 Oturma Planı Düzenle
+        </button>
+
+     6. Global fonksiyon ekle:
+        function acServisOturamaEdt(serviceId) {
+          document.querySelector('.soe-container').dataset.serviceId = serviceId;
+          ServisYerlesimiEditor.init(serviceId);
+          sekmeAc('servis-oturma-editor');
+        }
+
+     ============================================================================ -->
