@@ -294,7 +294,11 @@ public class DersZiliCizici {
             Color.parseColor("#E08A3C"), Color.parseColor("#B0621F"), yogunluk);
 
         // Noktalı zaman çizelgesi
-        float zamanY = rozetY + rozetBoyut + 22 * yogunluk;
+        // Rozetin altında iki satır yazı var: ders adı (kutu.bottom+10dp) ve yer
+        // (kutu.bottom+19dp). Önceki 22dp boşluk bu ikinci satırla çakışıyordu
+        // ("İngilizce (5-A)" ile "00:05 (İngilizce)" üst üste biniyordu) —
+        // zaman çizelgesini daha aşağıdan başlatarak aralarına net boşluk konuldu.
+        float zamanY = rozetY + rozetBoyut + 34 * yogunluk;
         float zamanX = sagX + 12 * yogunluk;
         float noktaX = sagX + 6 * yogunluk;
 
