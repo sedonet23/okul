@@ -570,6 +570,7 @@ function _sozelBuilderHtml(servisId) {
     <div class="sye-ozel-baslik">🛠️ Şasi Oluşturucu — sıra ekleyerek araç şeklini kur</div>
     <div class="sye-toolbar sye-ozel-toolbar">
       ${btn('sofor', '🧑‍✈️', 'Şoför Sırası')}
+      ${btn('on_sag', '🪑', 'Şoförün Yanına Koltuk')}
       ${btn('tekli', '🪑', 'Tekli Koltuk')}
       ${btn('ikili', '🪑🪑', 'İkili Koltuk')}
       ${btn('uclu21', '🪑🪑🪑', '2+1 Sıra')}
@@ -588,6 +589,21 @@ function _sozelBuilderHtml(servisId) {
 function sozelSiraEkle(servisId, tip) {
   const mevcut   = servisOturmaPlani.find(p => p.servisId === servisId);
   const yerlesim = mevcut?.yerlesim ? [...mevcut.yerlesim] : [];
+
+  /* "Şoförün Yanına Koltuk" — YENİ SIRA açmaz, doğrudan 0. sıraya (şoförün
+     bulunduğu ön sıraya) ekler; sag-ic önce, sonra sag-dis (Ducato düzeni). */
+  if (tip === 'on_sag') {
+    const on0Sag = yerlesim.filter(y => y.sira === 0 && ['sag-ic', 'sag-dis'].includes(y.konum));
+    if (on0Sag.length >= 2) { toast('Ön sırada zaten 2 koltuk var.'); return; }
+    const konum = on0Sag.some(y => y.konum === 'sag-ic') ? 'sag-dis' : 'sag-ic';
+    const yeniYerlesim = [...yerlesim, { sira: 0, konum, aktif: true }];
+    const elements = _soYerlesimKoltuklariElementeCevir(yeniYerlesim, mevcut?.koltuklar || []);
+    _soPlanKaydetElements(servisId, 'ozel', elements, false)
+      .then(() => toast('Şoförün yanına koltuk eklendi.'))
+      .catch(err => { if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
+    return;
+  }
+
   const yeniSira = yerlesim.length ? Math.max(...yerlesim.map(y => y.sira)) + 1 : 0;
 
   const satirlar = {
