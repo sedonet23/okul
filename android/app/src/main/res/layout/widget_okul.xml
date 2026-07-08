@@ -19,12 +19,33 @@
         android:ellipsize="end"
         android:paddingBottom="4dp" />
 
-    <!-- Kaydırmalı sayfa yığını: Etkinlikler / Notlarım / Nöbetçiler / Haberler -->
-    <StackView
-        android:id="@+id/widget_stack"
+    <!--
+      4 sayfa burada ÜST ÜSTE (FrameLayout) durur, aynı anda sadece biri
+      "visible" olur, diğerleri "gone". Sayfa değişimi KAYDIRMA ile değil
+      DOKUNMA ile olur (bkz. OkulWidget.java) — bu yöntem StackView'dan
+      farklı olarak MIUI/Xiaomi dahil TÜM launcher'larda güvenilir çalışır.
+    -->
+    <FrameLayout
+        android:id="@+id/widget_sayfa_alani"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:loopViews="true" />
+        android:layout_weight="1">
+
+        <include
+            android:id="@+id/wrap_etkinlikler"
+            layout="@layout/widget_page_etkinlikler" />
+
+        <include
+            android:id="@+id/wrap_notlar"
+            layout="@layout/widget_page_notlar" />
+
+        <include
+            android:id="@+id/wrap_nobet"
+            layout="@layout/widget_page_nobet" />
+
+        <include
+            android:id="@+id/wrap_haberler"
+            layout="@layout/widget_page_haberler" />
+    </FrameLayout>
 
 </LinearLayout>
