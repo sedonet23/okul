@@ -485,8 +485,8 @@ function nobetOtomatikDagitimModalAc() {
 
       <div style="margin-bottom:14px;">
         <div style="font-weight:700;margin-bottom:4px;">📅 Referans Hafta Şablonu</div>
-        <div style="background:#e3f2fd;border-radius:6px;padding:8px;font-size:12px;margin-bottom:8px;">
-          Seçtiğiniz bir haftada <strong>kim nerede nöbet tutuyorsa</strong> buraya girin.
+        <div style="background:#e3f2fd;color:#0d3b66;border-radius:6px;padding:8px;font-size:12px;margin-bottom:8px;">
+          Seçtiğiniz bir haftada <strong style="color:#0d3b66;">kim nerede nöbet tutuyorsa</strong> buraya girin.
           Sistem bu bilgiyi baz alarak önceki atamalara göre devam eder.
           Şablon kaydedilir, bir daha değiştirmenize gerek yoktur.
         </div>
@@ -506,7 +506,7 @@ function nobetOtomatikDagitimModalAc() {
         <div style="font-size:11px;color:var(--ink-muted);margin-top:3px;">Uzun bas veya Ctrl+tıkla ile çoklu seç</div>
       </div>
 
-      <div style="background:#ffebee;border:1px solid #ef9a9a;border-radius:6px;padding:8px;font-size:12px;margin-top:10px;">
+      <div style="background:#ffebee;color:#7a1620;border:1px solid #ef9a9a;border-radius:6px;padding:8px;font-size:12px;margin-top:10px;">
         ⚠️ Seçilen ayın mevcut atamaları silinecek ve yeniden oluşturulacak.
       </div>
     </div>`;
