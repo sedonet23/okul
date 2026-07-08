@@ -108,10 +108,10 @@ public class OkulWidget extends AppWidgetProvider {
                 "Haber yok", "📰", mevcutSayfa);
 
         // --- Hangi sayfa görünür? ---
-        views.setViewVisibility(R.id.wrap_etkinlikler, mevcutSayfa == 0 ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.wrap_notlar,      mevcutSayfa == 1 ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.wrap_nobet,       mevcutSayfa == 2 ? View.VISIBLE : View.GONE);
-        views.setViewVisibility(R.id.wrap_haberler,    mevcutSayfa == 3 ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.root_etkinlikler, mevcutSayfa == 0 ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.root_notlar,      mevcutSayfa == 1 ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.root_nobet,       mevcutSayfa == 2 ? View.VISIBLE : View.GONE);
+        views.setViewVisibility(R.id.root_haberler,    mevcutSayfa == 3 ? View.VISIBLE : View.GONE);
 
         // --- Dokununca sonraki sayfaya geç ---
         Intent sonrakiIntent = new Intent(context, OkulWidget.class);
