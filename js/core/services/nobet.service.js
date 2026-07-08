@@ -105,12 +105,13 @@ const NobetService = {
     const yerIdMap = {};
     let yeniSira = nobetYerleri.length;
     for(const e of eslemeler){
-      const mevcutYer = nobetYerleri.find(y => y.ad.toLocaleLowerCase('tr')===e.etiket.toLocaleLowerCase('tr'));
+      const etiketTemiz = (e.etiket||'').trim().replace(/\s+/g,' ');
+      const mevcutYer = nobetYerleri.find(y => (y.ad||'').trim().replace(/\s+/g,' ').toLocaleLowerCase('tr') === etiketTemiz.toLocaleLowerCase('tr'));
       if(mevcutYer){
         yerIdMap[e.index] = mevcutYer.id;
       } else {
         yeniSira++;
-        const ref = await NobetRepository.yerEkle({ ad: e.etiket, sira: yeniSira, eklenmeTarihi: new Date().toISOString() });
+        const ref = await NobetRepository.yerEkle({ ad: etiketTemiz, sira: yeniSira, eklenmeTarihi: new Date().toISOString() });
         yerIdMap[e.index] = ref.id;
       }
     }
