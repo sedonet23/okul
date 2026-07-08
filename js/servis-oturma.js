@@ -985,7 +985,7 @@ function soRaporGovdeHtml(servis, plan) {
   const sabitMM    = 12 + 4;
   const koltukH    = kullH_max - sabitMM;
   const n          = toplamSira;
-  const katsayi_h  = 1.6 + (n - 2) + 1.3 + (n - 1) * 0.1;
+  const katsayi_h  = 2.1 + (n - 2) + 1.3 + (n - 1) * 0.1;
   const K_h        = koltukH / katsayi_h;
 
   const K    = Math.max(4, Math.min(K_w, K_h));
@@ -998,9 +998,10 @@ function soRaporGovdeHtml(servis, plan) {
 
   const fontAdPt    = Math.max(5, Math.min(8, K * 0.38));
   const fontSinifPt = Math.max(4, Math.min(6, K * 0.28));
-  const fontSoforPt = Math.max(5, Math.min(7, K * 0.32));
+  const fontSoforPt = Math.max(6, Math.min(9, K * 0.42));
   const fontBadgePt = Math.max(3.5, Math.min(5.5, K * 0.22));
-  const soforIkonMM = Math.max(6, K * 0.45);
+  const soforIkonMM = Math.max(7, K * 0.55);
+  const soforSiraH  = K * 2.0;
   const borderRmm   = K * 0.12;
   const kolcakW     = K * 0.07;
 
@@ -1087,14 +1088,14 @@ function soRaporGovdeHtml(servis, plan) {
     if (siraIdx === 0) {
       const soforEl = yuvalar.find(el => el.type === 'sofor');
       html += `<div style="display:grid;grid-template-columns:${gridCols};gap:${m(G)};width:${m(aracIcW)};">`;
-      html += `<div style="grid-column:1/${solSutun+1};height:${m(K*1.5)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
+      html += `<div style="grid-column:1/${solSutun+1};height:${m(soforSiraH)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;">
         <span style="font-size:${m(soforIkonMM)};line-height:1;">👨‍✈️</span>
         <span style="font-size:${fontSoforPt.toFixed(1)}pt;color:#1f2937;font-weight:700;margin-top:0.3mm;text-align:center;word-break:break-word;white-space:normal;line-height:1.1;display:block;">${escapeHtml(servis.soforAdi || 'Şoför')}</span>
       </div>`;
-      html += `<div style="grid-column:${solSutun+1};height:${m(K*1.5)};"></div>`;
+      html += `<div style="grid-column:${solSutun+1};height:${m(soforSiraH)};"></div>`;
       const digerYuvalar = yuvalar.filter(el => el.type !== 'sofor');
       if (!digerYuvalar.length && soforEl?.properties?.kapiSag) {
-        html += `<div style="grid-column:${solSutun+2}/${solSutun+sagSutun+2};height:${m(K*1.5)};display:flex;align-items:center;justify-content:center;">
+        html += `<div style="grid-column:${solSutun+2}/${solSutun+sagSutun+2};height:${m(soforSiraH)};display:flex;align-items:center;justify-content:center;">
           <div style="font-size:${Math.max(5,K*0.14).toFixed(1)}mm;font-weight:800;color:#374151;">│GİRİŞ│</div>
         </div>`;
       } else {
