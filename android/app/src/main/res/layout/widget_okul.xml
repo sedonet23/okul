@@ -7,17 +7,33 @@
     android:orientation="vertical"
     android:padding="8dp">
 
-    <!-- Okul adı - tüm sayfalarda sabit üst şerit -->
-    <TextView
-        android:id="@+id/widget_okul_adi"
+    <!-- Okul adı + yenile butonu - tüm sayfalarda sabit üst şerit -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Okul Yönetim Paneli"
-        android:textColor="#CCE8E8"
-        android:textSize="9sp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:paddingBottom="4dp" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="4dp">
+
+        <TextView
+            android:id="@+id/widget_okul_adi"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Okul Yönetim Paneli"
+            android:textColor="#CCE8E8"
+            android:textSize="9sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/btn_yenile"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:gravity="center"
+            android:text="🔄"
+            android:textSize="11sp" />
+    </LinearLayout>
 
     <!--
       4 sayfa burada ÜST ÜSTE (FrameLayout) durur, aynı anda sadece biri
@@ -41,6 +57,7 @@
             android:background="@drawable/widget_page_opaque_bg"
             android:padding="10dp">
                 <LinearLayout
+                    android:id="@+id/header_etkinlikler"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -67,12 +84,28 @@
                         android:textSize="10sp" />
                 </LinearLayout>
 
-                <!-- Haftalık takvim satırı (bugünün haftası, sadece görüntüleme) -->
+                <!-- Haftalık takvim satırı + hafta değiştirici oklar -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:paddingBottom="10dp">
+
+                    <TextView
+                        android:id="@+id/btn_hafta_onceki"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:gravity="center"
+                        android:text="◀"
+                        android:textColor="#ABDEDE"
+                        android:textSize="9sp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="horizontal">
 
                     <!-- Gün 0 -->
                     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center">
@@ -109,10 +142,21 @@
                         <TextView android:id="@+id/cal6_label" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="#ABDEDE" android:textSize="8sp" />
                         <TextView android:id="@+id/cal6_date" android:layout_width="20dp" android:layout_height="20dp" android:gravity="center" android:textColor="#FFFFFF" android:textSize="11sp" android:textStyle="bold" />
                     </LinearLayout>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/btn_hafta_sonraki"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:gravity="center"
+                        android:text="▶"
+                        android:textColor="#ABDEDE"
+                        android:textSize="9sp" />
                 </LinearLayout>
 
                 <!-- Etkinlik listesi + Saat/Hava kartı -->
                 <LinearLayout
+                    android:id="@+id/content_row_etkinlikler"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
@@ -194,6 +238,7 @@
             android:background="@drawable/widget_page_opaque_bg"
             android:padding="10dp">
                 <LinearLayout
+                    android:id="@+id/header_notlar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -246,6 +291,7 @@
             android:background="@drawable/widget_page_opaque_bg"
             android:padding="10dp">
                 <LinearLayout
+                    android:id="@+id/header_nobet"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
@@ -298,6 +344,7 @@
             android:background="@drawable/widget_page_opaque_bg"
             android:padding="10dp">
                 <LinearLayout
+                    android:id="@+id/header_haberler"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
