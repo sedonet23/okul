@@ -55,11 +55,7 @@
                 android:resource="@xml/okul_widget_info" />
         </receiver>
 
-        <!-- Okul Widget'ının 4 sayfalık StackView'ına veri sağlayan servis -->
-        <service
-            android:name=".OkulWidgetStackService"
-            android:exported="false"
-            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
 
         <!-- Ders Zili Geri Sayım Widget'ı -->
         <receiver
