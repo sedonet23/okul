@@ -3363,3 +3363,143 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
   0%,100%{ opacity:.5; }
   50%{ opacity:.9; }
 }
+
+/* ====================================================================
+   SERVİS YERLEŞİM EDİTÖRÜ (sye-)  — FAZ 1 + FAZ 2
+   Material Design 3 ilhamlı, mobil öncelikli, açık/koyu tema destekli.
+   ==================================================================== */
+
+/* ── Hero kart ───────────────────────────────────────────────────── */
+.sye-hero-kart{
+  background: var(--bg-card); border:1px solid var(--border);
+  border-radius: var(--radius-lg); padding:14px 16px; box-shadow: var(--shadow-sm);
+  margin-bottom:14px;
+}
+.sye-hero-baslik{ font-size:15px; font-weight:800; color:var(--ink); margin-bottom:8px; }
+.sye-hero-satir{ display:flex; gap:10px; flex-wrap:wrap; }
+.sye-hero-hucre{ flex:1 1 70px; min-width:70px; display:flex; flex-direction:column; gap:1px; }
+.sye-hero-etiket{ font-size:10.5px; color:var(--ink-muted); font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+.sye-hero-deger{ font-size:15px; font-weight:800; color:var(--ink); }
+.sye-hero-alt{ font-size:11.5px; color:var(--ink-muted); margin-top:8px; padding-top:8px; border-top:1px dashed var(--border); }
+
+/* ── Düzenle geçişi ──────────────────────────────────────────────── */
+.so-duzenle-satir{ display:flex; justify-content:flex-end; margin-bottom:10px; }
+.sye-duzenle-toggle-btn.sye-aktif{ background:var(--brand); color:#fff; border-color:var(--brand); }
+
+/* ── Araç kovanı ─────────────────────────────────────────────────── */
+.sye-arac{ display:flex; flex-direction:column; align-items:center; width:100%; transition: outline .25s ease; }
+.sye-govde{
+  background:#E2E8F0; border:2px solid #CBD5E1; border-radius:24px 24px 12px 12px;
+  padding:12px 10px 18px; width:100%; max-width:380px; box-shadow: var(--shadow-md);
+  transition: outline .25s ease, box-shadow .25s ease;
+}
+.sye-arac.sye-duzenleme-modu .sye-govde{ outline:2px dashed var(--brand); outline-offset:5px; }
+
+.sye-on-blok{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:8px; margin-bottom:8px; border-bottom:1px dashed rgba(0,0,0,.15); }
+.sye-on-cam{ flex:1; height:18px; background:linear-gradient(180deg,#bfdbfe,#dbeafe); border:1px solid #93c5fd; border-radius:9px 9px 2px 2px; }
+.sye-cikis-ikon{ font-size:15px; opacity:.8; flex-shrink:0; }
+.sye-plaka{
+  text-align:center; font-weight:900; letter-spacing:1.2px; font-size:11.5px; color:#1F2937;
+  background:#F9FAFB; border:1px solid #374151; border-radius:6px; padding:2px 10px;
+  width:fit-content; margin:0 auto 10px;
+}
+
+.sye-koltuk-bolum{ display:flex; flex-direction:column; gap:6px; width:100%; align-items:center; }
+.sye-sira{ width:100%; }
+.sye-sofor-sirasi{ display:flex; align-items:center; gap:4px; }
+.sye-sofor-blok{
+  background:rgba(245,158,11,0.14); border:1px solid rgba(245,158,11,0.35); border-radius:12px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px; height:42px;
+}
+.sye-sofor-ikon{ font-size:16px; line-height:1; }
+.sye-sofor-ad{ font-size:8.5px; font-weight:700; color:#92400E; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; margin-top:1px; }
+
+.sye-koridor{ display:flex; align-items:center; justify-content:center; position:relative; }
+.sye-koridor::before{ content:''; position:absolute; top:2px; bottom:2px; left:50%; width:1px; background:rgba(0,0,0,.14); }
+.sye-kapi{ display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:15px; color:var(--ink-muted); gap:0; z-index:1; }
+.sye-kapi span{ font-size:7px; font-weight:800; letter-spacing:.3px; }
+
+/* ── Koltuk kartı ────────────────────────────────────────────────── */
+.sye-koltuk{
+  width:42px; height:42px; border-radius:12px; background:#fff; border:2px solid #E5E7EB;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative; cursor:pointer; overflow:hidden; padding:0 2px;
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, opacity .2s ease;
+  box-shadow: var(--shadow-sm); user-select:none; -webkit-user-select:none; touch-action:none;
+}
+.sye-koltuk:hover{ transform:scale(1.08); box-shadow: var(--shadow-md); z-index:2; }
+.sye-koltuk.sye-bos{ background:#fff; border-color:#E5E7EB; color:#9CA3AF; }
+.sye-koltuk.sye-dolu{ background:#22C55E; border-color:#16A34A; color:#fff; }
+.sye-koltuk.sye-rezerve{ background:#3B82F6; border-color:#2563EB; color:#fff; }
+.sye-koltuk.sye-kilitli{ box-shadow: inset 0 0 0 2px rgba(0,0,0,.12); }
+.sye-koltuk.sye-plus{
+  background:transparent; border:2px dashed #CBD5E1; color:#94A3B8; font-size:17px; font-weight:300;
+  box-shadow:none; touch-action:auto;
+}
+.sye-koltuk.sye-plus:hover{ border-color:var(--brand); color:var(--brand); transform:scale(1.05); }
+.sye-kolcak-sol{ border-left-width:5px; border-top-left-radius:16px; border-bottom-left-radius:16px; }
+.sye-kolcak-sag{ border-right-width:5px; border-top-right-radius:16px; border-bottom-right-radius:16px; }
+
+.sye-badge{ position:absolute; top:1px; left:3px; font-size:7.5px; font-weight:800; opacity:.7; line-height:1; }
+.sye-kilit-ikon{ position:absolute; top:-5px; right:-5px; font-size:9px; background:#fff; border-radius:50%; padding:1px 2px; box-shadow: var(--shadow-sm); line-height:1; }
+.sye-avatar{
+  width:15px; height:15px; border-radius:50%; background:rgba(255,255,255,.32);
+  display:flex; align-items:center; justify-content:center; font-size:8.5px; font-weight:800; margin-bottom:1px; line-height:1;
+}
+.sye-k-ad{ font-size:7.5px; font-weight:700; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:36px; }
+
+.sye-arka-sira{ display:flex; gap:4px; justify-content:center; padding-top:8px; margin-top:2px; border-top:1px dashed rgba(0,0,0,.16); width:100%; }
+.sye-arka-tampon{ height:9px; width:55%; background:rgba(0,0,0,.06); border-radius:0 0 10px 10px; margin-top:4px; }
+.sye-sira-ekle-ana{ display:flex; gap:8px; justify-content:center; margin-top:12px; }
+
+/* ── Efsane / özet kart ──────────────────────────────────────────── */
+.sye-legend-kart{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; font-size:11.5px; background:var(--bg-card); border:1px solid var(--border); border-radius: var(--radius-md); padding:10px 12px; }
+.sye-legend-satir{ display:flex; align-items:center; gap:5px; color:var(--ink-soft); font-weight:600; }
+.sye-nokta{ width:11px; height:11px; border-radius:4px; display:inline-block; border:1px solid rgba(0,0,0,.15); }
+.sye-nokta-dolu{ background:#22C55E; }
+.sye-nokta-bos{ background:#fff; }
+.sye-nokta-rezerve{ background:#3B82F6; }
+.sye-nokta-kilitli{ background:#F59E0B; }
+
+/* ── FAZ 2: Düzenleme araç çubuğu ────────────────────────────────── */
+.sye-toolbar{
+  display:flex; align-items:stretch; gap:2px; overflow-x:auto; padding:6px 4px; margin-bottom:10px;
+  background:var(--bg-card); border:1px solid var(--border); border-radius: var(--radius-md);
+  -webkit-overflow-scrolling:touch; scrollbar-width:none;
+}
+.sye-toolbar::-webkit-scrollbar{ display:none; }
+.sye-tool-btn{
+  flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  background:transparent; border:none; padding:6px 12px; border-radius:10px; font-size:9px; font-weight:700;
+  color:var(--ink-soft); cursor:pointer; transition: background .15s ease, opacity .15s ease; font-family:inherit;
+}
+.sye-tool-btn .sye-tool-ikon{ font-size:18px; line-height:1; }
+.sye-tool-btn:active{ background: var(--brand-light); }
+.sye-tool-btn:disabled{ opacity:.32; cursor:default; }
+.sye-tool-btn:disabled:active{ background:transparent; }
+.sye-tool-ayirici{ width:1px; flex:0 0 auto; background:var(--border); margin:3px 4px; }
+.sye-tool-durum{ font-size:10.5px; color:var(--ink-muted); align-self:center; padding:0 8px; white-space:nowrap; }
+
+/* ── FAZ 2: Sürükle-bırak durumları ──────────────────────────────── */
+.sye-koltuk.sye-secili{ outline:2px solid #F59E0B; outline-offset:2px; }
+.sye-koltuk.sye-surukleniyor{ opacity:.3; }
+.sye-koltuk.sye-hedef{ outline:2px dashed #F59E0B; outline-offset:2px; transform:scale(1.05); }
+.sye-drag-ghost{
+  position:fixed; z-index:9999; pointer-events:none; will-change:transform;
+  transform:scale(1.14) rotate(-2deg); box-shadow:0 12px 26px rgba(0,0,0,.32) !important; transition:none !important;
+}
+
+/* ── Koyu tema ───────────────────────────────────────────────────── */
+[data-theme="dark"] .sye-govde{ background:#25333A; border-color:#3A4954; }
+[data-theme="dark"] .sye-on-cam{ background:linear-gradient(180deg,#1E3A5F,#25476E); border-color:#3B5B82; }
+[data-theme="dark"] .sye-plaka{ background:#1A2226; border-color:#5B6B76; color:#E5EDF0; }
+[data-theme="dark"] .sye-sofor-blok{ background:rgba(245,158,11,0.10); border-color:rgba(245,158,11,0.28); }
+[data-theme="dark"] .sye-sofor-ad{ color:#F3C77A; }
+[data-theme="dark"] .sye-koltuk.sye-bos{ background:#374151; border-color:#4B5563; color:#D1D5DB; }
+[data-theme="dark"] .sye-koltuk.sye-plus{ border-color:#4B5563; color:#6B7280; }
+[data-theme="dark"] .sye-koridor::before{ background:rgba(255,255,255,.14); }
+[data-theme="dark"] .sye-arka-sira{ border-color:rgba(255,255,255,.14); }
+[data-theme="dark"] .sye-arka-tampon{ background:rgba(255,255,255,.08); }
+[data-theme="dark"] .sye-nokta-bos{ background:#374151; border-color:rgba(255,255,255,.2); }
+[data-theme="dark"] .sye-badge{ color:#0F172A; }
+[data-theme="dark"] .sye-kilit-ikon{ background:#1F2937; }
