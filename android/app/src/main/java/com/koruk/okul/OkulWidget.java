@@ -23,11 +23,12 @@ import java.util.Calendar;
  * 4 sayfa (Etkinlikler / Notlarım / Nöbetçiler / Haberler) TEK RemoteViews
  * ağacında üst üste (FrameLayout) durur, aynı anda sadece biri görünür olur.
  *
- * ÖNEMLİ: Sayfa değişimi DOKUNMA ile olur (kaydırma DEĞİL). Android'in
- * StackView/koleksiyon widget'ları MIUI (Xiaomi/Redmi) gibi bazı OEM
- * launcher'larda güvenilir çalışmadığı için (dokunma/kaydırma tepki vermiyor,
- * kartlar çapraz kayıyor gibi render sorunları), standart ve her launcher'da
- * çalışan setOnClickPendingIntent + BroadcastReceiver yöntemi kullanılıyor.
+ * Tıklama bölgeleri (StackView DEĞİL, düz RemoteViews olduğu için birden
+ * fazla FARKLI tıklama alanı tanımlanabiliyor):
+ *   - Başlık satırı (header_X)      → sonraki sayfaya geç
+ *   - İçerik alanı (X_container)     → uygulamada ilgili sekmeyi aç (deep-link)
+ *   - Hafta okları (Etkinlikler)     → sadece takvim haftasını değiştir
+ *   - Yenile butonu (üst şerit)      → widget'ı mevcut verilerle yeniden çizer
  *
  * Veriler, uygulama açıkken JS tarafından (widget-bridge.js) SharedPreferences'a
  * JSON olarak kaydedilir; widget internet bağlantısı gerektirmeden bunları okur.
@@ -47,9 +48,13 @@ public class OkulWidget extends AppWidgetProvider {
     public static final String KEY_HAVA_SICAKLIK  = "widget_hava_sicaklik";
     public static final String KEY_HAVA_ACIKLAMA  = "widget_hava_aciklama";
 
-    private static final String KEY_SAYFA_PREFIX = "widget_sayfa_"; // + widgetId
+    private static final String KEY_SAYFA_PREFIX  = "widget_sayfa_";  // + widgetId
+    private static final String KEY_HAFTA_PREFIX  = "widget_hafta_";  // + widgetId
 
-    public static final String ACTION_SONRAKI_SAYFA = "com.koruk.okul.ACTION_SONRAKI_SAYFA";
+    public static final String ACTION_SONRAKI_SAYFA  = "com.koruk.okul.ACTION_SONRAKI_SAYFA";
+    public static final String ACTION_ONCEKI_HAFTA   = "com.koruk.okul.ACTION_ONCEKI_HAFTA";
+    public static final String ACTION_SONRAKI_HAFTA  = "com.koruk.okul.ACTION_SONRAKI_HAFTA";
+    public static final String ACTION_YENILE         = "com.koruk.okul.ACTION_YENILE";
     public static final String EXTRA_WIDGET_ID = AppWidgetManager.EXTRA_APPWIDGET_ID;
 
     private static final int SAYFA_SAYISI = 4;
@@ -58,16 +63,34 @@ public class OkulWidget extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
         super.onReceive(context, intent);
-        if (ACTION_SONRAKI_SAYFA.equals(intent.getAction())) {
-            int widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, -1);
-            if (widgetId == -1) return;
+        String action = intent.getAction();
+        if (action == null) return;
 
-            SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        int widgetId = intent.getIntExtra(EXTRA_WIDGET_ID, -1);
+        if (widgetId == -1) return;
+
+        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+
+        if (ACTION_SONRAKI_SAYFA.equals(action)) {
             int mevcutSayfa = prefs.getInt(KEY_SAYFA_PREFIX + widgetId, 0);
             int sonrakiSayfa = (mevcutSayfa + 1) % SAYFA_SAYISI;
             prefs.edit().putInt(KEY_SAYFA_PREFIX + widgetId, sonrakiSayfa).apply();
+            updateWidget(context, mgr, widgetId);
 
-            AppWidgetManager mgr = AppWidgetManager.getInstance(context);
+        } else if (ACTION_ONCEKI_HAFTA.equals(action)) {
+            int hafta = prefs.getInt(KEY_HAFTA_PREFIX + widgetId, 0);
+            prefs.edit().putInt(KEY_HAFTA_PREFIX + widgetId, hafta - 1).apply();
+            updateWidget(context, mgr, widgetId);
+
+        } else if (ACTION_SONRAKI_HAFTA.equals(action)) {
+            int hafta = prefs.getInt(KEY_HAFTA_PREFIX + widgetId, 0);
+            prefs.edit().putInt(KEY_HAFTA_PREFIX + widgetId, hafta + 1).apply();
+            updateWidget(context, mgr, widgetId);
+
+        } else if (ACTION_YENILE.equals(action)) {
+            // Hafta ofsetini de sıfırlayarak "bugüne" dön ve mevcut verilerle yeniden çiz.
+            prefs.edit().putInt(KEY_HAFTA_PREFIX + widgetId, 0).apply();
             updateWidget(context, mgr, widgetId);
         }
     }
@@ -83,6 +106,7 @@ public class OkulWidget extends AppWidgetProvider {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String okulAdi = prefs.getString(KEY_OKUL, "Okul Yönetim Paneli");
         int mevcutSayfa = prefs.getInt(KEY_SAYFA_PREFIX + widgetId, 0);
+        int haftaOffset = prefs.getInt(KEY_HAFTA_PREFIX + widgetId, 0);
 
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_okul);
         views.setTextViewText(R.id.widget_okul_adi, okulAdi);
@@ -96,16 +120,16 @@ public class OkulWidget extends AppWidgetProvider {
         String havaSicaklik = prefs.getString(KEY_HAVA_SICAKLIK, "--°");
         String havaAciklama = prefs.getString(KEY_HAVA_ACIKLAMA, "—");
 
-        doldurEtkinlikler(context, views, etkinlikler, havaIkon, havaSicaklik, havaAciklama, mevcutSayfa);
+        doldurEtkinlikler(context, views, etkinlikler, havaIkon, havaSicaklik, havaAciklama, haftaOffset);
         doldurListeSayfasi(context, views, "NOTLARIM", 1, notlar,
                 R.id.notlar_container, R.id.notlar_bos, R.id.title_notlar, R.id.dots_notlar,
-                "Not yok", "📝", mevcutSayfa);
+                "Not yok", "📝");
         doldurListeSayfasi(context, views, "NÖBETÇİLER", 2, nobetciler,
                 R.id.nobet_container, R.id.nobet_bos, R.id.title_nobet, R.id.dots_nobet,
-                "Bugün nöbetçi ataması yok", "🧑‍🏫", mevcutSayfa);
+                "Bugün nöbetçi ataması yok", "🧑‍🏫");
         doldurListeSayfasi(context, views, "HABERLER", 3, haberler,
                 R.id.haberler_container, R.id.haberler_bos, R.id.title_haberler, R.id.dots_haberler,
-                "Haber yok", "📰", mevcutSayfa);
+                "Haber yok", "📰");
 
         // --- Hangi sayfa görünür? ---
         views.setViewVisibility(R.id.root_etkinlikler, mevcutSayfa == 0 ? View.VISIBLE : View.GONE);
@@ -113,17 +137,60 @@ public class OkulWidget extends AppWidgetProvider {
         views.setViewVisibility(R.id.root_nobet,       mevcutSayfa == 2 ? View.VISIBLE : View.GONE);
         views.setViewVisibility(R.id.root_haberler,    mevcutSayfa == 3 ? View.VISIBLE : View.GONE);
 
-        // --- Dokununca sonraki sayfaya geç ---
+        // --- Tıklama bölgeleri ---
+        // 1) Başlık satırları → sonraki sayfaya geç
         Intent sonrakiIntent = new Intent(context, OkulWidget.class);
         sonrakiIntent.setAction(ACTION_SONRAKI_SAYFA);
         sonrakiIntent.putExtra(EXTRA_WIDGET_ID, widgetId);
-        // requestCode olarak widgetId kullanılır, yoksa birden fazla widget örneği
-        // aynı PendingIntent'i paylaşıp birbirini ezer.
-        PendingIntent piSonraki = PendingIntent.getBroadcast(context, widgetId, sonrakiIntent,
+        PendingIntent piSonraki = PendingIntent.getBroadcast(context, widgetId * 10 + 1, sonrakiIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_sayfa_alani, piSonraki);
+        views.setOnClickPendingIntent(R.id.header_etkinlikler, piSonraki);
+        views.setOnClickPendingIntent(R.id.header_notlar, piSonraki);
+        views.setOnClickPendingIntent(R.id.header_nobet, piSonraki);
+        views.setOnClickPendingIntent(R.id.header_haberler, piSonraki);
+
+        // 2) Hafta okları → sadece takvimi kaydır (sayfa değişmez)
+        Intent oncekiHaftaIntent = new Intent(context, OkulWidget.class);
+        oncekiHaftaIntent.setAction(ACTION_ONCEKI_HAFTA);
+        oncekiHaftaIntent.putExtra(EXTRA_WIDGET_ID, widgetId);
+        PendingIntent piOncekiHafta = PendingIntent.getBroadcast(context, widgetId * 10 + 2, oncekiHaftaIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.btn_hafta_onceki, piOncekiHafta);
+
+        Intent sonrakiHaftaIntent = new Intent(context, OkulWidget.class);
+        sonrakiHaftaIntent.setAction(ACTION_SONRAKI_HAFTA);
+        sonrakiHaftaIntent.putExtra(EXTRA_WIDGET_ID, widgetId);
+        PendingIntent piSonrakiHafta = PendingIntent.getBroadcast(context, widgetId * 10 + 3, sonrakiHaftaIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.btn_hafta_sonraki, piSonrakiHafta);
+
+        // 3) Yenile butonu → mevcut verilerle yeniden çiz + haftayı bugüne sıfırla
+        Intent yenileIntent = new Intent(context, OkulWidget.class);
+        yenileIntent.setAction(ACTION_YENILE);
+        yenileIntent.putExtra(EXTRA_WIDGET_ID, widgetId);
+        PendingIntent piYenile = PendingIntent.getBroadcast(context, widgetId * 10 + 4, yenileIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.btn_yenile, piYenile);
+
+        // 4) İçerik alanları → uygulamada ilgili sekmeyi aç (deep-link, bkz. MainActivity.handleIntent)
+        views.setOnClickPendingIntent(R.id.content_row_etkinlikler, acmaIntentOlustur(context, "takvim", widgetId, 5));
+        views.setOnClickPendingIntent(R.id.notlar_container, acmaIntentOlustur(context, "notlar", widgetId, 6));
+        views.setOnClickPendingIntent(R.id.notlar_bos, acmaIntentOlustur(context, "notlar", widgetId, 7));
+        views.setOnClickPendingIntent(R.id.nobet_container, acmaIntentOlustur(context, "nobet", widgetId, 8));
+        views.setOnClickPendingIntent(R.id.nobet_bos, acmaIntentOlustur(context, "nobet", widgetId, 9));
+        views.setOnClickPendingIntent(R.id.haberler_container, acmaIntentOlustur(context, "haberler", widgetId, 10));
+        views.setOnClickPendingIntent(R.id.haberler_bos, acmaIntentOlustur(context, "haberler", widgetId, 11));
 
         mgr.updateAppWidget(widgetId, views);
+    }
+
+    /** Uygulamayı açıp ilgili sekmeye (page extra'sı ile) yönlendiren PendingIntent üretir. */
+    private static PendingIntent acmaIntentOlustur(Context context, String sayfa, int widgetId, int requestOffset) {
+        Intent intent = new Intent(context, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        intent.putExtra("page", sayfa);
+        return PendingIntent.getActivity(context, widgetId * 10 + requestOffset, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /**
@@ -206,17 +273,18 @@ public class OkulWidget extends AppWidgetProvider {
     /* ---------- Sayfa 0: Etkinlikler ---------- */
     private static void doldurEtkinlikler(Context context, RemoteViews views, JSONArray etkinlikler,
                                            String havaIkon, String havaSicaklik, String havaAciklama,
-                                           int mevcutSayfa) {
+                                           int haftaOffset) {
         views.setTextViewText(R.id.title_etkinlikler, "ETKİNLİKLER");
         views.setCharSequence(R.id.dots_etkinlikler, "setText", noktalariOlustur(0));
 
-        // Haftalık takvim (Pazartesi başlangıçlı, bugünün haftası)
+        // Haftalık takvim (Pazartesi başlangıçlı, haftaOffset ile kaydırılabilir)
         Calendar cal = Calendar.getInstance();
         int gun = cal.get(Calendar.DAY_OF_WEEK);
         int pazartesiFarki = (gun == Calendar.SUNDAY) ? -6 : (Calendar.MONDAY - gun);
-        cal.add(Calendar.DAY_OF_MONTH, pazartesiFarki);
+        cal.add(Calendar.DAY_OF_MONTH, pazartesiFarki + haftaOffset * 7);
         int bugunGunOfAy = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
         int bugunAy = Calendar.getInstance().get(Calendar.MONTH);
+        int bugunYil = Calendar.getInstance().get(Calendar.YEAR);
 
         int[] labelIds = {R.id.cal0_label, R.id.cal1_label, R.id.cal2_label, R.id.cal3_label, R.id.cal4_label, R.id.cal5_label, R.id.cal6_label};
         int[] dateIds  = {R.id.cal0_date, R.id.cal1_date, R.id.cal2_date, R.id.cal3_date, R.id.cal4_date, R.id.cal5_date, R.id.cal6_date};
@@ -224,12 +292,18 @@ public class OkulWidget extends AppWidgetProvider {
         for (int i = 0; i < 7; i++) {
             views.setTextViewText(labelIds[i], GUN_HARFLERI[i]);
             views.setTextViewText(dateIds[i], String.valueOf(cal.get(Calendar.DAY_OF_MONTH)));
-            boolean buGunMu = cal.get(Calendar.DAY_OF_MONTH) == bugunGunOfAy && cal.get(Calendar.MONTH) == bugunAy;
+            boolean buGunMu = haftaOffset == 0
+                    && cal.get(Calendar.DAY_OF_MONTH) == bugunGunOfAy
+                    && cal.get(Calendar.MONTH) == bugunAy
+                    && cal.get(Calendar.YEAR) == bugunYil;
             views.setInt(dateIds[i], "setBackgroundResource",
                     buGunMu ? R.drawable.widget_today_bg : android.R.color.transparent);
             cal.add(Calendar.DAY_OF_MONTH, 1);
         }
 
+        // Etkinlik listesi (en fazla 4 satır) — hafta geçmişteyken/gelecekteyken de
+        // JS'den gelen "bugünün" verisi gösteriliyor; widget'ın kendi başına farklı
+        // günlerin etkinliklerini hesaplama yeteneği yok (veri sadece bugün için gelir).
         views.removeAllViews(R.id.etkinlik_container);
         if (etkinlikler.length() == 0) {
             views.addView(R.id.etkinlik_container, satirOlustur(context, "📅", "Bugün için etkinlik yok", null));
@@ -254,8 +328,7 @@ public class OkulWidget extends AppWidgetProvider {
     private static void doldurListeSayfasi(Context context, RemoteViews views,
                                             String baslik, int dotIndex, JSONArray veri,
                                             int containerId, int bosId, int titleId, int dotsId,
-                                            String bosMetin, String varsayilanEmoji,
-                                            int mevcutSayfa) {
+                                            String bosMetin, String varsayilanEmoji) {
         views.setTextViewText(titleId, baslik);
         views.setCharSequence(dotsId, "setText", noktalariOlustur(dotIndex));
 
