@@ -2826,10 +2826,12 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-green{ background:#EAF7F0; color:#16A34A; }
 #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-purple{ background:#F3EEFE; color:#7C3AED; }
 #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-amber{ background:#FFF1E6; color:#F97316; }
+#tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-rose{ background:#FEECEF; color:#E11D48; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-blue{ background:#22324A; color:#7CA8FF; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-green{ background:#1E3A2C; color:#4ADE80; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-purple{ background:#2E2A45; color:#C4A6FF; }
 [data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-amber{ background:#3A2A1A; color:#FDBA74; }
+[data-theme="dark"] #tab-panel.dash-modern .stat-card-ico-lg.stat-card-ico-rose{ background:#3A1A22; color:#FB7185; }
 #tab-panel.dash-modern .stat-card-footer{
   width:100%; display:flex; justify-content:space-between; align-items:center;
   margin-top:auto; padding-top:10px; border-top:1px solid var(--border);
