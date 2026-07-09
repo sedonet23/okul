@@ -183,20 +183,21 @@ function _dkoVarsayilanaDon(){
    ==================================================================== */
 const DASHBOARD_ALT_KATALOG = {
   hizliBakis: { limit:4, ogeler:[
-    {id:'sinif',        ad:'🏫 Sınıf Sayısı'},
-    {id:'bugunkuDers',  ad:'📚 Bugünkü Ders Sayısı'},
     {id:'acikGorev',    ad:'📌 Açık Görev Sayısı'},
+    {id:'bugunkuDers',  ad:'📚 Bugünkü Ders Sayısı'},
     {id:'hatirlatici',  ad:'⏰ Hatırlatıcı Sayısı'},
     {id:'sinavlarim',   ad:'📝 Sınavlarım / Sınav Sayısı'},
   ]},
-  istatistikSeridi: { limit:4, ogeler:[
+  istatistikSeridi: { limit:5, ogeler:[
     {id:'personel',   ad:'👨‍🏫 Personel Sayısı'},
     {id:'ogrenciler', ad:'🧑‍🎓 Öğrenci Sayısı'},
     {id:'servis',     ad:'🚌 Servis Sayısı'},
     {id:'evrak',      ad:'📄 Bekleyen Evrak Sayısı'},
+    {id:'sinif',      ad:'🏫 Sınıf Sayısı'},
   ]},
   hizliIslemler: { limit:8, ogeler:[
     {id:'personel',       ad:'👥 Personel'},
+    {id:'siniflar',       ad:'🏫 Sınıflar'},
     {id:'nobet',          ad:'🛡️ Nöbet'},
     {id:'servis',         ad:'🚌 Servis'},
     {id:'evrak',          ad:'📄 Evrak'},

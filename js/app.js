@@ -1060,6 +1060,18 @@ function renderDashboard(){
         <span class="stat-card-tumu-bottom">Tümü ›</span>
       </div>
     </div>` : '',
+    // YENİ: Sınıf Sayısı — önceden Hızlı Bakış rozetlerindeydi, buraya
+    // (İstatistik şeridi) taşındı.
+    sinif: gorebilir('siniflar') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('siniflar')">
+      <div class="stat-card-ico-lg stat-card-ico-rose">🏫</div>
+      <div class="stat-card-num">${siniflar.length}</div>
+      <div class="stat-card-label">Sınıf Sayısı</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
+    </div>` : '',
     // YENİ: Öğretmen hesaplarında admin-only kartlar (Personel/Öğrenciler/
     // Servis) boş kaldığı için eklendi — bunlar herkese bağlı öğretmen
     // kaydı olan (ya da ilgili modülü görebilen) kullanıcıya görünür.
@@ -1122,8 +1134,12 @@ function renderDashboard(){
   const _hbSinavEtiket = _hbBenOgretmen ? 'Sınavlarım' : 'Sınavlar';
   const hizliBakisEl = document.getElementById('dashHizliBakis');
   if(hizliBakisEl){
+    // YENİ: Açık Görev Sayısı — kataloğa önceden eklenmişti ama hiç
+    // uygulanmamıştı; Sınıf rozeti İstatistik şeridine taşındığı için
+    // burada onun yerini alan gerçek bir kart olarak devreye alındı.
+    const _hbAcikGorevSayisi = (typeof gorevler !== 'undefined' ? gorevler : []).filter(g=>g.durum!=='tamamlandi').length;
     const _hbTanimlari = {
-      sinif: gorebilir('siniflar') ? `<div class="hb-chip" onclick="sekmeAc('siniflar')"><span class="hb-ico">🏫</span><div class="hb-num">${siniflar.length}</div><div class="hb-label">Sınıf</div></div>` : '',
+      acikGorev: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">📌</span><div class="hb-num">${_hbAcikGorevSayisi}</div><div class="hb-label">Açık Görev</div></div>` : '',
       bugunkuDers: gorebilir('dersProgrami') ? `<div class="hb-chip" onclick="sekmeAc('dersProgrami')"><span class="hb-ico">📚</span><div class="hb-num">${bugunkuDersSayisi}</div><div class="hb-label">Bugünkü Ders</div></div>` : '',
       hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div>` : '',
       // Herkese açık: admin tüm sınav sayısını, öğretmen kendi eklediği/kendine ait
@@ -1464,6 +1480,9 @@ function renderHizliIslemler(){
   if(!el) return;
   const tanimlari = {
     personel:       { modul:'personel',    onclick:"sekmeAc('personel');",              ikon:'👥', ikonClass:'qa-personel', label:'Personel' },
+    // YENİ: Sınıflar — Sınıf rozeti Hızlı Bakış'tan İstatistik şeridine
+    // taşındığı için, sınıflara hızlı erişim burada kısayol olarak eklendi.
+    siniflar:       { modul:'siniflar',    onclick:"sekmeAc('siniflar');",              ikon:'🏫', ikonClass:'qa-rose',     label:'Sınıflar' },
     nobet:          { modul:'nobet',       onclick:"sekmeAc('nobet');",                 ikon:'🛡️', ikonClass:'qa-nobet',    label:'Nöbet' },
     servis:         { modul:'tasima',      onclick:"sekmeAc('tasima');",                ikon:'🚌', ikonClass:'qa-evrak',    label:'Servis' },
     evrak:          { modul:'evrak',       onclick:"sekmeAc('evrak'); evrakModalAc();", ikon:'📄', ikonClass:'qa-gorev',    label:'Evrak' },
