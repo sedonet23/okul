@@ -25,7 +25,6 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'ogretmenHassasBilgi', ad:'Öğretmen Hassas Bilgileri (İzin/Rapor, Belge Durumu)'},
   {grup:'Genel', modul:'siniflar', ad:'Sınıflar'},
   {grup:'Genel', modul:'ogrenciler', ad:'Öğrenciler'},
-  {grup:'Genel', modul:'ogretmenListe', ad:'Öğrenci Listesi Oluştur'},
   {grup:'Genel', modul:'arama', ad:'Arama'},
   {grup:'Genel', modul:'dersProgrami', ad:'Ders Programı'},
   {grup:'Genel', modul:'nobet', ad:'Nöbet Programı'},
@@ -75,7 +74,7 @@ function kullaniciYonetimiYetkisiVar(){
 function sidebarYetkiUygula(){
   document.querySelectorAll('.nav-tab[data-tab]').forEach(btn=>{
     const modul = btn.dataset.tab;
-    if(modul === 'panel' || modul === 'kullaniciYonetimi' || modul === 'istatistikler') return; // ayrı ele alınıyor
+    if(modul === 'panel' || modul === 'kullaniciYonetimi' || modul === 'istatistikler' || modul === 'ogretmenListe') return; // ayrı ele alınıyor
     btn.style.display = gorebilir(modul) ? '' : 'none';
   });
 
@@ -118,6 +117,15 @@ function sidebarYetkiUygula(){
   // kişisel giriş/aktivite verileri diğer öğretmenlere gösterilmemeli.
   const istBtn = document.querySelector('.nav-tab[data-tab="istatistikler"]');
   if(istBtn) istBtn.style.display = kullaniciYonetimiYetkisiVar() ? '' : 'none';
+
+  // "Öğrenci Listesi Oluştur" bir rol-izin modülü DEĞİL — hesaba bağlı
+  // öğretmen kaydı (ders programında en az bir sınıfı olan) varsa
+  // herkese gösterilir; admin dahil, izin sekmesinden yönetilmez.
+  const olBtn = document.querySelector('.nav-tab[data-tab="ogretmenListe"]');
+  if(olBtn){
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    olBtn.style.display = ben ? '' : 'none';
+  }
 
   if(typeof dashboardYetkiUygula === 'function') dashboardYetkiUygula();
 }
