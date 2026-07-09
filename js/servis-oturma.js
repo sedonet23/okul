@@ -72,9 +72,9 @@ function servisOturmaModalAc(servisId) {
   const secilenSablon = mevcut?.sablon || 'ducato';
 
   const sablonBtnler = Object.entries(SO_SABLONLAR).map(([key, val]) =>
-    `<button class="so-sablon-btn${secilenSablon === key ? ' so-sablon-aktif' : ''}"
+    `<button class="so-sablon-btn${secilenSablon === key ? ' so-sablon-aktif' : ''}${key === 'ozel' ? ' so-sablon-btn-genis' : ''}"
       onclick="soSablonSec('${key}','${servisId}')" data-sablon="${key}">
-      ${val.ikon} ${val.ad}<small>${val.aciklama}</small>
+      <span class="so-sablon-ikon">${val.ikon}</span><span class="so-sablon-ad">${val.ad}</span><small>${val.aciklama}</small>
     </button>`).join('');
 
   const icerik = `
@@ -799,6 +799,10 @@ function soKoltukTikla(koltukNo, servisId, sablon) {
   const renkler = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#64748b'];
 
   const body = `
+    <div class="so-koltuk-panel-butonlar so-koltuk-panel-butonlar-ust">
+      <button class="btn btn-primary btn-sm" onclick="soKoltukTiklaSonlandır()">✓ Kaydet</button>
+      <button class="btn btn-ghost btn-sm"   onclick="soKoltukTiklaVazgec()">✕ Vazgeç</button>
+    </div>
     <p class="so-koltuk-baslik"><strong>${koltukNo}. Koltuk</strong></p>
     <div class="form-group">
       <label>Öğrenci</label>
@@ -811,10 +815,6 @@ function soKoltukTikla(koltukNo, servisId, sablon) {
       <div class="so-ogr-ozet-satir"><span>Sınıf</span><strong id="soOgrSinif">${escapeHtml(secilenSinif?.ad || '—')}</strong></div>
       <div class="so-ogr-ozet-satir"><span>Telefon</span><strong id="soOgrTelefon">${escapeHtml(secilenOgr?.telefon || '—')}</strong></div>
       <div class="so-ogr-ozet-satir"><span>Veli</span><strong id="soOgrVeli">${escapeHtml(secilenOgr?.veliAdi || '—')}</strong></div>
-    </div>
-    <div class="form-group">
-      <label>Durak</label>
-      <input type="text" id="soDurakInput" value="${escapeHtml(koltuk.durak || '')}" placeholder="İniş/biniş durağı">
     </div>
     <div class="form-group">
       <label>Not</label>
@@ -877,11 +877,10 @@ function soKoltukTikla(koltukNo, servisId, sablon) {
   const kaydetchecks = () => {
     const ogrenciId = document.getElementById('soOgrenciSec')?.value;
     const rezerve   = document.getElementById('soRezerveCheck')?.checked && !ogrenciId;
-    const durak     = document.getElementById('soDurakInput')?.value.trim() || '';
     const not       = document.getElementById('soNotInput')?.value.trim() || '';
     const renk      = document.getElementById('soRenkInput')?.value || null;
     const kilit     = !!document.getElementById('soKilitCheck')?.checked;
-    soKoltukGuncelle(servisId, koltukNo, { ogrenciId: ogrenciId || null, rezerve, durak, not, renk, kilit }, sb);
+    soKoltukGuncelle(servisId, koltukNo, { ogrenciId: ogrenciId || null, rezerve, durak: koltuk.durak || '', not, renk, kilit }, sb);
     panelEl.style.display = 'none';
   };
 
@@ -892,15 +891,6 @@ function soKoltukTikla(koltukNo, servisId, sablon) {
 
   panelEl.onmousedown = (e) => { if (e.target === panelEl) { e.stopPropagation(); vazgecFn(); } };
   panelEl.onclick = (e) => { e.stopPropagation(); };
-
-  const btnDiv = document.createElement('div');
-  btnDiv.className = 'so-koltuk-panel-butonlar';
-  btnDiv.innerHTML = `
-    <button class="btn btn-primary btn-sm" onclick="soKoltukTiklaSonlandır()">✓ Kaydet</button>
-    <button class="btn btn-ghost btn-sm"   onclick="soKoltukTiklaVazgec()">✕ Vazgeç</button>`;
-
-  const panelDiv = panelEl.querySelector('.so-koltuk-panel');
-  if (panelDiv && !panelDiv.querySelector('.so-koltuk-panel-butonlar')) panelDiv.appendChild(btnDiv);
 
   window.soKoltukTiklaSonlandır = kaydetchecks;
   window.soKoltukTiklaVazgec    = vazgecFn;
