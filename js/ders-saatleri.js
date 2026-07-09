@@ -19,9 +19,45 @@ let dersSaatleriYuklendi = false;
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
    Artık doğrudan db.collection() çağrılmıyor — DersSaatleriRepository üzerinden dinleniyor. */
 let _dsrSenkronUyariZamanlayici = null;
+let _dsrAbonelikIptal = null;   // onSnapshot'ın döndürdüğü unsubscribe fonksiyonu
+let _dsrYenidenBaglanZamanlayici = null;
+let _dsrYenidenBaglanDenemeSayisi = 0;
+
+/* YENİ: onSnapshot bir HATA alırsa (permission-denied, geçici token sorunu, vb.)
+   Firestore SDK'sı dinleyiciyi tamamen durdurur ve bir daha KENDİLİĞİNDEN
+   veri göndermez — bu da "tatil modu açık olmasına rağmen ekranda kalıcı
+   olarak kapalı görünme" sorununun asıl kaynağıydı (eski önbellek sorunundan
+   FARKLI: burada fromCache uyarısı bile tetiklenmiyor çünkü ilk snapshot'tan
+   sonra callback'in kendisi bir daha hiç çağrılmıyor).
+   Çözüm: hata anında kalıcı bir uyarı göster VE artan bekleme süreleriyle
+   (5s → 10s → 20s → 40s, 60s'de sabitlenir) dinleyiciyi otomatik yeniden kur. */
+function _dsrBaglantiHatasi(err){
+  console.error('[DersSaatleri] onSnapshot hatası:', err && err.code, err);
+  if(typeof _senkronUyariGoster === 'function'){
+    _senkronUyariGoster('⚠️ Tatil Modu/Ders Saatleri verisi sunucuyla senkronize edilemiyor'
+      + (err && err.code ? ' (' + err.code + ')' : '')
+      + ' — otomatik olarak yeniden bağlanılmaya çalışılıyor. Sorun devam ederse sayfayı yenileyin.');
+  }
+  _dsrYenidenBaglanDenemeSayisi++;
+  const bekleme = Math.min(5000 * Math.pow(2, _dsrYenidenBaglanDenemeSayisi - 1), 60000);
+  clearTimeout(_dsrYenidenBaglanZamanlayici);
+  _dsrYenidenBaglanZamanlayici = setTimeout(()=>{
+    dersSaatleriBaglantisiKur();
+  }, bekleme);
+}
 
 function dersSaatleriBaglantisiKur(){
-  DersSaatleriRepository.ayarlariDinle((v, metadata)=>{
+  // Önceki (varsa) dinleyiciyi kapat — aksi halde yeniden bağlanma denemelerinde
+  // aynı anda birden fazla aktif onSnapshot dinleyicisi birikir.
+  if(typeof _dsrAbonelikIptal === 'function'){
+    try{ _dsrAbonelikIptal(); }catch(e){}
+    _dsrAbonelikIptal = null;
+  }
+  clearTimeout(_dsrYenidenBaglanZamanlayici);
+
+  _dsrAbonelikIptal = DersSaatleriRepository.ayarlariDinle((v, metadata)=>{
+    // Veri başarıyla geldi → yeniden bağlanma sayacını sıfırla
+    _dsrYenidenBaglanDenemeSayisi = 0;
     dersSaatleriYuklendi = true;
     dersSaatleriAyarlari = v;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
@@ -44,7 +80,7 @@ function dersSaatleriBaglantisiKur(){
     } else if(typeof _senkronUyariGizle === 'function'){
       _senkronUyariGizle();
     }
-  });
+  }, _dsrBaglantiHatasi);
 }
 
 function pad2(n){ return n.toString().padStart(2,'0'); }
