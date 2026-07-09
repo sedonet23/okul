@@ -25,6 +25,7 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'ogretmenHassasBilgi', ad:'Öğretmen Hassas Bilgileri (İzin/Rapor, Belge Durumu)'},
   {grup:'Genel', modul:'siniflar', ad:'Sınıflar'},
   {grup:'Genel', modul:'ogrenciler', ad:'Öğrenciler'},
+  {grup:'Genel', modul:'ogretmenListe', ad:'Öğrenci Listesi Oluştur'},
   {grup:'Genel', modul:'arama', ad:'Arama'},
   {grup:'Genel', modul:'dersProgrami', ad:'Ders Programı'},
   {grup:'Genel', modul:'nobet', ad:'Nöbet Programı'},
