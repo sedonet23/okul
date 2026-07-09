@@ -465,7 +465,7 @@ body.nav-collapsed .nav-cikis-btn .nt-label{ display:none; }
 .nav-group-check:checked + .nav-group-toggle{ background: rgba(10,200,200,0.10); color: #B0EEEE; }
 
 .nav-group{
-  display:none; flex-direction:column; gap:2px; padding: 4px 0;
+  display:none; flex-direction:column; gap:8px; padding: 6px 0;
   border-left: 2px solid rgba(237,233,218,0.08);
   margin-left: 20px;
 }
@@ -2483,7 +2483,7 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 .sidebar-head .hamburger-btn span{ background:var(--sb-ink-sub); }
 .theme-toggle.in-sidebar{ background:var(--sb-bg-2); border-color:var(--sb-border); color:var(--sb-ink); }
 
-.nav{ gap:8px; padding:0 4px; }
+.nav{ gap:16px; padding:0 4px; }
 .nav-separator{ color:var(--sb-ink-sub); opacity:.8; }
 .nav-tab{
   color:var(--sb-ink-sub); border-radius:12px; font-family:'Inter'; font-weight:600;
