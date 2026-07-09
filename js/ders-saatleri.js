@@ -18,13 +18,32 @@ let dersSaatleriYuklendi = false;
 
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
    Artık doğrudan db.collection() çağrılmıyor — DersSaatleriRepository üzerinden dinleniyor. */
+let _dsrSenkronUyariZamanlayici = null;
+
 function dersSaatleriBaglantisiKur(){
-  DersSaatleriRepository.ayarlariDinle(v=>{
+  DersSaatleriRepository.ayarlariDinle((v, metadata)=>{
     dersSaatleriYuklendi = true;
     dersSaatleriAyarlari = v;
     renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
     if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
+
+    // TEŞHİS: bu veri gerçekten sunucudan mı geldi, yoksa cihazın ESKİ yerel
+    // önbelleğinden mi okunuyor? Web'de bazen tarayıcı uzantısı/ağ filtresi
+    // Firestore'a özel bağlantıyı engelleyip veriyi sürekli önbellekte
+    // "takılı" bırakabiliyor (Android'de aynı ağda bile sorun yaşanmayabilir,
+    // çünkü APK tarayıcı uzantılarından geçmiyor). 8 saniye içinde sunucu
+    // onayı gelmezse kalıcı bir uyarı gösterilir.
+    if(_dsrSenkronUyariZamanlayici) clearTimeout(_dsrSenkronUyariZamanlayici);
+    if(metadata && metadata.fromCache){
+      _dsrSenkronUyariZamanlayici = setTimeout(()=>{
+        if(typeof _senkronUyariGoster === 'function'){
+          _senkronUyariGoster('⚠️ Ders saatleri/Tatil Modu verisi sunucudan doğrulanamadı — cihazınızın eski önbelleğinden gösteriliyor olabilir. Farklı bir ağ deneyin veya tarayıcı uzantılarını (reklam engelleyici vb.) kapatıp yeniden yükleyin.');
+        }
+      }, 8000);
+    } else if(typeof _senkronUyariGizle === 'function'){
+      _senkronUyariGizle();
+    }
   });
 }
 

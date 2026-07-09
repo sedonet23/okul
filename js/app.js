@@ -316,6 +316,29 @@ function toast(msg){
 }
 
 /* ====================================================================
+   FIRESTORE SENKRON UYARISI — genel amaçlı, kalıcı (toast gibi kendiliğinden
+   kapanmaz) uyarı şeridi. Bir veri kaynağının sunucudan doğrulanamadığı
+   (fromCache takılı kaldığı) durumlarda kullanılır — bkz. ders-saatleri.js.
+   Kullanıcı "✕" ile kapatana kadar ekranda kalır.
+   ==================================================================== */
+function _senkronUyariGoster(mesaj){
+  let el = document.getElementById('senkronUyari');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'senkronUyari';
+    el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#7c2d12;color:#fff;'
+      + 'font-size:12.5px;padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.25);';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<span style="flex:1;line-height:1.4;">${mesaj}</span>
+    <button onclick="document.getElementById('senkronUyari').remove();" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:5px 10px;font-weight:700;flex-shrink:0;">✕</button>`;
+}
+function _senkronUyariGizle(){
+  const el = document.getElementById('senkronUyari');
+  if(el) el.remove();
+}
+
+/* ====================================================================
    ORTAK YAZDIRMA YARDIMCISI
    Android'in çıplak WebView bileşeni window.print() JS API'sini
    desteklemiyor (bu yalnızca Chrome tarayıcı uygulamasında var) — bu
