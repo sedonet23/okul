@@ -124,6 +124,16 @@ html[data-skin="modern"] .btn-ghost{
 }
 html[data-skin="modern"] .btn-ghost:hover{ background: var(--nm-bg-dark); box-shadow: none; }
 
+/* DÜZELTME: Mesajlaşma/detay panel başlığındaki (.detay-head) renkli
+   arka plan üzerinde duran butonlar — yukarıdaki genel .btn-ghost kuralı
+   arka planı opak açık renge çevirdiği için, zaten beyaz olan buton
+   metni görünmez oluyordu (beyaz üstüne beyaz). Burada şeffaf beyaz
+   overlay geri veriliyor. */
+html[data-skin="modern"] .detay-head .btn-ghost{
+  background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.40); color:#FFFFFF;
+}
+html[data-skin="modern"] .detay-head .btn-ghost:hover{ background: rgba(255,255,255,0.22); color:#fff; }
+
 html[data-skin="modern"] .btn-danger{
   background: var(--nm-bg-light);
   border: 1px solid var(--border);
