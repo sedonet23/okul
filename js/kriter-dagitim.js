@@ -40,7 +40,7 @@
     return {
       puanMin: 1,
       puanMax: 5,
-      puanEtiketleri: ['Zayıf', 'Kabul Edilebilir', 'Orta', 'İyi', 'Çok İyi'],
+      puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
       gruplar: [
         { ad: '1.DERSE HAZIRLIK', kriterler: ['Kaynak bilgisi sorgulama.', 'Bilgi kaynaklarını kendisi bulur.', 'Bilgiyi nereden edineceğini bildiğini söyler.', 'Derse değişik yardımcı kaynaklarla gelir.', 'Derse hazırlıklı gelir.'] },
         { ad: '2.ETKİNLİKLERE KATILIM', kriterler: ['Kendiliğinden söz alarak görüşünü söyler.', 'Kendisine görüşü sorulduğunda konuşur.', 'Belirttiği görüş ve verdiği örnekler özgündür.', 'Yeni ve özgün sorular sorar.', 'Dersi dinlediğini gösteren özgün sorular sorar.'] },
@@ -60,7 +60,7 @@
     return {
       'Proje': {
         puanMin: 1, puanMax: 5,
-        puanEtiketleri: ['Zayıf', 'Kabul Edilebilir', 'Orta', 'İyi', 'Çok İyi'],
+        puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
         gruplar: [
           { ad: '1.PROJE HAZIRLAMA', kriterler: ['Projenin amacını belirleme.', 'Projenin amacına uygun çalışma planı yapma.', 'Farklı kaynaklardan bilgi toplama.', 'Hazırlamaya istekli oluş.', 'Projeyi plana göre gerçekleştirme.'] },
           { ad: '2.PROJE İÇERİĞİ', kriterler: ['Türkçe\'yi doğru ve düzgün kullanma.', 'Gösterilen özen, temizlik, tertip ve düzen.', 'Bilgilerin doğruluğu.', 'Toplanan bilgileri düzenleme.', 'Toplanan bilgileri analiz etme.', 'Elde edilen bilgilerden çıkarımda bulunma.', 'Amaca ve hedeflere uygun tasarım.', 'Yaratıcılık yeteneğini kullanma.', 'Kritik düşünme becerisini kullanma.', 'Çalışma raporu hazırlama.'] },
@@ -69,7 +69,7 @@
       },
       'Konuşma': {
         puanMin: 1, puanMax: 5,
-        puanEtiketleri: ['Zayıf', 'Kabul Edilebilir', 'Orta', 'İyi', 'Çok İyi'],
+        puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
         gruplar: [
           { ad: 'ÖĞRENCİDE GÖZLENECEK KAZANIMLAR', kriterler: ['Konuşma öncesinde hazırlık yapar.', 'Konuşmasına uygun ifadelerle başlar ve konuşmayı bitirir.', 'Konuşmada beden dilini etkili bir şekilde kullanır.', 'Kelimeleri anlamına uygun bir şekilde kullanır.', 'Geçiş ve bağlantı ifadelerini kullanır.', 'İşitilebilir bir ses tonuyla konuşur.', 'Konuşmasını bütünlük ve tutarlılık içinde sürdürür.', 'Gereksiz seslerden ve tekrardan kaçınır.', 'Konuşmasını verilen süre içinde tamamlar.', 'Konuşması boyunca nezaket kurallarına uyar.'] }
         ]
@@ -304,7 +304,17 @@
       }
       const dagilim = _puanDagit(hedef, kriterSayisi, puanMin, puanMax);
       const puanHucreleri = dagilim.map(p => `<td class="kd-puan">${p}</td>`).join('');
-      return `<tr${zebraSinifi}><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${Math.round(hedef)}</td></tr>`;
+      // DÜZELTME: sağdaki "PROJE PUANI" sütunu artık ham e-Okul hedefinden
+      // (Math.round(hedef)) değil, fiilen dağıtılmış (tabloda görünen) kriter
+      // puanlarının toplamından, aynı 100'lük ölçeğe geri çevrilerek hesaplanıyor.
+      // _puanDagit içinde hedefToplam = round(hedef/100 * kriterSayisi*puanMax)
+      // adımında oluşan yuvarlama, 100'lük ölçeğe geri dönüşte hedef'ten FARKLI
+      // bir sayı verebiliyordu (örn. hedef=82 iken toplamdan geri hesaplanan 83
+      // çıkabiliyordu). Artık ne gösteriliyorsa ondan hesaplanıyor, dolayısıyla
+      // sütun her zaman tablodaki kriter puanlarıyla birebir tutarlı.
+      const dagitilanToplam = dagilim.reduce((t, p) => t + p, 0);
+      const gosterilenPuan = Math.round((dagitilanToplam / (kriterSayisi * puanMax)) * 100);
+      return `<tr${zebraSinifi}><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${gosterilenPuan}</td></tr>`;
     }).join('');
 
     const olcutLejantYatay = ayar.puanEtiketleri.map((etiket, i) =>
@@ -493,7 +503,7 @@
   function _adim2Render(ov) {
     _panel(ov).innerHTML = _kutu(`
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">2/4 — Excel Dosyası Yükle</h3>
-      <p style="font-size:12.5px;color:#666;margin-bottom:12px;">e-Okul'dan indirdiğin "Excel için sadece veri" not döküm dosyasını (.xls/.xlsx) seç. Aynı dosyada birden fazla sınıf/ders listesi varsa hepsi otomatik ayrıştırılacak.</p>
+      <p style="font-size:12.5px;color:#666;margin-bottom:12px;">e-Okul'dan indirdiğin not döküm dosyasını (.xls/.xlsx) seç. Aynı dosyada birden fazla sınıf/ders listesi varsa hepsi otomatik ayrıştırılacak.</p>
       <input id="kd_dosya" type="file" style="width:100%;margin-bottom:14px;">
       <p style="font-size:11px;color:#999;margin:-10px 0 12px;">Dosya seçme ekranında filtre yok — her türlü dosya listelenir, .xls/.xlsx olmayanı seçersen ayrıştırma hatası verir.</p>
       <div style="display:flex;gap:8px;">
