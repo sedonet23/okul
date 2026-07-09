@@ -352,11 +352,12 @@ function mesajEmojiEkle(emoji){
 /* ---------- Sohbet arka planı seçici ---------- */
 const MESAJ_ARKAPLAN_SECENEKLERI = {
   varsayilan: { ad: 'Varsayılan', css: '' },
-  yesilDoku: { ad: 'Yeşil Doku', css: 'radial-gradient(circle at 20% 20%, rgba(37,140,110,.08) 0%, transparent 40%), radial-gradient(circle at 80% 60%, rgba(37,140,110,.08) 0%, transparent 40%)' },
-  gokyuzu: { ad: 'Gökyüzü', css: 'linear-gradient(180deg, rgba(135,206,250,.15) 0%, transparent 60%)' },
-  kum: { ad: 'Kum', css: 'linear-gradient(180deg, rgba(237,201,175,.18) 0%, transparent 60%)' },
-  lavanta: { ad: 'Lavanta', css: 'linear-gradient(180deg, rgba(190,170,230,.18) 0%, transparent 60%)' },
-  noktali: { ad: 'Noktalı', css: 'radial-gradient(circle, rgba(120,120,120,.15) 1px, transparent 1px)', boyut: '14px 14px' },
+  yesilDoku: { ad: 'Yeşil Doku', css: 'radial-gradient(circle at 20% 20%, rgba(37,140,110,.22) 0%, transparent 45%), radial-gradient(circle at 80% 60%, rgba(37,140,110,.22) 0%, transparent 45%)' },
+  gokyuzu: { ad: 'Gökyüzü', css: 'linear-gradient(180deg, rgba(30,90,150,.28) 0%, transparent 65%)' },
+  kum: { ad: 'Kum', css: 'linear-gradient(180deg, rgba(150,105,50,.28) 0%, transparent 65%)' },
+  lavanta: { ad: 'Lavanta', css: 'linear-gradient(180deg, rgba(110,70,170,.28) 0%, transparent 65%)' },
+  noktali: { ad: 'Noktalı', css: 'radial-gradient(circle, rgba(90,90,90,.35) 1.2px, transparent 1.2px)', boyut: '14px 14px' },
+  koyu: { ad: 'Koyu', css: 'linear-gradient(180deg, rgba(10,15,20,.55) 0%, rgba(10,15,20,.35) 100%)' },
 };
 function _mesajArkaplanOku(){
   try{ return localStorage.getItem('oyMesajArkaplan') || 'varsayilan'; }catch(e){ return 'varsayilan'; }
