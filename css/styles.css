@@ -3078,9 +3078,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    ========================================================================= */
 .mesaj-akis-kutusu{
   background-image:
-    radial-gradient(circle at 20% 20%, rgba(120,120,120,.05) 0%, transparent 40%),
-    radial-gradient(circle at 80% 60%, rgba(120,120,120,.05) 0%, transparent 40%);
-  background-color: var(--bg, #f5f6f8);
+    radial-gradient(circle at 20% 20%, rgba(120,120,120,.07) 0%, transparent 40%),
+    radial-gradient(circle at 80% 60%, rgba(120,120,120,.07) 0%, transparent 40%);
+  background-color: var(--nm-bg);
   border-radius: 14px;
   padding: 10px 8px;
 }
