@@ -48,9 +48,23 @@
     };
   }
 
+  // ---- Ders-bazlı yapıya migration ----
+  // Eski format düz bir kriter şablonuydu ({puanMin,puanMax,puanEtiketleri,gruplar}).
+  // Yeni format: { varsayilan: <eski şablon>, dersOzel: { "Ders Adı": <şablon>, ... } }
+  // Eski kayıtlar otomatik sarmalanır — kimse mevcut ayarını kaybetmez.
+  function _ayariMigrateEt(ham) {
+    if (!ham) return null;
+    if (ham.varsayilan && ham.varsayilan.gruplar) {
+      return { varsayilan: ham.varsayilan, dersOzel: ham.dersOzel || {} };
+    }
+    // Eski düz format (doğrudan gruplar/puanMin taşıyor) → sarmala
+    if (ham.gruplar) return { varsayilan: ham, dersOzel: {} };
+    return null;
+  }
+
   function _bulutVarsayilaniniGetir() {
     if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari[OKUL_AYAR_ALANI]) {
-      return okulBilgileriAyari[OKUL_AYAR_ALANI];
+      return _ayariMigrateEt(okulBilgileriAyari[OKUL_AYAR_ALANI]);
     }
     return null;
   }
@@ -61,12 +75,16 @@
   function _kriterAyariYukle() {
     try {
       const ham = localStorage.getItem(LS_ANAHTAR);
-      if (ham) return JSON.parse(ham);
+      if (ham) {
+        const migrated = _ayariMigrateEt(JSON.parse(ham));
+        if (migrated) return migrated;
+      }
     } catch (e) { /* yoksay */ }
-    return _bulutVarsayilaniniGetir() || _varsayilanKriterAyari();
+    return _bulutVarsayilaniniGetir() || { varsayilan: _varsayilanKriterAyari(), dersOzel: {} };
   }
 
   // Kişisel değişiklik — SADECE bu cihaza kaydedilir, internete gerek yok.
+  // `ayar` her zaman TAM yapı: { varsayilan, dersOzel }
   function _kriterAyariYereleKaydet(ayar) {
     _kriterAyari = ayar;
     try { localStorage.setItem(LS_ANAHTAR, JSON.stringify(ayar)); } catch (e) { /* önemli değil */ }
@@ -74,19 +92,31 @@
 
   // Bulut varsayılanını GÜNCELLEME — SADECE admin kullanmalı (arayüzde de
   // sadece admin'e gösteriliyor, ama burada da güvence için not düşülüyor).
-  async function _kriterAyariBulutaKaydet(ayar) {
-    await db.collection(COL.okulBilgileri).doc('ayarlar').set({ [OKUL_AYAR_ALANI]: ayar }, { merge: true });
+  // `hedefDers` boşsa (Genel) varsayılan şablon güncellenir, doluysa sadece
+  // o dersin bulut şablonu güncellenir — diğer dersler/varsayılan etkilenmez.
+  async function _kriterAyariBulutaKaydet(sablon, hedefDers) {
+    const govde = hedefDers
+      ? { [OKUL_AYAR_ALANI]: { dersOzel: { [hedefDers]: sablon } } }
+      : { [OKUL_AYAR_ALANI]: { varsayilan: sablon } };
+    await db.collection(COL.okulBilgileri).doc('ayarlar').set(govde, { merge: true });
   }
 
   let _kriterAyari = _kriterAyariYukle();
+
+  // Bir ders için kullanılacak şablonu döndürür: o dersin özel tanımı
+  // varsa onu, yoksa okulun/kullanıcının varsayılanını verir.
+  function _kriterAyariForDers(ders) {
+    if (ders && _kriterAyari.dersOzel && _kriterAyari.dersOzel[ders]) return _kriterAyari.dersOzel[ders];
+    return _kriterAyari.varsayilan;
+  }
 
   function _adminMi() {
     return typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin === true;
   }
 
-  function _tumKriterler() {
+  function _tumKriterler(sablon) {
     const liste = [];
-    _kriterAyari.gruplar.forEach(g => g.kriterler.forEach(k => liste.push({ grupAd: g.ad, metin: k })));
+    (sablon || _kriterAyari.varsayilan).gruplar.forEach(g => g.kriterler.forEach(k => liste.push({ grupAd: g.ad, metin: k })));
     return liste;
   }
 
@@ -208,11 +238,12 @@
      ÇİZELGE HTML ÜRETİMİ (bilisimle.com formatı, kendi bilgilerimizle)
      ================================================================ */
   function _cizelgeHtml(blok, notAdi) {
-    const kriterler = _tumKriterler();
+    const ayar = _kriterAyariForDers(blok.ders);
+    const kriterler = _tumKriterler(ayar);
     const kriterSayisi = kriterler.length;
-    const puanMin = _kriterAyari.puanMin, puanMax = _kriterAyari.puanMax;
+    const puanMin = ayar.puanMin, puanMax = ayar.puanMax;
 
-    const grupBaslikHtml = _kriterAyari.gruplar.map(g =>
+    const grupBaslikHtml = ayar.gruplar.map(g =>
       `<th colspan="${g.kriterler.length}" class="kd-grup-th">${escapeHtml(g.ad)}</th>`
     ).join('');
     const kriterBaslikHtml = kriterler.map(k =>
@@ -230,7 +261,7 @@
       return `<tr${zebraSinifi}><td class="kd-sira">${i + 1}</td><td class="kd-no">${escapeHtml(String(o.no))}</td><td class="kd-ad">${escapeHtml(o.ad)}</td>${puanHucreleri}<td class="kd-toplam">${Math.round(hedef)}</td></tr>`;
     }).join('');
 
-    const olcutLejantYatay = _kriterAyari.puanEtiketleri.map((etiket, i) =>
+    const olcutLejantYatay = ayar.puanEtiketleri.map((etiket, i) =>
       `<span class="kd-lejant-ogesi"><b>${puanMin + i}</b> - ${escapeHtml(etiket)}</span>`
     ).join('');
 
@@ -526,7 +557,13 @@
     const eski = document.getElementById('kdOlcutModal');
     if (eski) eski.remove();
 
+    // taslak = TAM yapı ({varsayilan, dersOzel}) üzerinde çalışılan kopya.
     const taslak = JSON.parse(JSON.stringify(_kriterAyari));
+    let hedefDers = '';         // '' = Genel (Varsayılan), doluysa o dersin adı
+    let aktifSablon = taslak.varsayilan; // formun o an bağlı olduğu şablon objesi (null olabilir: ders seçili ama henüz tanım yok)
+
+    const dersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : [])
+      .map(d => `<option value="${escapeHtml(d.ad)}">${escapeHtml(d.ad)}</option>`).join('');
 
     const modal = document.createElement('div');
     modal.id = 'kdOlcutModal';
@@ -534,26 +571,35 @@
     modal.innerHTML = `<div style="background:#fff;border-radius:10px;padding:18px;max-width:520px;width:100%;max-height:85vh;overflow:auto;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;">
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">⚙️ Ölçütleri Düzenle</h3>
 
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <div style="flex:1;">
-          <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Puan Aralığı (min)</label>
-          <input id="kd_om_min" type="number" value="${taslak.puanMin}" style="width:100%;padding:6px 7px;border:1px solid #ccc;border-radius:6px;">
+      <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Hangi ders için?</label>
+      <select id="kd_om_ders" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:8px;">
+        <option value="">— Genel (Varsayılan) —</option>${dersSecenekleri}
+      </select>
+
+      <div id="kd_om_dersDurum" style="margin-bottom:12px;"></div>
+
+      <div id="kd_om_form">
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Puan Aralığı (min)</label>
+            <input id="kd_om_min" type="number" style="width:100%;padding:6px 7px;border:1px solid #ccc;border-radius:6px;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Puan Aralığı (max)</label>
+            <input id="kd_om_max" type="number" style="width:100%;padding:6px 7px;border:1px solid #ccc;border-radius:6px;">
+          </div>
         </div>
-        <div style="flex:1;">
-          <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Puan Aralığı (max)</label>
-          <input id="kd_om_max" type="number" value="${taslak.puanMax}" style="width:100%;padding:6px 7px;border:1px solid #ccc;border-radius:6px;">
-        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;">Puan Karşılıkları (etiketler)</div>
+        <div id="kd_om_etiketler" style="margin-bottom:14px;"></div>
+
+        <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;">Kriter Grupları</div>
+        <div id="kd_om_gruplar" style="margin-bottom:10px;"></div>
+        <button id="kd_om_grupEkle" style="width:100%;padding:7px;border:1px dashed #999;background:#f7f7f7;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:10px;">➕ Grup Ekle</button>
+
+        <button id="kd_om_bulutYukle" style="width:100%;padding:8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:${_adminMi() ? '8px' : '14px'};">☁️ Buluttaki Değeri Yükle</button>
+        ${_adminMi() ? `<button id="kd_om_varsayilanYap" style="width:100%;padding:8px;border:1px solid #8a4b00;color:#8a4b00;background:#fff8e1;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:14px;">👑 Bunu Herkes İçin Varsayılan Yap</button>` : ''}
       </div>
-
-      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;">Puan Karşılıkları (etiketler)</div>
-      <div id="kd_om_etiketler" style="margin-bottom:14px;"></div>
-
-      <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px;">Kriter Grupları</div>
-      <div id="kd_om_gruplar" style="margin-bottom:10px;"></div>
-      <button id="kd_om_grupEkle" style="width:100%;padding:7px;border:1px dashed #999;background:#f7f7f7;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:10px;">➕ Grup Ekle</button>
-
-      <button id="kd_om_bulutYukle" style="width:100%;padding:8px;border:1px solid #1565c0;color:#1565c0;background:#fff;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:${_adminMi() ? '8px' : '14px'};">☁️ Buluttaki Varsayılanı Yükle</button>
-      ${_adminMi() ? `<button id="kd_om_varsayilanYap" style="width:100%;padding:8px;border:1px solid #8a4b00;color:#8a4b00;background:#fff8e1;border-radius:6px;font-size:12.5px;cursor:pointer;margin-bottom:14px;">👑 Bunu Herkes İçin Varsayılan Yap</button>` : ''}
 
       <div style="display:flex;gap:8px;">
         <button id="kd_om_vazgec" style="flex:1;padding:10px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:14px;cursor:pointer;">Vazgeç</button>
@@ -563,19 +609,19 @@
     document.body.appendChild(modal);
 
     function etiketleriRenderEt() {
-      const puanSayisi = (taslak.puanMax - taslak.puanMin + 1);
-      while (taslak.puanEtiketleri.length < puanSayisi) taslak.puanEtiketleri.push('');
-      taslak.puanEtiketleri.length = Math.max(puanSayisi, 0);
-      modal.querySelector('#kd_om_etiketler').innerHTML = taslak.puanEtiketleri.map((et, i) => `
+      const puanSayisi = (aktifSablon.puanMax - aktifSablon.puanMin + 1);
+      while (aktifSablon.puanEtiketleri.length < puanSayisi) aktifSablon.puanEtiketleri.push('');
+      aktifSablon.puanEtiketleri.length = Math.max(puanSayisi, 0);
+      modal.querySelector('#kd_om_etiketler').innerHTML = aktifSablon.puanEtiketleri.map((et, i) => `
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">
-          <span style="width:22px;text-align:center;font-weight:700;font-size:12.5px;">${taslak.puanMin + i}</span>
+          <span style="width:22px;text-align:center;font-weight:700;font-size:12.5px;">${aktifSablon.puanMin + i}</span>
           <input class="kd_om_etiket" data-i="${i}" value="${escapeHtml(et)}" style="flex:1;padding:5px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;">
         </div>`).join('');
-      modal.querySelectorAll('.kd_om_etiket').forEach(el => el.oninput = (e) => { taslak.puanEtiketleri[+e.target.dataset.i] = e.target.value; });
+      modal.querySelectorAll('.kd_om_etiket').forEach(el => el.oninput = (e) => { aktifSablon.puanEtiketleri[+e.target.dataset.i] = e.target.value; });
     }
 
     function gruplariRenderEt() {
-      modal.querySelector('#kd_om_gruplar').innerHTML = taslak.gruplar.map((g, gi) => `
+      modal.querySelector('#kd_om_gruplar').innerHTML = aktifSablon.gruplar.map((g, gi) => `
         <div style="border:1px solid #ddd;border-radius:8px;padding:8px;margin-bottom:8px;">
           <div style="display:flex;gap:6px;margin-bottom:6px;">
             <input class="kd_om_grupAd" data-gi="${gi}" value="${escapeHtml(g.ad)}" placeholder="Grup adı" style="flex:1;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;font-weight:700;">
@@ -589,51 +635,115 @@
           <button class="kd_om_kriterEkle" data-gi="${gi}" style="width:100%;padding:5px;border:1px dashed #bbb;background:#fff;border-radius:6px;font-size:11.5px;cursor:pointer;margin-top:2px;">+ Kriter Ekle</button>
         </div>`).join('');
 
-      modal.querySelectorAll('.kd_om_grupAd').forEach(el => el.oninput = (e) => { taslak.gruplar[+e.target.dataset.gi].ad = e.target.value; });
-      modal.querySelectorAll('.kd_om_grupSil').forEach(el => el.onclick = (e) => { taslak.gruplar.splice(+e.target.dataset.gi, 1); gruplariRenderEt(); });
-      modal.querySelectorAll('.kd_om_kriter').forEach(el => el.oninput = (e) => { taslak.gruplar[+e.target.dataset.gi].kriterler[+e.target.dataset.ki] = e.target.value; });
-      modal.querySelectorAll('.kd_om_kriterSil').forEach(el => el.onclick = (e) => { taslak.gruplar[+e.target.dataset.gi].kriterler.splice(+e.target.dataset.ki, 1); gruplariRenderEt(); });
-      modal.querySelectorAll('.kd_om_kriterEkle').forEach(el => el.onclick = (e) => { taslak.gruplar[+e.target.dataset.gi].kriterler.push('Yeni kriter'); gruplariRenderEt(); });
+      modal.querySelectorAll('.kd_om_grupAd').forEach(el => el.oninput = (e) => { aktifSablon.gruplar[+e.target.dataset.gi].ad = e.target.value; });
+      modal.querySelectorAll('.kd_om_grupSil').forEach(el => el.onclick = (e) => { aktifSablon.gruplar.splice(+e.target.dataset.gi, 1); gruplariRenderEt(); });
+      modal.querySelectorAll('.kd_om_kriter').forEach(el => el.oninput = (e) => { aktifSablon.gruplar[+e.target.dataset.gi].kriterler[+e.target.dataset.ki] = e.target.value; });
+      modal.querySelectorAll('.kd_om_kriterSil').forEach(el => el.onclick = (e) => { aktifSablon.gruplar[+e.target.dataset.gi].kriterler.splice(+e.target.dataset.ki, 1); gruplariRenderEt(); });
+      modal.querySelectorAll('.kd_om_kriterEkle').forEach(el => el.onclick = (e) => { aktifSablon.gruplar[+e.target.dataset.gi].kriterler.push('Yeni kriter'); gruplariRenderEt(); });
     }
 
-    modal.querySelector('#kd_om_min').oninput = (e) => { taslak.puanMin = parseInt(e.target.value, 10) || 1; etiketleriRenderEt(); };
-    modal.querySelector('#kd_om_max').oninput = (e) => { taslak.puanMax = parseInt(e.target.value, 10) || 5; etiketleriRenderEt(); };
-    modal.querySelector('#kd_om_grupEkle').onclick = () => { taslak.gruplar.push({ ad: 'YENİ GRUP', kriterler: ['Yeni kriter'] }); gruplariRenderEt(); };
+    // Formu (min/max/etiket/grup alanları) aktifSablon'a göre baştan çizer.
+    function formuRenderEt() {
+      const formEl = modal.querySelector('#kd_om_form');
+      if (!aktifSablon) { formEl.style.display = 'none'; return; }
+      formEl.style.display = '';
+      modal.querySelector('#kd_om_min').value = aktifSablon.puanMin;
+      modal.querySelector('#kd_om_max').value = aktifSablon.puanMax;
+      etiketleriRenderEt();
+      gruplariRenderEt();
+    }
+
+    // Ders seçici üstündeki durum alanını (kopyala/boştan başla/sil butonları) çizer.
+    function dersDurumRenderEt() {
+      const durumEl = modal.querySelector('#kd_om_dersDurum');
+      if (!hedefDers) { durumEl.innerHTML = ''; return; }
+      if (taslak.dersOzel[hedefDers]) {
+        durumEl.innerHTML = `<div style="font-size:11.5px;color:#1b5e20;background:#eef7ee;border-radius:6px;padding:6px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <span>Bu ders şu an kendi özel kriterlerini kullanıyor.</span>
+          <button id="kd_om_dersSil" style="border:none;background:#fdecea;color:#c0392b;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;white-space:nowrap;">🗑 Sil, varsayılana dön</button>
+        </div>`;
+        modal.querySelector('#kd_om_dersSil').onclick = () => {
+          if (!confirm(`"${hedefDers}" dersinin özel ölçütleri silinsin ve okul varsayılanına dönülsün mü?`)) return;
+          delete taslak.dersOzel[hedefDers];
+          aktifSablon = null;
+          dersDurumRenderEt();
+          formuRenderEt();
+        };
+      } else {
+        durumEl.innerHTML = `<div style="font-size:11.5px;color:#8a4b00;background:#fff8e1;border-radius:6px;padding:8px;">
+          <div style="margin-bottom:6px;">"${escapeHtml(hedefDers)}" için henüz özel ölçüt tanımlı değil.</div>
+          <div style="display:flex;gap:6px;">
+            <button id="kd_om_kopyala" style="flex:1;padding:6px;border:1px solid #8a4b00;background:#fff;border-radius:6px;font-size:11.5px;cursor:pointer;">📋 Varsayılandan Kopyala</button>
+            <button id="kd_om_bostan" style="flex:1;padding:6px;border:1px solid #8a4b00;background:#fff;border-radius:6px;font-size:11.5px;cursor:pointer;">🆕 Boştan Başla</button>
+          </div>
+        </div>`;
+        modal.querySelector('#kd_om_kopyala').onclick = () => {
+          aktifSablon = JSON.parse(JSON.stringify(taslak.varsayilan));
+          taslak.dersOzel[hedefDers] = aktifSablon;
+          dersDurumRenderEt();
+          formuRenderEt();
+        };
+        modal.querySelector('#kd_om_bostan').onclick = () => {
+          aktifSablon = JSON.parse(JSON.stringify(_varsayilanKriterAyari()));
+          aktifSablon.gruplar = [{ ad: '1.GRUP', kriterler: ['Yeni kriter'] }];
+          taslak.dersOzel[hedefDers] = aktifSablon;
+          dersDurumRenderEt();
+          formuRenderEt();
+        };
+      }
+    }
+
+    modal.querySelector('#kd_om_ders').onchange = (e) => {
+      hedefDers = e.target.value;
+      aktifSablon = hedefDers ? (taslak.dersOzel[hedefDers] || null) : taslak.varsayilan;
+      dersDurumRenderEt();
+      formuRenderEt();
+    };
+
+    modal.querySelector('#kd_om_min').oninput = (e) => { aktifSablon.puanMin = parseInt(e.target.value, 10) || 1; etiketleriRenderEt(); };
+    modal.querySelector('#kd_om_max').oninput = (e) => { aktifSablon.puanMax = parseInt(e.target.value, 10) || 5; etiketleriRenderEt(); };
+    modal.querySelector('#kd_om_grupEkle').onclick = () => { aktifSablon.gruplar.push({ ad: 'YENİ GRUP', kriterler: ['Yeni kriter'] }); gruplariRenderEt(); };
     modal.querySelector('#kd_om_vazgec').onclick = () => modal.remove();
 
     // Kaydet: SADECE bu cihaza (localStorage) — internet gerekmez, anında olur.
+    // taslak zaten {varsayilan, dersOzel} tam yapısında — aktifSablon değişiklikleri
+    // referans üzerinden (varsayilan ya da dersOzel[hedefDers]) taslağa işlenmiş durumda.
     modal.querySelector('#kd_om_kaydet').onclick = () => {
-      if (taslak.puanMin >= taslak.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
+      if (aktifSablon && aktifSablon.puanMin >= aktifSablon.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
       _kriterAyariYereleKaydet(taslak);
       modal.remove();
       toast('Ölçütler bu cihaza kaydedildi.');
     };
 
-    // Buluttaki Varsayılanı Yükle: herkes kullanabilir — kendi değişikliklerini
-    // atıp admin'in belirlediği ortak varsayılana döner.
+    // Buluttaki Değeri Yükle: herkes kullanabilir — o an seçili olan hedef
+    // (Genel ya da seçili ders) için buluttaki şablonu getirir.
     modal.querySelector('#kd_om_bulutYukle').onclick = () => {
-      const bulutAyar = _bulutVarsayilaniniGetir();
-      if (!bulutAyar) { toast('Bulutta henüz kayıtlı bir varsayılan yok (veya internet yok).'); return; }
-      if (!confirm('Şu an düzenlemekte olduğunuz ayarların üzerine buluttaki varsayılan yazılacak (henüz Kaydet demediyseniz kaybolmaz, hemen kaydetmezseniz vazgeçebilirsiniz). Devam edilsin mi?')) return;
-      const kopya = JSON.parse(JSON.stringify(bulutAyar));
-      taslak.puanMin = kopya.puanMin; taslak.puanMax = kopya.puanMax;
-      taslak.puanEtiketleri = kopya.puanEtiketleri; taslak.gruplar = kopya.gruplar;
-      modal.querySelector('#kd_om_min').value = taslak.puanMin;
-      modal.querySelector('#kd_om_max').value = taslak.puanMax;
-      etiketleriRenderEt();
-      gruplariRenderEt();
-      toast('Buluttaki varsayılan yüklendi — "Kaydet" demeyi unutmayın.');
+      const bulutTam = _bulutVarsayilaniniGetir();
+      if (!bulutTam) { toast('Bulutta henüz kayıtlı bir varsayılan yok (veya internet yok).'); return; }
+      const kaynak = hedefDers ? bulutTam.dersOzel[hedefDers] : bulutTam.varsayilan;
+      if (!kaynak) { toast(`Bulutta "${hedefDers}" için henüz özel bir şablon yok.`); return; }
+      if (!confirm('Şu an düzenlemekte olduğunuz ölçütlerin üzerine buluttaki değer yazılacak (henüz Kaydet demediyseniz kaybolmaz). Devam edilsin mi?')) return;
+      aktifSablon = JSON.parse(JSON.stringify(kaynak));
+      if (hedefDers) taslak.dersOzel[hedefDers] = aktifSablon; else taslak.varsayilan = aktifSablon;
+      dersDurumRenderEt();
+      formuRenderEt();
+      toast('Buluttaki değer yüklendi — "Kaydet" demeyi unutmayın.');
     };
 
     // Bunu Herkes İçin Varsayılan Yap: SADECE admin — bulut belgesini günceller.
+    // hedefDers boşsa okul varsayılanını, doluysa SADECE o dersin bulut şablonunu günceller.
     const varsayilanYapBtn = modal.querySelector('#kd_om_varsayilanYap');
     if (varsayilanYapBtn) {
       varsayilanYapBtn.onclick = async () => {
-        if (taslak.puanMin >= taslak.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
-        if (!confirm('Bu ayarlar, artık bu aracı İLK KEZ açan HERKESİN varsayılanı olacak. Daha önce kendi ayarını yapıp kaydetmiş kullanıcıları ETKİLEMEZ (onlarınki kendi cihazlarında kalır). Devam edilsin mi?')) return;
+        if (!aktifSablon) { toast('Önce bu ders için "Kopyala" veya "Boştan Başla" seçin.'); return; }
+        if (aktifSablon.puanMin >= aktifSablon.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
+        const mesaj = hedefDers
+          ? `Bu ölçütler, artık "${hedefDers}" dersini seçen HERKESİN bulut varsayılanı olacak. Diğer dersleri ve okul genel varsayılanını etkilemez. Devam edilsin mi?`
+          : 'Bu ölçütler, artık bu aracı İLK KEZ açan HERKESİN genel varsayılanı olacak. Ders-özel tanımı olan dersleri etkilemez. Devam edilsin mi?';
+        if (!confirm(mesaj)) return;
         varsayilanYapBtn.disabled = true; varsayilanYapBtn.textContent = 'Kaydediliyor…';
         try {
-          await _kriterAyariBulutaKaydet(taslak);
+          await _kriterAyariBulutaKaydet(aktifSablon, hedefDers);
           toast('Bulut varsayılanı güncellendi.');
         } catch (e) {
           toast('Kaydedilemedi: ' + e.message);
@@ -643,8 +753,8 @@
       };
     }
 
-    etiketleriRenderEt();
-    gruplariRenderEt();
+    dersDurumRenderEt();
+    formuRenderEt();
   }
 
   /* ================================================================
