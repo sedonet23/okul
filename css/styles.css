@@ -1183,18 +1183,23 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 .so-modal-wrap { display:flex; flex-direction:column; gap:14px; }
 .so-servis-bilgi { background:var(--brand-light); border-radius:8px; padding:8px 14px; font-size:12px; color:var(--brand); }
 
-/* Şablon butonları */
+/* Şablon butonları — kompakt 2 sütunlu ızgara (eskiden flex-wrap ile
+   dağınık ve fazla yer kaplıyordu) */
 .so-sablon-label { font-size:12px; font-weight:600; color:var(--text-secondary,#374151); margin-bottom:6px; }
-.so-sablon-btnler { display:flex; gap:8px; flex-wrap:wrap; }
+.so-sablon-btnler { display:grid; grid-template-columns: 1fr 1fr; gap:6px; }
 .so-sablon-btn {
-  padding:8px 12px; border:2px solid var(--border,#e5e7eb);
+  padding:7px 9px; border:1.5px solid var(--border,#e5e7eb);
   border-radius:10px; background:var(--bg-card,#fff);
-  cursor:pointer; font-size:12px; line-height:1.6; text-align:center;
-  transition:all 0.15s; color:var(--ink,#111827); min-width:88px;
+  cursor:pointer; text-align:left; transition:all 0.15s; color:var(--ink,#111827);
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:0 5px; min-width:0; line-height:1.3;
 }
-.so-sablon-btn small { display:block; font-size:10px; opacity:0.8; }
+.so-sablon-ikon { font-size:13px; }
+.so-sablon-ad { font-size:11.5px; font-weight:700; }
+.so-sablon-btn small { flex-basis:100%; font-size:9.5px; font-weight:400; opacity:0.72; white-space:normal; }
 .so-sablon-btn:hover { border-color:var(--brand); }
 .so-sablon-btn.so-sablon-aktif { border-color:var(--brand); background:var(--brand); color:#fff; }
+.so-sablon-btn.so-sablon-aktif small { opacity:0.85; }
+.so-sablon-btn-genis { grid-column: 1 / -1; }
 
 /* İçerik düzeni — araç üstte tam genişlik, bilgiler altta */
 .so-arac-wrap { width:100%; overflow-x:auto; display:flex; justify-content:center; padding:10px 4px 6px; }
@@ -1416,6 +1421,10 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 .so-koltuk-panel-butonlar .btn {
   flex:1; padding:10px 12px; font-size:13px;
+}
+.so-koltuk-panel-butonlar-ust {
+  margin-top:0; padding-top:0; padding-bottom:12px; margin-bottom:10px;
+  border-top:none; border-bottom:1px solid var(--border,#e5e7eb);
 }
 
 .so-sira-ekle-ana {
