@@ -11,8 +11,12 @@
 
 const DersSaatleriRepository = {
   ayarlariDinle(callback, hataCb){
+    // includeMetadataChanges:true — çağıran taraf (ders-saatleri.js) bu sayede
+    // verinin gerçekten SUNUCUDAN mı geldiğini, yoksa cihazın eski yerel
+    // önbelleğinden mi okunduğunu (doc.metadata.fromCache) ayırt edebiliyor.
     return db.collection(COL.dersSaatleri).doc('ayarlar').onSnapshot(
-      doc => callback(doc.exists ? doc.data() : null),
+      { includeMetadataChanges: true },
+      doc => callback(doc.exists ? doc.data() : null, doc.metadata),
       hataCb || hataGoster
     );
   },
