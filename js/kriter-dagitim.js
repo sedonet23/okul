@@ -32,20 +32,62 @@
   const LS_ANAHTAR = 'krtDagitimAyarlari';
   const OKUL_AYAR_ALANI = 'kriterDagitimAyari';
 
-  /* ---- Varsayılan kriter şablonu (Ölçütleri Düzenle ile değiştirilebilir) ---- */
+  /* ---- Varsayılan kriter şablonu (Ölçütleri Düzenle ile değiştirilebilir) ----
+     DÜZELTME: Kriterler önceden yanlış gruplara kaymıştı (12 kriter, olması
+     gereken 20). bilisimle.com "Ders İçi Katılım" kaynağıyla karşılaştırılıp
+     doğru gruplamayla yeniden yazıldı. */
   function _varsayilanKriterAyari() {
     return {
       puanMin: 1,
       puanMax: 5,
       puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
       gruplar: [
-        { ad: '1.DERSE HAZIRLIK', kriterler: ['Kaynak bilgisi sorgular.', 'Bilgi kaynaklarını kendisi bulur.'] },
-        { ad: '2.ETKİNLİKLERE KATILIM', kriterler: ['Bilgiyi nereden edineceğini bildiğini söyler.', 'Derse değişik yardımcı kaynaklarla gelir.', 'Derse hazırlıklı gelir.'] },
-        { ad: '3.ARAŞTIRMA-GÖZLEM', kriterler: ['Kendiliğinden söz alarak görüşünü söyler.', 'Kendisine görüş sorulduğunda konuşur.', 'Belirttiği görüş ve verdiği örnekler özgündür.'] },
-        { ad: '4.SUNUM', kriterler: ['Yeni ve özgün sorular sorar.', 'Dersi dinlediğini gösteren özgün sorular sorar.'] },
-        { ad: '5.UYGULAMA', kriterler: ['Bilgi toplamak için çeşitli kaynaklara başvurur.', 'Verilenden farklı kaynakları da araştırır.'] }
+        { ad: '1.DERSE HAZIRLIK', kriterler: ['Kaynak bilgisi sorgulama.', 'Bilgi kaynaklarını kendisi bulur.', 'Bilgiyi nereden edineceğini bildiğini söyler.', 'Derse değişik yardımcı kaynaklarla gelir.', 'Derse hazırlıklı gelir.'] },
+        { ad: '2.ETKİNLİKLERE KATILIM', kriterler: ['Kendiliğinden söz alarak görüşünü söyler.', 'Kendisine görüşü sorulduğunda konuşur.', 'Belirttiği görüş ve verdiği örnekler özgündür.', 'Yeni ve özgün sorular sorar.', 'Dersi dinlediğini gösteren özgün sorular sorar.'] },
+        { ad: '3.ARAŞTIRMA-GÖZLEM', kriterler: ['Bilgi toplamak için çeşitli kaynaklara başvurur.', 'Verilenden farklı kaynakları da araştırır.', 'İnceleme ve araştırma ödevlerini özenir.', 'Gözlemlerinde mantıklı çıkarımlarda bulunur.', 'Araştırma-İncelemelerde genellemeler yapar.'] },
+        { ad: '4.SUNUM', kriterler: ['Verilenlerden grafik ve çizelgeler oluşturur.', 'Yönteme uygun deney yapar.'] },
+        { ad: '5.UYGULAMA', kriterler: ['Derslere zamanında girer.', 'Dersin akışını bozmaz.', 'Ödevlerini zamanında hazırlayarak sunar.'] }
       ]
     };
+  }
+
+  /* ---- Built-in ders-özel şablonlar (Proje, Konuşma) ----
+     İlk kurulumda (localStorage + bulutta hiç kayıt yokken) dersOzel'e
+     otomatik eklenir. Sonradan _kriterAyariYukle() her açılışta, kullanıcı
+     bunları silmediyse eksikse tamamlar — kullanıcı özelleştirmesi varsa
+     ASLA üzerine yazılmaz (bkz. _eksikYerlesikleriTamamla). */
+  function _yerlesikDersOzelSablonlari() {
+    return {
+      'Proje': {
+        puanMin: 1, puanMax: 5,
+        puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
+        gruplar: [
+          { ad: '1.PROJE HAZIRLAMA', kriterler: ['Projenin amacını belirleme.', 'Projenin amacına uygun çalışma planı yapma.', 'Farklı kaynaklardan bilgi toplama.', 'Hazırlamaya istekli oluş.', 'Projeyi plana göre gerçekleştirme.'] },
+          { ad: '2.PROJE İÇERİĞİ', kriterler: ['Türkçe\'yi doğru ve düzgün kullanma.', 'Gösterilen özen, temizlik, tertip ve düzen.', 'Bilgilerin doğruluğu.', 'Toplanan bilgileri düzenleme.', 'Toplanan bilgileri analiz etme.', 'Elde edilen bilgilerden çıkarımda bulunma.', 'Amaca ve hedeflere uygun tasarım.', 'Yaratıcılık yeteneğini kullanma.', 'Kritik düşünme becerisini kullanma.', 'Çalışma raporu hazırlama.'] },
+          { ad: '3.PROJE GÖREV SUNUMU', kriterler: ['Türkçe\'yi doğru ve düzgün konuşma.', 'Konu ile ilgili kavramları anlama ve anlatma.', 'Akıcı bir dil ve beden dilini kullanma.', 'Ödevin zamanında teslim edilmesi.', 'Sunum sırasında özgüvene sahip olma.'] }
+        ]
+      },
+      'Konuşma': {
+        puanMin: 1, puanMax: 5,
+        puanEtiketleri: ['ZAYIF', 'KABUL EDİLEBİLİR', 'ORTA', 'İYİ', 'ÇOK İYİ'],
+        gruplar: [
+          { ad: 'ÖĞRENCİDE GÖZLENECEK KAZANIMLAR', kriterler: ['Konuşma öncesinde hazırlık yapar.', 'Konuşmasına uygun ifadelerle başlar ve konuşmayı bitirir.', 'Konuşmada beden dilini etkili bir şekilde kullanır.', 'Kelimeleri anlamına uygun bir şekilde kullanır.', 'Geçiş ve bağlantı ifadelerini kullanır.', 'İşitilebilir bir ses tonuyla konuşur.', 'Konuşmasını bütünlük ve tutarlılık içinde sürdürür.', 'Gereksiz seslerden ve tekrardan kaçınır.', 'Konuşmasını verilen süre içinde tamamlar.', 'Konuşması boyunca nezaket kurallarına uyar.'] }
+        ]
+      }
+    };
+  }
+
+  // Kullanıcının kendi eklediği/sildiği dersOzel kategorilerine DOKUNMADAN,
+  // eksik olan yerleşik (built-in) şablonları tamamlar. Kullanıcı "Proje"yi
+  // bilerek silmişse — bunu ayırt edemeyiz, o yüzden sadece dersOzel içinde
+  // o anahtar HİÇ YOKSA ekleriz; boş obje bırakmışsa dahi dokunmayız.
+  function _eksikYerlesikleriTamamla(tamYapi) {
+    const yerlesikler = _yerlesikDersOzelSablonlari();
+    let degisti = false;
+    Object.keys(yerlesikler).forEach(ad => {
+      if (!tamYapi.dersOzel[ad]) { tamYapi.dersOzel[ad] = yerlesikler[ad]; degisti = true; }
+    });
+    return degisti;
   }
 
   // ---- Ders-bazlı yapıya migration ----
@@ -72,15 +114,19 @@
   // Öncelik: 1) bu cihazda daha önce kaydedilmiş kişisel ayar,
   //          2) yoksa buluttaki admin varsayılanı (internet + admin ayarı varsa),
   //          3) yoksa kod içindeki sabit varsayılan.
+  // Her durumda: eksik yerleşik şablonlar (Proje/Konuşma) sessizce tamamlanır.
   function _kriterAyariYukle() {
+    let sonuc = null;
     try {
       const ham = localStorage.getItem(LS_ANAHTAR);
-      if (ham) {
-        const migrated = _ayariMigrateEt(JSON.parse(ham));
-        if (migrated) return migrated;
-      }
+      if (ham) sonuc = _ayariMigrateEt(JSON.parse(ham));
     } catch (e) { /* yoksay */ }
-    return _bulutVarsayilaniniGetir() || { varsayilan: _varsayilanKriterAyari(), dersOzel: {} };
+    if (!sonuc) sonuc = _bulutVarsayilaniniGetir() || { varsayilan: _varsayilanKriterAyari(), dersOzel: {} };
+
+    if (_eksikYerlesikleriTamamla(sonuc)) {
+      try { localStorage.setItem(LS_ANAHTAR, JSON.stringify(sonuc)); } catch (e) { /* önemli değil */ }
+    }
+    return sonuc;
   }
 
   // Kişisel değişiklik — SADECE bu cihaza kaydedilir, internete gerek yok.
@@ -472,10 +518,18 @@
     };
   }
 
+  /* ---- Ders listesinde olmayan, sadece kriter amaçlı ders-özel kategoriler
+     (Proje, Konuşma, öğretmenin "Yeni Kategori Oluştur" ile eklediği adlar) ---- */
+  function _dersOzelKategoriListesi() {
+    const gercekDersler = new Set((typeof dersListesi !== 'undefined' ? dersListesi : []).map(d => d.ad));
+    return Object.keys(_kriterAyari.dersOzel || {}).filter(ad => !gercekDersler.has(ad)).sort((a, b) => a.localeCompare(b, 'tr'));
+  }
+
   /* ---- Adım 3: Sütun Eşleme ---- */
   /* ---- Adım 3: Blok Başına Ders/Sınıf Seçimi ---- */
   function _adim3Render(ov) {
     const dersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : []).map(d => `<option value="${escapeHtml(d.ad)}">${escapeHtml(d.ad)}</option>`).join('');
+    const kategoriSecenekleri = _dersOzelKategoriListesi().map(ad => `<option value="${escapeHtml(ad)}">${escapeHtml(ad)}</option>`).join('');
     const sinifSecenekleri = (typeof siniflar !== 'undefined' ? siniflar : []).slice()
       .sort((a, b) => `${a.seviye || ''}${a.sube || ''}`.localeCompare(`${b.seviye || ''}${b.sube || ''}`, 'tr'))
       .map(s => `<option value="${escapeHtml(s.ad || (s.seviye + '/' + s.sube))}">${escapeHtml(s.ad || (s.seviye + '/' + s.sube))}</option>`).join('');
@@ -485,7 +539,7 @@
         <div style="font-weight:700;font-size:12.5px;margin-bottom:8px;">Liste ${i + 1} — ${b.ogrenciler.length} öğrenci <span style="font-weight:400;color:#888;">(örn: ${escapeHtml(b.ogrenciler[0]?.ad || '')})</span></div>
         <div style="display:flex;gap:6px;">
           <select class="kd_blokDers" data-i="${i}" style="flex:1;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;">
-            <option value="">— Ders seç —</option>${dersSecenekleri}
+            <option value="">— Ders seç —</option>${dersSecenekleri}${kategoriSecenekleri ? `<optgroup label="Diğer Kategoriler">${kategoriSecenekleri}</optgroup>` : ''}
           </select>
           <select class="kd_blokSinif" data-i="${i}" style="flex:1;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;">
             <option value="">— Sınıf seç —</option>${sinifSecenekleri}
@@ -559,11 +613,22 @@
 
     // taslak = TAM yapı ({varsayilan, dersOzel}) üzerinde çalışılan kopya.
     const taslak = JSON.parse(JSON.stringify(_kriterAyari));
-    let hedefDers = '';         // '' = Genel (Varsayılan), doluysa o dersin adı
+    let hedefDers = '';         // '' = Genel (Varsayılan), doluysa o dersin/kategorinin adı
     let aktifSablon = taslak.varsayilan; // formun o an bağlı olduğu şablon objesi (null olabilir: ders seçili ama henüz tanım yok)
 
-    const dersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : [])
+    const gercekDersSecenekleri = (typeof dersListesi !== 'undefined' ? dersListesi : [])
       .map(d => `<option value="${escapeHtml(d.ad)}">${escapeHtml(d.ad)}</option>`).join('');
+
+    // Ders seçici <option>'larını taslak.dersOzel'e göre yeniden üretir — yeni
+    // kategori eklendiğinde veya silindiğinde tekrar çağrılır.
+    function dersSelectIcerigiUret() {
+      const gercekDersAdlari = new Set((typeof dersListesi !== 'undefined' ? dersListesi : []).map(d => d.ad));
+      const kategoriler = Object.keys(taslak.dersOzel).filter(ad => !gercekDersAdlari.has(ad)).sort((a, b) => a.localeCompare(b, 'tr'));
+      const kategoriSecenekleri = kategoriler.map(ad => `<option value="${escapeHtml(ad)}">${escapeHtml(ad)}</option>`).join('');
+      return `<option value="">— Genel (Varsayılan) —</option>${gercekDersSecenekleri}` +
+        (kategoriSecenekleri ? `<optgroup label="Diğer Kategoriler">${kategoriSecenekleri}</optgroup>` : '') +
+        `<option value="__yeni__">➕ Yeni Kategori Oluştur…</option>`;
+    }
 
     const modal = document.createElement('div');
     modal.id = 'kdOlcutModal';
@@ -571,10 +636,16 @@
     modal.innerHTML = `<div style="background:#fff;border-radius:10px;padding:18px;max-width:520px;width:100%;max-height:85vh;overflow:auto;font-family:'Segoe UI',Arial,sans-serif;color:#1a1a1a;">
       <h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">⚙️ Ölçütleri Düzenle</h3>
 
-      <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Hangi ders için?</label>
-      <select id="kd_om_ders" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:8px;">
-        <option value="">— Genel (Varsayılan) —</option>${dersSecenekleri}
-      </select>
+      <label style="font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:4px;">Hangi ders/kategori için?</label>
+      <select id="kd_om_ders" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:8px;">${dersSelectIcerigiUret()}</select>
+
+      <div id="kd_om_yeniKategori" style="display:none;margin-bottom:8px;">
+        <input id="kd_om_yeniAd" type="text" placeholder="Kategori adı (örn. Dinleme, Görsel Sanatlar)" style="width:100%;padding:7px 8px;border:1px solid #8a4b00;border-radius:6px;font-size:13px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;">
+          <button id="kd_om_yeniVazgec" style="flex:1;padding:6px;border:1px solid #ccc;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;">Vazgeç</button>
+          <button id="kd_om_yeniOlustur" style="flex:2;padding:6px;border:none;background:#8a4b00;color:#fff;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;">Oluştur</button>
+        </div>
+      </div>
 
       <div id="kd_om_dersDurum" style="margin-bottom:12px;"></div>
 
@@ -694,10 +765,41 @@
     }
 
     modal.querySelector('#kd_om_ders').onchange = (e) => {
+      if (e.target.value === '__yeni__') {
+        e.target.value = hedefDers; // seçiciyi eski değerine geri al, asıl seçim "Oluştur" ile olacak
+        modal.querySelector('#kd_om_yeniKategori').style.display = '';
+        modal.querySelector('#kd_om_yeniAd').value = '';
+        modal.querySelector('#kd_om_yeniAd').focus();
+        return;
+      }
+      modal.querySelector('#kd_om_yeniKategori').style.display = 'none';
       hedefDers = e.target.value;
       aktifSablon = hedefDers ? (taslak.dersOzel[hedefDers] || null) : taslak.varsayilan;
       dersDurumRenderEt();
       formuRenderEt();
+    };
+
+    modal.querySelector('#kd_om_yeniVazgec').onclick = () => {
+      modal.querySelector('#kd_om_yeniKategori').style.display = 'none';
+    };
+    modal.querySelector('#kd_om_yeniOlustur').onclick = () => {
+      const ad = modal.querySelector('#kd_om_yeniAd').value.trim();
+      if (!ad) { toast('Bir kategori adı yazın.'); return; }
+      const gercekDersAdlari = (typeof dersListesi !== 'undefined' ? dersListesi : []).map(d => d.ad);
+      const tumMevcutAdlar = [...gercekDersAdlari, ...Object.keys(taslak.dersOzel)];
+      if (tumMevcutAdlar.some(x => x.toLocaleLowerCase('tr') === ad.toLocaleLowerCase('tr'))) {
+        toast('Bu isimde bir ders/kategori zaten var.'); return;
+      }
+      taslak.dersOzel[ad] = null; // henüz tanımsız yer tutucu — seçici listesinde görünsün diye
+      const selectEl = modal.querySelector('#kd_om_ders');
+      selectEl.innerHTML = dersSelectIcerigiUret();
+      selectEl.value = ad;
+      modal.querySelector('#kd_om_yeniKategori').style.display = 'none';
+      hedefDers = ad;
+      aktifSablon = null;
+      dersDurumRenderEt();
+      formuRenderEt();
+      toast(`"${ad}" kategorisi oluşturuldu — şimdi ölçütlerini tanımla.`);
     };
 
     modal.querySelector('#kd_om_min').oninput = (e) => { aktifSablon.puanMin = parseInt(e.target.value, 10) || 1; etiketleriRenderEt(); };
@@ -710,6 +812,9 @@
     // referans üzerinden (varsayilan ya da dersOzel[hedefDers]) taslağa işlenmiş durumda.
     modal.querySelector('#kd_om_kaydet').onclick = () => {
       if (aktifSablon && aktifSablon.puanMin >= aktifSablon.puanMax) { toast('Min, max\'tan küçük olmalı.'); return; }
+      // Oluşturulup hiç ölçüt tanımlanmamış (kopyala/boştan başla seçilmemiş) kategori
+      // yer tutucularını temizle — boş kayıt kalmasın.
+      Object.keys(taslak.dersOzel).forEach(ad => { if (!taslak.dersOzel[ad]) delete taslak.dersOzel[ad]; });
       _kriterAyariYereleKaydet(taslak);
       modal.remove();
       toast('Ölçütler bu cihaza kaydedildi.');
