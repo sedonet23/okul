@@ -3105,8 +3105,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .mesaj-balon-govde.kendi.grup-orta, .mesaj-balon-govde.kendi.grup-son{ border-top-right-radius: 14px; }
 .mesaj-balon-govde.karsi.grup-orta, .mesaj-balon-govde.karsi.grup-son{ border-top-left-radius: 14px; }
 .mesaj-satir-alt{ display:flex; align-items:center; gap:4px; margin-top:2px; font-size:10.5px; color: var(--ink-muted); }
-.mesaj-tik{ font-size:12px; line-height:1; }
-.mesaj-tik.okundu{ color:#4fc3f7; }
+.mesaj-tik{ font-size:12px; line-height:1; color: var(--ink-muted); }
+.mesaj-tik.okundu{ color:#22C55E; }
+[data-theme="dark"] .mesaj-tik.okundu{ color:#4ADE80; }
 .mesaj-gonderen-adi{ font-size:11px; font-weight:700; margin-bottom:2px; }
 .mesaj-giris-satiri{
   display:flex; gap:8px; align-items:center;
