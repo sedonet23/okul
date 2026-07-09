@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v148';
+const CACHE_ADI = 'oy-cache-v149';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -183,7 +183,7 @@ self.addEventListener('fetch', (event) => {
     url.includes('fonts.gstatic.com')
   ) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request.url, { cache: 'reload' })
         .then((yanit) => {
           const kopya = yanit.clone();
           caches.open(CACHE_ADI).then(c => c.put(event.request, kopya));
@@ -195,11 +195,18 @@ self.addEventListener('fetch', (event) => {
   }
 
   /* 3. Uygulama dosyaları → Cache First (offline'da anında açılır)
-        Arka planda ağdan kontrol et, fark varsa cache güncelle (stale-while-revalidate) */
+        Arka planda ağdan kontrol et, fark varsa cache güncelle (stale-while-revalidate)
+
+        ÖNEMLİ DÜZELTME: Düz `fetch(event.request)` tarayıcının KENDİ HTTP
+        önbelleğini atlamıyordu — GitHub Pages'in Cache-Control başlığı
+        yüzünden bu "ağdan kontrol" isteği sık sık ağa hiç gitmeden eski
+        HTTP cache kaydını geri döndürüyor, yani güncelleme denemesi
+        sonsuza kadar aynı eski dosyayı cache'e tekrar yazıyordu.
+        {cache:'reload'} tarayıcı HTTP cache'ini de bilinçli atlar. */
   event.respondWith(
     caches.open(CACHE_ADI).then(async (cache) => {
       const onbellek = await cache.match(event.request);
-      const agIstegi = fetch(event.request)
+      const agIstegi = fetch(event.request.url, { cache: 'reload' })
         .then((yanit) => {
           if (yanit && yanit.status === 200) {
             cache.put(event.request, yanit.clone());
