@@ -818,32 +818,19 @@ function _raporServisOturmaGoster(servisIdFiltre) {
 
   let html = '';
 
-  hedefServisler.forEach(servis => {
+  hedefServisler.forEach((servis, idx) => {
     const plan = (typeof servisOturmaPlani !== 'undefined' ? servisOturmaPlani : [])
       .find(p => p.servisId === servis.id);
 
-    html += `<div class="bolum-baslik">🚌 ${escapeHtml(servis.servisAdi || 'Servis')}
+    html += `<div class="bolum-baslik${idx > 0 ? ' sayfa-sonu' : ''}">🚌 ${escapeHtml(servis.servisAdi || 'Servis')}
       ${servis.guzergah ? ` — <span style="font-weight:400">${escapeHtml(servis.guzergah)}</span>` : ''}
     </div>`;
 
-    html += `<p style="font-size:10px;color:#555;padding:0 0 6px 8px;">
-      Şoför: ${escapeHtml(servis.soforAdi || '—')}
-      ${servis.soforTelefon ? ` · 📞 ${escapeHtml(servis.soforTelefon)}` : ''}
-      &nbsp;|&nbsp; Durum: ${escapeHtml(servis.durum || 'Aktif')}
-    </p>`;
-
     if (plan && plan.yerlesim && plan.yerlesim.length) {
-      const aktifYer = plan.yerlesim.filter(y => y.aktif !== false && !y.soforYani);
-      const kapasite = aktifYer.length;
-      const dolu    = (plan.koltuklar || []).filter(k => k.ogrenciId || k.ogrenciAdi).length;
-      const rezerve = (plan.koltuklar || []).filter(k => k.rezerve && !(k.ogrenciId || k.ogrenciAdi)).length;
-
-      html += `<span class="ozet-kutu">Kapasite: ${kapasite}</span>
-               <span class="ozet-kutu">Dolu: ${dolu}</span>
-               <span class="ozet-kutu">Rezerve: ${rezerve}</span>
-               <span class="ozet-kutu">Boş: ${Math.max(0, kapasite - dolu - rezerve)}</span>`;
-
-      // Araç Koltuk Düzeni — her zaman göster
+      // NOT: Şoför/kapasite özet satırı kaldırıldı — araç şeması zaten
+      // şoför adını ve koltuk renklerini gösteriyor; bu satır her servisin
+      // tek sayfaya sığmasını engelleyip sayfa taşmasına (bir sonraki
+      // servisin araç görseline bitişik/kesik basılmasına) sebep oluyordu.
       html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, plan) : '';
 
     } else {
@@ -858,14 +845,8 @@ function _raporServisOturmaGoster(servisIdFiltre) {
         yerlesim: (typeof SO_SABLONLAR !== 'undefined') ? SO_SABLONLAR.ducato.yerlesimUret() : [],
         koltuklar: [],
       };
-      const kapasiteVars = varsayilanPlan.yerlesim.length;
 
-      html += `<span class="ozet-kutu">Kapasite: ${kapasiteVars}</span>
-               <span class="ozet-kutu">Dolu: 0</span>
-               <span class="ozet-kutu">Rezerve: 0</span>
-               <span class="ozet-kutu">Boş: ${kapasiteVars}</span>`;
-
-      if (kapasiteVars) {
+      if (varsayilanPlan.yerlesim.length) {
         html += (typeof soRaporGovdeHtml === 'function') ? soRaporGovdeHtml(servis, varsayilanPlan) : '';
       }
     }
