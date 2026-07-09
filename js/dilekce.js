@@ -56,7 +56,7 @@
 
   function _getOkulBilgisi() {
     const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
-      ? okulBilgileriAyari.okulAdi : 'KORUK İLK - ORTAOKULU';
+      ? okulBilgileriAyari.okulAdi : 'KORUK ORTAOKULU';
     const il = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.il) || '';
     const ilce = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.ilce) || '';
     const mebMudurlugu = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mebMudurlugu) || '';
@@ -73,7 +73,7 @@
   function _otomatikGovdeMetni(state) {
     const sure = parseInt(state.sure, 10) || 0;
     const sureYazi = sayiyiYaziyaCevir(sure);
-    return `Okulunuzda ${state.gorev || '...........................'} olarak görev yapmaktayım. ` +
+    return `     Okulunuzda ${state.gorev || '...........................'} olarak görev yapmaktayım. ` +
       `${state.baslamaTarihi || '....../....../............'} tarihinden itibaren ` +
       `${sure || '......'} (${sureYazi || '..........'}) gün ` +
       `${state.izinTuru || '...........................'} hakkımı kullanmak istiyorum.`;
@@ -236,7 +236,7 @@
       ? state.govdeManuel
       : _otomatikGovdeMetni(state);
 
-    const kapanisMetni = 'Gereğini olurlarınıza arz ederim.';
+    const kapanisMetni = '        Gereğini olurlarınıza arz ederim.';
     const tarihMetni = '....../....../............';
 
     const icerikHtml = `
@@ -273,7 +273,7 @@
       ? state.govdeManuel
       : _otomatikGovdeMetniDiploma(state, state.okulAdiManuel || okul.okulAdi || '');
 
-    const kapanisMetni = 'Gereğini arz ederim.';
+    const kapanisMetni = '     Gereğini arz ederim.';
     const tarihMetni = '....../....../............';
 
     const icerikHtml = `
@@ -509,7 +509,7 @@
     return `
       <div style="margin-bottom:12px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Adı ve Soyadı</label>
-        <input id="dlk_adSoyad" value="${escapeHtml(state.adSoyad||'')}" placeholder="örn: Sultan Deveci" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        <input id="dlk_adSoyad" value="${escapeHtml(state.adSoyad||'')}" placeholder="örn: Ali VELİ" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
       </div>
 
       <div style="margin-bottom:12px;">
@@ -530,7 +530,7 @@
 
       <div style="margin-bottom:12px;">
         <label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Doğum Yeri</label>
-        <input id="dlk_dogumYeri" value="${escapeHtml(state.dogumYeri||'')}" placeholder="örn: Esenkent – Merkez/Elazığ" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
+        <input id="dlk_dogumYeri" value="${escapeHtml(state.dogumYeri||'')}" placeholder="örn: Koruk – Merkez/Elazığ" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:12px;">
