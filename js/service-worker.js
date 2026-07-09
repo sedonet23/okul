@@ -183,7 +183,7 @@ self.addEventListener('fetch', (event) => {
     url.includes('fonts.gstatic.com')
   ) {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request.url, { cache: 'reload' })
         .then((yanit) => {
           const kopya = yanit.clone();
           caches.open(CACHE_ADI).then(c => c.put(event.request, kopya));
@@ -195,11 +195,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   /* 3. Uygulama dosyaları → Cache First (offline'da anında açılır)
-        Arka planda ağdan kontrol et, fark varsa cache güncelle (stale-while-revalidate) */
+        Arka planda ağdan kontrol et, fark varsa cache güncelle (stale-while-revalidate)
+
+        ÖNEMLİ DÜZELTME: Burada düz `fetch(event.request)` kullanmak YANLIŞTI —
+        bu istek Service Worker cache'ini atlasa da tarayıcının KENDİ HTTP
+        önbelleğini atlamıyor. GitHub Pages dosyalara Cache-Control ile bir
+        süre önbellekte kalma izni verdiği için, bu "ağdan kontrol" isteği
+        çoğu zaman aslında ağa hiç gitmeden tarayıcının eski HTTP cache
+        kaydını geri döndürüyordu — yani "güncelleme" denemesi sonsuza kadar
+        aynı eski dosyayı tekrar cache'e yazıyordu (asla düzelmeyen bir
+        döngü). {cache:'reload'} ile tarayıcı HTTP cache'i de bilinçli
+        olarak atlanıp her seferinde sunucudan doğrulama yapılıyor. */
   event.respondWith(
     caches.open(CACHE_ADI).then(async (cache) => {
       const onbellek = await cache.match(event.request);
-      const agIstegi = fetch(event.request)
+      const agIstegi = fetch(event.request.url, { cache: 'reload' })
         .then((yanit) => {
           if (yanit && yanit.status === 200) {
             cache.put(event.request, yanit.clone());
