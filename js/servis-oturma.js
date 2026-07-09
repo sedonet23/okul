@@ -1090,7 +1090,7 @@ function soRaporGovdeHtml(servis, plan) {
 
   const m = (v) => `${v.toFixed(2)}mm`;
 
-  const fontAdPt    = Math.max(5, Math.min(8, K * 0.38));
+  const fontAdPt    = Math.max(6.5, Math.min(11, K * 0.46));
   const fontSinifPt = Math.max(4, Math.min(6, K * 0.28));
   const fontSoforPt = Math.max(9, Math.min(14, K * 0.55));
   const fontBadgePt = Math.max(3.5, Math.min(5.5, K * 0.22));
@@ -1112,19 +1112,21 @@ function soRaporGovdeHtml(servis, plan) {
     const rezerve = !!(p.reserved && !dolu);
     const ad      = dolu ? (p.studentName || '') : '';
     const sinifAdi = dolu ? sinifAdiBul(el.studentId) : '';
-    const bg  = dolu ? '#22c55e' : rezerve ? '#3b82f6' : '#e5e7eb';
+    // NOT: Siyah-beyaz yazdırmada gereksiz toner harcamasın diye koltuklar
+    // artık DOLGUSUZ (beyaz) — durum sadece kenarlık rengi/kalınlığıyla
+    // ayırt ediliyor, öğrenci adı her zaman siyah ve daha büyük punto.
     const brd = dolu ? '#16a34a' : rezerve ? '#2563eb' : '#9ca3af';
-    const clr = (dolu || rezerve) ? '#fff' : '#111';
+    const brdKalinlik = dolu ? '0.6mm' : '0.4mm';
     let kolcakStyle = '';
     if (p.konum === 'sol-dis' || p.konum === 'sol-tek')
       kolcakStyle = `border-left:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm)} ${m(borderRmm*0.3)} ${m(borderRmm*0.3)} ${m(borderRmm)};`;
     if (p.konum === 'sag-dis')
       kolcakStyle = `border-right:${m(kolcakW)} solid #6b7280;border-radius:${m(borderRmm*0.3)} ${m(borderRmm)} ${m(borderRmm)} ${m(borderRmm*0.3)};`;
-    return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};position:relative;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};flex-shrink:0;padding:0 0.8mm;${kolcakStyle}">
+    return `<div style="grid-column:${col};width:${m(K)};height:${m(K)};position:relative;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#fff;border:${brdKalinlik} solid ${brd};color:#000;flex-shrink:0;padding:0 0.8mm;${kolcakStyle}">
       ${el.seatNumber ? `<span style="position:absolute;top:0.3mm;left:0.6mm;font-size:${fontBadgePt.toFixed(1)}pt;font-weight:800;opacity:.75;line-height:1;">${el.seatNumber}</span>` : ''}
       ${el.locked ? `<span style="position:absolute;top:-0.8mm;right:-0.8mm;font-size:${(fontBadgePt+1).toFixed(1)}pt;background:#fff;border-radius:50%;line-height:1;">🔒</span>` : ''}
-      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:700;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
-      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;opacity:0.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sinifAdi)}</span>` : ''}
+      ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;text-align:center;font-weight:800;color:#000;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;">${escapeHtml(ad)}</span>` : ''}
+      ${sinifAdi ? `<span style="font-size:${fontSinifPt.toFixed(1)}pt;line-height:1.1;text-align:center;color:#000;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;">${escapeHtml(sinifAdi)}</span>` : ''}
     </div>`;
   };
 
@@ -1161,13 +1163,12 @@ function soRaporGovdeHtml(servis, plan) {
           const dolu    = !!(el.studentId || p.studentName);
           const rezerve = !!(p.reserved && !dolu);
           const ad      = dolu ? (p.studentName || '') : '';
-          const bg  = dolu ? '#22c55e' : rezerve ? '#3b82f6' : '#e5e7eb';
           const brd = dolu ? '#16a34a' : rezerve ? '#2563eb' : '#9ca3af';
-          const clr = (dolu || rezerve) ? '#fff' : '#111';
-          html += `<div style="width:${m(arkaK)};height:${m(K)};position:relative;flex-shrink:0;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:${bg};border:0.4mm solid ${brd};color:${clr};padding:0 0.8mm;">
+          const brdKalinlik = dolu ? '0.6mm' : '0.4mm';
+          html += `<div style="width:${m(arkaK)};height:${m(K)};position:relative;flex-shrink:0;border-radius:${m(borderRmm)};display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;background:#fff;border:${brdKalinlik} solid ${brd};color:#000;padding:0 0.8mm;">
             ${el.seatNumber ? `<span style="position:absolute;top:0.3mm;left:0.6mm;font-size:${fontBadgePt.toFixed(1)}pt;font-weight:800;opacity:.75;line-height:1;">${el.seatNumber}</span>` : ''}
             ${el.locked ? `<span style="position:absolute;top:-0.8mm;right:-0.8mm;font-size:${(fontBadgePt+1).toFixed(1)}pt;background:#fff;border-radius:50%;line-height:1;">🔒</span>` : ''}
-            ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;font-weight:700;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;text-align:center;">${escapeHtml(ad)}</span>` : ''}
+            ${ad ? `<span style="font-size:${fontAdPt.toFixed(1)}pt;line-height:1.15;font-weight:800;color:#000;white-space:normal;word-break:break-word;overflow:hidden;max-width:100%;display:block;text-align:center;">${escapeHtml(ad)}</span>` : ''}
           </div>`;
         }
       });
@@ -1219,14 +1220,18 @@ function soRaporGovdeHtml(servis, plan) {
       html += koltukKutu(el, col);
     });
 
-    html += `<div style="grid-column:${solSutun+1};display:flex;align-items:center;justify-content:center;">`;
-    if (kapiSadece) html += kapiHtml('KAPI');
-    html += `</div>`;
+    html += `<div style="grid-column:${solSutun+1};display:flex;align-items:center;justify-content:center;"></div>`;
 
-    saglar.forEach(el => {
-      const col = sagKolonHarita[el.properties?.konum] || (solSutun + 3);
-      html += koltukKutu(el, col);
-    });
+    if (kapiSadece) {
+      html += `<div style="grid-column:${solSutun+2}/${solSutun+sagSutun+2};display:flex;align-items:center;justify-content:center;">
+        ${kapiHtml('KAPI')}
+      </div>`;
+    } else {
+      saglar.forEach(el => {
+        const col = sagKolonHarita[el.properties?.konum] || (solSutun + 3);
+        html += koltukKutu(el, col);
+      });
+    }
     // sağ tarafta koltuk sayısı 2'den azsa kalan kolon(lar) grid'de otomatik boş kalır (placeholder gerekmez)
 
     if (kapiSagVar && !kapiSadece) {
