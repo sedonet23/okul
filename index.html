@@ -97,9 +97,6 @@
   <aside class="sidebar">
     <div class="sidebar-head">
       <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
-      <!-- DÜZELTME: Üstteki logo+okul adı kaldırıldı, yerine kullanıcı profili
-           kondu — tıklayınca kendi profil sayfası açılır (bkz. profilVeyaSecimAc,
-           js/kullanici-yonetimi.js). Hesaptan çıkış butonu da buraya taşındı. -->
       <div id="sidebarHesap" style="display:none;align-items:center;gap:8px;flex:1;min-width:0;">
         <div onclick="profilVeyaSecimAc()" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;" title="Profilimi Aç">
           <img id="hesapAvatar" src="assets/icon-192.png" alt="" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;object-fit:cover;">
@@ -113,34 +110,32 @@
       <button class="theme-toggle in-sidebar" id="temaDugmesi" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
     </div>
     <nav class="nav">
-      <button class="nav-tab active" data-tab="panel"><i class="nt-ico ni-panel" data-lucide="layout-dashboard"></i><span class="nt-label">Genel Bakış</span></button>
+      <button class="nav-tab active" data-tab="panel"><i class="nt-ico ni-panel" data-lucide="layout-dashboard"></i><span class="nt-label">Ana Sayfa</span></button>
       <button class="nav-tab" data-tab="arama"><i class="nt-ico" data-lucide="search"></i><span class="nt-label">Arama</span></button>
-
-      <div class="nav-separator" id="ayiracKisiler">— Kişiler —</div>
+      <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><i class="nt-ico ni-ogretmen" data-lucide="user-round"></i><span class="nt-label">Öğretmenler</span></button>
+     
+      
       <input type="checkbox" id="kisilerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="kisilerCheck">
-        <i class="nt-ico ni-ogretmen" data-lucide="users"></i><span class="nt-label">Kişiler</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-ogretmen" data-lucide="users"></i><span class="nt-label">Sınıf ve Öğrenci İşlemleri</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="kisilerMenu">
-        <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><i class="nt-ico ni-ogretmen" data-lucide="user-round"></i><span class="nt-label">Öğretmenler</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="siniflar"><i class="nt-ico ni-sinif" data-lucide="school"></i><span class="nt-label">Sınıflar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><i class="nt-ico" data-lucide="graduation-cap"></i><span class="nt-label">Öğrenciler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="personel"><i class="nt-ico ni-ogretmen" data-lucide="briefcase"></i><span class="nt-label">Personel İşleri</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Sınav İşlemleri</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogretmenListe" onclick="ogretmenListeSekmesiAc()"><i class="nt-ico" data-lucide="list-checks"></i><span class="nt-label">Öğrenci Listesi Oluşturcu</span></button>
       </div>
 
-      <div class="nav-separator" id="ayiracProgram">— Program —</div>
+      
       <input type="checkbox" id="programCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="programCheck">
-        <i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Program</span><span class="toggle-arrow">▶</span>
+        <i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders ve Nöbet Programı</span><span class="toggle-arrow">▶</span>
       </label>
       <div class="nav-group" id="programMenu">
         <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders Programı</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="nobet"><i class="nt-ico ni-nobet" data-lucide="shield-check"></i><span class="nt-label">Nöbet Programı</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="takvim"><i class="nt-ico ni-takvim" data-lucide="calendar-days"></i><span class="nt-label">Takvim</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Sınav İşlemleri</span></button>
       </div>
 
-      <div class="nav-separator" id="ayiracIletisim">— İletişim —</div>
       <input type="checkbox" id="iletisimCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="iletisimCheck">
         <i class="nt-ico" data-lucide="message-circle"></i><span class="nt-label">İletişim</span><span class="toggle-arrow">▶</span>
@@ -150,9 +145,10 @@
         <button class="nav-tab nav-sub-tab" data-tab="haberler"><i class="nt-ico" data-lucide="newspaper"></i><span class="nt-label">Haberler</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="duyurular"><i class="nt-ico" data-lucide="megaphone"></i><span class="nt-label">Duyurular</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="anket"><i class="nt-ico" data-lucide="bar-chart-3"></i><span class="nt-label">Anketler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="takvim"><i class="nt-ico ni-takvim" data-lucide="calendar-days"></i><span class="nt-label">Takvim</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="notlar"><i class="nt-ico ni-notlar" data-lucide="notebook-pen"></i><span class="nt-label">Notlar</span></button>
       </div>
 
-      <div class="nav-separator" id="ayiracBelgeler">— Belgeler —</div>
       <input type="checkbox" id="belgelerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="belgelerCheck">
         <i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Belgeler</span><span class="toggle-arrow">▶</span>
@@ -160,12 +156,10 @@
       <div class="nav-group" id="belgelerMenu">
         <button class="nav-tab nav-sub-tab" data-tab="evrak"><i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Evrak Takibi</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><i class="nt-ico ni-dokumanlar" data-lucide="folder"></i><span class="nt-label">Dökümanlar</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="notlar"><i class="nt-ico ni-notlar" data-lucide="notebook-pen"></i><span class="nt-label">Notlar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><i class="nt-ico" data-lucide="scale"></i><span class="nt-label">Mevzuat</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="ogretmenListe" onclick="ogretmenListeSekmesiAc()"><i class="nt-ico" data-lucide="list-checks"></i><span class="nt-label">Öğrenci Listesi Oluştur</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="personel"><i class="nt-ico ni-ogretmen" data-lucide="briefcase"></i><span class="nt-label">Personel İşleri</span></button>
       </div>
 
-      <div class="nav-separator" id="ayiracUlasim">— Ulaşım —</div>
       <input type="checkbox" id="ulasimCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="ulasimCheck">
         <i class="nt-ico ni-tasima" data-lucide="bus"></i><span class="nt-label">Ulaşım</span><span class="toggle-arrow">▶</span>
@@ -175,8 +169,7 @@
         <button class="nav-tab nav-sub-tab" data-tab="harita" onclick="haritaSekmesiAc()"><i class="nt-ico ni-harita" data-lucide="map"></i><span class="nt-label">Harita</span></button>
       </div>
 
-      <div class="nav-separator" id="ayiracCizelgeler">— Çizelgeler —</div>
-      
+
       <!-- Açılır menü: Çizelgeler (saf CSS ile çalışır, JS'e bağımlı değildir) -->
       <input type="checkbox" id="cizelgelerCheck" class="nav-group-check" hidden>
       <label class="nav-group-toggle" for="cizelgelerCheck">
@@ -231,7 +224,7 @@
       <div class="card dash-hero">
         <div class="dash-hero-top">
           <div class="dash-hero-greet">
-            <div class="dash-hero-hi" id="heroSelamla">Günaydın, Sedat Bey 👋</div>
+            <div class="dash-hero-hi" id="heroSelamla">Günaydın... 👋</div>
             <div class="page-sub" id="panelTarih"></div>
           </div>
         </div>
@@ -533,7 +526,6 @@
       <div class="page-header">
         <div><div class="page-title">📰 Haberler &amp; Duyurular</div><div class="page-sub">MEB, Resmî Gazete ve eklediğiniz kaynaklardan otomatik haber akışı</div></div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost" id="haberYenileBtn" onclick="haberleriSimdiTara()">🔄 Yenile</button>
           <button class="btn btn-amber" onclick="haberModalAc(null)">➕ Yeni Duyuru</button>
         </div>
       </div>
@@ -955,10 +947,10 @@
         <div class="form-group"><label>Okul Adı (Birleşik — evrak başlıklarında "ikisi birlikte" gerektiğinde kullanılır)</label><input id="f_okulAdi" placeholder="örn: KORUK İLK - ORTAOKULU"></div>
         <div class="form-group"><label>Okul Müdürü</label><select id="f_okulMudur"></select></div>
         <div class="form-row">
-          <div class="form-group"><label>İl</label><input id="f_okulIl" placeholder="örn: KARAMAN" style="text-transform:uppercase;"></div>
-          <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn: ERMENEK" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>İl</label><input id="f_okulIl" placeholder="örn: Elazığ" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn:  Merkez" style="text-transform:uppercase;"></div>
         </div>
-        <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Ermenek İlçe Millî Eğitim Müdürlüğü"></div>
+        <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Elazığ İl Millî Eğitim Müdürlüğü"></div>
       </div>
 
       <!-- YENİ: İki okul bir arada (Koruk İlkokulu + Koruk Ortaokulu) — evrak
@@ -968,7 +960,7 @@
         <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İki okul aynı binada bir arada olduğu için, evrak/çizelge oluştururken bazen sadece İlkokul, bazen sadece Ortaokul, bazen de yukarıdaki birleşik ad kullanılır.</p>
         <div class="form-row">
           <div class="form-group"><label>İlkokul Adı</label><input id="f_okulIlkokulAdi" placeholder="örn: KORUK İLKOKULU"></div>
-          <div class="form-group"><label>İlkokul Kurum Kodu</label><input id="f_okulIlkokulKurumKodu" placeholder="örn: 719088"></div>
+          <div class="form-group"><label>İlkokul Kurum Kodu</label><input id="f_okulIlkokulKurumKodu" placeholder="örn: 719060"></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Ortaokul Adı</label><input id="f_okulOrtaokulAdi" placeholder="örn: KORUK ORTAOKULU"></div>
@@ -979,8 +971,7 @@
       <div class="card">
         <h3>Müdür Yardımcıları</h3>
         <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-          Bu liste, Öğretmenler sekmesinde ünvanı "Müdür Yardımcısı" olan kayıtlardan otomatik oluşur —
-          ayrı bir kayıt tutmanıza gerek yok. Düzenle/Çıkar ile öğretmen kaydı üzerinden yönetebilirsiniz.
+          Bu liste, Öğretmenler sekmesinde ünvanı "Müdür Yardımcısı" olan kayıtlardan otomatik oluşur.
         </p>
         <div id="muduYardimcilariListesi"></div>
         <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="muduYardimcisiEkle()">+ Yeni Müdür Yardımcısı</button>
@@ -1246,14 +1237,14 @@
 
       <div class="card" style="margin-bottom:18px;">
         <h3>Uygulama Güncellemesi</h3>
-        <p style="color:var(--ink-muted);font-size:13px;">Android uygulaması Play Store üzerinden değil doğrudan APK olarak dağıtıldığı için otomatik güncellenmez. Yeni bir sürüm çıkıp çıkmadığını buradan kontrol edebilirsiniz.</p>
+        <p style="color:var(--ink-muted);font-size:13px;">Yeni bir sürüm çıkıp çıkmadığını buradan kontrol edebilirsiniz.</p>
         <button class="btn btn-primary" onclick="guncellemeKontrolEt(true)">🔄 Güncellemeleri Kontrol Et</button>
         <p id="oyKuruluSurumMetni" style="color:var(--ink-muted);font-size:12px;margin-top:8px;"></p>
       </div>
 
       <div class="card" style="margin-bottom:18px;">
         <h3>Push Bildirimleri</h3>
-        <p style="color:var(--ink-muted);font-size:13px;">Bu cihazda tarayıcı bildirimi almak için açın. Bildirimlerin gerçek zamanlı tetiklenmesi, GitHub Actions üzerinde her 15 dakikada bir çalışan kontrol betiğine bağlıdır.</p>
+        <p style="color:var(--ink-muted);font-size:13px;">Bu cihazda tarayıcı bildirimi almak için açın. Bildirimlerin gerçek zamanlı tetiklenmesi, her 15 dakikada bir çalışan kontrol betiğine bağlıdır.</p>
         <button class="btn btn-primary" id="bildirimAcBtn">Bildirimleri Aç</button>
         <div class="push-status"><span class="push-dot" id="pushDot"></span><span id="pushMetin">Durum kontrol ediliyor...</span></div>
       </div>
