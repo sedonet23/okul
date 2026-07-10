@@ -208,18 +208,18 @@
     // basılıyor. Bu yüzden gün sayısına göre küçültme yapmaya artık
     // gerek yok; tüm aylarda AYNI, normal/rahat boyutlar kullanılıyor.
     const anaFontPt = 6.6;
-    const anaPadY   = 1.5;
+    const anaPadY   = 1.7;
     const subFontPt = 6.2;
-    const ustBoslukMb = 8;
+    const ustBoslukMb = 7;
     const baslik1Pt = 14;
     const baslik2Pt = 10.5;
     const infoFontPt = 8.5;
-    const infoPadY   = 3;
+    const infoPadY   = 2.5;
     const ogrFontPt  = 7;
-    const ogrPadY    = 1.5;
-    const ogrLineH   = 1.35;
-    const imzaPadTop = 12;
-    const anaLineH   = 1.3;
+    const ogrPadY    = 1.1;
+    const ogrLineH   = 1.2;
+    const imzaPadTop = 10;
+    const anaLineH   = 1.35;
 
     return `<!DOCTYPE html>
 <html lang="tr">
