@@ -106,13 +106,7 @@
 
     // En az SABIT_LISTE_BOYU satır olacak şekilde boş satırlarla tamamla
     // (gerçek öğrenci sayısı daha fazlaysa liste büyütülür, her zaman çift sayıda tutulur)
-    // DÜZELTME: 31 günlük aylarda bu SABİT 30 satırlık şablon (çoğu zaman
-    // sadece birkaç öğrenci doluyken bile) en büyük tek alan israfıydı.
-    // O aylarda hedef boyu gerçek öğrenci sayısına göre küçük bir tampon
-    // payıyla (yeni öğrenci eklenebilsin diye) belirliyoruz.
-    const sonGunHesap = new Date(_yil, _ay+1, 0).getDate();
-    const tabanBoyu = sonGunHesap >= 31 ? Math.max(10, liste.length + 4) : SABIT_LISTE_BOYU;
-    let hedefBoy = tabanBoyu;
+    let hedefBoy = SABIT_LISTE_BOYU;
     if (liste.length > hedefBoy) {
       hedefBoy = liste.length;
       if (hedefBoy % 2 !== 0) hedefBoy++;
@@ -284,9 +278,16 @@
   .tt-ogr-sinif { width: 42px; }
   .tt-ogr-ad { text-align: left !important; padding-left: 4px !important; }
 
-  /* Ana takip tablosu: kalan dikey alanı tamamen doldurur */
-  .tt-tablo-kapsayici { flex: 1 1 auto; display: flex; min-height: 0; }
-  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: ${anaFontPt}pt; table-layout: fixed; line-height: ${anaLineH}; }
+  /* Ana takip tablosu: DÜZELTME — eskiden height:100% + tbody tr{height:1px}
+     ile "kalan alanı eşit paylaş" numarası yapılıyordu. Bu, satır
+     boyutunu KÜÇÜLTMEK için yaptığımız tüm font/dolgu ayarlarını
+     etkisiz bırakıp satırları sayfayı doldurana kadar OTOMATİK
+     BÜYÜTÜYORDU — 31 günlük ayların taşmasının asıl sebebi buydu.
+     Artık tablo sadece kendi doğal (yukarıda hesaplanan) boyutunda
+     basılıyor; sayfanın altında küçük bir boşluk kalması, taşıp ikinci
+     sayfaya geçmesinden çok daha iyi. */
+  .tt-tablo-kapsayici { display: flex; min-height: 0; }
+  .tt-ana-tablo { width: 100%; border-collapse: collapse; font-size: ${anaFontPt}pt; table-layout: fixed; line-height: ${anaLineH}; }
   .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: ${anaPadY}px 2px; text-align: center; vertical-align: middle; }
   .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left !important; padding-left: 6px; width: 125px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -294,9 +295,6 @@
 
   .tt-tarih-hucre { text-align: left !important; padding-left: 6px; white-space: nowrap; }
   .tt-bos-hucre { min-width: 30px; }
-
-  /* tbody satırları kalan yüksekliği eşit paylaşır */
-  .tt-ana-tablo tbody tr { height: 1px; }
 
   tr.tt-hs td, tr.tt-tatil td { background: #e3e3e3; color: #777; font-style: italic; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
