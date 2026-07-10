@@ -169,8 +169,9 @@
       </div>
 
       <div class="an-profil-katman" id="anProfilKatman">
-        <div class="an-profil-ust">
+        <div class="an-profil-ust" id="anProfilUst">
           <button class="an-geri-btn an-profil-geri" id="anProfilGeri">${ikonSvg('geri',16)}</button>
+          <button class="an-profil-kapak-btn" id="anProfilKapakBtn" title="Kapak temasını değiştir">🎨</button>
           <div class="an-profil-avatar" id="anProfilAvatar">${ikonSvg('ogretmen',34)}</div>
           <h2 id="anProfilAd">—</h2>
           <p id="anProfilBrans">—</p>
@@ -192,7 +193,11 @@
     document.getElementById('anGridKapat').addEventListener('click', ()=> AltNav.kapat());
     document.getElementById('anListeGeri').addEventListener('click', ()=> AltNav.git('grid'));
     document.getElementById('anProfilGeri').addEventListener('click', ()=> AltNav.kapat());
-    document.getElementById('anCikisBtn').addEventListener('click', ()=>{
+    document.getElementById('anProfilKapakBtn').addEventListener('click', profilKapakSeciciAc);
+    document.getElementById('anCikisBtn').addEventListener('click', async ()=>{
+      const mesaj = 'Oturumu kapatmak istediğinize emin misiniz?';
+      const onay = typeof uygulamaOnayAl === 'function' ? await uygulamaOnayAl(mesaj) : confirm(mesaj);
+      if(!onay) return;
       if(typeof cikisYap === 'function') cikisYap();
       else if(typeof oturumKapat === 'function') oturumKapat();
       else alert('Çıkış fonksiyonu bulunamadı.');
@@ -427,8 +432,75 @@
     const kb2 = document.getElementById('modalKaydetBtn'); if(kb2) kb2.style.display = 'none';
   }
 
+  /* ---- Profil kapağı — özelleştirilebilir tema/desen ----
+     Cihazda (localStorage) saklanır; kişisel görsel bir tercih olduğu
+     için Firestore'a yazmaya gerek yok. */
+  const PROFIL_KAPAK_TEMALARI = [
+    {id:'varsayilan', ad:'Varsayılan',  css:'linear-gradient(150deg,var(--brand-dark),var(--brand))'},
+    {id:'lacivert',   ad:'Lacivert',    css:'linear-gradient(150deg,#0F2A4A,#1E5C8F)'},
+    {id:'gunbatimi',  ad:'Gün Batımı',  css:'linear-gradient(150deg,#7C2D12,#E0762C)'},
+    {id:'mor',        ad:'Mor',         css:'linear-gradient(150deg,#3B1466,#8B4FD9)'},
+    {id:'orman',      ad:'Orman',       css:'linear-gradient(150deg,#0D3B33,#1E9E7A)'},
+    {id:'gece',       ad:'Gece',        css:'linear-gradient(150deg,#0B0F1A,#2A3550)'},
+    {id:'gul',        ad:'Gül',         css:'linear-gradient(150deg,#7A1E3D,#D65B85)'},
+  ];
+  const PROFIL_KAPAK_DESENLERI = [
+    {id:'duz',    ad:'Düz'},
+    {id:'nokta',  ad:'Noktalı'},
+    {id:'cizgi',  ad:'Çizgili'},
+  ];
+  function _profilKapakOku(){
+    try{ return JSON.parse(localStorage.getItem('oy_profilKapak')||'null') || {tema:'varsayilan', desen:'duz'}; }
+    catch(e){ return {tema:'varsayilan', desen:'duz'}; }
+  }
+  function _profilKapakYaz(ayar){
+    try{ localStorage.setItem('oy_profilKapak', JSON.stringify(ayar)); }catch(e){}
+  }
+  function profilKapakUygula(){
+    const ust = document.getElementById('anProfilUst');
+    if(!ust) return;
+    const ayar = _profilKapakOku();
+    const tema = PROFIL_KAPAK_TEMALARI.find(t=>t.id===ayar.tema) || PROFIL_KAPAK_TEMALARI[0];
+    ust.style.background = tema.css;
+    PROFIL_KAPAK_DESENLERI.forEach(d => ust.classList.remove('an-kapak-desen-'+d.id));
+    if(ayar.desen && ayar.desen !== 'duz') ust.classList.add('an-kapak-desen-'+ayar.desen);
+  }
+  function profilKapakSeciciAc(){
+    const ayar = _profilKapakOku();
+    const html = `
+      <div class="an-alt-grup-baslik" style="margin-top:0;">Renk</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
+        ${PROFIL_KAPAK_TEMALARI.map(t => `
+          <button type="button" class="an-kapak-yuvarlak" data-tema="${t.id}" title="${escapeHtml(t.ad)}"
+            style="width:42px;height:42px;border-radius:50%;background:${t.css};border:2.5px solid ${ayar.tema===t.id?'var(--brand)':'transparent'};cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25);"></button>`).join('')}
+      </div>
+      <div class="an-alt-grup-baslik" style="margin-top:18px;">Desen</div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        ${PROFIL_KAPAK_DESENLERI.map(d => `
+          <button type="button" class="an-kapak-desen-sec" data-desen="${d.id}"
+            style="flex:1;padding:10px;border-radius:10px;border:1.5px solid ${ayar.desen===d.id?'var(--brand)':'var(--border)'};background:var(--bg-card);color:var(--ink);font-size:12.5px;font-weight:600;cursor:pointer;">${escapeHtml(d.ad)}</button>`).join('')}
+      </div>`;
+    modalAc('🎨 Profil Kapağı', html, null, null);
+    const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
+    document.querySelectorAll('.an-kapak-yuvarlak').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const yeni = _profilKapakOku(); yeni.tema = btn.dataset.tema;
+        _profilKapakYaz(yeni); profilKapakUygula();
+        if(typeof modalKapat === 'function') modalKapat();
+      });
+    });
+    document.querySelectorAll('.an-kapak-desen-sec').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const yeni = _profilKapakOku(); yeni.desen = btn.dataset.desen;
+        _profilKapakYaz(yeni); profilKapakUygula();
+        if(typeof modalKapat === 'function') modalKapat();
+      });
+    });
+  }
+
   /* ---- Profilim içeriği — gerçek AKTIF_KULLANICI verisinden ---- */
   function profilDoldur(){
+    profilKapakUygula();
     const ad = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? (AKTIF_KULLANICI.ad || AKTIF_KULLANICI.kullaniciAdi || 'Kullanıcı') : 'Kullanıcı';
     document.getElementById('anProfilAd').textContent = ad;
 
