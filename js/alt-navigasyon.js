@@ -180,7 +180,6 @@
           </div>
         </div>
         <div class="an-profil-govde">
-          <div class="an-profil-istatistik" id="anProfilIstatistik"></div>
           <div class="an-profil-grup-baslik">Çizelgelerim</div>
           <div class="an-profil-grup" id="anCizelgelerim"></div>
           <button class="an-cikis-btn" id="anCikisBtn">${ikonSvg('cikis',18)} Oturumu Kapat</button>
@@ -259,46 +258,73 @@
     });
   }
 
+  /* Sadece giriş yapan öğretmenin kendi eklediği/kendisine ait yazılı
+     sınavlarını listeler — mevcut Sınav İşlemleri sayfasıyla aynı
+     satır görünümünü (evrak-row/evrak-title/badge) kullanır. */
+  function sinavlarimGoster(ogretmenId){
+    if(typeof sinavlar === 'undefined' || typeof modalAc !== 'function'){
+      alert('Sınav modülü yüklenemedi.'); return;
+    }
+    const kendi = sinavlar.filter(s => s.ogretmenId === ogretmenId).sort((a,b)=>(b.tarih||'').localeCompare(a.tarih||''));
+    const gövde = kendi.length ? kendi.map(s => `
+      <div class="evrak-row">
+        <div class="evrak-body">
+          <div class="evrak-title">${escapeHtml(s.ders||'Ders')} — ${escapeHtml(s.sinif||'')} <span class="badge badge-${typeof sinavTurRengi==='function'?sinavTurRengi(s.tur):'sage'}">${escapeHtml(s.tur||'Yazılı')}</span></div>
+          <div class="evrak-meta">${formatTarih(s.tarih)}${s.dersSaati?' · '+escapeHtml(s.dersSaati)+'. ders':''}${s.senaryoNo?' · '+escapeHtml(s.senaryoNo)+'. Senaryo':''}${s.yayinevi?' ('+escapeHtml(s.yayinevi)+')':''}${s.notlar?' · '+escapeHtml(s.notlar):''}</div>
+        </div>
+      </div>`).join('') : '<div class="empty-state">Henüz eklediğiniz bir yazılı sınav yok.</div>';
+    modalAc('📝 Sınavlarım', `<div class="evrak-liste">${gövde}</div>`, null, null);
+    const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
+  }
+
   /* ---- Profilim içeriği — gerçek AKTIF_KULLANICI verisinden ---- */
   function profilDoldur(){
     const ad = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? (AKTIF_KULLANICI.ad || AKTIF_KULLANICI.kullaniciAdi || 'Kullanıcı') : 'Kullanıcı';
     document.getElementById('anProfilAd').textContent = ad;
 
+    const bagliId = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.bagliOgretmenId : null;
     let ogretmenKaydi = null;
-    if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.bagliOgretmenId && typeof ogretmenler !== 'undefined'){
-      ogretmenKaydi = ogretmenler.find(o => o.id === AKTIF_KULLANICI.bagliOgretmenId) || null;
+    if(bagliId && typeof ogretmenler !== 'undefined'){
+      ogretmenKaydi = ogretmenler.find(o => o.id === bagliId) || null;
     }
     document.getElementById('anProfilBrans').textContent = ogretmenKaydi ? (ogretmenKaydi.brans || 'Öğretmen') : 'Yönetici';
     document.getElementById('anProfilTelefon').textContent = (ogretmenKaydi && ogretmenKaydi.telefon) || 'Kayıtlı değil';
     document.getElementById('anProfilEposta').textContent = (ogretmenKaydi && ogretmenKaydi.eposta) || (AKTIF_KULLANICI && AKTIF_KULLANICI.kullaniciAdi) || '—';
 
+    // Fotoğraf: uygulamanın kendi çözümleme mantığıyla aynı öncelik sırası
+    // (bkz. js/kullanici-yonetimi.js > _kullaniciGoruntulenecekFoto) —
+    // önce öğretmen kaydındaki profilFotoUrl, yoksa hesap fotoUrl'i.
     const avatarKutu = document.getElementById('anProfilAvatar');
-    const fotoUrl = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI ? AKTIF_KULLANICI.fotoUrl : null;
-    if(fotoUrl){
-      avatarKutu.innerHTML = `<img src="${fotoUrl}" alt="${ad}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    let fotoSrc = null;
+    if(typeof _kullaniciGoruntulenecekFoto === 'function' && typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI){
+      const f = _kullaniciGoruntulenecekFoto(AKTIF_KULLANICI);
+      if(f && f !== 'assets/icon-192.png') fotoSrc = f;
+    } else if(ogretmenKaydi && ogretmenKaydi.profilFotoUrl){
+      fotoSrc = ogretmenKaydi.profilFotoUrl;
     }
+    avatarKutu.innerHTML = fotoSrc
+      ? `<img src="${fotoSrc}" alt="${ad}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+      : ikonSvg('ogretmen', 34);
 
-    const istEl = document.getElementById('anProfilIstatistik');
-    const pSayi = typeof personelListesi !== 'undefined' ? personelListesi.length : (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0);
-    const oSayi = typeof ogrenciler !== 'undefined' ? ogrenciler.length : 0;
-    const sSayi = typeof siniflar !== 'undefined' ? siniflar.length : 0;
-    istEl.innerHTML = `
-      <div class="an-pi-kart"><b>${pSayi}</b><span>Personel</span></div>
-      <div class="an-pi-kart"><b>${oSayi}</b><span>Öğrenci</span></div>
-      <div class="an-pi-kart"><b>${sSayi}</b><span>Sınıf</span></div>`;
+    // Genel okul istatistikleri (Personel/Öğrenci/Sınıf) kişisel profilde
+    // anlamsız/yanıltıcıydı — kaldırıldı.
 
-    const cizelgelerim = [
-      {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', modul:'dersProgrami', aksiyon:git('dersProgrami')},
-      {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', modul:'nobet', aksiyon:git('nobet')},
-      {ad:'Sınavlarım', ikon:'olcek', renk:'#0A9E82', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri')},
-    ].filter(ogeGorulebilir);
+    const cizelgelerim = [];
+    if(bagliId){
+      cizelgelerim.push(
+        {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', aksiyon:()=> ogretmenDetayAc(bagliId)},
+        {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', aksiyon:()=> ogretmenDetayAc(bagliId)},
+        {ad:'Sınavlarım', ikon:'olcek', renk:'#0A9E82', aksiyon:()=> sinavlarimGoster(bagliId)},
+        {ad:'Yıllık Profil Raporu (Kulüp, ŞÖK, Zümre, Maarif...)', ikon:'rapor', renk:'#7C52D6', aksiyon:()=> ogretmenRaporOlustur(bagliId)},
+      );
+    }
     const cEl = document.getElementById('anCizelgelerim');
     cEl.innerHTML = cizelgelerim.map(o => `
       <button class="an-profil-satir" data-aksiyon="1">
         <span class="an-oge-ikon-flat" style="color:${o.renk};">${ikonSvg(o.ikon,18)}</span>
-        ${o.ad}
+        <span>${o.ad}</span>
         <span class="an-oge-ok">${ikonSvg('ok',15)}</span>
-      </button>`).join('');
+      </button>`).join('') || '<div style="padding:16px;color:var(--ink-muted);font-size:13px;">Bağlı bir öğretmen kaydı bulunamadı.</div>';
     Array.from(cEl.querySelectorAll('.an-profil-satir')).forEach((el, idx)=>{
       el.addEventListener('click', ()=>{
         AltNav.kapat();
