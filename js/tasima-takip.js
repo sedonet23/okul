@@ -215,12 +215,21 @@
 <meta charset="UTF-8">
 <title>${escapeHtml(s.servisAdi||'Servis')} — ${escapeHtml(ayAdi)} Taşıma Takip Çizelgesi</title>
 <style>
-  @page { size: A4 portrait; margin: 7mm 6mm; }
+  /* DÜZELTME: @page margin, tarayıcının yazdırma diyaloğundaki "Kenar
+     Boşlukları" ayarına göre GÖRMEZDEN GELİNEBİLİYOR/üzerine yazılabiliyor
+     (Chrome'un varsayılanı genelde bizim 7mm/6mm'den daha büyük) — bu da
+     31 günlük aylarda web'de hâlâ taşmaya sebep oluyordu (Android native
+     tarafta PrintPlugin.java marjı sıfırladığı için orada sorun yoktu).
+     Marjı @page'den değil, body dolgusundan veriyoruz — bu tarayıcının
+     marj ayarından tamamen bağımsız, her zaman uygulanan normal bir
+     kutu modeli özelliği, güvenilir çalışır. */
+  @page { size: A4 portrait; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif; color: #111; background:#fff;
     display: flex; flex-direction: column; min-height: 100vh;
+    padding: 7mm 6mm;
   }
 
   .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; flex: 0 0 auto; }
