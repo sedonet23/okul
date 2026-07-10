@@ -194,6 +194,21 @@
     const { mudurAd, mudurYrdAd } = _getMudurBilgileri();
     const s = _servis || {};
 
+    // DÜZELTME: Ana tablo eskiden flexbox'ın "kalan alanı otomatik
+    // doldurma" özelliğine (flex:1 1 auto + height:100%) güvenerek satır
+    // yüksekliğini tek sayfaya sığdırmaya çalışıyordu. Bu EKRANDA çalışır
+    // ama YAZDIRMA/PDF çıktısında güvenilir değil — yazıcı motoru sayfayı
+    // içeriğin doğal boyutuna göre böler, flex-shrink'i sayfalar arası
+    // uygulamaz. Sonuç: 31 günlük aylarda (Temmuz, Ağustos, Ekim...) son
+    // birkaç satır + imza bloğu ikinci sayfaya taşıyordu. Artık gün
+    // sayısına göre yazı boyutu/dolgu JS'te hesaplanıp SABİT olarak
+    // uygulanıyor — flex'in "tahminine" güvenmiyoruz.
+    const sonGun = new Date(_yil, _ay+1, 0).getDate();
+    const anaFontPt = sonGun >= 31 ? 6.0 : sonGun === 30 ? 6.3 : 6.6;
+    const anaPadY   = sonGun >= 31 ? 1.0 : sonGun === 30 ? 1.25 : 1.5;
+    const subFontPt = sonGun >= 31 ? 5.7 : 6.2;
+    const ustBoslukMb = sonGun >= 31 ? 5 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
+
     return `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -212,12 +227,12 @@
   .tt-baslik-1 { font-size: 14pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
   .tt-baslik-2 { font-size: 10.5pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
 
-  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 8.5pt; flex: 0 0 auto; }
+  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: ${ustBoslukMb}px; font-size: 8.5pt; flex: 0 0 auto; }
   .tt-info-tablo td { border: 1px solid #888; padding: 3px 6px; }
   .tt-info-tablo .tt-lbl { background: #c8e6c9; font-weight: 700; white-space: nowrap; color:#1b5e20; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
   /* Öğrenci listesi: iki sütunu yan yana taşıyan dış tablo */
-  .tt-ogrenci-disgrid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 8px; flex: 0 0 auto; }
+  .tt-ogrenci-disgrid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: ${ustBoslukMb}px; flex: 0 0 auto; }
   .tt-ogr-hucre { width: 50%; border: 1px solid #888; vertical-align: top; padding: 0; }
 
   .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: 7pt; }
@@ -240,11 +255,11 @@
 
   /* Ana takip tablosu: kalan dikey alanı tamamen doldurur */
   .tt-tablo-kapsayici { flex: 1 1 auto; display: flex; min-height: 0; }
-  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: 6.6pt; table-layout: fixed; }
-  .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: 1.5px 2px; text-align: center; vertical-align: middle; }
+  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: ${anaFontPt}pt; table-layout: fixed; }
+  .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: ${anaPadY}px 2px; text-align: center; vertical-align: middle; }
   .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left !important; padding-left: 6px; width: 125px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  .tt-th-sub { background: #c8e6c9; font-weight: 600; font-size: 6.2pt; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .tt-th-sub { background: #c8e6c9; font-weight: 600; font-size: ${subFontPt}pt; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
   .tt-tarih-hucre { text-align: left !important; padding-left: 6px; white-space: nowrap; }
   .tt-bos-hucre { min-width: 30px; }
