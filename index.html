@@ -213,7 +213,7 @@
         </button>
         <div id="bildirimZiliPaneli" class="card" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:300px;max-width:85vw;max-height:360px;overflow-y:auto;z-index:500;box-shadow:0 10px 28px rgba(0,0,0,.22);padding:0;"></div>
       </div>
-      <button class="topbar-avatar" id="topbarAvatar" onclick="profilVeyaSecimAc()" title="Kullanıcı Profili"><i data-lucide="user-round" style="width:18px;height:18px;"></i></button>
+      <button class="topbar-avatar" id="topbarAvatar" onclick="if(typeof AltNav!=='undefined') AltNav.profilAc(); else profilVeyaSecimAc();" title="Profilim"><i data-lucide="user-round" style="width:18px;height:18px;"></i></button>
     </div>
 
     <main class="content">
