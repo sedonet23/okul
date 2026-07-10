@@ -129,7 +129,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     </div>
   </div>
   <script>
-    var _zoom = 100;
+    var _zoom = 80;
     function zoomUygula() {
       var el = document.getElementById('icerik-sarici');
       if (el) el.style.transform = 'scale(' + (_zoom/100) + ')';
@@ -139,7 +139,8 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
       _zoom = Math.min(200, Math.max(30, _zoom + delta));
       zoomUygula();
     }
-    function zoomSifirla() { _zoom = 100; zoomUygula(); }
+    function zoomSifirla() { _zoom = 80; zoomUygula(); }
+    zoomUygula(); // İlk açılışta da uygulansın (öncesinde sadece +/-/sıfırla tıklanınca çalışıyordu)
     function raporPaylas() {
       window.print();
       setTimeout(function() {
