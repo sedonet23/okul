@@ -1,0 +1,352 @@
+/* =====================================================================
+   js/alt-navigasyon.js
+   YENİ GEZİNME SİSTEMİ — sidebar'ın yerini alan tek yüzey menü.
+
+   İçerik:
+     1) 8 grup + alt öğeler kataloğu (gerçek sekmeAc/araç bağlantılarıyla)
+     2) Menü ızgarası (1. katman) + alt liste (2. katman) — DOM'a bu
+        dosya tarafından enjekte edilir (index.html'de sadece boş
+        konteynerler var, bkz. #altNavKatmanlar)
+     3) Profilim sayfası — AKTIF_KULLANICI + ogretmenler eşleşmesinden
+        gerçek isim/branş/telefon/e-posta/foto okur
+     4) history.pushState/popstate tabanlı geri tuşu desteği — Capacitor
+        WebView'da donanım geri tuşu varsayılan olarak tarayıcı geçmişini
+        kullandığı için ekstra bir köprüye gerek kalmadan çalışır.
+
+   Tema: yeni CSS token'ı YOK — var(--nm-bg), var(--brand), var(--ink) vb.
+   mevcut [data-theme] sistemini kullanıyor, otomatik açık/koyu uyumlu.
+   ===================================================================== */
+(function(){
+  'use strict';
+
+  /* ---- Yeniden kullanılabilir ikon parçaları (stroke=currentColor) ---- */
+  const I = {
+    ogretmen: '<circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+    ogrenci: '<path d="M2 8 12 3l10 5-10 5-10-5Z"/><path d="M6 10.5V16c0 1.7 2.7 3 6 3s6-1.3 6-3v-5.5"/>',
+    sinif: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M8 11h1M15 7h1M15 11h1"/>',
+    liste: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5"/><path d="m3 12 1.5 1.5L7 11"/><path d="m3 18 1.5 1.5L7 17"/>',
+    yazili: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><path d="m9 13 2 2 4-4"/>',
+    deneme: '<path d="M9 2v6L4 20a1 1 0 0 0 .9 1.4h14.2A1 1 0 0 0 20 20l-5-12V2"/><path d="M9 2h6"/><path d="M7 15h10"/>',
+    puan: '<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',
+    olcek: '<path d="m16 3 5 5-13 13-5-5Z"/><path d="m14.5 4.5 1 1M11.5 7.5l1 1M8.5 10.5l1 1M5.5 13.5l1 1"/>',
+    mesaj: '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>',
+    haber: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/>',
+    duyuru: '<path d="m3 11 18-5v12L3 13v-2Z"/><path d="M7 13v5a2 2 0 0 0 2 2h1v-6"/>',
+    anket: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/><path d="M9 9h6M9 13h6M9 17h3"/>',
+    takvim: '<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4"/>',
+    not: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+    otobus: '<rect x="3" y="6" width="18" height="12" rx="2.5"/><circle cx="7.5" cy="18.5" r="1.6"/><circle cx="16.5" cy="18.5" r="1.6"/><path d="M3 12h18"/>',
+    harita: '<path d="M9 3 3 5.5v15L9 18l6 2.5 6-2.5v-15L15 5.5 9 3Z"/><path d="M9 3v15M15 5.5v15"/>',
+    klasor: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>',
+    evrak: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+    mevzuat: '<path d="M12 6.5C10.5 5 8 4 5 4a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1c3 0 5.5 1 7 2.5 1.5-1.5 4-2.5 7-2.5a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1c-3 0-5.5 1-7 2.5Z"/><path d="M12 6.5V21"/>',
+    rapor: '<path d="M3 3v18h18"/><rect x="7" y="13" width="3" height="5"/><rect x="12" y="9" width="3" height="9"/><rect x="17" y="6" width="3" height="12"/>',
+    odul: '<circle cx="12" cy="8" r="6"/><path d="m9 13.5-2 7 5-3 5 3-2-7"/>',
+    kalkan: '<path d="M12 3 4 6v6c0 5 3.5 8.5 8 9.5 4.5-1 8-4.5 8-9.5V6l-8-3Z"/><path d="m9 12 2 2 4-4"/>',
+    kalp: '<path d="M12 20.5s-7.5-4.6-9.5-9.4C1 7.5 3 4 6.5 4c2 0 3.5 1.3 4.5 2.8C12 5.3 13.5 4 15.5 4 19 4 21 7.5 19.5 11.1c-2 4.8-9.5 9.4-9.5 9.4Z"/>',
+    pusula: '<circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-1.7 5-5 1.7 1.7-5z"/>',
+    pano: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v2h6V3"/>',
+    dosya: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>',
+    gorevli: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-4 2.9-6.8 6.5-6.8"/><circle cx="17.5" cy="16.5" r="2.8"/>',
+    banka: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 6v.01M18 18v.01"/>',
+    imza: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"/><path d="M14 2v6h6"/><path d="m17 14 3 3-6.5 6.5H10v-3.5L16.5 13Z"/>',
+    damga: '<path d="M12 3v6"/><rect x="7" y="9" width="10" height="5" rx="1"/><path d="M5 21h14M6 21c0-3 1-5 6-5s6 2 6 5"/>',
+    saat: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    ayarlar: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    bina: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M8 11h1M8 15h1M15 7h1M15 11h1M15 15h1"/>',
+    veritabani: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
+    telefon: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.4 2.1L8 9.9a16 16 0 0 0 6 6l1.4-1.4a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.8 2Z"/>',
+    eposta: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>',
+    cikis: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
+    kapa: '<path d="M18 6 6 18M6 6l12 12"/>',
+    geri: '<path d="m15 18-6-6 6-6"/>',
+    ok: '<path d="m9 6 6 6-6 6"/>',
+  };
+  const ikonSvg = (key, sz) => `<svg viewBox="0 0 24 24" width="${sz||16}" height="${sz||16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${I[key]||''}</svg>`;
+
+  /* ---- Araç fonksiyonu güvenli çağırıcı (yüklenmemişse sessizce uyarır) ---- */
+  function cagir(nesneAdi, metod, ...args){
+    return function(){
+      const n = window[nesneAdi];
+      if(n && typeof n[metod] === 'function') n[metod](...args);
+      else alert(nesneAdi + ' yüklenemedi.');
+    };
+  }
+  function git(tab, sonra){
+    return function(){
+      sekmeAc(tab);
+      if(typeof sonra === 'function') sonra();
+    };
+  }
+
+  /* ---- 8 grup kataloğu — gerçek modül/aksiyon bağlantılarıyla ---- */
+  const GRUPLAR = [
+    { ad:'Öğretmen & Öğrenciler', renk:'#0A9E82', ikon:I.ogretmen, ogeler:[
+      {ad:'Öğretmenler', ikon:'ogretmen', modul:'ogretmenler', aksiyon:git('ogretmenler')},
+      {ad:'Öğrenciler', ikon:'ogrenci', modul:'ogrenciler', aksiyon:git('ogrenciler')},
+      {ad:'Sınıflar', ikon:'sinif', modul:'siniflar', aksiyon:git('siniflar')},
+      {ad:'Öğrenci Listesi Oluşturucu', ikon:'liste', modul:null, aksiyon:function(){ if(typeof ogretmenListeSekmesiAc==='function') ogretmenListeSekmesiAc(); else sekmeAc('ogretmenListe'); }},
+    ]},
+    { ad:'Sınavlar ve Not İşlemleri', renk:'#1F6FD1', ikon:I.yazili, ogeler:[
+      {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri', ()=>{ if(typeof sinavAltSekmeSec==='function') sinavAltSekmeSec('yazili'); })},
+      {ad:'Deneme Sınavları', ikon:'deneme', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri', ()=>{ if(typeof sinavAltSekmeSec==='function') sinavAltSekmeSec('deneme'); })},
+      {ad:'Ders Et. Kat. Puan Dağıtımı', ikon:'puan', modul:'sinavIslemleri', aksiyon:cagir('KriterDagitimAraci','ac')},
+      {ad:'Proje Değerlendirme Ölçeği', ikon:'olcek', modul:'sinavIslemleri', aksiyon:cagir('ProjeDegerlendirmeAraci','ac')},
+    ]},
+    { ad:'İletişim & Haberler', renk:'#EE5A45', ikon:I.mesaj, ogeler:[
+      {ad:'Mesajlaşma', ikon:'mesaj', modul:'mesajlasma', aksiyon:git('mesajlasma')},
+      {ad:'Haberler', ikon:'haber', modul:'haberler', aksiyon:git('haberler')},
+      {ad:'Duyurular', ikon:'duyuru', modul:'duyurular', aksiyon:git('duyurular')},
+      {ad:'Anketler', ikon:'anket', modul:'anket', aksiyon:git('anket')},
+    ]},
+    { ad:'Takvim & Notlar', renk:'#1F9FD1', ikon:I.takvim, ogeler:[
+      {ad:'Takvim', ikon:'takvim', modul:'takvim', aksiyon:git('takvim')},
+      {ad:'Notlar', ikon:'not', modul:'notlar', aksiyon:git('notlar')},
+    ]},
+    { ad:'Taşıma', renk:'#7C52D6', ikon:I.otobus, ogeler:[
+      {ad:'Taşıma İşlemleri', ikon:'otobus', modul:'tasima', aksiyon:git('tasima')},
+      {ad:'Harita', ikon:'harita', modul:'harita', aksiyon:git('harita')},
+    ]},
+    { ad:'Döküman & Evraklar', renk:'#F2A03D', ikon:I.klasor, ogeler:[
+      {ad:'Dökümanlar', ikon:'klasor', modul:'dokumanlar', aksiyon:git('dokumanlar')},
+      {ad:'Evrak Takibi', ikon:'evrak', modul:'evrak', aksiyon:git('evrak')},
+      {ad:'Mevzuat', ikon:'mevzuat', modul:'mevzuat', aksiyon:git('mevzuat')},
+    ], altGrup:{ ad:'Raporlar', ikon:'rapor', ogeler:[
+      {ad:'Maarif Model', ikon:'odul', modul:'maarifRapor', aksiyon:git('maarifRapor')},
+      {ad:'Belirli Gün ve Haftalar', ikon:'takvim', modul:'belirliGunler', aksiyon:git('belirliGunler')},
+      {ad:'ŞÖK', ikon:'kalkan', modul:'sok', aksiyon:git('sok')},
+      {ad:'Zümre', ikon:'ogretmen', modul:'zumre', aksiyon:git('zumre')},
+      {ad:'Sosyal Kulüpler', ikon:'kalp', modul:'sosyalKulupler', aksiyon:git('sosyalKulupler')},
+      {ad:'Rehberlik', ikon:'pusula', modul:'rehberlik', aksiyon:git('rehberlik')},
+      {ad:'Yıllık Planlar & BEP Planları', ikon:'pano', modul:'bepPlani', aksiyon:git('bepPlani')},
+      {ad:'Diğer Evraklar', ikon:'dosya', modul:'digerEvrak', aksiyon:git('digerEvrak')},
+    ]}},
+    { ad:'Personel İşleri', renk:'#D6528F', ikon:I.gorevli, ogeler:[
+      {ad:'Personeller', ikon:'gorevli', modul:'personel', aksiyon:git('personel')},
+      {ad:'Maaş Değişikliği', ikon:'banka', modul:'personel', aksiyon:cagir('MaasDegisiklikFormu','ac')},
+      {ad:'Tebliğ-Tebellüğ İmza Sirküsü', ikon:'damga', modul:'personel', aksiyon:cagir('TebligTebellugSirkusu','ac')},
+      {ad:'Puantaj & İmza Sirküsü', ikon:'saat', modul:'personel', aksiyon:cagir('PuantajSistemi','ac')},
+      {ad:'Dilekçe & İzinler', ikon:'imza', modul:'personel', aksiyon:cagir('DilekceSistemi','ac')},
+    ], altGrup:{ ad:'Diploma İşlemleri', ikon:'imza', ogeler:[
+      {ad:'Diploma Kayıt Talep Dilekçesi', ikon:'imza', modul:'personel', aksiyon:cagir('DilekceSistemi','acDiploma')},
+      {ad:'Diploma Okul Dilekçesi', ikon:'imza', modul:'personel', aksiyon:cagir('DilekceSistemi','acDiplomaCevap')},
+    ]}},
+    { ad:'Ayarlar', renk:'#4E5A63', ikon:I.ayarlar, ogeler:[
+      {ad:'Ayarlar', ikon:'ayarlar', modul:'ayarlar', aksiyon:git('ayarlar')},
+      {ad:'Okul Bilgileri', ikon:'bina', modul:'okulBilgileri', aksiyon:git('okulBilgileri')},
+      {ad:'Veriler', ikon:'veritabani', modul:'veri', aksiyon:git('veri')},
+      {ad:'Kullanıcı İşlemleri', ikon:'kalkan', modul:'kullaniciYonetimi', aksiyon:git('kullaniciYonetimi')},
+    ]},
+  ];
+
+  function ogeGorulebilir(o){
+    if(!o.modul) return true;
+    return (typeof gorebilir !== 'function') || gorebilir(o.modul);
+  }
+
+  /* ---- DOM iskeleti — index.html'deki boş konteynere enjekte edilir ---- */
+  function iskeletOlustur(){
+    const kok = document.getElementById('altNavKatmanlar');
+    if(!kok) return;
+    kok.innerHTML = `
+      <div class="an-grid-katman" id="anGridKatman">
+        <div class="an-panel-baslik">
+          <h2>Menü</h2>
+          <button class="an-kapat-btn" id="anGridKapat">${ikonSvg('kapa',16)}</button>
+        </div>
+        <div class="an-kart-grid" id="anKartGrid"></div>
+      </div>
+
+      <div class="an-liste-katman" id="anListeKatman">
+        <div class="an-liste-baslik" id="anListeBaslik">
+          <button class="an-geri-btn" id="anListeGeri">${ikonSvg('geri',16)}</button>
+          <h2 id="anListeBaslikMetin">Grup</h2>
+        </div>
+        <div class="an-liste-govde" id="anListeGovde"></div>
+      </div>
+
+      <div class="an-profil-katman" id="anProfilKatman">
+        <div class="an-profil-ust">
+          <button class="an-geri-btn an-profil-geri" id="anProfilGeri">${ikonSvg('geri',16)}</button>
+          <div class="an-profil-avatar" id="anProfilAvatar">${ikonSvg('ogretmen',34)}</div>
+          <h2 id="anProfilAd">—</h2>
+          <p id="anProfilBrans">—</p>
+          <div class="an-profil-iletisim">
+            <div class="an-pi-satir">${ikonSvg('telefon',13)}<span id="anProfilTelefon">—</span></div>
+            <div class="an-pi-satir">${ikonSvg('eposta',13)}<span id="anProfilEposta">—</span></div>
+          </div>
+        </div>
+        <div class="an-profil-govde">
+          <div class="an-profil-istatistik" id="anProfilIstatistik"></div>
+          <div class="an-profil-grup-baslik">Çizelgelerim</div>
+          <div class="an-profil-grup" id="anCizelgelerim"></div>
+          <button class="an-cikis-btn" id="anCikisBtn">${ikonSvg('cikis',18)} Oturumu Kapat</button>
+        </div>
+      </div>
+    `;
+
+    const kartGrid = document.getElementById('anKartGrid');
+    GRUPLAR.forEach((g,i)=>{
+      const gorunurOgeler = g.ogeler.filter(ogeGorulebilir);
+      const altGorunur = g.altGrup ? g.altGrup.ogeler.filter(ogeGorulebilir) : [];
+      const toplam = gorunurOgeler.length + altGorunur.length;
+      if(toplam === 0) return; // yetkisi olmayan kullanıcıya boş grup gösterilmez
+      const btn = document.createElement('button');
+      btn.className = 'an-grup-kart';
+      btn.style.background = `linear-gradient(150deg, ${g.renk}, ${g.renk}cc)`;
+      btn.innerHTML = `
+        <span class="an-rozet">${toplam}</span>
+        <span class="an-ikon-cember">${ikonSvg2(g.ikon,22)}</span>
+        <span>${g.ad}</span>`;
+      btn.addEventListener('click', ()=> AltNav.git({ekran:'liste', grupIndex:i}));
+      kartGrid.appendChild(btn);
+    });
+
+    document.getElementById('anGridKapat').addEventListener('click', ()=> history.back());
+    document.getElementById('anListeGeri').addEventListener('click', ()=> history.back());
+    document.getElementById('anProfilGeri').addEventListener('click', ()=> history.back());
+    document.getElementById('anCikisBtn').addEventListener('click', ()=>{
+      if(typeof cikisYap === 'function') cikisYap();
+      else if(typeof oturumKapat === 'function') oturumKapat();
+      else alert('Çıkış fonksiyonu bulunamadı.');
+    });
+  }
+  function ikonSvg2(rawInner, sz){
+    return `<svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${rawInner}</svg>`;
+  }
+
+  function satirHtml(o, renk){
+    return `<button class="an-liste-ogesi" data-aksiyon="1">
+      <span class="an-oge-ikon" style="background:${renk}22; color:${renk};">${ikonSvg(o.ikon,15)}</span>
+      ${o.ad}
+      <span class="an-oge-ok">${ikonSvg('ok',15)}</span>
+    </button>`;
+  }
+  function listeIcerigiDoldur(g, i){
+    document.getElementById('anListeBaslik').style.background = `linear-gradient(135deg, ${g.renk}, ${g.renk}cc)`;
+    document.getElementById('anListeBaslikMetin').textContent = g.ad;
+    const gorunurOgeler = g.ogeler.filter(ogeGorulebilir);
+    let html = gorunurOgeler.map(o => satirHtml(o, g.renk)).join('');
+    const govde = document.getElementById('anListeGovde');
+    let tumOgeler = gorunurOgeler.slice();
+    if(g.altGrup){
+      const altGorunur = g.altGrup.ogeler.filter(ogeGorulebilir);
+      if(altGorunur.length){
+        html += `<div class="an-alt-grup-baslik">${ikonSvg(g.altGrup.ikon,13)} ${g.altGrup.ad}</div>`;
+        html += `<div class="an-alt-grup-listesi">${altGorunur.map(o => satirHtml(o, g.renk)).join('')}</div>`;
+        tumOgeler = tumOgeler.concat(altGorunur);
+      }
+    }
+    govde.innerHTML = html;
+    Array.from(govde.querySelectorAll('.an-liste-ogesi')).forEach((el, idx)=>{
+      el.addEventListener('click', ()=>{
+        AltNav.kapat();
+        setTimeout(()=> tumOgeler[idx].aksiyon(), 260); // panel kapanış animasyonu bitsin, sonra hedefe git
+      });
+    });
+  }
+
+  /* ---- Profilim içeriği — gerçek AKTIF_KULLANICI verisinden ---- */
+  function profilDoldur(){
+    const ad = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? (AKTIF_KULLANICI.ad || AKTIF_KULLANICI.kullaniciAdi || 'Kullanıcı') : 'Kullanıcı';
+    document.getElementById('anProfilAd').textContent = ad;
+
+    let ogretmenKaydi = null;
+    if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.bagliOgretmenId && typeof ogretmenler !== 'undefined'){
+      ogretmenKaydi = ogretmenler.find(o => o.id === AKTIF_KULLANICI.bagliOgretmenId) || null;
+    }
+    document.getElementById('anProfilBrans').textContent = ogretmenKaydi ? (ogretmenKaydi.brans || 'Öğretmen') : 'Yönetici';
+    document.getElementById('anProfilTelefon').textContent = (ogretmenKaydi && ogretmenKaydi.telefon) || 'Kayıtlı değil';
+    document.getElementById('anProfilEposta').textContent = (ogretmenKaydi && ogretmenKaydi.eposta) || (AKTIF_KULLANICI && AKTIF_KULLANICI.kullaniciAdi) || '—';
+
+    const avatarKutu = document.getElementById('anProfilAvatar');
+    const fotoUrl = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI ? AKTIF_KULLANICI.fotoUrl : null;
+    if(fotoUrl){
+      avatarKutu.innerHTML = `<img src="${fotoUrl}" alt="${ad}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
+    }
+
+    const istEl = document.getElementById('anProfilIstatistik');
+    const pSayi = typeof personelListesi !== 'undefined' ? personelListesi.length : (typeof ogretmenler !== 'undefined' ? ogretmenler.length : 0);
+    const oSayi = typeof ogrenciler !== 'undefined' ? ogrenciler.length : 0;
+    const sSayi = typeof siniflar !== 'undefined' ? siniflar.length : 0;
+    istEl.innerHTML = `
+      <div class="an-pi-kart"><b>${pSayi}</b><span>Personel</span></div>
+      <div class="an-pi-kart"><b>${oSayi}</b><span>Öğrenci</span></div>
+      <div class="an-pi-kart"><b>${sSayi}</b><span>Sınıf</span></div>`;
+
+    const cizelgelerim = [
+      {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', modul:'dersProgrami', aksiyon:git('dersProgrami')},
+      {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', modul:'nobet', aksiyon:git('nobet')},
+      {ad:'Sınavlarım', ikon:'olcek', renk:'#0A9E82', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri')},
+    ].filter(ogeGorulebilir);
+    const cEl = document.getElementById('anCizelgelerim');
+    cEl.innerHTML = cizelgelerim.map(o => `
+      <button class="an-profil-satir" data-aksiyon="1">
+        <span class="an-oge-ikon-flat" style="color:${o.renk};">${ikonSvg(o.ikon,18)}</span>
+        ${o.ad}
+        <span class="an-oge-ok">${ikonSvg('ok',15)}</span>
+      </button>`).join('');
+    Array.from(cEl.querySelectorAll('.an-profil-satir')).forEach((el, idx)=>{
+      el.addEventListener('click', ()=>{
+        AltNav.kapat();
+        setTimeout(()=> cizelgelerim[idx].aksiyon(), 260);
+      });
+    });
+  }
+
+  /* ---- Görünüm durumu + history navigasyonu ---- */
+  function gorunumUygula(state){
+    const ekran = state ? state.ekran : 'ana';
+    const grid = document.getElementById('anGridKatman');
+    const liste = document.getElementById('anListeKatman');
+    const profil = document.getElementById('anProfilKatman');
+    const menuBtn = document.getElementById('bnMenuBtn');
+    if(!grid) return;
+    grid.classList.toggle('acik', ekran === 'grid' || ekran === 'liste');
+    if(menuBtn) menuBtn.classList.toggle('an-menu-acik', ekran === 'grid' || ekran === 'liste');
+    liste.classList.toggle('acik', ekran === 'liste');
+    profil.classList.toggle('acik', ekran === 'profil');
+    if(ekran === 'liste' && state && typeof state.grupIndex === 'number'){
+      listeIcerigiDoldur(GRUPLAR[state.grupIndex], state.grupIndex);
+    }
+    if(ekran === 'profil'){
+      profilDoldur();
+    }
+  }
+  window.addEventListener('popstate', (e)=> gorunumUygula(e.state));
+
+  const AltNav = {
+    _kuruldu:false,
+    kur(){
+      if(this._kuruldu) return;
+      iskeletOlustur();
+      if(!history.state || !history.state.ekran){
+        history.replaceState({ekran:'ana'}, '');
+      }
+      this._kuruldu = true;
+    },
+    git(state){
+      this.kur();
+      history.pushState(state, '');
+      gorunumUygula(state);
+    },
+    kapat(){
+      const su = history.state ? history.state.ekran : 'ana';
+      if(su && su !== 'ana') history.back();
+    },
+    menuTikla(){
+      this.kur();
+      const su = history.state ? history.state.ekran : 'ana';
+      if(su === 'grid' || su === 'liste') history.back();
+      else this.git({ekran:'grid'});
+    },
+    profilAc(){ this.git({ekran:'profil'}); },
+    hizliNotAc(){
+      if(typeof notlarModalAc === 'function') notlarModalAc();
+      else alert('Not modülü yüklenemedi.');
+    },
+  };
+  window.AltNav = AltNav;
+
+  document.addEventListener('DOMContentLoaded', ()=> AltNav.kur());
+})();
