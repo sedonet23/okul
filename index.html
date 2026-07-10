@@ -1338,11 +1338,14 @@
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
       <button class="bn-item active" data-tab="panel" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="home"></i><span class="bn-label">Ana Sayfa</span></button>
-      <button class="bn-item" id="bnIkinciItem" data-tab="evrak" onclick="sekmeAc('evrak'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="file-text"></i><span class="bn-label">Evraklar</span></button>
-      <button class="bn-item bn-plus" onclick="hizliEkleModalAc();" title="Yeni İşlem"><span class="bn-plus-ico"><i data-lucide="plus"></i></span></button>
+      <button class="bn-item" id="bnProfilim" onclick="AltNav.profilAc();"><i class="bn-ico" data-lucide="user"></i><span class="bn-label">Profilim</span></button>
+      <button class="bn-item bn-plus" id="bnMenuBtn" onclick="AltNav.menuTikla();" title="Menü"><span class="bn-plus-ico" id="bnMenuIkon"><i data-lucide="layout-grid"></i></span></button>
       <button class="bn-item" data-tab="arama" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="search"></i><span class="bn-label">Arama</span></button>
-      <button class="bn-item" data-tab="ayarlar" onclick="sekmeAc('ayarlar'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="settings"></i><span class="bn-label">Ayarlar</span></button>
+      <button class="bn-item" onclick="AltNav.hizliNotAc();"><i class="bn-ico" data-lucide="notebook-pen"></i><span class="bn-label">Hızlı Not</span></button>
     </nav>
+
+    <!-- YENİ GEZİNME SİSTEMİ (v1) — bkz. js/alt-navigasyon.js -->
+    <div id="altNavKatmanlar"></div>
 
     <!-- YENİ: Hızlı Ekle Modalı (+ butonu) — dışarı tıklayınca kapanır -->
     <div id="hizliEkleModal" onclick="if(event.target===this)hizliEkleModalKapat()" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.5);align-items:flex-end;">
@@ -1537,6 +1540,7 @@
 <script src="js/sistem-bar.js"></script>
 <script src="js/hava-durumu.js"></script>
 <script src="js/widget-bridge.js"></script>
+<script src="js/alt-navigasyon.js"></script>
 
 <!-- ============================================================
      YENİ — FAZ 2: LUCIDE İKON SİSTEMİ
