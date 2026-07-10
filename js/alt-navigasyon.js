@@ -277,6 +277,65 @@
     const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
   }
 
+  /* Ders programı ve nöbet DIŞINDAKİ diğer görev/evrak durumunu — mevcut
+     ogretmenRaporOlustur()'daki YAZDIRMA raporuyla aynı filtre mantığıyla
+     ama normal (dokunma dostu) liste satırları olarak gösterir. Boş
+     kategoriler gizlenir. */
+  function digerEvrakDurumuGoster(ogretmenId){
+    if(typeof ogretmenler === 'undefined' || typeof adGeciyorMu !== 'function' || typeof modalAc !== 'function'){
+      alert('Modül yüklenemedi.'); return;
+    }
+    const o = ogretmenler.find(x => x.id === ogretmenId);
+    if(!o) return;
+    const adSoyad = `${o.ad} ${o.soyad}`.trim();
+    const cv = typeof cizelgeVerileri !== 'undefined' ? cizelgeVerileri : {};
+
+    const kategoriler = [
+      { baslik:'Sosyal Kulüpler', ikon:'kalp', renk:'#D6528F', hedefTab:'sosyalKulupler',
+        kayitlar:(cv.sosyalKulupler||[]).filter(s => adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(ogretmenId))),
+        adFn:k=>k.ad },
+      { baslik:'Rehberlik', ikon:'pusula', renk:'#7C52D6', hedefTab:'rehberlik',
+        kayitlar:(cv.rehberlik||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.danisman, adSoyad)),
+        adFn:k=>k.ad },
+      { baslik:'Zümre', ikon:'ogretmen', renk:'#1F6FD1', hedefTab:'zumre',
+        kayitlar:(cv.zumre||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
+        adFn:k=>k.ad || k.brans },
+      { baslik:'ŞÖK', ikon:'kalkan', renk:'#EE5A45', hedefTab:'sok',
+        kayitlar:(cv.sok||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
+        adFn:k=>k.ad },
+      { baslik:'Maarif Model Raporları', ikon:'odul', renk:'#F2A03D', hedefTab:'maarifRapor',
+        kayitlar:(cv.maarifRapor||[]).filter(k => k.ogretmenId===ogretmenId),
+        adFn:k=>`${k.ders||'—'}${k.sinif?' · '+k.sinif:''}` },
+      { baslik:'Belirli Gün ve Haftalar', ikon:'takvim', renk:'#1F9FD1', hedefTab:'belirliGunler',
+        kayitlar:(typeof belirliGunlerListesi!=='undefined'?belirliGunlerListesi:[]).filter(e => (e.gorevliOgretmenler && e.gorevliOgretmenler.includes(ogretmenId)) || adGeciyorMu(e.gorevliOgretmen, adSoyad)),
+        adFn:e=>`${e.baslik}${e.tarih?' · '+e.tarih:''}` },
+      { baslik:'Yıllık Plan / BEP Planı', ikon:'pano', renk:'#0A9E82', hedefTab:'bepPlani',
+        kayitlar:(cv.bepPlani||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
+        adFn:k=>k.ad },
+      { baslik:'Diğer Evraklar', ikon:'dosya', renk:'#4E5A63', hedefTab:'digerEvrak',
+        kayitlar:(typeof digerEvrakListesi!=='undefined'?digerEvrakListesi:[]).filter(e => (e.ogretmen||'').localeCompare(adSoyad,'tr',{sensitivity:'base'})===0),
+        adFn:e=>`${e.evrakTuru}${e.sinif?' · '+e.sinif:''}${e.tarih?' · '+formatTarih(e.tarih):''}` },
+    ].filter(k => k.kayitlar.length > 0);
+
+    let html;
+    if(!kategoriler.length){
+      html = '<div class="empty-state">Ders programı ve nöbet dışında kayıtlı bir göreviniz/evrakınız görünmüyor.</div>';
+    } else {
+      html = kategoriler.map(k => `
+        <div class="an-alt-grup-baslik" style="margin-top:14px;">${ikonSvg(k.ikon,13)} ${k.baslik} (${k.kayitlar.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+          ${k.kayitlar.map(kayit => `
+            <button type="button" class="an-liste-ogesi" onclick="modalKapat(); sekmeAc('${k.hedefTab}');">
+              <span class="an-oge-ikon" style="background:${k.renk}22; color:${k.renk};">${ikonSvg(k.ikon,15)}</span>
+              <span>${escapeHtml(k.adFn(kayit) || '—')}</span>
+              <span class="an-oge-ok">${ikonSvg('ok',15)}</span>
+            </button>`).join('')}
+        </div>`).join('');
+    }
+    modalAc('📋 Diğer Görevlerim', html, null, null);
+    const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
+  }
+
   /* ---- Profilim içeriği — gerçek AKTIF_KULLANICI verisinden ---- */
   function profilDoldur(){
     const ad = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? (AKTIF_KULLANICI.ad || AKTIF_KULLANICI.kullaniciAdi || 'Kullanıcı') : 'Kullanıcı';
@@ -315,7 +374,8 @@
         {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', aksiyon:()=> ogretmenDetayAc(bagliId)},
         {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', aksiyon:()=> ogretmenDetayAc(bagliId)},
         {ad:'Sınavlarım', ikon:'olcek', renk:'#0A9E82', aksiyon:()=> sinavlarimGoster(bagliId)},
-        {ad:'Yıllık Profil Raporu (Kulüp, ŞÖK, Zümre, Maarif...)', ikon:'rapor', renk:'#7C52D6', aksiyon:()=> ogretmenRaporOlustur(bagliId)},
+        {ad:'Diğer Görevlerim (Kulüp, ŞÖK, Zümre, Maarif...)', ikon:'rapor', renk:'#7C52D6', aksiyon:()=> digerEvrakDurumuGoster(bagliId)},
+        {ad:'Profil Raporumu Yazdır', ikon:'dosya', renk:'#4E5A63', aksiyon:()=> ogretmenRaporOlustur(bagliId)},
       );
     }
     const cEl = document.getElementById('anCizelgelerim');
