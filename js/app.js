@@ -1916,6 +1916,11 @@ function sekmeAc(tab){
    şey yapmasın) veya 'exit' (uygulamanın en üst seviyesindeyiz, native
    çift-basışla-çık mantığını uygulasın). */
 function geriTusuIsle(){
+  // YENİ GEZİNME SİSTEMİ: Menü ızgarası/alt liste/Profilim açıksa önce
+  // onu kapat — bunlar en üstte görsel olarak durduğu için ilk kontrol
+  // edilmesi gereken katman. bkz. js/alt-navigasyon.js > AltNav.geriTusu()
+  if(typeof AltNav !== 'undefined' && typeof AltNav.geriTusu === 'function' && AltNav.geriTusu()) return 'handled';
+
   var mo = document.getElementById('modalOverlay');
   if(mo && mo.classList.contains('active')){ modalKapat(); return 'handled'; }
 

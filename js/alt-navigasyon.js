@@ -9,9 +9,12 @@
         konteynerler var, bkz. #altNavKatmanlar)
      3) Profilim sayfası — AKTIF_KULLANICI + ogretmenler eşleşmesinden
         gerçek isim/branş/telefon/e-posta/foto okur
-     4) history.pushState/popstate tabanlı geri tuşu desteği — Capacitor
-        WebView'da donanım geri tuşu varsayılan olarak tarayıcı geçmişini
-        kullandığı için ekstra bir köprüye gerek kalmadan çalışır.
+     4) Geri tuşu desteği — history.pushState/popstate KULLANMIYOR (bu,
+        uygulamanın kendi native geri tuşu sistemiyle çakışıp "çıkmak
+        için tekrar basın" uyarısını yanlış tetikliyordu). Bunun yerine
+        AltNav.geriTusu(), js/app.js > geriTusuIsle() içinden çağrılır —
+        hem native Android hem web geri tuşu/gesture'ı böylece aynı,
+        tek doğru mekanizmadan geçer.
 
    Tema: yeni CSS token'ı YOK — var(--nm-bg), var(--brand), var(--ink) vb.
    mevcut [data-theme] sistemini kullanıyor, otomatik açık/koyu uyumlu.
@@ -187,9 +190,9 @@
 
     gridDoldur();
 
-    document.getElementById('anGridKapat').addEventListener('click', ()=> history.back());
-    document.getElementById('anListeGeri').addEventListener('click', ()=> history.back());
-    document.getElementById('anProfilGeri').addEventListener('click', ()=> history.back());
+    document.getElementById('anGridKapat').addEventListener('click', ()=> AltNav.kapat());
+    document.getElementById('anListeGeri').addEventListener('click', ()=> AltNav.git('grid'));
+    document.getElementById('anProfilGeri').addEventListener('click', ()=> AltNav.kapat());
     document.getElementById('anCikisBtn').addEventListener('click', ()=>{
       if(typeof cikisYap === 'function') cikisYap();
       else if(typeof oturumKapat === 'function') oturumKapat();
@@ -217,7 +220,7 @@
         <span class="an-rozet">${toplam}</span>
         <span class="an-ikon-cember">${ikonSvg2(g.ikon,22)}</span>
         <span>${g.ad}</span>`;
-      btn.addEventListener('click', ()=> AltNav.git({ekran:'liste', grupIndex:i}));
+      btn.addEventListener('click', ()=> AltNav.git('liste', i));
       kartGrid.appendChild(btn);
     });
   }
@@ -304,62 +307,90 @@
     });
   }
 
-  /* ---- Görünüm durumu + history navigasyonu ---- */
-  function gorunumUygula(state){
-    const ekran = state ? state.ekran : 'ana';
+  /* ---- Görünüm durumu — dahili değişkenle, TARAYICI HISTORY API'Sİ
+     KULLANILMADAN. İlk sürümde history.pushState/popstate kullanılmıştı
+     ama uygulamanın kendi native geri tuşu sistemiyle (geriTusuIsle() +
+     app.js'teki tek-tamponlu web popstate taklidi) çakışıp "çıkmak için
+     tekrar basın" uyarısını yanlış tetikliyordu. Artık bu panel sadece
+     kendi JS durumunu tutuyor; geri tuşu entegrasyonu AltNav.geriTusu()
+     üzerinden geriTusuIsle()'a bağlanıyor (bkz. js/app.js). ---- */
+  let _ekran = 'ana'; // 'ana' | 'grid' | 'liste' | 'profil'
+  let _acikGrupIndex = null;
+
+  function ekranUygula(){
     const grid = document.getElementById('anGridKatman');
     const liste = document.getElementById('anListeKatman');
     const profil = document.getElementById('anProfilKatman');
     const menuBtn = document.getElementById('bnMenuBtn');
     if(!grid) return;
-    grid.classList.toggle('acik', ekran === 'grid' || ekran === 'liste');
-    if(menuBtn) menuBtn.classList.toggle('an-menu-acik', ekran === 'grid' || ekran === 'liste');
-    liste.classList.toggle('acik', ekran === 'liste');
-    profil.classList.toggle('acik', ekran === 'profil');
-    if(ekran === 'liste' && state && typeof state.grupIndex === 'number'){
-      listeIcerigiDoldur(GRUPLAR[state.grupIndex], state.grupIndex);
+    grid.classList.toggle('acik', _ekran === 'grid' || _ekran === 'liste');
+    if(menuBtn) menuBtn.classList.toggle('an-menu-acik', _ekran === 'grid' || _ekran === 'liste');
+    liste.classList.toggle('acik', _ekran === 'liste');
+    profil.classList.toggle('acik', _ekran === 'profil');
+    if(_ekran === 'liste' && typeof _acikGrupIndex === 'number'){
+      listeIcerigiDoldur(GRUPLAR[_acikGrupIndex], _acikGrupIndex);
     }
-    if(ekran === 'profil'){
-      profilDoldur();
-    }
+    if(_ekran === 'profil') profilDoldur();
   }
-  window.addEventListener('popstate', (e)=> gorunumUygula(e.state));
 
   const AltNav = {
     _kuruldu:false,
     kur(){
       if(this._kuruldu) return;
       iskeletOlustur();
-      if(!history.state || !history.state.ekran){
-        history.replaceState({ekran:'ana'}, '');
-      }
       this._kuruldu = true;
     },
-    git(state){
+    git(ekran, grupIndex){
       this.kur();
-      history.pushState(state, '');
-      gorunumUygula(state);
+      _ekran = ekran;
+      if(typeof grupIndex === 'number') _acikGrupIndex = grupIndex;
+      ekranUygula();
     },
     kapat(){
-      const su = history.state ? history.state.ekran : 'ana';
-      if(su && su !== 'ana') history.back();
+      _ekran = 'ana';
+      ekranUygula();
     },
     menuTikla(){
       this.kur();
-      const su = history.state ? history.state.ekran : 'ana';
-      if(su === 'grid' || su === 'liste') history.back();
-      else this.git({ekran:'grid'});
+      if(_ekran === 'grid' || _ekran === 'liste'){ this.kapat(); return; }
+      this.git('grid');
     },
-    profilAc(){ this.git({ekran:'profil'}); },
+    profilAc(){
+      this.git('profil');
+    },
+    /* geriTusuIsle() (js/app.js) tarafından — hem native Android hem web
+       geri tuşu emülasyonu için — çağrılır. Açık bir panel varsa bir
+       kademe geri gider (liste→grid, grid/profil→ana) ve true döner;
+       hiçbir panel açık değilse false döner (uygulama kendi mevcut
+       geri-tuşu mantığına — sekme geçmişi / çift-basışla-çık — devam eder). */
+    geriTusu(){
+      if(_ekran === 'liste'){ this.git('grid'); return true; }
+      if(_ekran === 'grid' || _ekran === 'profil'){ this.kapat(); return true; }
+      return false;
+    },
     yenile(){
-      // İskelet henüz kurulmadıysa yenilemeye gerek yok — kur() zaten
-      // ilk çizimi (o anki en iyi bilgiyle) yapacak.
       if(!this._kuruldu) return;
       gridDoldur();
     },
     hizliNotAc(){
-      if(typeof notlarModalAc === 'function') notlarModalAc();
-      else alert('Not modülü yüklenemedi.');
+      if(typeof notlarModalAc !== 'function'){ alert('Not modülü yüklenemedi.'); return; }
+      notlarModalAc();
+      // notlar.js'in kendi modalını değiştirmeden, içine plandaki
+      // "Notlarım'a Git" kısayolunu ekliyoruz (bkz. önceki önizlemeler).
+      setTimeout(()=>{
+        const govde = document.getElementById('modalBody');
+        if(!govde || govde.querySelector('.an-notlara-git-btn')) return;
+        const ayrac = document.createElement('div');
+        ayrac.style.cssText = 'height:1px;background:var(--border);margin:14px 0;';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'an-notlara-git-btn';
+        btn.style.cssText = 'width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;';
+        btn.innerHTML = `${ikonSvg('not',20)}<span>Notlarım'a Git</span><span style="margin-left:auto;color:var(--ink-muted);display:flex;">${ikonSvg('ok',16)}</span>`;
+        btn.addEventListener('click', ()=>{ if(typeof modalKapat==='function') modalKapat(); sekmeAc('notlar'); });
+        govde.appendChild(ayrac);
+        govde.appendChild(btn);
+      }, 0);
     },
   };
   window.AltNav = AltNav;
