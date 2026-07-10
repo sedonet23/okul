@@ -106,7 +106,13 @@
 
     // En az SABIT_LISTE_BOYU satır olacak şekilde boş satırlarla tamamla
     // (gerçek öğrenci sayısı daha fazlaysa liste büyütülür, her zaman çift sayıda tutulur)
-    let hedefBoy = SABIT_LISTE_BOYU;
+    // DÜZELTME: 31 günlük aylarda bu SABİT 30 satırlık şablon (çoğu zaman
+    // sadece birkaç öğrenci doluyken bile) en büyük tek alan israfıydı.
+    // O aylarda hedef boyu gerçek öğrenci sayısına göre küçük bir tampon
+    // payıyla (yeni öğrenci eklenebilsin diye) belirliyoruz.
+    const sonGunHesap = new Date(_yil, _ay+1, 0).getDate();
+    const tabanBoyu = sonGunHesap >= 31 ? Math.max(10, liste.length + 4) : SABIT_LISTE_BOYU;
+    let hedefBoy = tabanBoyu;
     if (liste.length > hedefBoy) {
       hedefBoy = liste.length;
       if (hedefBoy % 2 !== 0) hedefBoy++;
@@ -221,8 +227,8 @@
     // Öğrenci listesi: yazı boyutu neredeyse aynı kalıyor (okunur), ama
     // dolgu ve satır arası ÇOK sıkılaştırılıyor — asıl kazanç burada.
     const ogrFontPt  = buyukAy ? 6.5 : 7;
-    const ogrPadY    = buyukAy ? 0.3 : 1.5;
-    const ogrLineH   = buyukAy ? 1.0 : 1.35;
+    const ogrPadY    = buyukAy ? 1.2 : 1.5;
+    const ogrLineH   = buyukAy ? 1.2 : 1.35;
     const imzaPadTop = buyukAy ? 8 : 12;
     const anaLineH   = buyukAy ? 1.15 : 1.3;
 
