@@ -1923,16 +1923,20 @@ function sekmeAc(tab){
    şey yapmasın) veya 'exit' (uygulamanın en üst seviyesindeyiz, native
    çift-basışla-çık mantığını uygulasın). */
 function geriTusuIsle(){
-  // YENİ GEZİNME SİSTEMİ: Menü ızgarası/alt liste/Profilim açıksa önce
-  // onu kapat — bunlar en üstte görsel olarak durduğu için ilk kontrol
-  // edilmesi gereken katman. bkz. js/alt-navigasyon.js > AltNav.geriTusu()
-  if(typeof AltNav !== 'undefined' && typeof AltNav.geriTusu === 'function' && AltNav.geriTusu()) return 'handled';
-
+  // Not: modalOverlay/detayOverlay, AltNav panelinin (Menü/Profilim)
+  // ÜSTÜNDE açılabiliyor (örn. Profilim'de "Ders Programım" gibi bir
+  // modal açıkken Profilim panelinin kendisi hâlâ altında açık kalır).
+  // Bu yüzden bunlar AltNav.geriTusu()'dan ÖNCE kontrol edilmeli —
+  // aksi halde geri tuşu, üstteki modal yerine altındaki paneli kapatır.
   var mo = document.getElementById('modalOverlay');
   if(mo && mo.classList.contains('active')){ modalKapat(); return 'handled'; }
 
   var deo = document.getElementById('detayOverlay');
   if(deo && deo.classList.contains('active')){ detayPanelKapat(); return 'handled'; }
+
+  // YENİ GEZİNME SİSTEMİ: Menü ızgarası/alt liste/Profilim açıksa kapat —
+  // bkz. js/alt-navigasyon.js > AltNav.geriTusu()
+  if(typeof AltNav !== 'undefined' && typeof AltNav.geriTusu === 'function' && AltNav.geriTusu()) return 'handled';
 
   var hp = document.getElementById('havaDurumuDetayPanel');
   if(hp){ hp.remove(); return 'handled'; }

@@ -478,9 +478,12 @@
       </button>`).join('') || '<div style="padding:16px;color:var(--ink-muted);font-size:13px;">Bağlı bir öğretmen kaydı bulunamadı.</div>';
     Array.from(cEl.querySelectorAll('.an-profil-satir')).forEach((el, idx)=>{
       el.addEventListener('click', ()=>{
-        AltNav.kapat();
-        _donusEkrani = { ekran:'profil' };
-        setTimeout(()=> cizelgelerim[idx].aksiyon(), 260);
+        // DÜZELTME: Bu satırların hepsi bir modal açıyor (sekmeAc değil),
+        // ve modal zaten Profilim'in ÜSTÜNDE görünecek şekilde (daha
+        // yüksek z-index) tasarlı — önce Profilim'i kapatmak sadece
+        // altındaki Ana Sayfa'nın bir an görünüp modalın onun üstünde
+        // açılmasına sebep oluyordu. Artık Profilim açık kalıyor.
+        cizelgelerim[idx].aksiyon();
       });
     });
   }
