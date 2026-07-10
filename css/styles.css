@@ -3610,6 +3610,20 @@ body.nav-open::after{ display:none !important; }
 .an-profil-ust{
   padding:26px 20px 42px; background:linear-gradient(150deg,var(--brand-dark),var(--brand));
   display:flex; flex-direction:column; align-items:center; text-align:center; color:#fff; position:relative; flex-shrink:0;
+  overflow:hidden;
+}
+.an-profil-kapak-btn{
+  position:absolute; top:16px; right:16px; width:34px; height:34px; border-radius:50%;
+  background:rgba(255,255,255,.18); border:none; font-size:15px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; z-index:2;
+}
+.an-profil-ust.an-kapak-desen-nokta::before{
+  content:''; position:absolute; inset:0; opacity:.14; pointer-events:none;
+  background-image:radial-gradient(circle, #fff 1.5px, transparent 1.5px); background-size:16px 16px;
+}
+.an-profil-ust.an-kapak-desen-cizgi::before{
+  content:''; position:absolute; inset:0; opacity:.10; pointer-events:none;
+  background-image:repeating-linear-gradient(45deg, #fff 0 2px, transparent 2px 14px);
 }
 .an-profil-avatar{
   width:78px; height:78px; border-radius:50%; background:rgba(255,255,255,.20); border:3px solid rgba(255,255,255,.5);
@@ -3637,7 +3651,7 @@ body.nav-open::after{ display:none !important; }
 .an-oge-ikon-flat{ width:22px; height:22px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
 
 .an-cikis-btn{
-  width:100%; background:none; border:1.5px solid #E5484D; border-radius:16px; padding:14px;
-  display:flex; align-items:center; justify-content:center; gap:8px;
-  font-family:inherit; font-size:14px; font-weight:700; color:#E5484D; cursor:pointer;
+  width:auto; margin:0 auto; background:none; border:1.5px solid #E5484D; border-radius:12px; padding:8px 20px;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  font-family:inherit; font-size:12.5px; font-weight:700; color:#E5484D; cursor:pointer;
 }
