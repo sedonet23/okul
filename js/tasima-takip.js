@@ -203,28 +203,23 @@
     // birkaç satır + imza bloğu ikinci sayfaya taşıyordu. Artık gün
     // sayısına göre yazı boyutu/dolgu JS'te hesaplanıp SABİT olarak
     // uygulanıyor — flex'in "tahminine" güvenmiyoruz.
-    const sonGun = new Date(_yil, _ay+1, 0).getDate();
-    const buyukAy = sonGun >= 31;
-    // DÜZELTME: Önceki denemeler her yeri (yazıyı da) küçültüyordu — okunurluğu
-    // bozuyordu. İstek üzerine: yazı boyutları NORMALE dönüyor, sadece
-    // ÖĞRENCİ LİSTESİ tablosunun satır yüksekliği/dolgusu sıkılaştırılıyor
-    // (30 satırlık boş şablon, çoğu zaman sadece birkaç öğrenci doluyken bile
-    // aynı yüksekliği kaplıyordu — en büyük tek alan israfı buradaydı).
-    const anaFontPt = buyukAy ? 6.3 : sonGun === 30 ? 6.3 : 6.6;
-    const anaPadY   = buyukAy ? 1.1 : sonGun === 30 ? 1.25 : 1.5;
-    const subFontPt = buyukAy ? 6.0 : 6.2;
-    const ustBoslukMb = buyukAy ? 4 : 8;
+    // DÜZELTME: Asıl sorun (height:100% + tr{height:1px} ile satırları
+    // zorla sayfaya doldurma) artık kaldırıldı — tablo doğal boyutunda
+    // basılıyor. Bu yüzden gün sayısına göre küçültme yapmaya artık
+    // gerek yok; tüm aylarda AYNI, normal/rahat boyutlar kullanılıyor.
+    const anaFontPt = 6.6;
+    const anaPadY   = 1.5;
+    const subFontPt = 6.2;
+    const ustBoslukMb = 8;
     const baslik1Pt = 14;
     const baslik2Pt = 10.5;
     const infoFontPt = 8.5;
-    const infoPadY   = buyukAy ? 2 : 3;
-    // Öğrenci listesi: yazı boyutu neredeyse aynı kalıyor (okunur), ama
-    // dolgu ve satır arası ÇOK sıkılaştırılıyor — asıl kazanç burada.
-    const ogrFontPt  = buyukAy ? 6.5 : 7;
-    const ogrPadY    = buyukAy ? 1.2 : 1.5;
-    const ogrLineH   = buyukAy ? 1.2 : 1.35;
-    const imzaPadTop = buyukAy ? 8 : 12;
-    const anaLineH   = buyukAy ? 1.15 : 1.3;
+    const infoPadY   = 3;
+    const ogrFontPt  = 7;
+    const ogrPadY    = 1.5;
+    const ogrLineH   = 1.35;
+    const imzaPadTop = 12;
+    const anaLineH   = 1.3;
 
     return `<!DOCTYPE html>
 <html lang="tr">
