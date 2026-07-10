@@ -108,7 +108,7 @@
     ]},
     { ad:'Taşıma', renk:'#7C52D6', ikon:I.otobus, ogeler:[
       {ad:'Taşıma İşlemleri', ikon:'otobus', modul:'tasima', aksiyon:git('tasima')},
-      {ad:'Harita', ikon:'harita', modul:'harita', aksiyon:git('harita')},
+      {ad:'Harita', ikon:'harita', modul:'harita', aksiyon:function(){ if(typeof haritaSekmesiAc==='function') haritaSekmesiAc(); else sekmeAc('harita'); }},
     ]},
     { ad:'Döküman & Evraklar', renk:'#F2A03D', ikon:I.klasor, ogeler:[
       {ad:'Dökümanlar', ikon:'klasor', modul:'dokumanlar', aksiyon:git('dokumanlar')},

@@ -1907,6 +1907,10 @@ function sekmeAc(tab){
   // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
   if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
   if(tab === 'dersNobetProgramim' && typeof renderDersNobetProgramim === 'function') renderDersNobetProgramim();
+  if(tab === 'harita') setTimeout(()=>{
+    if(typeof haritaBaslat === 'function') haritaBaslat();
+    if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
+  }, 50);
   if(typeof saltOkumaUygula === 'function') saltOkumaUygula(tab);
 
   // Geçmiş yığını: geri tuşuyla gelinen bir geçiş değilse ve aynı sekme
@@ -2011,12 +2015,7 @@ window.geriTusuIsle = geriTusuIsle;
 })();
 
 function haritaSekmesiAc(){
-  sekmeAc('harita');
-  // Harita başlatmayı bir sonraki tick'e bırak (DOM görünür olduktan sonra)
-  setTimeout(()=>{
-    if(typeof haritaBaslat === 'function') haritaBaslat();
-    if(typeof renderHaritaServisler === 'function') renderHaritaServisler();
-  }, 50);
+  sekmeAc('harita'); // haritaBaslat + renderHaritaServisler sekmeAc içinden tetiklenir
 }
 function uygulamaBaslat(){
   // DÜZELTME: #bugunMetni elementi sidebar yeniden tasarımıyla kaldırıldı
