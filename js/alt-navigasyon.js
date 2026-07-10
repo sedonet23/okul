@@ -257,9 +257,15 @@
     govde.innerHTML = html;
     Array.from(govde.querySelectorAll('.an-liste-ogesi')).forEach((el, idx)=>{
       el.addEventListener('click', ()=>{
+        // DÜZELTME: Eskiden burada 260ms'lik bir setTimeout gecikmesi vardı
+        // (sadece kapanış animasyonunun bitmesini beklemek için — işlevsel
+        // bir gereklilik değildi). Android WebView'de render/olay zamanlaması
+        // web'den daha yavaş/tutarsız olabildiği için bu gecikme penceresi,
+        // arada bir kaçık dokunuşun/durum değişikliğinin araya girip yanlış
+        // ekranda kalınmasına sebep olabiliyordu. Artık hedefe hemen gidiliyor.
         AltNav.kapat();
         _donusEkrani = { ekran:'liste', grupIndex:i };
-        setTimeout(()=> tumOgeler[idx].aksiyon(), 260); // panel kapanış animasyonu bitsin, sonra hedefe git
+        tumOgeler[idx].aksiyon();
       });
     });
   }
