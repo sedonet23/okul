@@ -88,7 +88,7 @@
       {ad:'Öğretmenler', ikon:'ogretmen', modul:'ogretmenler', aksiyon:git('ogretmenler')},
       {ad:'Öğrenciler', ikon:'ogrenci', modul:'ogrenciler', aksiyon:git('ogrenciler')},
       {ad:'Sınıflar', ikon:'sinif', modul:'siniflar', aksiyon:git('siniflar')},
-      {ad:'Öğrenci Listesi Oluşturucu', ikon:'liste', modul:null, aksiyon:function(){ if(typeof ogretmenListeSekmesiAc==='function') ogretmenListeSekmesiAc(); else sekmeAc('ogretmenListe'); }},
+      {ad:'Öğrenci Listesi Oluşturucu', ikon:'liste', modul:null, aksiyon:function(){ sekmeAc('ogretmenListe'); if(typeof ogretmenListeSekmesiAc==='function') ogretmenListeSekmesiAc(); }},
     ]},
     { ad:'Sınavlar ve Not İşlemleri', renk:'#1F6FD1', ikon:I.yazili, ogeler:[
       {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('yaziliSinavlar')},
