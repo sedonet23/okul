@@ -124,7 +124,7 @@
       {ad:'Yıllık Planlar & BEP Planları', ikon:'pano', modul:'bepPlani', aksiyon:git('bepPlani')},
       {ad:'Diğer Evraklar', ikon:'dosya', modul:'digerEvrak', aksiyon:git('digerEvrak')},
     ]}},
-    { ad:'Personel İşleri', renk:'#D6528F', ikon:I.gorevli, ogeler:[
+    { ad:'Personel İşleri', renk:'#B5651D', ikon:I.gorevli, ogeler:[
       {ad:'Personeller', ikon:'gorevli', modul:'personel', aksiyon:git('personel')},
       {ad:'Maaş Değişikliği', ikon:'banka', modul:'personel', aksiyon:cagir('MaasDegisiklikFormu','ac')},
       {ad:'Tebliğ-Tebellüğ İmza Sirküsü', ikon:'damga', modul:'personel', aksiyon:cagir('TebligTebellugSirkusu','ac')},
