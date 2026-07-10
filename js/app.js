@@ -2381,3 +2381,41 @@ function tumSablonlariIndir() {
     setTimeout(() => sablonIndir(tip), i * 300);
   });
 }
+
+/* ====================================================================
+   DÜZELTME: Modal/detay paneli açıkken arka sayfanın kayması
+   ----------------------------------------------------------------
+   body.modal-open{overflow:hidden} tek başına yetersiz kalıyordu —
+   bazı mobil tarayıcı/WebView sürümlerinde, üstteki panel içinde
+   kaydırınca ALTINDAKİ sayfa da kayıyordu (scroll-through). Daha
+   güvenilir yöntem: modal açıkken body'yi position:fixed yapıp mevcut
+   kaydırma konumunu "top" ile sabitlemek, kapanınca eski konuma dönmek.
+
+   Bunu HER modal aç/kapa fonksiyonuna (modalAc, detayPanelKapat,
+   hizliEkleModalAc, vb. — çok sayıda ayrı yer var) tek tek eklemek
+   yerine, 'modal-open' class'ının eklenip çıkarılmasını MERKEZİ olarak
+   izleyen bir MutationObserver kullanılıyor — hangi fonksiyon class'ı
+   değiştirirse değiştirsin otomatik devreye girer, hiçbir mevcut
+   fonksiyona dokunmaya gerek kalmaz. ==================================================================== */
+(function(){
+  let _kilitliKaydirmaY = 0;
+  const gövde = document.body;
+  const gozlemci = new MutationObserver(()=>{
+    const kilitliOlmali = gövde.classList.contains('modal-open');
+    const suAnKilitli = gövde.style.position === 'fixed';
+    if(kilitliOlmali && !suAnKilitli){
+      _kilitliKaydirmaY = window.scrollY || window.pageYOffset || 0;
+      gövde.style.position = 'fixed';
+      gövde.style.top = (-_kilitliKaydirmaY) + 'px';
+      gövde.style.left = '0';
+      gövde.style.right = '0';
+    } else if(!kilitliOlmali && suAnKilitli){
+      gövde.style.position = '';
+      gövde.style.top = '';
+      gövde.style.left = '';
+      gövde.style.right = '';
+      window.scrollTo(0, _kilitliKaydirmaY);
+    }
+  });
+  gozlemci.observe(gövde, { attributes:true, attributeFilter:['class'] });
+})();
