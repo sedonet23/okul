@@ -114,6 +114,7 @@
       {ad:'Dökümanlar', ikon:'klasor', modul:'dokumanlar', aksiyon:git('dokumanlar')},
       {ad:'Evrak Takibi', ikon:'evrak', modul:'evrak', aksiyon:git('evrak')},
       {ad:'Mevzuat', ikon:'mevzuat', modul:'mevzuat', aksiyon:git('mevzuat')},
+      {ad:'Aylık İşler', ikon:'saat', modul:'periyodikIsler', aksiyon:git('periyodikIsler')},
     ], altGrup:{ ad:'Raporlar', ikon:'rapor', ogeler:[
       {ad:'Maarif Model', ikon:'odul', modul:'maarifRapor', aksiyon:git('maarifRapor')},
       {ad:'Belirli Gün ve Haftalar', ikon:'takvim', modul:'belirliGunler', aksiyon:git('belirliGunler')},
