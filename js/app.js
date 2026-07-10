@@ -2010,6 +2010,11 @@ function uygulamaBaslat(){
   const _bgm = document.getElementById('bugunMetni');
   if(_bgm) _bgm.textContent = bugunMetni();
   baglantilariKur();
+  // YENİ GEZİNME SİSTEMİ: DOMContentLoaded anında AKTIF_KULLANICI/rol
+  // henüz yüklenmemiş olabileceğinden (Firebase auth asenkron), menü
+  // ızgarası burada — gerçek yetkiler netleştikten sonra — yeniden
+  // filtrelenip çiziliyor (bkz. js/alt-navigasyon.js).
+  if(typeof AltNav !== 'undefined' && typeof AltNav.yenile === 'function') AltNav.yenile();
   // Capacitor'ın initialize olmasını bekle, sonra push durumunu kontrol et
   setTimeout(()=>{
     pushDurumGuncelle();

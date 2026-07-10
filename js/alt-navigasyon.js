@@ -185,7 +185,26 @@
       </div>
     `;
 
+    gridDoldur();
+
+    document.getElementById('anGridKapat').addEventListener('click', ()=> history.back());
+    document.getElementById('anListeGeri').addEventListener('click', ()=> history.back());
+    document.getElementById('anProfilGeri').addEventListener('click', ()=> history.back());
+    document.getElementById('anCikisBtn').addEventListener('click', ()=>{
+      if(typeof cikisYap === 'function') cikisYap();
+      else if(typeof oturumKapat === 'function') oturumKapat();
+      else alert('Çıkış fonksiyonu bulunamadı.');
+    });
+  }
+
+  /* Grup kartlarını (yeniden) çizer — AKTIF_KULLANICI/rol verisi ilk
+     çizimden SONRA (asenkron) netleştiğinde tekrar çağrılabilir olması
+     için ayrı bir fonksiyon: bkz. AltNav.yenile() ve js/app.js
+     uygulamaBaslat(). */
+  function gridDoldur(){
     const kartGrid = document.getElementById('anKartGrid');
+    if(!kartGrid) return;
+    kartGrid.innerHTML = '';
     GRUPLAR.forEach((g,i)=>{
       const gorunurOgeler = g.ogeler.filter(ogeGorulebilir);
       const altGorunur = g.altGrup ? g.altGrup.ogeler.filter(ogeGorulebilir) : [];
@@ -200,15 +219,6 @@
         <span>${g.ad}</span>`;
       btn.addEventListener('click', ()=> AltNav.git({ekran:'liste', grupIndex:i}));
       kartGrid.appendChild(btn);
-    });
-
-    document.getElementById('anGridKapat').addEventListener('click', ()=> history.back());
-    document.getElementById('anListeGeri').addEventListener('click', ()=> history.back());
-    document.getElementById('anProfilGeri').addEventListener('click', ()=> history.back());
-    document.getElementById('anCikisBtn').addEventListener('click', ()=>{
-      if(typeof cikisYap === 'function') cikisYap();
-      else if(typeof oturumKapat === 'function') oturumKapat();
-      else alert('Çıkış fonksiyonu bulunamadı.');
     });
   }
   function ikonSvg2(rawInner, sz){
@@ -341,6 +351,12 @@
       else this.git({ekran:'grid'});
     },
     profilAc(){ this.git({ekran:'profil'}); },
+    yenile(){
+      // İskelet henüz kurulmadıysa yenilemeye gerek yok — kur() zaten
+      // ilk çizimi (o anki en iyi bilgiyle) yapacak.
+      if(!this._kuruldu) return;
+      gridDoldur();
+    },
     hizliNotAc(){
       if(typeof notlarModalAc === 'function') notlarModalAc();
       else alert('Not modülü yüklenemedi.');
