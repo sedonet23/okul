@@ -322,15 +322,20 @@
     if(!kategoriler.length){
       html = '<div class="empty-state">Ders programı ve nöbet dışında kayıtlı bir göreviniz/evrakınız görünmüyor.</div>';
     } else {
+      // DÜZELTME: Satırlar eskiden tıklanınca ilgili modülün TAM sayfasına
+      // (sekmeAc) götürüyordu — ama o sayfalar okulun TÜM personelinin
+      // evrak/teslim durumunu gösteren yönetici araçları. Sıradan bir
+      // öğretmen kendi Profilim'inden buraya girip herkesin durumunu
+      // görebiliyordu. Artık bu liste salt bilgi amaçlı — başka bir
+      // sayfaya götürmüyor, sadece kendi dahil olduğu kayıtları listeliyor.
       html = kategoriler.map(k => `
         <div class="an-alt-grup-baslik" style="margin-top:14px;">${ikonSvg(k.ikon,13)} ${k.baslik} (${k.kayitlar.length})</div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
           ${k.kayitlar.map(kayit => `
-            <button type="button" class="an-liste-ogesi" onclick="modalKapat(); sekmeAc('${k.hedefTab}');">
+            <div class="an-liste-ogesi" style="cursor:default;">
               <span class="an-oge-ikon" style="background:${k.renk}22; color:${k.renk};">${ikonSvg(k.ikon,15)}</span>
               <span>${escapeHtml(k.adFn(kayit) || '—')}</span>
-              <span class="an-oge-ok">${ikonSvg('ok',15)}</span>
-            </button>`).join('')}
+            </div>`).join('')}
         </div>`).join('');
     }
     modalAc('📋 Diğer Görevlerim', html, null, null);
