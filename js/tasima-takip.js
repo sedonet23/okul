@@ -204,18 +204,19 @@
     // sayısına göre yazı boyutu/dolgu JS'te hesaplanıp SABİT olarak
     // uygulanıyor — flex'in "tahminine" güvenmiyoruz.
     const sonGun = new Date(_yil, _ay+1, 0).getDate();
-    const buyukAy = sonGun >= 31; // önceki (küçük) küçültme yetersiz kaldı — daha agresif gidiyoruz
-    const anaFontPt = buyukAy ? 5.0 : sonGun === 30 ? 6.3 : 6.6;
-    const anaPadY   = buyukAy ? 0.6 : sonGun === 30 ? 1.25 : 1.5;
-    const subFontPt = buyukAy ? 4.6 : 6.2;
-    const ustBoslukMb = buyukAy ? 3 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
-    const baslik1Pt = buyukAy ? 12 : 14;
-    const baslik2Pt = buyukAy ? 9 : 10.5;
-    const infoFontPt = buyukAy ? 7.5 : 8.5;
-    const infoPadY   = buyukAy ? 2 : 3;
-    const ogrFontPt  = buyukAy ? 6.0 : 7;
-    const ogrPadY    = buyukAy ? 1 : 1.5;
-    const imzaPadTop = buyukAy ? 6 : 12;
+    const buyukAy = sonGun >= 31; // önceki iki küçültme denemesi de yetersiz kaldı — çok daha agresif gidiyoruz
+    const anaFontPt = buyukAy ? 4.2 : sonGun === 30 ? 6.3 : 6.6;
+    const anaPadY   = buyukAy ? 0.3 : sonGun === 30 ? 1.25 : 1.5;
+    const subFontPt = buyukAy ? 4.0 : 6.2;
+    const ustBoslukMb = buyukAy ? 2 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
+    const baslik1Pt = buyukAy ? 10 : 14;
+    const baslik2Pt = buyukAy ? 7.5 : 10.5;
+    const infoFontPt = buyukAy ? 6.5 : 8.5;
+    const infoPadY   = buyukAy ? 1 : 3;
+    const ogrFontPt  = buyukAy ? 5.2 : 7;
+    const ogrPadY    = buyukAy ? 0.5 : 1.5;
+    const imzaPadTop = buyukAy ? 3 : 12;
+    const anaLineH   = buyukAy ? 1.0 : 1.3; // satır arası boşluk da sıkılaştırılıyor — font küçültmenin tek başına yetmediği görüldü
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -272,7 +273,7 @@
 
   /* Ana takip tablosu: kalan dikey alanı tamamen doldurur */
   .tt-tablo-kapsayici { flex: 1 1 auto; display: flex; min-height: 0; }
-  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: ${anaFontPt}pt; table-layout: fixed; }
+  .tt-ana-tablo { width: 100%; height: 100%; border-collapse: collapse; font-size: ${anaFontPt}pt; table-layout: fixed; line-height: ${anaLineH}; }
   .tt-ana-tablo th, .tt-ana-tablo td { border: 1px solid #888; padding: ${anaPadY}px 2px; text-align: center; vertical-align: middle; }
   .tt-th-tarih { background: #c8e6c9; font-weight: 700; text-align: left !important; padding-left: 6px; width: 125px; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .tt-th-sabah, .tt-th-aksam { background: #a5d6a7; font-weight: 700; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
