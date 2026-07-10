@@ -122,7 +122,8 @@
       <div class="nav-group" id="kisilerMenu">
         <button class="nav-tab nav-sub-tab" data-tab="siniflar"><i class="nt-ico ni-sinif" data-lucide="school"></i><span class="nt-label">Sınıflar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><i class="nt-ico" data-lucide="graduation-cap"></i><span class="nt-label">Öğrenciler</span></button>
-        <button class="nav-tab nav-sub-tab" data-tab="sinavIslemleri"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Sınav İşlemleri</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="yaziliSinavlar"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Yazılı Sınavlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="denemeSinavlari"><i class="nt-ico" data-lucide="flask-conical"></i><span class="nt-label">Deneme Sınavları</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="ogretmenListe" onclick="ogretmenListeSekmesiAc()"><i class="nt-ico" data-lucide="list-checks"></i><span class="nt-label">Öğrenci Listesi Oluşturcu</span></button>
       </div>
 
@@ -308,7 +309,7 @@
       </div>
 
       <!-- YENİ (widget): Sınavlarım -->
-      <div class="card dash-card-clickable" data-kart-id="sinavlarim" data-yetki-modul="sinavIslemleri" onclick="sekmeAc('sinavIslemleri')" style="display:none;">
+      <div class="card dash-card-clickable" data-kart-id="sinavlarim" data-yetki-modul="sinavIslemleri" onclick="sekmeAc('yaziliSinavlar')" style="display:none;">
         <h3 class="dash-h3-row">📝 Sınavlarım <span class="dash-tumu-link">Tümü ›</span></h3>
         <div id="dashSinavlarim"></div>
       </div>
@@ -762,18 +763,13 @@
       </div>
     </section>
 
-        <section id="tab-sinavIslemleri" class="tab-panel">
+        <section id="tab-yaziliSinavlar" class="tab-panel">
       <div class="page-header">
-        <div><div class="page-title">Sınav İşlemleri</div><div class="page-sub">Yazılı tarihleri ve deneme sınavları</div></div>
+        <div><div class="page-title">Yazılı Sınavlar</div><div class="page-sub">Yazılı sınav tarihleri</div></div>
         <div class="page-header-actions">
           <button class="btn btn-ghost" onclick="if(typeof KriterDagitimAraci!=='undefined') KriterDagitimAraci.ac(); else alert('Kriter Puan Dağıtım Aracı yüklenemedi.');">📊 Ders Et. Kat. Puan Dağıtımı</button>
           <button class="btn btn-ghost" onclick="if(typeof ProjeDegerlendirmeAraci!=='undefined') ProjeDegerlendirmeAraci.ac(); else alert('Proje Değerlendirme Ölçeği yüklenemedi.');">📐 Proje Değerlendirme Ölçeği</button>
         </div>
-      </div>
-
-      <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm filtre-btn active" data-s="yazili" onclick="sinavAltSekmeSec('yazili')">Yazılı Sınavlar</button>
-        <button class="btn btn-ghost btn-sm filtre-btn" data-s="deneme" onclick="sinavAltSekmeSec('deneme')">Deneme Sınavları</button>
       </div>
 
       <div id="sinavYaziliBolum">
@@ -785,8 +781,15 @@
           <div id="sinavlarListesi"></div>
         </div>
       </div>
+    </section>
 
-      <div id="sinavDenemeBolum" style="display:none;">
+    <!-- DENEME SINAVLARI (eskiden Sınav İşlemleri'nde toggle ile birlikteydi) -->
+    <section id="tab-denemeSinavlari" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Deneme Sınavları</div><div class="page-sub">Deneme sınavı planlaması</div></div>
+      </div>
+
+      <div id="sinavDenemeBolum">
         <div class="card">
           <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
             <button class="btn btn-amber" onclick="denemeModalAc()">+ Deneme Sınavı Ekle</button>
@@ -1337,10 +1340,10 @@
 
     <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
     <nav class="bottom-nav" id="bottomNav">
-      <button class="bn-item active" data-tab="panel" onclick="sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="home"></i><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item active" data-tab="panel" onclick="AltNav.kapat(); sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="home"></i><span class="bn-label">Ana Sayfa</span></button>
       <button class="bn-item" id="bnProfilim" onclick="AltNav.profilAc();"><i class="bn-ico" data-lucide="user"></i><span class="bn-label">Profilim</span></button>
       <button class="bn-item bn-plus" id="bnMenuBtn" onclick="AltNav.menuTikla();" title="Menü"><span class="bn-plus-ico" id="bnMenuIkon"><i data-lucide="layout-grid"></i></span></button>
-      <button class="bn-item" data-tab="arama" onclick="sekmeAc('arama'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="search"></i><span class="bn-label">Arama</span></button>
+      <button class="bn-item" data-tab="arama" onclick="AltNav.kapat(); sekmeAc('arama'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="search"></i><span class="bn-label">Arama</span></button>
       <button class="bn-item" onclick="AltNav.hizliNotAc();"><i class="bn-ico" data-lucide="notebook-pen"></i><span class="bn-label">Hızlı Not</span></button>
     </nav>
 
