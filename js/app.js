@@ -728,6 +728,13 @@ function renderOkulBilgileriSayfasi(){
     if(ortaokulAdEl) ortaokulAdEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulAdi) || '';
     if(ortaokulKodEl) ortaokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulKurumKodu) || '';
     if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
+    // DÜZELTME: Bu fonksiyon Firestore onSnapshot ile SIK SIK yeniden
+    // çağrılıyor ve "Çıkar" gibi butonları innerHTML ile SIFIRDAN
+    // yeniden oluşturuyor — salt-okuma (yetkisiz) kullanıcılar için
+    // bu butonlar sadece sekme İLK açıldığında gizleniyordu, sonraki
+    // her veri yenilemesinde tekrar tıklanabilir hale geliyordu. Her
+    // render sonrası kısıtlamayı yeniden uyguluyoruz.
+    if(typeof saltOkumaUygula === 'function') saltOkumaUygula('okulBilgileri');
   } catch(e) { console.warn('renderOkulBilgileriSayfasi hata:', e); }
 }
 function okulBilgileriKaydet(){
