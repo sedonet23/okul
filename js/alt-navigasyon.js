@@ -91,8 +91,8 @@
       {ad:'Öğrenci Listesi Oluşturucu', ikon:'liste', modul:null, aksiyon:function(){ if(typeof ogretmenListeSekmesiAc==='function') ogretmenListeSekmesiAc(); else sekmeAc('ogretmenListe'); }},
     ]},
     { ad:'Sınavlar ve Not İşlemleri', renk:'#1F6FD1', ikon:I.yazili, ogeler:[
-      {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri', ()=>{ if(typeof sinavAltSekmeSec==='function') sinavAltSekmeSec('yazili'); })},
-      {ad:'Deneme Sınavları', ikon:'deneme', modul:'sinavIslemleri', aksiyon:git('sinavIslemleri', ()=>{ if(typeof sinavAltSekmeSec==='function') sinavAltSekmeSec('deneme'); })},
+      {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('yaziliSinavlar')},
+      {ad:'Deneme Sınavları', ikon:'deneme', modul:'sinavIslemleri', aksiyon:git('denemeSinavlari')},
       {ad:'Ders Et. Kat. Puan Dağıtımı', ikon:'puan', modul:'sinavIslemleri', aksiyon:cagir('KriterDagitimAraci','ac')},
       {ad:'Proje Değerlendirme Ölçeği', ikon:'olcek', modul:'sinavIslemleri', aksiyon:cagir('ProjeDegerlendirmeAraci','ac')},
     ]},

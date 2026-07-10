@@ -1076,7 +1076,7 @@ function renderDashboard(){
     // Servis) boş kaldığı için eklendi — bunlar herkese bağlı öğretmen
     // kaydı olan (ya da ilgili modülü görebilen) kullanıcıya görünür.
     sinavlarim: (_statBenOgretmen && gorebilir('sinavIslemleri') && typeof sinavlar!=='undefined') ? `
-    <div class="stat-card stat-card-clickable" onclick="sekmeAc('sinavIslemleri')">
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('yaziliSinavlar')">
       <div class="stat-card-ico-lg stat-card-ico-blue">📝</div>
       <div class="stat-card-num">${sinavlar.filter(s=>s.ogretmenId===_statBenOgretmen.id && s.tarih>=todayISO()).length}</div>
       <div class="stat-card-label">Yaklaşan Sınavlarım</div>
@@ -1144,7 +1144,7 @@ function renderDashboard(){
       hatirlatici: gorebilir('takvim') ? `<div class="hb-chip" onclick="sekmeAc('takvim')"><span class="hb-ico">⏰</span><div class="hb-num">${hatirlaticilar.filter(h=>!h.tamamlandi).length}</div><div class="hb-label">Hatırlatıcı</div></div>` : '',
       // Herkese açık: admin tüm sınav sayısını, öğretmen kendi eklediği/kendine ait
       // sınav sayısını görür. Tıklayınca (yetkisine göre) tüm sınavları görebilir.
-      sinavlarim: gorebilir('sinavIslemleri') ? `<div class="hb-chip" onclick="sekmeAc('sinavIslemleri')"><span class="hb-ico">📝</span><div class="hb-num">${_hbSinavSayisi}</div><div class="hb-label">${_hbSinavEtiket}</div></div>` : '',
+      sinavlarim: gorebilir('sinavIslemleri') ? `<div class="hb-chip" onclick="sekmeAc('yaziliSinavlar')"><span class="hb-ico">📝</span><div class="hb-num">${_hbSinavSayisi}</div><div class="hb-label">${_hbSinavEtiket}</div></div>` : '',
     };
     const _hbSirasi = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliBakis') : Object.keys(_hbTanimlari);
     hizliBakisEl.innerHTML = _hbSirasi.map(id => _hbTanimlari[id] || '').join('');
@@ -1492,7 +1492,7 @@ function renderHizliIslemler(){
     cizelgeler:     { modul:'sosyalKulupler', onclick:"sekmeAc('sosyalKulupler');",      ikon:'⋯',  ikonClass:'qa-daha',     label:'Çizelgeler' },
     mesajlar:       { modul:'mesajlasma',  onclick:"sekmeAc('mesajlasma');",            ikon:'💬', ikonClass:'qa-gorev',    label:'Mesajlar' },
     duyurular:      { modul:'duyurular',   onclick:"sekmeAc('duyurular');",             ikon:'📢', ikonClass:'qa-rapor',    label:'Duyurular' },
-    sinavIslemleri: { modul:'sinavIslemleri', onclick:"sekmeAc('sinavIslemleri');",      ikon:'📝', ikonClass:'qa-not',      label:'Sınavlar' },
+    sinavIslemleri: { modul:'sinavIslemleri', onclick:"sekmeAc('yaziliSinavlar');",      ikon:'📝', ikonClass:'qa-not',      label:'Sınavlar' },
   };
   const sira = (typeof _altTercihOku === 'function') ? _altTercihOku('hizliIslemler') : Object.keys(tanimlari).slice(0,8);
   el.innerHTML = sira.map(id=>{
@@ -2180,7 +2180,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     haberler: 'haberler',
     nobet:    'nobet',
     belge:    'evrak',
-    sinav:    'sinavIslemleri',
+    sinav:    'yaziliSinavlar',
     dersProgrami: 'dersProgrami', // Ders Zili Geri Sayım widget'ına dokununca
   };
   window.addEventListener('bildirimAcildi', (e) => {

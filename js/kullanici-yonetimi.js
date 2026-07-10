@@ -58,7 +58,14 @@ const MODUL_LISTESI = [
 const _CIZELGELER_MODULLERI = MODUL_LISTESI.filter(m=>m.grup==='Çizelgeler').map(m=>m.modul);
 
 /* ---------- Yetki yardımcı fonksiyonları ---------- */
+// DÜZELTME: "Sınav İşlemleri" sayfası Yazılı/Deneme olarak iki ayrı
+// sekmeye bölündü (bkz. index.html), ama mevcut roller hâlâ tek bir
+// 'sinavIslemleri' izni üzerinden yapılandırılmış. Adminlerin tüm
+// rolleri yeniden ayarlamasına gerek kalmasın diye bu iki yeni sekme
+// ID'si, yetki kontrolünde şeffafça 'sinavIslemleri'ye eşleniyor.
+const MODUL_ALIAS = { yaziliSinavlar:'sinavIslemleri', denemeSinavlari:'sinavIslemleri' };
 function yetkiSeviyesi(modul){
+  modul = MODUL_ALIAS[modul] || modul;
   if(!AKTIF_KULLANICI) return 'gizle';
   if(AKTIF_KULLANICI.admin === true) return 'duzenle'; // süper admin: her şeye tam erişim
   if(AKTIF_ROL && AKTIF_ROL.yetkiler && AKTIF_ROL.yetkiler[modul]) return AKTIF_ROL.yetkiler[modul];
