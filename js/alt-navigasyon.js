@@ -253,6 +253,7 @@
     Array.from(govde.querySelectorAll('.an-liste-ogesi')).forEach((el, idx)=>{
       el.addEventListener('click', ()=>{
         AltNav.kapat();
+        _donusEkrani = { ekran:'liste', grupIndex:i };
         setTimeout(()=> tumOgeler[idx].aksiyon(), 260); // panel kapanış animasyonu bitsin, sonra hedefe git
       });
     });
@@ -388,6 +389,7 @@
     Array.from(cEl.querySelectorAll('.an-profil-satir')).forEach((el, idx)=>{
       el.addEventListener('click', ()=>{
         AltNav.kapat();
+        _donusEkrani = { ekran:'profil' };
         setTimeout(()=> cizelgelerim[idx].aksiyon(), 260);
       });
     });
@@ -402,6 +404,8 @@
      üzerinden geriTusuIsle()'a bağlanıyor (bkz. js/app.js). ---- */
   let _ekran = 'ana'; // 'ana' | 'grid' | 'liste' | 'profil'
   let _acikGrupIndex = null;
+  let _donusEkrani = null; // {ekran, grupIndex} — menüden bir hedefe geçildiğinde
+                            // geri tuşuyla dönülecek nokta (tek kullanımlık hafıza)
 
   function ekranUygula(){
     const grid = document.getElementById('anGridKatman');
@@ -434,24 +438,33 @@
     },
     kapat(){
       _ekran = 'ana';
+      _donusEkrani = null;
       ekranUygula();
     },
     menuTikla(){
       this.kur();
       if(_ekran === 'grid' || _ekran === 'liste'){ this.kapat(); return; }
+      _donusEkrani = null; // yeni bir menü oturumu — eski "dönüş noktası" geçersiz
       this.git('grid');
     },
     profilAc(){
+      _donusEkrani = null;
       this.git('profil');
     },
     /* geriTusuIsle() (js/app.js) tarafından — hem native Android hem web
        geri tuşu emülasyonu için — çağrılır. Açık bir panel varsa bir
-       kademe geri gider (liste→grid, grid/profil→ana) ve true döner;
-       hiçbir panel açık değilse false döner (uygulama kendi mevcut
-       geri-tuşu mantığına — sekme geçmişi / çift-basışla-çık — devam eder). */
+       kademe geri gider (liste→grid, grid/profil→ana); panel kapalıysa
+       ama menüden bir sekmeye YENİ geçilmişse (bkz. _donusEkrani) o
+       menü ekranını geri getirir — aksi halde uygulamanın kendi sekme
+       geçmişi/çift-basışla-çık mantığına devam etmesi için false döner. */
     geriTusu(){
       if(_ekran === 'liste'){ this.git('grid'); return true; }
       if(_ekran === 'grid' || _ekran === 'profil'){ this.kapat(); return true; }
+      if(_ekran === 'ana' && _donusEkrani){
+        const hedef = _donusEkrani; _donusEkrani = null;
+        this.git(hedef.ekran, hedef.grupIndex);
+        return true;
+      }
       return false;
     },
     yenile(){
