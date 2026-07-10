@@ -307,6 +307,19 @@ function haberKaruselUygula(){
    parmakla yatay kaydırma (yatay kaydırmalı bir "hikaye şeridi" gibi). */
 const OKUL_SITESI_KATEGORISI = 'Okul Sitesi';
 
+/* DÜZELTME: korukortaokulu.meb.k12.tr üzerindeki haber görselleri web'de
+   (özellikle masaüstü/mobil Chrome'da) yüklenmiyordu — MEB k12 sistemleri
+   tarayıcının gönderdiği Referer başlığına göre hotlink koruması
+   uyguluyor olabilir; Android WebView bu başlığı farklı gönderdiği için
+   orada sorun görünmüyordu. Kaynak sunucuya müdahale edemediğimiz için,
+   görseller ücretsiz bir görsel proxy'si (images.weserv.nl) üzerinden
+   sunucudan sunucuya çekiliyor — böylece tarayıcı Referer'ı devreye
+   girmiyor ve iki platformda da tutarlı çalışıyor. */
+function _haberResimUrl(ham){
+  if(!ham) return '';
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(ham.replace(/^https?:\/\//, ''));
+}
+
 function renderOkulSitesiKart(){
   const kart = document.getElementById('okulSitesiKart');
   const serit = document.getElementById('okulSitesiSerit');
@@ -320,7 +333,7 @@ function renderOkulSitesiKart(){
     return `
     <div onclick="${h.link ? `window.open('${escapeHtml(h.link)}','_blank')` : ''}"
          style="flex:0 0 auto;width:200px;border-radius:12px;overflow:hidden;background:var(--bg-card);border:1px solid var(--border);cursor:pointer;scroll-snap-align:start;">
-      <div style="width:100%;height:120px;background:var(--nm-bg) center/cover no-repeat url('${h.resimUrl ? escapeHtml(h.resimUrl) : ''}');display:flex;align-items:center;justify-content:center;">
+      <div style="width:100%;height:120px;background:var(--nm-bg) center/cover no-repeat url('${h.resimUrl ? escapeHtml(_haberResimUrl(h.resimUrl)) : ''}');display:flex;align-items:center;justify-content:center;">
         ${h.resimUrl ? '' : '<span style="font-size:28px;opacity:.4;">🏫</span>'}
       </div>
       <div style="padding:8px 10px;">
