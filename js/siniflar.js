@@ -377,6 +377,7 @@ function ogrenciDetayModalAc(id){
   document.getElementById('modalSilBtn').style.display = 'none';
   document.getElementById('modalKaydetBtn').style.display = 'none';
   document.getElementById('modalOverlay').classList.add('active');
+  document.body.classList.add('modal-open');
 }
 
 /* ---------- sınıf seçim listesi ---------- */

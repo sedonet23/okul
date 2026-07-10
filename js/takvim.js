@@ -348,6 +348,7 @@ function takvimGunTikla(isoGun){
   document.getElementById('modalSilBtn').style.display = 'none';
   document.getElementById('modalKaydetBtn').style.display = 'none';
   overlay.classList.add('active');
+  document.body.classList.add('modal-open');
 }
 
 /* ================================================================

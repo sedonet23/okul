@@ -22,6 +22,7 @@ function _raporModalAc(baslik, icerikleri, onay) {
   document.getElementById('modalKaydetBtn').onclick = onay;
   document.getElementById('modalKaydetBtn').textContent = 'Devam Et';
   overlay.classList.add('active');
+  document.body.classList.add('modal-open');
 }
 /* NOT: modalKapat() burada tanımlanmıyor — app.js'teki tek/standart
    modalKapat() (classList.remove('active')) tüm modallar için kullanılıyor.
