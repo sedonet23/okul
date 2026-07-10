@@ -291,29 +291,41 @@
     const adSoyad = `${o.ad} ${o.soyad}`.trim();
     const cv = typeof cizelgeVerileri !== 'undefined' ? cizelgeVerileri : {};
 
+    // Aynı sütun tanımları ogretmen-detay.js > ogretmenRaporOlustur()'daki
+    // ile birebir aynı — "Belge Durumu" bölümünün ekran karşılığı.
+    const AYLAR_RAPOR = ['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
+    const DONEM_RAPOR = ['1. Dönem','2. Dönem','Yıl Sonu'];
+    const KULUP_RAPOR = ['Yıllık Plan','Toplum Hizm.','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','Sene Sonu'];
+    const REHB_RAPOR  = ['Yıllık Plan','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.D.Sonu','Sene Sonu'];
+    const BEP_RAPOR   = ['Yıllık Ders Planı','BEP Planı'];
+    function kontrolDizisi(k, kolonlar){
+      return Array.isArray(k.kontroller) ? k.kontroller : kolonlar.map((_,i)=> !!(k.durumlar && Object.values(k.durumlar)[i]));
+    }
+
     const kategoriler = [
-      { baslik:'Sosyal Kulüpler', ikon:'kalp', renk:'#D6528F', hedefTab:'sosyalKulupler',
+      { baslik:'Sosyal Kulüpler', ikon:'kalp', renk:'#D6528F', kolonlar:KULUP_RAPOR,
         kayitlar:(cv.sosyalKulupler||[]).filter(s => adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(ogretmenId))),
         adFn:k=>k.ad },
-      { baslik:'Rehberlik', ikon:'pusula', renk:'#7C52D6', hedefTab:'rehberlik',
+      { baslik:'Rehberlik', ikon:'pusula', renk:'#7C52D6', kolonlar:REHB_RAPOR,
         kayitlar:(cv.rehberlik||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.danisman, adSoyad)),
         adFn:k=>k.ad },
-      { baslik:'Zümre', ikon:'ogretmen', renk:'#1F6FD1', hedefTab:'zumre',
+      { baslik:'Zümre', ikon:'ogretmen', renk:'#1F6FD1', kolonlar:DONEM_RAPOR,
         kayitlar:(cv.zumre||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
         adFn:k=>k.ad || k.brans },
-      { baslik:'ŞÖK', ikon:'kalkan', renk:'#EE5A45', hedefTab:'sok',
+      { baslik:'ŞÖK', ikon:'kalkan', renk:'#EE5A45', kolonlar:DONEM_RAPOR,
         kayitlar:(cv.sok||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
         adFn:k=>k.ad },
-      { baslik:'Maarif Model Raporları', ikon:'odul', renk:'#F2A03D', hedefTab:'maarifRapor',
+      { baslik:'Maarif Model Raporları', ikon:'odul', renk:'#F2A03D', kolonlar:AYLAR_RAPOR,
         kayitlar:(cv.maarifRapor||[]).filter(k => k.ogretmenId===ogretmenId),
         adFn:k=>`${k.ders||'—'}${k.sinif?' · '+k.sinif:''}` },
-      { baslik:'Belirli Gün ve Haftalar', ikon:'takvim', renk:'#1F9FD1', hedefTab:'belirliGunler',
+      { baslik:'Belirli Gün ve Haftalar', ikon:'takvim', renk:'#1F9FD1', kolonlar:null,
         kayitlar:(typeof belirliGunlerListesi!=='undefined'?belirliGunlerListesi:[]).filter(e => (e.gorevliOgretmenler && e.gorevliOgretmenler.includes(ogretmenId)) || adGeciyorMu(e.gorevliOgretmen, adSoyad)),
-        adFn:e=>`${e.baslik}${e.tarih?' · '+e.tarih:''}` },
-      { baslik:'Yıllık Plan / BEP Planı', ikon:'pano', renk:'#0A9E82', hedefTab:'bepPlani',
+        adFn:e=>`${e.baslik}${e.tarih?' · '+e.tarih:''}`,
+        durumFn:e=> e.tamamlandi ? '✅ Tamamlandı' : '⏳ Bekliyor' },
+      { baslik:'Yıllık Plan / BEP Planı', ikon:'pano', renk:'#0A9E82', kolonlar:BEP_RAPOR,
         kayitlar:(cv.bepPlani||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.ad, adSoyad)),
         adFn:k=>k.ad },
-      { baslik:'Diğer Evraklar', ikon:'dosya', renk:'#4E5A63', hedefTab:'digerEvrak',
+      { baslik:'Diğer Evraklar', ikon:'dosya', renk:'#4E5A63', kolonlar:null,
         kayitlar:(typeof digerEvrakListesi!=='undefined'?digerEvrakListesi:[]).filter(e => (e.ogretmen||'').localeCompare(adSoyad,'tr',{sensitivity:'base'})===0),
         adFn:e=>`${e.evrakTuru}${e.sinif?' · '+e.sinif:''}${e.tarih?' · '+formatTarih(e.tarih):''}` },
     ].filter(k => k.kayitlar.length > 0);
@@ -322,21 +334,35 @@
     if(!kategoriler.length){
       html = '<div class="empty-state">Ders programı ve nöbet dışında kayıtlı bir göreviniz/evrakınız görünmüyor.</div>';
     } else {
-      // DÜZELTME: Satırlar eskiden tıklanınca ilgili modülün TAM sayfasına
-      // (sekmeAc) götürüyordu — ama o sayfalar okulun TÜM personelinin
-      // evrak/teslim durumunu gösteren yönetici araçları. Sıradan bir
-      // öğretmen kendi Profilim'inden buraya girip herkesin durumunu
-      // görebiliyordu. Artık bu liste salt bilgi amaçlı — başka bir
-      // sayfaya götürmüyor, sadece kendi dahil olduğu kayıtları listeliyor.
+      // Not: bu liste sadece BU öğretmene ait kayıtları/tiklerini gösterir
+      // (ogretmen-detay.js > ogretmenRaporOlustur ile aynı filtre mantığı) —
+      // okulun tüm personelinin durumunu gösteren yönetici sayfalarına
+      // (sekmeAc) HİÇ gitmiyor, salt kendi bilgin.
       html = kategoriler.map(k => `
-        <div class="an-alt-grup-baslik" style="margin-top:14px;">${ikonSvg(k.ikon,13)} ${k.baslik} (${k.kayitlar.length})</div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
-          ${k.kayitlar.map(kayit => `
-            <div class="an-liste-ogesi" style="cursor:default;">
-              <span class="an-oge-ikon" style="background:${k.renk}22; color:${k.renk};">${ikonSvg(k.ikon,15)}</span>
-              <span>${escapeHtml(k.adFn(kayit) || '—')}</span>
-            </div>`).join('')}
+        <div class="an-alt-grup-baslik" style="margin-top:14px;">${ikonSvg(k.ikon,13)} ${k.baslik}</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:6px;">
+          ${k.kayitlar.map(kayit => {
+            const kArr = k.kolonlar ? kontrolDizisi(kayit, k.kolonlar) : null;
+            const tamamlanan = kArr ? kArr.filter(Boolean).length : null;
+            const rozet = kArr ? `${tamamlanan}/${k.kolonlar.length}` : (k.durumFn ? k.durumFn(kayit) : '');
+            return `
+              <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:${kArr?'8px':'0'};">
+                  <span style="font-weight:700;font-size:13.5px;color:var(--ink);">${escapeHtml(k.adFn(kayit) || '—')}</span>
+                  <span style="font-size:11px;font-weight:700;color:${k.renk};background:${k.renk}1a;padding:2px 9px;border-radius:20px;flex-shrink:0;">${escapeHtml(rozet)}</span>
+                </div>
+                ${kArr ? `
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  ${k.kolonlar.map((etiket,i) => `
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft);">
+                      <span style="flex-shrink:0;">${kArr[i] ? '✅' : '⬜'}</span>
+                      <span>${escapeHtml(etiket)}</span>
+                    </div>`).join('')}
+                </div>` : ''}
+              </div>`;
+          }).join('')}
         </div>`).join('');
+      html += `<p style="margin-top:14px;font-size:11.5px;color:var(--ink-muted);font-style:italic;">Bu tikleri siz işaretleyemezsiniz — ilgili alan başka bir yetkili tarafından güncellenir.</p>`;
     }
     modalAc('📋 Diğer Görevlerim', html, null, null);
     const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
