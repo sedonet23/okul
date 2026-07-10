@@ -208,18 +208,19 @@
     // basılıyor. Bu yüzden gün sayısına göre küçültme yapmaya artık
     // gerek yok; tüm aylarda AYNI, normal/rahat boyutlar kullanılıyor.
     const anaFontPt = 6.6;
-    const anaPadY   = 1.7;
+    const anaPadY   = 2.0;
     const subFontPt = 6.2;
-    const ustBoslukMb = 7;
+    const ustBoslukMb = 5;
     const baslik1Pt = 14;
     const baslik2Pt = 10.5;
+    const baslikMb = 4;
     const infoFontPt = 8.5;
-    const infoPadY   = 2.5;
+    const infoPadY   = 2;
     const ogrFontPt  = 7;
-    const ogrPadY    = 1.1;
-    const ogrLineH   = 1.2;
-    const imzaPadTop = 10;
-    const anaLineH   = 1.35;
+    const ogrPadY    = 0.7;
+    const ogrLineH   = 1.1;
+    const imzaPadTop = 7;
+    const anaLineH   = 1.4;
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -244,7 +245,7 @@
     padding: 7mm 6mm;
   }
 
-  .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; flex: 0 0 auto; }
+  .tt-sayfa-baslik { text-align: center; margin-bottom: ${baslikMb}px; flex: 0 0 auto; }
   .tt-baslik-1 { font-size: ${baslik1Pt}pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
   .tt-baslik-2 { font-size: ${baslik2Pt}pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
 
