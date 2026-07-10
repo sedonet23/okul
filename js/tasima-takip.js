@@ -204,19 +204,27 @@
     // sayısına göre yazı boyutu/dolgu JS'te hesaplanıp SABİT olarak
     // uygulanıyor — flex'in "tahminine" güvenmiyoruz.
     const sonGun = new Date(_yil, _ay+1, 0).getDate();
-    const buyukAy = sonGun >= 31; // önceki iki küçültme denemesi de yetersiz kaldı — çok daha agresif gidiyoruz
-    const anaFontPt = buyukAy ? 4.2 : sonGun === 30 ? 6.3 : 6.6;
-    const anaPadY   = buyukAy ? 0.3 : sonGun === 30 ? 1.25 : 1.5;
-    const subFontPt = buyukAy ? 4.0 : 6.2;
-    const ustBoslukMb = buyukAy ? 2 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
-    const baslik1Pt = buyukAy ? 10 : 14;
-    const baslik2Pt = buyukAy ? 7.5 : 10.5;
-    const infoFontPt = buyukAy ? 6.5 : 8.5;
-    const infoPadY   = buyukAy ? 1 : 3;
-    const ogrFontPt  = buyukAy ? 5.2 : 7;
-    const ogrPadY    = buyukAy ? 0.5 : 1.5;
-    const imzaPadTop = buyukAy ? 3 : 12;
-    const anaLineH   = buyukAy ? 1.0 : 1.3; // satır arası boşluk da sıkılaştırılıyor — font küçültmenin tek başına yetmediği görüldü
+    const buyukAy = sonGun >= 31;
+    // DÜZELTME: Önceki denemeler her yeri (yazıyı da) küçültüyordu — okunurluğu
+    // bozuyordu. İstek üzerine: yazı boyutları NORMALE dönüyor, sadece
+    // ÖĞRENCİ LİSTESİ tablosunun satır yüksekliği/dolgusu sıkılaştırılıyor
+    // (30 satırlık boş şablon, çoğu zaman sadece birkaç öğrenci doluyken bile
+    // aynı yüksekliği kaplıyordu — en büyük tek alan israfı buradaydı).
+    const anaFontPt = buyukAy ? 6.3 : sonGun === 30 ? 6.3 : 6.6;
+    const anaPadY   = buyukAy ? 1.1 : sonGun === 30 ? 1.25 : 1.5;
+    const subFontPt = buyukAy ? 6.0 : 6.2;
+    const ustBoslukMb = buyukAy ? 4 : 8;
+    const baslik1Pt = 14;
+    const baslik2Pt = 10.5;
+    const infoFontPt = 8.5;
+    const infoPadY   = buyukAy ? 2 : 3;
+    // Öğrenci listesi: yazı boyutu neredeyse aynı kalıyor (okunur), ama
+    // dolgu ve satır arası ÇOK sıkılaştırılıyor — asıl kazanç burada.
+    const ogrFontPt  = buyukAy ? 6.5 : 7;
+    const ogrPadY    = buyukAy ? 0.3 : 1.5;
+    const ogrLineH   = buyukAy ? 1.0 : 1.35;
+    const imzaPadTop = buyukAy ? 8 : 12;
+    const anaLineH   = buyukAy ? 1.15 : 1.3;
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -253,7 +261,7 @@
   .tt-ogrenci-disgrid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: ${ustBoslukMb}px; flex: 0 0 auto; }
   .tt-ogr-hucre { width: 50%; border: 1px solid #888; vertical-align: top; padding: 0; }
 
-  .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: ${ogrFontPt}pt; }
+  .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: ${ogrFontPt}pt; line-height: ${ogrLineH}; }
   .tt-ogr-tablo th {
     background: #a5d6a7; font-weight: 700; text-align: center; padding: ${ogrPadY}px 2px;
     border-bottom: 1px solid #888; border-right: 1px solid #bbb;
@@ -262,7 +270,6 @@
   .tt-ogr-tablo th:last-child { border-right: none; }
   .tt-ogr-tablo td {
     padding: ${ogrPadY}px 3px; text-align: center; border-bottom: 1px solid #ddd; border-right: 1px solid #e3e3e3;
-    line-height: 1.35;
   }
   .tt-ogr-tablo td:last-child { border-right: none; }
   .tt-ogr-tablo tr:last-child td { border-bottom: none; }
