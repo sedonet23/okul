@@ -337,6 +337,65 @@
     const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
   }
 
+/* Sadece haftalık ders programını gösterir (öğretmen detay panelinin
+     TAMAMI değil) — Profilim > Ders Programım için. */
+  function dersProgramimGoster(ogretmenId){
+    if(typeof dersProgrami === 'undefined' || typeof modalAc !== 'function'){
+      alert('Ders programı modülü yüklenemedi.'); return;
+    }
+    const GUNLER_TR = (typeof GUNLER !== 'undefined') ? GUNLER : ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma'];
+    const dersler = dersProgrami.filter(d => d.ogretmenId === ogretmenId)
+      .sort((a,b)=> GUNLER_TR.indexOf(a.gun) - GUNLER_TR.indexOf(b.gun) || a.saat - b.saat);
+    let html;
+    if(!dersler.length){
+      html = '<div class="empty-state">Ders programınızda kayıt yok.</div>';
+    } else {
+      html = GUNLER_TR.map(gun=>{
+        const gunDersleri = dersler.filter(d => d.gun === gun);
+        if(!gunDersleri.length) return '';
+        return `<div class="an-alt-grup-baslik" style="margin-top:12px;">${ikonSvg('takvim',13)} ${gun}</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;">
+            ${gunDersleri.map(d => `
+              <div class="an-liste-ogesi" style="cursor:default;">
+                <span class="an-oge-ikon" style="background:#1F6FD122; color:#1F6FD1;">${d.saat}.</span>
+                <span>${escapeHtml(d.sinif||'—')} — ${escapeHtml(d.ders||'—')}</span>
+              </div>`).join('')}
+          </div>`;
+      }).join('');
+    }
+    modalAc('📚 Ders Programım', html, null, null);
+    const kb = document.getElementById('modalKaydetBtn'); if(kb) kb.style.display = 'none';
+  }
+
+  /* Sadece BU AYIN nöbetlerini gösterir — Profilim > Nöbetlerim için. */
+  function nobetlerimGoster(ogretmenId){
+    if(typeof nobetAtamalari === 'undefined' || typeof modalAc !== 'function'){
+      alert('Nöbet modülü yüklenemedi.'); return;
+    }
+    const simdi = new Date();
+    const buAy = simdi.getMonth(), buYil = simdi.getFullYear();
+    const nobetler = nobetAtamalari.filter(n=>{
+      if(n.ogretmenId !== ogretmenId || !n.tarih) return false;
+      const t = new Date(n.tarih);
+      return t.getMonth() === buAy && t.getFullYear() === buYil;
+    }).sort((a,b)=> (a.tarih||'').localeCompare(b.tarih||''));
+    let html;
+    if(!nobetler.length){
+      html = '<div class="empty-state">Bu ay için nöbet atamanız yok.</div>';
+    } else {
+      html = `<div style="display:flex;flex-direction:column;gap:8px;">${nobetler.map(n=>{
+        const yer = (typeof nobetYerleri !== 'undefined') ? nobetYerleri.find(y=>y.id===n.yerId) : null;
+        const gunAdi = new Date(n.tarih).toLocaleDateString('tr-TR', { weekday:'long' });
+        return `<div class="an-liste-ogesi" style="cursor:default;">
+          <span class="an-oge-ikon" style="background:#EE5A4522; color:#EE5A45;">${ikonSvg('kalkan',15)}</span>
+          <span>${formatTarih(n.tarih)} — ${escapeHtml(gunAdi)} · ${escapeHtml(yer ? yer.ad : '—')}</span>
+        </div>`;
+      }).join('')}</div>`;
+    }
+    modalAc('🛡️ Bu Ayki Nöbetlerim', html, null, null);
+    const kb2 = document.getElementById('modalKaydetBtn'); if(kb2) kb2.style.display = 'none';
+  }
+
   /* ---- Profilim içeriği — gerçek AKTIF_KULLANICI verisinden ---- */
   function profilDoldur(){
     const ad = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? (AKTIF_KULLANICI.ad || AKTIF_KULLANICI.kullaniciAdi || 'Kullanıcı') : 'Kullanıcı';
@@ -372,8 +431,8 @@
     const cizelgelerim = [];
     if(bagliId){
       cizelgelerim.push(
-        {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', aksiyon:()=> ogretmenDetayAc(bagliId)},
-        {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', aksiyon:()=> ogretmenDetayAc(bagliId)},
+        {ad:'Ders Programım', ikon:'yazili', renk:'#1F6FD1', aksiyon:()=> dersProgramimGoster(bagliId)},
+        {ad:'Nöbetlerim', ikon:'kalkan', renk:'#EE5A45', aksiyon:()=> nobetlerimGoster(bagliId)},
         {ad:'Sınavlarım', ikon:'olcek', renk:'#0A9E82', aksiyon:()=> sinavlarimGoster(bagliId)},
         {ad:'Diğer Görevlerim (Kulüp, ŞÖK, Zümre, Maarif...)', ikon:'rapor', renk:'#7C52D6', aksiyon:()=> digerEvrakDurumuGoster(bagliId)},
         {ad:'Profil Raporumu Yazdır', ikon:'dosya', renk:'#4E5A63', aksiyon:()=> ogretmenRaporOlustur(bagliId)},
