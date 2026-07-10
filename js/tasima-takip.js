@@ -204,10 +204,18 @@
     // sayısına göre yazı boyutu/dolgu JS'te hesaplanıp SABİT olarak
     // uygulanıyor — flex'in "tahminine" güvenmiyoruz.
     const sonGun = new Date(_yil, _ay+1, 0).getDate();
-    const anaFontPt = sonGun >= 31 ? 6.0 : sonGun === 30 ? 6.3 : 6.6;
-    const anaPadY   = sonGun >= 31 ? 1.0 : sonGun === 30 ? 1.25 : 1.5;
-    const subFontPt = sonGun >= 31 ? 5.7 : 6.2;
-    const ustBoslukMb = sonGun >= 31 ? 5 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
+    const buyukAy = sonGun >= 31; // önceki (küçük) küçültme yetersiz kaldı — daha agresif gidiyoruz
+    const anaFontPt = buyukAy ? 5.0 : sonGun === 30 ? 6.3 : 6.6;
+    const anaPadY   = buyukAy ? 0.6 : sonGun === 30 ? 1.25 : 1.5;
+    const subFontPt = buyukAy ? 4.6 : 6.2;
+    const ustBoslukMb = buyukAy ? 3 : 8; // 31 günlük aylarda üst tablolar arası boşluk da daraltılır
+    const baslik1Pt = buyukAy ? 12 : 14;
+    const baslik2Pt = buyukAy ? 9 : 10.5;
+    const infoFontPt = buyukAy ? 7.5 : 8.5;
+    const infoPadY   = buyukAy ? 2 : 3;
+    const ogrFontPt  = buyukAy ? 6.0 : 7;
+    const ogrPadY    = buyukAy ? 1 : 1.5;
+    const imzaPadTop = buyukAy ? 6 : 12;
 
     return `<!DOCTYPE html>
 <html lang="tr">
@@ -233,26 +241,26 @@
   }
 
   .tt-sayfa-baslik { text-align: center; margin-bottom: 8px; flex: 0 0 auto; }
-  .tt-baslik-1 { font-size: 14pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
-  .tt-baslik-2 { font-size: 10.5pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
+  .tt-baslik-1 { font-size: ${baslik1Pt}pt; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; }
+  .tt-baslik-2 { font-size: ${baslik2Pt}pt; font-weight: 700; color: #2e7d32; margin-top: 2px; }
 
-  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: ${ustBoslukMb}px; font-size: 8.5pt; flex: 0 0 auto; }
-  .tt-info-tablo td { border: 1px solid #888; padding: 3px 6px; }
+  .tt-info-tablo { width: 100%; border-collapse: collapse; margin-bottom: ${ustBoslukMb}px; font-size: ${infoFontPt}pt; flex: 0 0 auto; }
+  .tt-info-tablo td { border: 1px solid #888; padding: ${infoPadY}px 6px; }
   .tt-info-tablo .tt-lbl { background: #c8e6c9; font-weight: 700; white-space: nowrap; color:#1b5e20; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
   /* Öğrenci listesi: iki sütunu yan yana taşıyan dış tablo */
   .tt-ogrenci-disgrid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: ${ustBoslukMb}px; flex: 0 0 auto; }
   .tt-ogr-hucre { width: 50%; border: 1px solid #888; vertical-align: top; padding: 0; }
 
-  .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: 7pt; }
+  .tt-ogr-tablo { width: 100%; border-collapse: collapse; font-size: ${ogrFontPt}pt; }
   .tt-ogr-tablo th {
-    background: #a5d6a7; font-weight: 700; text-align: center; padding: 2.5px 2px;
+    background: #a5d6a7; font-weight: 700; text-align: center; padding: ${ogrPadY}px 2px;
     border-bottom: 1px solid #888; border-right: 1px solid #bbb;
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
   .tt-ogr-tablo th:last-child { border-right: none; }
   .tt-ogr-tablo td {
-    padding: 1.5px 3px; text-align: center; border-bottom: 1px solid #ddd; border-right: 1px solid #e3e3e3;
+    padding: ${ogrPadY}px 3px; text-align: center; border-bottom: 1px solid #ddd; border-right: 1px solid #e3e3e3;
     line-height: 1.35;
   }
   .tt-ogr-tablo td:last-child { border-right: none; }
@@ -278,7 +286,7 @@
 
   tr.tt-hs td, tr.tt-tatil td { background: #e3e3e3; color: #777; font-style: italic; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 
-  .tt-imza-satir { display: flex; justify-content: space-between; padding: 12px 10px 0; flex: 0 0 auto; }
+  .tt-imza-satir { display: flex; justify-content: space-between; padding: ${imzaPadTop}px 10px 0; flex: 0 0 auto; }
   .tt-imza-kutu { text-align: center; min-width: 130px; }
   .tt-imza-ad { font-size: 8.5pt; font-weight: 700; color: #111; }
   .tt-imza-unvan { font-size: 7.5pt; color: #444; margin-top: 3px; }

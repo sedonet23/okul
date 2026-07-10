@@ -317,7 +317,12 @@ const OKUL_SITESI_KATEGORISI = 'Okul Sitesi';
    girmiyor ve iki platformda da tutarlı çalışıyor. */
 function _haberResimUrl(ham){
   if(!ham) return '';
-  return 'https://images.weserv.nl/?url=' + encodeURIComponent(ham.replace(/^https?:\/\//, ''));
+  // DÜZELTME: Önceki sürüm https:// önekini SİLİYORDU — ama wsrv.nl
+  // belgelerine göre HTTPS kaynaklar için bu önek KORUNMALI, aksi halde
+  // servis kaynağı HTTP olarak denemeye çalışıp başarısız oluyor. Ayrıca
+  // servis images.weserv.nl'den wsrv.nl'e taşındı (eskisi hâlâ çalışabilir
+  // ama güncel olan bu).
+  return 'https://wsrv.nl/?url=' + encodeURIComponent(ham) + '&default=1';
 }
 
 function renderOkulSitesiKart(){
