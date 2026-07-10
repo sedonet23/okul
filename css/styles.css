@@ -3530,6 +3530,7 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
    bkz. js/alt-navigasyon.js
    ==================================================================== */
 .sidebar, #topbarHamburger{ display:none !important; }
+body.nav-open::after{ display:none !important; }
 
 /* ====================================================================
    YENİ GEZİNME SİSTEMİ (v1) — js/alt-navigasyon.js
