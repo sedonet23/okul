@@ -3618,7 +3618,7 @@ body.nav-open::after{ display:none !important; }
 .an-profil-iletisim{ display:flex; gap:16px; margin-top:14px; flex-wrap:wrap; justify-content:center; }
 .an-pi-satir{ display:flex; align-items:center; gap:6px; font-size:11.5px; opacity:.9; }
 
-.an-profil-govde{ margin-top:-22px; padding:0 16px 24px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:2; }
+.an-profil-govde{ margin-top:14px; padding:0 16px 24px; display:flex; flex-direction:column; gap:14px; position:relative; z-index:2; }
 .an-profil-istatistik{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
 .an-pi-kart{ background:var(--bg-card); border:1px solid var(--border); border-radius:16px; padding:12px 8px; text-align:center; box-shadow:0 4px 10px rgba(20,40,45,.08); }
 .an-pi-kart b{ display:block; font-size:16px; color:var(--ink); }
