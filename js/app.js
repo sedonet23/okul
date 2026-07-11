@@ -1869,7 +1869,6 @@ const TEMBEL_MODUL_TABLOSU = {
   servisOturma:   () => { if(typeof servisOturmaBaglantisiKur === 'function') servisOturmaBaglantisiKur(); },
   sinav:          () => { sinavBaglantilariKur(); },
   dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
-  dersSaatleri:   () => { if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur(); },
   personelIzin:   () => { if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
@@ -1900,6 +1899,7 @@ function baglantilariKur(){
   sinifBaglantilariKur();
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
+  if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur(); // dashboard zil sayacı buna bağlı, tembel kalamaz
   if(typeof notlarBaglantilariKur === 'function') notlarBaglantilariKur();
   if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur(); // anlık bildirim gerektiği için hep açık
 
@@ -1916,7 +1916,7 @@ function baglantilariKur(){
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
   // cizelgeler, anketler, periyodik, tasima, servisOturma, sinav,
-  // dokumanlar, dersSaatleri, personelIzin, evrak, ayarlar(ders/branş listesi)
+  // dokumanlar, personelIzin, evrak, ayarlar(ders/branş listesi)
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
