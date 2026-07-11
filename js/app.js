@@ -1842,6 +1842,56 @@ async function yedektenGeriYukle(file){
 }
 
 /* ============== FIRESTORE BAĞLANTILARI ============== */
+/* ============================================================
+   TEMBEL (LAZY) MODÜL YÜKLEME
+   ------------------------------------------------------------
+   Eskiden baglantilariKur() TÜM modüllerin Firestore onSnapshot
+   dinleyicisini uygulama açılır açılmaz kuruyordu. Dashboard'da
+   kartı olmayan / sadece kendi sekmesinde kullanılan modüller
+   için bu gereksizdi: kullanıcı o sekmeyi hiç açmasa bile veri
+   çekiliyordu.
+
+   Aşağıdaki modüller SADECE ilgili sekme ilk kez açıldığında
+   başlatılır (_TEMBEL_BASLATILANLAR seti sayesinde bir daha
+   tekrar başlatılmaz — sekmeye her dönüşte yeniden abone olmaz).
+
+   DİKKAT (Sedat): 'tab' değerleri buradaki fonksiyon isimlerinden
+   TAHMİN edildi (örn. servisOturmaBaglantisiKur → 'servisOturma').
+   Gerçek data-tab / AltNav sekme id'leriyle eşleşmiyorsa aşağıdaki
+   TEMBEL_MODUL_TABLOSU'ndaki anahtarları (sol taraf) düzelt yeter,
+   başka bir yeri değiştirmene gerek yok.
+   ============================================================ */
+const TEMBEL_MODUL_TABLOSU = {
+  cizelgeler:     () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  anketler:       () => { if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur(); },
+  periyodik:      () => { periyodikBaglantilariKur(); },
+  tasima:         () => { tasimaBaglantilariKur(); },
+  servisOturma:   () => { if(typeof servisOturmaBaglantisiKur === 'function') servisOturmaBaglantisiKur(); },
+  sinav:          () => { sinavBaglantilariKur(); },
+  dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
+  dersSaatleri:   () => { if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur(); },
+  personelIzin:   () => { if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur(); },
+  evrak: () => {
+    db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
+  },
+  ayarlar: () => {
+    db.collection(COL.dersListesi).onSnapshot(s=>{
+      dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+      renderDersListesiYonetim();
+    }, hataGoster);
+    db.collection(COL.bransListesi).onSnapshot(s=>{
+      bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+      renderBransListesiYonetim();
+    }, hataGoster);
+  },
+};
+const _TEMBEL_BASLATILANLAR = new Set();
+function _tembelModulBaslat(tab){
+  if(!TEMBEL_MODUL_TABLOSU[tab] || _TEMBEL_BASLATILANLAR.has(tab)) return;
+  _TEMBEL_BASLATILANLAR.add(tab);
+  TEMBEL_MODUL_TABLOSU[tab]();
+}
+
 function baglantilariKur(){
   if(baglantilarKuruldu) return;
   baglantilarKuruldu = true;
@@ -1850,36 +1900,23 @@ function baglantilariKur(){
   sinifBaglantilariKur();
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
-  db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   if(typeof notlarBaglantilariKur === 'function') notlarBaglantilariKur();
+  if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur(); // anlık bildirim gerektiği için hep açık
 
-  if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur();
-  if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur();
   if(typeof duyurularBaglantilariKur === 'function') duyurularBaglantilariKur();
-  if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur();
-  periyodikBaglantilariKur();
-  tasimaBaglantilariKur();
   if(typeof ogretmenIzinBaglantilariKur === 'function') ogretmenIzinBaglantilariKur();
   if(typeof haberlerBaglantilariKur === 'function') haberlerBaglantilariKur();
-  if(typeof servisOturmaBaglantisiKur === "function") servisOturmaBaglantisiKur();
-  sinavBaglantilariKur();
-  if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur();
-  if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur();
   db.collection(COL.okulBilgileri).doc('ayarlar').onSnapshot(doc=>{
     okulBilgileriAyari = doc.exists ? doc.data() : null;
     renderOkulBilgileriSayfasi();
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
   }, hataGoster);
-  db.collection(COL.dersListesi).onSnapshot(s=>{
-    dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
-    renderDersListesiYonetim();
-  }, hataGoster);
-  db.collection(COL.bransListesi).onSnapshot(s=>{
-    bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
-    renderBransListesiYonetim();
-  }, hataGoster);
   if(typeof personelBaglantilariKur === 'function') personelBaglantilariKur();
-  if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur();
+
+  // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
+  // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
+  // cizelgeler, anketler, periyodik, tasima, servisOturma, sinav,
+  // dokumanlar, dersSaatleri, personelIzin, evrak, ayarlar(ders/branş listesi)
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */
@@ -1893,7 +1930,7 @@ function bottomNavAktifYap(el){
 }
 
 function sekmeAc(tab){
-  if(typeof IstatistikService !== 'undefined') IstatistikService.sayfaZiyaretiKaydet(tab);
+  _tembelModulBaslat(tab); // sekme ilk kez açılıyorsa ilgili modülün Firestore dinleyicisini şimdi başlat
   document.querySelectorAll('.nav-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+tab));
   document.querySelectorAll('.bn-item[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
