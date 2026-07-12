@@ -325,7 +325,7 @@ function globalAramaYap() {
       : tumOgretmenler;
     if (hits.length) {
       html += `<div class="card" style="margin-bottom:12px;"><h3>👩‍🏫 Öğretmenler (${hits.length})</h3>`;
-      hits.slice(0, 50).forEach(o => {
+      hits.slice(0, 500).forEach(o => {
         html += `<div class="detay-row" style="cursor:pointer;" onclick="ogretmenDetayAc('${o.id}')">
           ${profilFotoGoster(o.id).replace('width:70px;height:70px','width:36px;height:36px').replace('font-size:22px','font-size:13px')}
           <div style="flex:1;padding:6px 0 6px 10px;">
