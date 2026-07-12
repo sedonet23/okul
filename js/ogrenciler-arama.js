@@ -335,7 +335,7 @@ function globalAramaYap() {
           <span style="color:var(--ink-muted);font-size:18px;">›</span>
         </div>`;
       });
-      if (hits.length > 50) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-50} daha — aramayı daraltın.</p>`;
+      if (hits.length > 500) html += `<p style="font-size:12px;color:var(--ink-muted);padding:8px 0;">+${hits.length-500} daha — aramayı daraltın.</p>`;
       html += '</div>';
     }
   }
