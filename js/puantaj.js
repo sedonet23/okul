@@ -26,6 +26,7 @@
   const IZIN_TURLERI = Object.keys(IZIN_TUR_KOD);
   const KOD_X = 'X';      // normal çalışma (varsayılan)
   const KOD_H = 'H';      // hafta tatili (Cmt/Paz otomatik)
+  const KOD_T = 'T';      // resmi tatil (nöbet modülündeki resmiTatiller ile paylaşılan liste)
 
   const GUNLER_KISA = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
   const AY_ISIMLERI = [
@@ -75,18 +76,32 @@
     return k ? k.tur : null;
   }
 
-  // Excel mantığı: izin yoksa ve hafta sonuysa "HAFTA TATİLİ", değilse boş (normal gün)
+  // Paylaşılan resmi tatil listesi (js/nobet.js > resmiTatiller, app.js baglantilariKur ile
+  // gerçek zamanlı senkron tutulur). Puantaj modülü bu listeyi salt-okunur kullanır; ekleme/
+  // silme NobetService üzerinden yapılır ki Nöbet modülüyle TEK kaynak olarak kalsın.
+  function _resmiTatilVeri(iso) {
+    return (typeof resmiTatiller !== 'undefined' && resmiTatiller) ? resmiTatiller.find(function(t){ return t.tarih === iso; }) : null;
+  }
+  function _resmiTatilListesi(baslangicIso, bitisIso) {
+    return ((typeof resmiTatiller !== 'undefined' && resmiTatiller) ? resmiTatiller : [])
+      .filter(function(t){ return t.tarih >= baslangicIso && t.tarih <= bitisIso; })
+      .sort(function(a,b){ return a.tarih.localeCompare(b.tarih); });
+  }
+
+  // Excel mantığı: izin yoksa, resmi tatil yoksa ve hafta sonuysa "HAFTA TATİLİ", değilse boş (normal gün)
   function _gunDurumMetni(iso, dt, izinKayitlari) {
     const izin = _gunIzinTuru(iso, izinKayitlari);
     if (izin) return izin;
+    if (_resmiTatilVeri(iso)) return 'RESMİ TATİL';
     if (_haftaSonuMu(dt)) return 'HAFTA TATİLİ';
     return '';
   }
 
-  // PUANTAJ kodunu üretir (Excel E5 formülü ile birebir aynı mantık)
+  // PUANTAJ kodunu üretir (Excel E5 formülü ile birebir aynı mantık + resmi tatil eklentisi)
   function _gunKodu(iso, dt, izinKayitlari) {
     const durum = _gunDurumMetni(iso, dt, izinKayitlari);
     if (durum === '') return KOD_X;
+    if (durum === 'RESMİ TATİL') return KOD_T;
     if (durum === 'HAFTA TATİLİ') return KOD_H;
     return IZIN_TUR_KOD[durum] || '';
   }
@@ -194,7 +209,7 @@
     const satirlarHtml = gunler.map(function(g){
       const durum = _gunDurumMetni(g.iso, g.tarih, izinKayitlari);
       const gunAdi = GUNLER_KISA[g.tarih.getDay()];
-      const hs = _haftaSonuMu(g.tarih);
+      const hs = _haftaSonuMu(g.tarih) || !!_resmiTatilVeri(g.iso);
       return '<tr class="' + (hs?'pz-hs':'') + '">' +
         '<td class="pz-tarih">' + _tarihTr(g.tarih) + ', ' + escapeHtml(gunAdi) + '</td>' +
         '<td class="pz-durum">' + escapeHtml(durum) + '</td>' +
@@ -281,22 +296,22 @@
     const yil = _parseIso(state.baslangic).getFullYear();
 
     const gunBasliklariHtml = gunler.map(function(g){
-      const hs = _haftaSonuMu(g.tarih);
+      const hs = _haftaSonuMu(g.tarih) || !!_resmiTatilVeri(g.iso);
       return '<th class="pt-gun-baslik ' + (hs?'pt-hs-baslik':'') + '"><div class="pt-rot-wrap"><div class="pt-rot">' + _tarihTr(g.tarih) + ', ' + escapeHtml(GUNLER_KISA[g.tarih.getDay()]) + '</div></div></th>';
     }).join('');
 
     const kodlar = gunler.map(function(g){ return _gunKodu(g.iso, g.tarih, izinKayitlari); });
     const kodHucreleriHtml = gunler.map(function(g,i){
-      const hs = _haftaSonuMu(g.tarih);
+      const hs = _haftaSonuMu(g.tarih) || !!_resmiTatilVeri(g.iso);
       return '<td class="' + (hs?'pt-hs-hucre':'') + '">' + escapeHtml(kodlar[i]) + '</td>';
     }).join('');
 
-    const sayim = { X:0, H:0, Y:0, M:0, R:0, 'CÇ':0, 'PÇ':0, UBGT:0 };
+    const sayim = { X:0, H:0, T:0, Y:0, M:0, R:0, 'CÇ':0, 'PÇ':0, UBGT:0 };
     kodlar.forEach(function(k){ if (sayim.hasOwnProperty(k)) sayim[k]++; });
-    const toplam = sayim.X + sayim.H + sayim.Y;
+    const toplam = sayim.X + sayim.H + sayim.T + sayim.Y;
 
     // Excel'de personel satırının altında 9 boş satır daha bulunuyor (toplam 10 satırlık kadro alanı).
-    const bosHucreSayisi = gunler.length + 9; // gün sütunları + 9 özet sütunu (NORMAL..TOPLAM)
+    const bosHucreSayisi = gunler.length + 10; // gün sütunları + 10 özet sütunu (NORMAL..TOPLAM, RESMİ TATİL dahil)
     let bosSatirlarHtml = '';
     for (let s = 2; s <= 10; s++) {
       bosSatirlarHtml += '<tr><td class="pt-sno">' + s + '</td><td class="pt-ad"></td><td class="pt-tc"></td>' +
@@ -368,6 +383,7 @@
 '        ' + gunBasliklariHtml +
 '        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">NORMAL ÇALIŞMA</div></div></th>' +
 '        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">HAFTA TATİLİ</div></div></th>' +
+'        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">RESMİ TATİL</div></div></th>' +
 '        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">YILLIK İZİN</div></div></th>' +
 '        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">ÜCRETSİZ MAZERET İZNİ</div></div></th>' +
 '        <th class="pt-ozet" rowspan="2"><div class="pt-rot-wrap"><div class="pt-rot">RAPORLU</div></div></th>' +
@@ -385,6 +401,7 @@
 '        ' + kodHucreleriHtml +
 '        <td>' + sayim.X + '</td>' +
 '        <td>' + sayim.H + '</td>' +
+'        <td>' + sayim.T + '</td>' +
 '        <td>' + sayim.Y + '</td>' +
 '        <td>' + sayim.M + '</td>' +
 '        <td>' + sayim.R + '</td>' +
@@ -403,7 +420,8 @@
 '          <tr><td class="k">NORMAL ÇALIŞMA</td><td>X</td><td class="k" style="padding-left:18px;">RAPORLU</td><td>R</td></tr>' +
 '          <tr><td class="k">YILLIK İZİNLİ</td><td>Y</td><td class="k" style="padding-left:18px;">ÜCRETSİZ MAZERET İZNİ</td><td>M</td></tr>' +
 '          <tr><td class="k">HAFTA TATİLİ</td><td>H</td><td class="k" style="padding-left:18px;">CUMARTESİ ÇALIŞMASI</td><td>CÇ</td></tr>' +
-'          <tr><td class="k">PAZAR TAM ÇALIŞMASI</td><td>PÇ</td><td class="k" style="padding-left:18px;">UBGT TAM ÇALIŞMASI</td><td>UBGT</td></tr>' +
+'          <tr><td class="k">RESMİ TATİL</td><td>T</td><td class="k" style="padding-left:18px;">UBGT TAM ÇALIŞMASI</td><td>UBGT</td></tr>' +
+'          <tr><td class="k">PAZAR TAM ÇALIŞMASI</td><td>PÇ</td></tr>' +
 '        </table>' +
 '      </td></tr></table>' +
 '      <div class="pt-not">' +
@@ -481,6 +499,28 @@
       '</div>';
   }
 
+  function _tatilYonetimHtml(state) {
+    const tatiller = _resmiTatilListesi(state.baslangic, state.bitis);
+    const listeHtml = tatiller.length
+      ? tatiller.map(function(t){
+          return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #e6dfc2;font-size:11.5px;">' +
+            '<span style="flex:1;">' + escapeHtml(_tarihTr(_parseIso(t.tarih))) + (t.aciklama ? ' — ' + escapeHtml(t.aciklama) : '') + '</span>' +
+            '<button type="button" class="pt-tatil-sil" data-id="' + escapeHtml(t.id) + '" title="Kaldır" style="background:none;border:none;color:#b00020;cursor:pointer;font-size:13px;padding:2px 4px;">🗑</button>' +
+          '</div>';
+        }).join('')
+      : '<div style="font-size:11.5px;color:#888;padding:4px 0;">Bu dönemde resmi tatil eklenmemiş.</div>';
+    return '<div style="margin-top:14px;padding:10px;background:#fdf3e3;border-radius:8px;">' +
+        '<h4 style="font-size:12.5px;font-weight:700;color:#7a4a00;margin-bottom:8px;">🎉 Resmi Tatiller</h4>' +
+        '<div id="pt_tatilListe" style="margin-bottom:10px;">' + listeHtml + '</div>' +
+        '<div style="display:flex;gap:6px;margin-bottom:6px;">' +
+          '<input id="pt_tatilTarih" type="date" style="flex:1;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;">' +
+        '</div>' +
+        '<input id="pt_tatilAciklama" type="text" placeholder="Açıklama (örn: 19 Mayıs)" style="width:100%;padding:6px 7px;border:1px solid #ccc;border-radius:6px;font-size:12.5px;margin-bottom:6px;">' +
+        '<button type="button" id="pt_tatilEkleBtn" style="width:100%;background:#c98a1e;border:none;color:#fff;border-radius:6px;padding:7px;font-size:12.5px;font-weight:700;cursor:pointer;">+ Tatil Ekle</button>' +
+        '<div style="font-size:10.5px;color:#7a5c00;margin-top:6px;line-height:1.4;">Bu liste Nöbet modülüyle ortaktır; eklenen/kaldırılan tatiller nöbet takviminde de yansır.</div>' +
+      '</div>';
+  }
+
   function _formPanelHtml(state) {
     return '<h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dönem Seçimi</h3>' +
       _personelSeciciHtml(state) +
@@ -499,7 +539,8 @@
       '</div>' +
       '<div style="margin-top:12px;padding:10px;background:#fff8e1;border-radius:8px;font-size:11px;color:#7a5c00;line-height:1.5;">' +
         '💡 İzin, rapor ve mazeret kayıtlarını personel detay panelindeki "İzin / Rapor Kayıtları" bölümünden ekleyebilirsiniz. Buradaki dönemde otomatik olarak işlenir.' +
-      '</div>';
+      '</div>' +
+      _tatilYonetimHtml(state);
   }
 
   function _overlayDoldur(ov) {
@@ -552,11 +593,61 @@
       formPanel.querySelector('#pt_baslangic').onchange = function(e){
         state.baslangic = e.target.value;
         frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
+        _tatilListesiGuncelle();
       };
       formPanel.querySelector('#pt_bitis').onchange = function(e){
         state.bitis = e.target.value;
         frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
+        _tatilListesiGuncelle();
       };
+      formPanel.querySelector('#pt_tatilEkleBtn').onclick = function(){
+        const tarihEl = formPanel.querySelector('#pt_tatilTarih');
+        const aciklamaEl = formPanel.querySelector('#pt_tatilAciklama');
+        const tarih = tarihEl.value;
+        const aciklama = aciklamaEl.value.trim();
+        if (!tarih) { toast('Lütfen bir tarih seçin.'); return; }
+        if (_resmiTatilVeri(tarih)) { toast('Bu tarih zaten resmi tatil listesinde.'); return; }
+        NobetService.tatilEkle({ tarih: tarih, aciklama: aciklama })
+          .then(function(){
+            tarihEl.value = '';
+            aciklamaEl.value = '';
+            toast('Resmi tatil eklendi.');
+            setTimeout(function(){ _tatilListesiGuncelle(); frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state); }, 400);
+          })
+          .catch(function(err){ if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
+      };
+      _tatilSilButonlariBagla(formPanel);
+    }
+
+    function _tatilSilButonlariBagla(kapsam) {
+      const silButonlari = kapsam.querySelectorAll('.pt-tatil-sil');
+      for (let i = 0; i < silButonlari.length; i++) {
+        silButonlari[i].onclick = function(e){
+          const id = e.currentTarget.getAttribute('data-id');
+          if (!confirm('Bu resmi tatili kaldırmak istiyor musunuz?')) return;
+          NobetService.tatilSil(id)
+            .then(function(){
+              toast('Resmi tatil kaldırıldı.');
+              setTimeout(function(){ _tatilListesiGuncelle(); frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state); }, 400);
+            })
+            .catch(function(err){ if (err.message !== 'yetkisiz') toast('Hata: ' + err.message); });
+        };
+      }
+    }
+
+    function _tatilListesiGuncelle() {
+      const blok = formPanel.querySelector('#pt_tatilListe');
+      if (!blok) return;
+      const tatiller = _resmiTatilListesi(state.baslangic, state.bitis);
+      blok.innerHTML = tatiller.length
+        ? tatiller.map(function(t){
+            return '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #e6dfc2;font-size:11.5px;">' +
+              '<span style="flex:1;">' + escapeHtml(_tarihTr(_parseIso(t.tarih))) + (t.aciklama ? ' — ' + escapeHtml(t.aciklama) : '') + '</span>' +
+              '<button type="button" class="pt-tatil-sil" data-id="' + escapeHtml(t.id) + '" title="Kaldır" style="background:none;border:none;color:#b00020;cursor:pointer;font-size:13px;padding:2px 4px;">🗑</button>' +
+            '</div>';
+          }).join('')
+        : '<div style="font-size:11.5px;color:#888;padding:4px 0;">Bu dönemde resmi tatil eklenmemiş.</div>';
+      _tatilSilButonlariBagla(blok);
     }
 
     function _yazdir() {
