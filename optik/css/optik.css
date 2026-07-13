@@ -1,39 +1,93 @@
 /* ============================================================
-   Optik Form Okuyucu — Koyu mor (dark purple) tema
+   Optik Form Okuyucu — ANA UYGULAMA TASARIMINA ENTEGRE EDİLDİ
+   Bu dosya bir <iframe> içinde ayrı bir belge olarak çalıştığı için
+   ana uygulamanın :root CSS değişkenlerini doğrudan miras alamıyor —
+   bu yüzden aynı neo-neumorphic token'lar (bkz. okul-main/css/styles.css
+   :root ve [data-theme="dark"]) burada birebir kopyalanmış durumda.
+   data-theme özniteliği bu belgenin <html> etiketine index.html'deki
+   inline script tarafından localStorage('oyTema') okunarak uygulanır,
+   böylece ana uygulamanın açık/koyu tema tercihiyle senkron kalır.
    ============================================================ */
 
 :root{
 
-    --bg:            #121018;
-    --bg-elevated:   #1a1725;
-    --bg-card:       #201c2e;
-    --bg-input:      #262138;
+    /* Zemin — kartlar zemin ile AYNI renk (neumorphic ilkesi) */
+    --bg:            #E0E5EC;
+    --bg-elevated:   #E0E5EC;
+    --bg-card:       #E0E5EC;
+    --bg-input:      #E0E5EC;
 
-    --border:        rgba(255,255,255,0.07);
-    --border-soft:   rgba(255,255,255,0.04);
+    /* Neumorphic gölge çiftleri */
+    --nm-out: 6px 6px 14px rgba(163,177,198,0.70), -6px -6px 14px rgba(255,255,255,0.92);
+    --nm-in:  inset 6px 6px 12px rgba(163,177,198,0.60), inset -6px -6px 12px rgba(255,255,255,0.90);
+    --nm-sm:  3px 3px 8px rgba(163,177,198,0.60), -3px -3px 8px rgba(255,255,255,0.85);
+    --nm-lg:  10px 10px 24px rgba(163,177,198,0.75), -10px -10px 24px rgba(255,255,255,0.95);
 
-    --accent:        #9b7bff;
-    --accent-2:      #6f4cf5;
-    --accent-soft:   rgba(155,123,255,0.16);
-    --accent-text:   #c9b8ff;
+    --border:        rgba(163,177,189,0.35);
+    --border-soft:   rgba(163,177,189,0.18);
 
-    --text:          #f1eef9;
-    --text-dim:      #a89fc0;
-    --text-faint:    #6f6785;
+    /* Marka rengi — ana uygulamanın teal paleti */
+    --accent:        #2AABAB;
+    --accent-2:      #075E5E;
+    --accent-soft:   #DFF2F2;
+    --accent-text:   #075E5E;
+    --accent-shadow: rgba(7,94,94,0.35);
+
+    --text:          #1A2A2A;
+    --text-dim:      #2D4040;
+    --text-faint:    #5A7070;
+
+    --success:       #0E9E6E;
+    --success-soft:  rgba(14,158,110,0.14);
+    --warning:       #B9780F;
+    --warning-soft:  rgba(232,160,32,0.18);
+    --danger:        #C22E28;
+    --danger-soft:   rgba(194,46,40,0.12);
+
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
+
+    --shadow-card: var(--nm-out);
+    --shadow-fab:  var(--nm-lg);
+
+    --font-display: 'Sora','Manrope',sans-serif;
+    --font-body:    'Manrope',sans-serif;
+    --font-mono:    'JetBrains Mono',monospace;
+
+}
+
+[data-theme="dark"]{
+
+    --bg:            #1C2A2E;
+    --bg-elevated:   #223035;
+    --bg-card:       #223035;
+    --bg-input:      #1C2A2E;
+
+    --nm-out: 4px 4px 9px rgba(0,0,0,0.32), -4px -4px 9px rgba(42,60,68,0.18);
+    --nm-in:  inset 3px 3px 7px rgba(0,0,0,0.30), inset -3px -3px 7px rgba(42,60,68,0.16);
+    --nm-sm:  2px 2px 5px rgba(0,0,0,0.28), -2px -2px 5px rgba(42,60,68,0.14);
+    --nm-lg:  5px 5px 13px rgba(0,0,0,0.36), -5px -5px 13px rgba(42,60,68,0.20);
+
+    --border:        rgba(0,0,0,0.32);
+    --border-soft:   rgba(42,60,68,0.24);
+
+    --accent:        #2AABAB;
+    --accent-2:      #0A7A7A;
+    --accent-soft:   rgba(42,171,171,0.18);
+    --accent-text:   #7fd6d6;
+    --accent-shadow: rgba(42,171,171,0.30);
+
+    --text:          #D0ECEC;
+    --text-dim:      #A0C8C8;
+    --text-faint:    #527878;
 
     --success:       #38d896;
-    --success-soft:  rgba(56,216,150,0.15);
+    --success-soft:  rgba(56,216,150,0.16);
     --warning:       #ffb14e;
-    --warning-soft:  rgba(255,177,78,0.15);
+    --warning-soft:  rgba(255,177,78,0.16);
     --danger:        #ff6b81;
-    --danger-soft:   rgba(255,107,129,0.15);
-
-    --radius-lg: 20px;
-    --radius-md: 14px;
-    --radius-sm: 10px;
-
-    --shadow-card: 0 6px 20px rgba(0,0,0,0.35);
-    --shadow-fab: 0 8px 24px rgba(111,76,245,0.45);
+    --danger-soft:   rgba(255,107,129,0.16);
 
 }
 
@@ -49,14 +103,11 @@ body{
 
     margin:0;
     min-height:100vh;
-    background:
-        radial-gradient(circle at 15% 0%, rgba(111,76,245,0.20), transparent 45%),
-        radial-gradient(circle at 100% 20%, rgba(155,123,255,0.12), transparent 40%),
-        var(--bg);
-    background-attachment:fixed;
+    background:var(--bg);
     color:var(--text);
-    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    font-family:var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     -webkit-tap-highlight-color:transparent;
+    transition:background .2s ease, color .2s ease;
 
 }
 
@@ -77,7 +128,7 @@ body{
     position:sticky;
     top:0;
     z-index:20;
-    background:linear-gradient(180deg, rgba(18,16,24,0.97) 70%, rgba(18,16,24,0));
+    background:linear-gradient(180deg, var(--bg) 70%, transparent);
     backdrop-filter:blur(6px);
 
 }
@@ -101,16 +152,18 @@ body{
     font-size:22px;
     border-radius:14px;
     background:linear-gradient(135deg, var(--accent-2), var(--accent));
-    box-shadow:0 4px 14px rgba(111,76,245,0.4);
+    box-shadow:0 4px 14px var(--accent-shadow);
 
 }
 
 .app-header h1{
 
     margin:0;
+    font-family:var(--font-display);
     font-size:19px;
     font-weight:700;
     letter-spacing:0.2px;
+    color:var(--text);
 
 }
 
@@ -130,8 +183,8 @@ body{
     gap:6px;
     margin:14px 16px 0 16px;
     padding:5px;
-    background:var(--bg-elevated);
-    border:1px solid var(--border);
+    background:var(--bg);
+    box-shadow:var(--nm-in);
     border-radius:999px;
 
 }
@@ -148,10 +201,11 @@ body{
     border-radius:999px;
     background:transparent;
     color:var(--text-faint);
+    font-family:var(--font-body);
     font-size:13.5px;
     font-weight:600;
     cursor:pointer;
-    transition:background .18s ease, color .18s ease;
+    transition:background .18s ease, color .18s ease, box-shadow .18s ease;
 
 }
 
@@ -165,7 +219,7 @@ body{
 
     background:linear-gradient(135deg, var(--accent-2), var(--accent));
     color:#fff;
-    box-shadow:0 4px 14px rgba(111,76,245,0.35);
+    box-shadow:0 4px 14px var(--accent-shadow);
 
 }
 
@@ -203,12 +257,12 @@ body{
 
 }
 
-/* ── Kartlar ── */
+/* ── Kartlar (neumorphic — zemin ile aynı renk, çift yönlü gölge) ── */
 
 .card{
 
     background:var(--bg-card);
-    border:1px solid var(--border);
+    border:none;
     border-radius:var(--radius-lg);
     padding:16px;
     box-shadow:var(--shadow-card);
@@ -221,6 +275,7 @@ body{
     align-items:center;
     gap:10px;
     margin:0 0 14px 0;
+    font-family:var(--font-display);
     font-size:15px;
     font-weight:700;
     color:var(--text);
@@ -258,30 +313,32 @@ label{
     margin-top:10px;
     margin-bottom:4px;
     font-size:12.5px;
-    font-weight:600;
+    font-weight:700;
     color:var(--text-dim);
 
 }
 
 label:first-child{ margin-top:0; }
 
-select, input[type="text"], input[type="number"]{
+select, input[type="text"], input[type="number"], input[type="date"], input[type="file"]{
 
     width:100%;
     padding:11px 13px;
     border-radius:var(--radius-sm);
-    border:1px solid var(--border);
-    background:var(--bg-input);
+    border:none;
+    background:var(--bg);
     color:var(--text);
+    font-family:var(--font-body);
     font-size:14px;
     outline:none;
-    transition:border-color .15s ease;
+    box-shadow:var(--nm-in);
+    transition:box-shadow .15s ease;
 
 }
 
 select:focus, input:focus{
 
-    border-color:var(--accent);
+    box-shadow:var(--nm-in), 0 0 0 2px var(--accent);
 
 }
 
@@ -292,11 +349,11 @@ select:focus, input:focus{
 
 }
 
-/* ── Butonlar ── */
+/* ── Butonlar (neumorphic — kabartma/basılı hâl) ── */
 
 button{
 
-    font-family:inherit;
+    font-family:var(--font-body);
     cursor:pointer;
 
 }
@@ -305,22 +362,24 @@ button{
 
     padding:12px 16px;
     font-size:14px;
-    font-weight:600;
+    font-weight:700;
     border:none;
     border-radius:999px;
-    background:var(--bg-input);
-    color:var(--text);
-    transition:filter .15s ease, transform .1s ease;
+    background:var(--bg);
+    color:var(--text-dim);
+    box-shadow:var(--nm-out);
+    transition:box-shadow .15s ease, transform .1s ease;
 
 }
 
-button:active{ transform:scale(0.97); }
+button:active{ box-shadow:var(--nm-in) !important; transform:scale(0.97); }
 
 .btn-primary, #start, #capture, #pdfOlusturBtn, #oturumBaslatBtn,
 #anahtarManuelBtn, #manuelKaydetBtn, #pdfRaporBtn, #excelRaporBtn{
 
     background:linear-gradient(135deg, var(--accent-2), var(--accent));
     color:#fff;
+    box-shadow:0 4px 12px var(--accent-shadow);
 
 }
 
@@ -330,6 +389,7 @@ button:active{ transform:scale(0.97); }
 
     background:var(--danger-soft);
     color:var(--danger);
+    box-shadow:none;
 
 }
 
@@ -339,6 +399,7 @@ button:active{ transform:scale(0.97); }
     color:var(--danger) !important;
     border:none;
     border-radius:999px;
+    box-shadow:none !important;
 
 }
 
@@ -356,13 +417,16 @@ button:active{ transform:scale(0.97); }
     justify-content:center;
     padding:12px 16px;
     font-size:14px;
-    font-weight:600;
+    font-weight:700;
     border-radius:999px;
-    background:var(--bg-input);
-    color:var(--text);
+    background:var(--bg);
+    color:var(--text-dim);
+    box-shadow:var(--nm-out);
     cursor:pointer;
 
 }
+
+.galeri-buton:active{ box-shadow:var(--nm-in); transform:scale(0.97); }
 
 /* ── Kamera / tarama alanı ── */
 
@@ -478,26 +542,28 @@ canvas{
 
     white-space:pre-wrap;
     background:var(--danger-soft);
-    color:#ffd7dd;
+    color:var(--danger);
     padding:12px;
     margin-top:10px;
     border-radius:var(--radius-sm);
     font-size:12.5px;
+    font-weight:600;
 
 }
 
 #sonucKutusu{
 
     white-space:pre-wrap;
-    background:#0d0c14;
+    background:#161b1e;
     color:#8ef7c1;
     padding:12px;
     margin-top:10px;
     border-radius:var(--radius-sm);
+    font-family:var(--font-mono);
     font-size:12px;
     max-height:400px;
     overflow:auto;
-    border:1px solid var(--border);
+    box-shadow:var(--nm-in);
 
 }
 
@@ -515,8 +581,10 @@ canvas{
 
     list-style:none;
     cursor:pointer;
+    font-family:var(--font-display);
     font-size:15px;
     font-weight:700;
+    color:var(--text);
     display:flex;
     align-items:center;
     gap:10px;
@@ -528,7 +596,7 @@ canvas{
 .pdf-uretim summary::before{
 
     content:"▸";
-    color:var(--accent);
+    color:var(--accent-2);
     transition:transform .15s ease;
 
 }
@@ -562,13 +630,14 @@ canvas{
     padding:12px 14px;
     border-radius:var(--radius-sm);
     font-size:13.5px;
-    font-weight:600;
+    font-weight:700;
 
 }
 
 .anahtar-durum.anahtar-yok{
 
-    background:var(--bg-input);
+    background:var(--bg);
+    box-shadow:var(--nm-in);
     color:var(--text-dim);
 
 }
@@ -622,7 +691,8 @@ canvas{
 .onizleme-ders{
 
     padding:10px 12px;
-    background:var(--bg-input);
+    background:var(--bg);
+    box-shadow:var(--nm-in);
     border-radius:var(--radius-sm);
     font-size:12.5px;
 
@@ -702,8 +772,9 @@ canvas{
     width:38px;
     height:38px;
     border-radius:50%;
-    border:1.5px solid var(--border);
-    background:var(--bg-input);
+    border:none;
+    background:var(--bg);
+    box-shadow:var(--nm-sm);
     color:var(--text-dim);
     font-size:14px;
     font-weight:700;
@@ -711,7 +782,7 @@ canvas{
     align-items:center;
     justify-content:center;
     padding:0;
-    transition:background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+    transition:background .15s ease, box-shadow .15s ease, color .15s ease, transform .1s ease;
 
 }
 
@@ -724,8 +795,8 @@ canvas{
 .sik-daire.secili{
 
     background:var(--success);
-    border-color:var(--success);
-    color:#0d2318;
+    box-shadow:none;
+    color:#fff;
 
 }
 
@@ -758,7 +829,8 @@ canvas{
     justify-content:space-between;
     margin-top:12px;
     padding:10px 14px;
-    background:var(--bg-input);
+    background:var(--bg);
+    box-shadow:var(--nm-in);
     border-radius:var(--radius-sm);
     font-size:13px;
     color:var(--text-dim);
@@ -794,7 +866,8 @@ canvas{
     align-items:center;
     gap:2px 10px;
     padding:10px 12px;
-    background:var(--bg-input);
+    background:var(--bg);
+    box-shadow:var(--nm-sm);
     border-radius:var(--radius-sm);
     position:relative;
 
@@ -905,7 +978,72 @@ canvas{
 
 }
 
-/* ── Tam ekran kamera overlay'i ── */
+/* ── Sınıf/Öğrenci seçici (yazdırma) ── */
+
+.sinif-secici-alani{
+
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:10px;
+
+}
+
+.ogrenci-secim-listesi{
+
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    max-height:340px;
+    overflow-y:auto;
+    margin-top:10px;
+    padding-right:2px;
+
+}
+
+.ogrenci-secim-satiri{
+
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 12px;
+    background:var(--bg);
+    box-shadow:var(--nm-sm);
+    border-radius:var(--radius-sm);
+    font-size:13px;
+    cursor:pointer;
+
+}
+
+.ogrenci-secim-satiri input[type="checkbox"]{
+
+    width:18px;
+    height:18px;
+    accent-color:var(--accent-2);
+    flex:0 0 auto;
+
+}
+
+.ogrenci-secim-ust{
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    margin-top:10px;
+
+}
+
+.ogrenci-secim-ust .say{
+
+    font-size:12px;
+    color:var(--text-faint);
+
+}
+
+/* ── Tam ekran kamera overlay'i ──
+   Bilinçli olarak koyu/siyah bırakıldı — evrensel kamera arayüzü
+   konvansiyonu (uygulama temasından bağımsız, canlı görüntü odaklı). */
 
 .kamera-overlay{
 
@@ -938,6 +1076,7 @@ canvas{
 .kamera-baslik{
 
     color:#fff;
+    font-family:var(--font-display);
     font-size:15px;
     font-weight:700;
 
@@ -1041,7 +1180,7 @@ canvas{
     align-items:center;
     justify-content:center;
     padding:0;
-    box-shadow:0 6px 20px rgba(111,76,245,0.5);
+    box-shadow:0 6px 20px var(--accent-shadow);
 
 }
 
@@ -1069,7 +1208,7 @@ canvas{
     font-size:26px;
     background:linear-gradient(135deg, var(--accent-2), var(--accent));
     color:#fff;
-    box-shadow:var(--shadow-fab);
+    box-shadow:0 6px 18px var(--accent-shadow), var(--shadow-fab);
 
 }
 
