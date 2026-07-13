@@ -47,6 +47,16 @@ window.TopluTarama = (function () {
         }
     }
 
+    // Otomatik okuma öğrenciyi tanıyamadığında (bkz. "NUMARA" baloncukları
+    // net okunamadı → ogrenciKimlik boş/"?" kalır) kullanıcının o taramayı
+    // elle bir öğrenciye atayabilmesi için — bkz. js/app.js _ogrenciAtaBaglantilari.
+    function ogrenciAta(index, ogrenciBilgisi) {
+        if (index >= 0 && index < _oturum.sonuclar.length && ogrenciBilgisi) {
+            _oturum.sonuclar[index].ogrenci = ogrenciBilgisi;
+            _uiGuncelle();
+        }
+    }
+
     function sonuclar() {
         return _oturum.sonuclar;
     }
@@ -175,6 +185,6 @@ window.TopluTarama = (function () {
         window.dispatchEvent(event);
     }
 
-    return { baslat, ekle, sil, temizle, sonuclar, ozet };
+    return { baslat, ekle, sil, ogrenciAta, temizle, sonuclar, ozet };
 
 })();

@@ -81,6 +81,7 @@ function baslat() {
 
     // ── Toplu tarama bağlamaları ──
     _topluTaramaBaglantilari();
+    _ogrenciAtaBaglantilari();
 
     // Sayfa yüklenince mevcut anahtarı göster
     _anahtarDurumGuncelle();
@@ -407,6 +408,98 @@ function _topluTaramaBaglantilari() {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// ÖĞRENCİ ATAMA (otomatik okumanın tanıyamadığı taramaları elle düzeltme)
+// ─────────────────────────────────────────────────────────────────────
+
+function _ogrenciAtaBaglantilari() {
+
+    const overlay = document.getElementById("ogrenciAtaOverlay");
+    const kapatBtn = document.getElementById("ataKapatBtn");
+    const sinifSecici = document.getElementById("ataSinifSecici");
+    const ogrenciListesi = document.getElementById("ataOgrenciListesi");
+    const bagimsizUyari = document.getElementById("ataBagimsizUyari");
+
+    if (!overlay || !sinifSecici || !ogrenciListesi) return;
+
+    let _aktifIdx = null;
+
+    function _veriKaynagi() {
+        try {
+            if (window.parent && window.parent !== window && window.parent.OptikVeriKaynagi) {
+                return window.parent.OptikVeriKaynagi;
+            }
+        } catch (e) { /* çapraz köken erişim engeli — bağımsız çalışıyor demektir */ }
+        return null;
+    }
+
+    function _sinifDoldur() {
+        const kaynak = _veriKaynagi();
+        if (!kaynak) {
+            sinifSecici.style.display = "none";
+            ogrenciListesi.innerHTML = "";
+            bagimsizUyari.style.display = "block";
+            return;
+        }
+        bagimsizUyari.style.display = "none";
+        sinifSecici.style.display = "";
+        const siniflar = kaynak.siniflarGetir();
+        sinifSecici.innerHTML = '<option value="">— Sınıf seçin —</option>' +
+            siniflar.map((s) => `<option value="${s.id}">${s.ad}</option>`).join("");
+    }
+
+    function _ogrencileriCiz() {
+        const kaynak = _veriKaynagi();
+        const sinifId = sinifSecici.value;
+        if (!kaynak || !sinifId) {
+            ogrenciListesi.innerHTML = "";
+            return;
+        }
+        const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
+        const ogrenciler = kaynak.ogrencilerGetir(sinifId);
+        if (!ogrenciler.length) {
+            ogrenciListesi.innerHTML = '<p class="card-empty">Bu sınıfta kayıtlı öğrenci yok.</p>';
+            return;
+        }
+        ogrenciListesi.innerHTML = ogrenciler.map((o, i) =>
+            `<button type="button" class="ogrenci-secim-satiri" style="width:100%;border:none;text-align:left;" data-i="${i}">
+                ${o.adSoyad}${o.ogrenciNo ? ` <span style="color:var(--text-faint);">(No: ${o.ogrenciNo})</span>` : ""}
+            </button>`
+        ).join("");
+        ogrenciListesi.querySelectorAll("button").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const o = ogrenciler[parseInt(btn.dataset.i, 10)];
+                if (_aktifIdx !== null && window.TopluTarama && window.TopluTarama.ogrenciAta) {
+                    window.TopluTarama.ogrenciAta(_aktifIdx, { adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinif: sinifAdi });
+                }
+                _kapat();
+            });
+        });
+    }
+
+    function _ac(idx) {
+        _aktifIdx = idx;
+        sinifSecici.value = "";
+        ogrenciListesi.innerHTML = "";
+        _sinifDoldur();
+        overlay.classList.add("acik");
+    }
+
+    function _kapat() {
+        overlay.classList.remove("acik");
+        _aktifIdx = null;
+    }
+
+    sinifSecici.addEventListener("change", _ogrencileriCiz);
+    kapatBtn.addEventListener("click", _kapat);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) _kapat(); });
+
+    // _taramaListesiniYenile()'deki "🔗 Öğrenci Ata" bağlantılarından
+    // erişilebilmesi için global olarak açığa çıkar.
+    window._ogrenciAtaAc = _ac;
+
+}
+
 function _taramaListesiniYenile({ sonuclar, ozet }) {
 
     const sayac = document.getElementById("oturumSayac");
@@ -420,7 +513,10 @@ function _taramaListesiniYenile({ sonuclar, ozet }) {
     } else {
         liste.innerHTML = sonuclar.map((r, idx) => {
             const ogr = r.ogrenci || {};
-            const ad = ogr.adSoyad || ogr.ad_soyad || "Ad bilgisi yok";
+            const ad = ogr.adSoyad || ogr.ad_soyad || null;
+            const adHtml = ad
+                ? ad
+                : `<button type="button" class="ogrenci-ata-link" data-idx="${idx}">🔗 Ad bilgisi yok — Öğrenci Ata</button>`;
             const p = r.puan;
             const pText = p.toplam != null ? `${p.toplam}%` : "—";
             const renkSinif = p.toplam >= 70 ? "puan-yuksek" : p.toplam >= 40 ? "puan-orta" : "puan-dusuk";
@@ -428,7 +524,7 @@ function _taramaListesiniYenile({ sonuclar, ozet }) {
             return `<div class="tarama-kayit">
                 <span class="tarama-sira">${r.sira}</span>
                 <div class="tarama-bilgi">
-                    <strong>${ad}</strong>
+                    <strong>${adHtml}</strong>
                     <small>${ogr.ogrenciNo || ""} · ${ogr.sinif || ""} · ${r.tarih || ""}</small>
                 </div>
                 <div class="tarama-puan ${renkSinif}">${pText}</div>
@@ -440,6 +536,14 @@ function _taramaListesiniYenile({ sonuclar, ozet }) {
         liste.querySelectorAll(".btn-sil-kayit").forEach(btn => {
             btn.addEventListener("click", function () {
                 window.TopluTarama.sil(parseInt(this.dataset.idx, 10));
+            });
+        });
+
+        liste.querySelectorAll(".ogrenci-ata-link").forEach(btn => {
+            btn.addEventListener("click", function () {
+                if (typeof window._ogrenciAtaAc === "function") {
+                    window._ogrenciAtaAc(parseInt(this.dataset.idx, 10));
+                }
             });
         });
     }
