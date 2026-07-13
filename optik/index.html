@@ -6,6 +6,20 @@
 
     <title>Optik Form Okuyucu</title>
 
+    <!-- Tema senkronizasyonu: ana uygulama ile aynı localStorage anahtarı
+         ('oyTema') okunur, CSS boyanmadan ÖNCE data-theme uygulanır ki
+         yanlış temayla kısa bir "flash" görülmesin. -->
+    <script>
+        try{
+            if(localStorage.getItem('oyTema') === 'dark'){
+                document.documentElement.setAttribute('data-theme','dark');
+            }
+        }catch(e){}
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="css/optik.css">
 
     <!-- Cevap anahtarı, toplu tarama, dışa aktarma modülleri -->
@@ -85,14 +99,42 @@
 
                     <summary>📄 PDF Form Oluştur</summary>
 
-                    <label for="ogrAdSoyad">Ad Soyad</label>
-                    <input type="text" id="ogrAdSoyad" value="Ahmet YILMAZ">
+                    <label for="pdfKaynak">Öğrenci Kaynağı</label>
+                    <select id="pdfKaynak">
+                        <option value="manuel">Manuel Giriş</option>
+                        <option value="sinif">Okul Sınıf Listesinden Seç</option>
+                    </select>
 
-                    <label for="ogrNo">Öğrenci No</label>
-                    <input type="text" id="ogrNo" value="2026048">
+                    <div id="pdfManuelAlanlar">
 
-                    <label for="ogrSinif">Sınıf</label>
-                    <input type="text" id="ogrSinif" value="8/A">
+                        <label for="ogrAdSoyad">Ad Soyad</label>
+                        <input type="text" id="ogrAdSoyad" value="Ahmet YILMAZ">
+
+                        <label for="ogrNo">Öğrenci No</label>
+                        <input type="text" id="ogrNo" value="2026048">
+
+                        <label for="ogrSinif">Sınıf</label>
+                        <input type="text" id="ogrSinif" value="8/A">
+
+                    </div>
+
+                    <div id="pdfSinifAlanlari" style="display:none;">
+
+                        <div class="sinif-secici-alani">
+                            <label for="pdfSinifSecici">Sınıf</label>
+                            <select id="pdfSinifSecici"><option value="">— Sınıf seçin —</option></select>
+                        </div>
+
+                        <div id="pdfOgrenciSecimUst" class="ogrenci-secim-ust" style="display:none;">
+                            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:600;cursor:pointer;">
+                                <input type="checkbox" id="pdfTumOgrenciSec"> Tümünü Seç
+                            </label>
+                            <span class="say" id="pdfOgrenciSayisi"></span>
+                        </div>
+
+                        <div id="pdfOgrenciListesi" class="ogrenci-secim-listesi"></div>
+
+                    </div>
 
                     <label for="ogrKitapcik">Kitapçık Türü</label>
                     <input type="text" id="ogrKitapcik" value="" maxlength="1" placeholder="ör. A (boş = işaretlenmez)">
@@ -100,11 +142,13 @@
                     <label for="ogrSinavAdi">Sınav Adı</label>
                     <input type="text" id="ogrSinavAdi" value="2026 Deneme Sınavı - 1">
 
-                    <label for="ogrSayfaDuzeni">Sayfa Düzeni</label>
-                    <select id="ogrSayfaDuzeni">
-                        <option value="tekli">Tekli — sayfa başına 1 form (farklı öğrenciler için ayrı ayrı üretin)</option>
-                        <option value="coklu">Çoklu — kağıt tasarruflu, sayfa başına birden fazla AYNI form (boş dağıtım için)</option>
-                    </select>
+                    <div id="pdfSayfaDuzeniAlani">
+                        <label for="ogrSayfaDuzeni">Sayfa Düzeni</label>
+                        <select id="ogrSayfaDuzeni">
+                            <option value="tekli">Tekli — sayfa başına 1 form (farklı öğrenciler için ayrı ayrı üretin)</option>
+                            <option value="coklu">Çoklu — kağıt tasarruflu, sayfa başına birden fazla AYNI form (boş dağıtım için)</option>
+                        </select>
+                    </div>
 
                     <button id="pdfOlusturBtn" type="button">📄 PDF Oluştur ve İndir</button>
 
@@ -401,10 +445,107 @@ waitForEngine();
 
 <script type="module">
 
-import { formPdfOlustur } from "./js/pdfFormGenerator.js";
+import { formPdfOlustur, topluFormPdfOlustur } from "./js/pdfFormGenerator.js";
 
 const pdfBtn = document.getElementById("pdfOlusturBtn");
 const pdfDurum = document.getElementById("pdfDurum");
+
+// ─────────────────────────────────────────────────────────────────
+// ÖĞRENCİ KAYNAĞI: Manuel giriş / Okul sınıf listesinden seç
+// Okul uygulaması içine <iframe> olarak açıldığında window.parent
+// üzerinden window.parent.OptikVeriKaynagi köprüsüne erişilebilir
+// (bkz. js/optik-entegrasyon.js). Optik bağımsız açıldığında (örn.
+// tarayıcıda doğrudan) bu köprü yoktur — o durumda "Sınıftan Seç"
+// seçeneği devre dışı bırakılır, sadece Manuel Giriş kullanılabilir.
+// ─────────────────────────────────────────────────────────────────
+
+const kaynakSecici = document.getElementById("pdfKaynak");
+const manuelAlanlar = document.getElementById("pdfManuelAlanlar");
+const sinifAlanlari = document.getElementById("pdfSinifAlanlari");
+const sinifSecici = document.getElementById("pdfSinifSecici");
+const ogrenciListesiEl = document.getElementById("pdfOgrenciListesi");
+const ogrenciSecimUst = document.getElementById("pdfOgrenciSecimUst");
+const ogrenciSayisiEl = document.getElementById("pdfOgrenciSayisi");
+const tumOgrenciSecCb = document.getElementById("pdfTumOgrenciSec");
+const sayfaDuzeniAlani = document.getElementById("pdfSayfaDuzeniAlani");
+
+function _veriKaynagi() {
+    try {
+        if (window.parent && window.parent !== window && window.parent.OptikVeriKaynagi) {
+            return window.parent.OptikVeriKaynagi;
+        }
+    } catch (e) { /* çapraz köken erişim engeli — bağımsız çalışıyor demektir */ }
+    return null;
+}
+
+let _secilenOgrenciler = [];
+
+function _sinifDropdownDoldur() {
+    const kaynak = _veriKaynagi();
+    const okulSecenegi = kaynakSecici.querySelector('option[value="sinif"]');
+    if (!kaynak) {
+        if (okulSecenegi) { okulSecenegi.disabled = true; okulSecenegi.textContent = "Okul Sınıf Listesinden Seç (yalnızca uygulama içinde açıkken kullanılabilir)"; }
+        return;
+    }
+    const siniflar = kaynak.siniflarGetir();
+    sinifSecici.innerHTML = '<option value="">— Sınıf seçin —</option>' +
+        siniflar.map(function(s){ return '<option value="' + s.id + '">' + s.ad + '</option>'; }).join('');
+}
+
+function _ogrenciListesiCiz() {
+    const kaynak = _veriKaynagi();
+    const sinifId = sinifSecici.value;
+    if (!kaynak || !sinifId) {
+        ogrenciListesiEl.innerHTML = '';
+        ogrenciSecimUst.style.display = 'none';
+        _secilenOgrenciler = [];
+        return;
+    }
+    const ogrenciler = kaynak.ogrencilerGetir(sinifId);
+    if (!ogrenciler.length) {
+        ogrenciListesiEl.innerHTML = '<p class="card-empty">Bu sınıfta kayıtlı öğrenci yok.</p>';
+        ogrenciSecimUst.style.display = 'none';
+        _secilenOgrenciler = [];
+        return;
+    }
+    ogrenciSecimUst.style.display = 'flex';
+    ogrenciListesiEl.innerHTML = ogrenciler.map(function(o){
+        return '<label class="ogrenci-secim-satiri"><input type="checkbox" class="ogrenci-cb" value="' + o.id + '" checked> ' +
+            o.adSoyad + (o.ogrenciNo ? ' <span style="color:var(--text-faint);">(No: ' + o.ogrenciNo + ')</span>' : '') + '</label>';
+    }).join('');
+    tumOgrenciSecCb.checked = true;
+    ogrenciListesiEl.dataset.ogrenciler = JSON.stringify(ogrenciler);
+    _secilenSayaciGuncelle();
+    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb){
+        cb.addEventListener('change', _secilenSayaciGuncelle);
+    });
+}
+
+function _secilenSayaciGuncelle() {
+    const kutular = Array.from(ogrenciListesiEl.querySelectorAll('.ogrenci-cb'));
+    const secilen = kutular.filter(function(cb){ return cb.checked; }).length;
+    ogrenciSayisiEl.textContent = secilen + ' / ' + kutular.length + ' seçili';
+    tumOgrenciSecCb.checked = secilen === kutular.length && kutular.length > 0;
+}
+
+kaynakSecici.addEventListener("change", function(){
+    const sinifModu = kaynakSecici.value === "sinif";
+    manuelAlanlar.style.display = sinifModu ? "none" : "";
+    sinifAlanlari.style.display = sinifModu ? "" : "none";
+    // Çoklu sayfa düzeni sadece TEK öğrenci basımında anlamlı (aynı formun
+    // birden fazla kopyası) — sınıf listesinden toplu basımda her öğrenci
+    // zaten kendi sayfasını alır, bu yüzden o seçenek gizlenir.
+    sayfaDuzeniAlani.style.display = sinifModu ? "none" : "";
+});
+
+sinifSecici.addEventListener("change", _ogrenciListesiCiz);
+
+tumOgrenciSecCb.addEventListener("change", function(){
+    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb){ cb.checked = tumOgrenciSecCb.checked; });
+    _secilenSayaciGuncelle();
+});
+
+_sinifDropdownDoldur();
 
 pdfBtn.addEventListener("click", async () => {
 
@@ -415,6 +556,7 @@ pdfBtn.addEventListener("click", async () => {
 
         const sinavTuru = document.getElementById("sinavTuru").value;
         const params = { sinavTuru };
+        const sinifModu = kaynakSecici.value === "sinif";
 
         if (sinavTuru === "ozel") {
             params.soruSayisi = parseInt(document.getElementById("soruSayisi").value, 10);
@@ -425,43 +567,85 @@ pdfBtn.addEventListener("click", async () => {
             // tasarrufu için otomatik olarak sayfa başına birden fazla AYNI
             // formu seçebilir (boş kağıt dağıtımı için kullanışlı, ama tek bir
             // öğrenci bilgisiyle üretilirse o bilgi TÜM kopyalara basılır).
-            const sayfaDuzeniSecim = document.getElementById("ogrSayfaDuzeni").value;
+            const sayfaDuzeniSecim = sinifModu ? "tekli" : document.getElementById("ogrSayfaDuzeni").value;
             params.sayfaDuzeni = sayfaDuzeniSecim === "tekli" ? 1 : "otomatik";
         }
 
         const layout = window.LayoutEngine.layoutHesapla(params);
+        const kitapcikTuru = document.getElementById("ogrKitapcik").value || "";
+        const sinavAdi = document.getElementById("ogrSinavAdi").value;
 
-        const ogrenci = {
-            adSoyad: document.getElementById("ogrAdSoyad").value,
-            ogrenciNo: document.getElementById("ogrNo").value,
-            sinif: document.getElementById("ogrSinif").value,
-            kitapcikTuru: document.getElementById("ogrKitapcik").value || "",
-            sinavAdi: document.getElementById("ogrSinavAdi").value,
-            ogrenciId: document.getElementById("ogrNo").value,
-            sinavId: sinavTuru
-        };
+        if (sinifModu) {
 
-        if (
-            layout.formlar.length > 1 &&
-            (ogrenci.adSoyad.trim() || ogrenci.ogrenciNo.trim()) &&
-            !confirm(
-                "Çoklu sayfa düzeni seçili — bu sayfada " + layout.formlar.length +
-                " kopya olacak ve HEPSİNE aynı Ad Soyad/Öğrenci No basılacak.\n\n" +
-                "Farklı öğrenciler için ayrı ayrı PDF üretmek istiyorsan " +
-                "\"Sayfa Düzeni\"ni Tekli yapıp tekrar oluştur.\n\n" +
-                "Bu şekilde (aynı bilgiyle çoklu kopya) devam edilsin mi?"
-            )
-        ) {
-            pdfDurum.textContent = "İptal edildi.";
-            pdfBtn.disabled = false;
-            return;
+            const kaynak = _veriKaynagi();
+            if (!kaynak || !sinifSecici.value) {
+                pdfDurum.textContent = "Lütfen önce bir sınıf seçin.";
+                pdfBtn.disabled = false;
+                return;
+            }
+
+            const secilenIdler = Array.from(ogrenciListesiEl.querySelectorAll('.ogrenci-cb:checked')).map(function(cb){ return cb.value; });
+            if (!secilenIdler.length) {
+                pdfDurum.textContent = "Lütfen en az bir öğrenci seçin.";
+                pdfBtn.disabled = false;
+                return;
+            }
+
+            const tumOgrenciler = JSON.parse(ogrenciListesiEl.dataset.ogrenciler || "[]");
+            const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
+
+            const ogrenciListesi = tumOgrenciler
+                .filter(function(o){ return secilenIdler.indexOf(o.id) !== -1; })
+                .map(function(o){
+                    return {
+                        adSoyad: o.adSoyad,
+                        ogrenciNo: o.ogrenciNo,
+                        sinif: sinifAdi,
+                        kitapcikTuru: kitapcikTuru,
+                        sinavAdi: sinavAdi,
+                        ogrenciId: o.id,
+                        sinavId: sinavTuru
+                    };
+                });
+
+            pdfDurum.textContent = "Oluşturuluyor... (" + ogrenciListesi.length + " öğrenci)";
+            const doc = await topluFormPdfOlustur(layout, ogrenciListesi);
+            doc.save((sinifAdi || "sinif").replace(/[\s/]+/g, "_") + "_" + ogrenciListesi.length + "_ogrenci.pdf");
+            pdfDurum.textContent = ogrenciListesi.length + " öğrenci için PDF indirildi.";
+
+        } else {
+
+            const ogrenci = {
+                adSoyad: document.getElementById("ogrAdSoyad").value,
+                ogrenciNo: document.getElementById("ogrNo").value,
+                sinif: document.getElementById("ogrSinif").value,
+                kitapcikTuru: kitapcikTuru,
+                sinavAdi: sinavAdi,
+                ogrenciId: document.getElementById("ogrNo").value,
+                sinavId: sinavTuru
+            };
+
+            if (
+                layout.formlar.length > 1 &&
+                (ogrenci.adSoyad.trim() || ogrenci.ogrenciNo.trim()) &&
+                !confirm(
+                    "Çoklu sayfa düzeni seçili — bu sayfada " + layout.formlar.length +
+                    " kopya olacak ve HEPSİNE aynı Ad Soyad/Öğrenci No basılacak.\n\n" +
+                    "Farklı öğrenciler için ayrı ayrı PDF üretmek istiyorsan " +
+                    "\"Sayfa Düzeni\"ni Tekli yapıp tekrar oluştur.\n\n" +
+                    "Bu şekilde (aynı bilgiyle çoklu kopya) devam edilsin mi?"
+                )
+            ) {
+                pdfDurum.textContent = "İptal edildi.";
+                pdfBtn.disabled = false;
+                return;
+            }
+
+            const doc = await formPdfOlustur(layout, ogrenci);
+            doc.save((ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
+            pdfDurum.textContent = "İndirildi.";
+
         }
-
-        const doc = await formPdfOlustur(layout, ogrenci);
-
-        doc.save((ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
-
-        pdfDurum.textContent = "İndirildi.";
 
     } catch (e) {
 
