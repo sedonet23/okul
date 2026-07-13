@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+    <title>Optik Form Okuyucu</title>
+
+    <link rel="stylesheet" href="css/optik.css">
+
+    <!-- Cevap anahtarı, toplu tarama, dışa aktarma modülleri -->
+    <script src="js/cevapAnahtari.js"></script>
+    <script src="js/topluTarama.js"></script>
+    <script src="js/disaAktar.js"></script>
+
+    <!-- OMR motoru: jsQR (QR okuma) + layoutEngine.js + omrEngine.js -->
+    <!-- Not: OpenCV.js kasıtlı olarak KULLANILMIYOR. formuOku() kendi
+         DLT homografisini (QR + hizalama işaretleri) hesaplıyor, bu
+         yüzden ayrı bir "kağıt bul + warp'la" adımına ihtiyaç yok. -->
+    <script src="js/jsqr.min.js"></script>
+    <script src="js/layoutEngine.js"></script>
+    <script src="js/omrEngine.js"></script>
+
+    <!-- PDF form üretimi: jsPDF (PDF çizim) + qrcodejs (öğrenci QR kodu).
+         Sadece "PDF Oluştur" akışı için gerekli; OMR okuma bunlara ihtiyaç duymaz. -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <header class="app-header">
+        <div class="header-row">
+            <div class="header-icon">🔍</div>
+            <div>
+                <h1>Optik Form Okuyucu</h1>
+                <p>Sınav kağıtlarını tarayın, otomatik değerlendirin</p>
+            </div>
+        </div>
+    </header>
+
+    <nav class="tab-bar" id="tabBar">
+        <button type="button" class="tab-btn active" data-tab="kagitlar">
+            <span class="tab-icon">📄</span> Kağıtlar
+        </button>
+        <button type="button" class="tab-btn" data-tab="anahtarlar">
+            <span class="tab-icon">🔑</span> Anahtarlar
+        </button>
+        <button type="button" class="tab-btn" data-tab="raporlar">
+            <span class="tab-icon">📊</span> Raporlar
+        </button>
+    </nav>
+
+    <main class="content">
+
+        <!-- ══════════════════════ SEKME: KAĞITLAR ══════════════════════ -->
+        <section class="tab-panel active" id="panel-kagitlar">
+
+            <section class="card">
+                <h2 class="card-title"><span class="icon-badge">⚙️</span> Sınav Ayarları</h2>
+
+                <div class="ayarlar">
+
+                    <label for="sinavTuru">Sınav Türü</label>
+                    <select id="sinavTuru">
+                        <option value="lgs">LGS</option>
+                        <option value="bursluluk">Bursluluk</option>
+                        <option value="ozel">Özel Test (soru/şık sayısı gir)</option>
+                    </select>
+
+                    <div id="ozelAlanlar" style="display:none;">
+                        <label for="soruSayisi">Soru Sayısı</label>
+                        <input type="number" id="soruSayisi" value="20">
+                        <label for="sikSayisi">Şık Sayısı</label>
+                        <input type="number" id="sikSayisi" value="4">
+                    </div>
+
+                </div>
+            </section>
+
+            <section class="card">
+                <details class="pdf-uretim">
+
+                    <summary>📄 PDF Form Oluştur</summary>
+
+                    <label for="ogrAdSoyad">Ad Soyad</label>
+                    <input type="text" id="ogrAdSoyad" value="Ahmet YILMAZ">
+
+                    <label for="ogrNo">Öğrenci No</label>
+                    <input type="text" id="ogrNo" value="2026048">
+
+                    <label for="ogrSinif">Sınıf</label>
+                    <input type="text" id="ogrSinif" value="8/A">
+
+                    <label for="ogrKitapcik">Kitapçık Türü</label>
+                    <input type="text" id="ogrKitapcik" value="" maxlength="1" placeholder="ör. A (boş = işaretlenmez)">
+
+                    <label for="ogrSinavAdi">Sınav Adı</label>
+                    <input type="text" id="ogrSinavAdi" value="2026 Deneme Sınavı - 1">
+
+                    <label for="ogrSayfaDuzeni">Sayfa Düzeni</label>
+                    <select id="ogrSayfaDuzeni">
+                        <option value="tekli">Tekli — sayfa başına 1 form (farklı öğrenciler için ayrı ayrı üretin)</option>
+                        <option value="coklu">Çoklu — kağıt tasarruflu, sayfa başına birden fazla AYNI form (boş dağıtım için)</option>
+                    </select>
+
+                    <button id="pdfOlusturBtn" type="button">📄 PDF Oluştur ve İndir</button>
+
+                    <div id="pdfDurum" class="pdf-durum"></div>
+
+                </details>
+            </section>
+
+            <section class="card status-card">
+                <div class="status">
+                    <span id="statusText">Hazır</span>
+                </div>
+
+                <canvas
+                    id="resultCanvas"
+                    class="result-canvas">
+                </canvas>
+
+                <div id="hataKutusu" style="display:none;"></div>
+
+                <pre id="sonucKutusu" style="display:none;"></pre>
+            </section>
+
+        </section>
+
+        <!-- ══════════════════════ SEKME: ANAHTARLAR ══════════════════════ -->
+        <section class="tab-panel" id="panel-anahtarlar">
+
+            <section class="card" id="cevapAnahtariCard">
+                <h2 class="card-title"><span class="icon-badge">🗝️</span> Cevap Anahtarı</h2>
+
+                <div id="anahtarDurum" class="anahtar-durum anahtar-yok">
+                    Cevap anahtarı yüklenmedi
+                </div>
+
+                <div class="anahtar-butonlar">
+                    <label class="galeri-buton" for="anahtarExcelInput">
+                        📊 Excel'den Yükle
+                        <input type="file" id="anahtarExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+                    </label>
+                    <button id="anahtarDisaAktarBtn" type="button" style="display:none;">⬇️ Dışa Aktar</button>
+                    <button id="anahtarTemizleBtn" type="button" class="btn-tehlike" style="display:none;">🗑️ Tümünü Sil</button>
+                </div>
+
+                <!-- Ders seçimi + şık işaretleme (her zaman görünür manuel editör) -->
+                <div id="manuelAnahtarPanel">
+
+                    <label for="manuelDersSecici">Ders</label>
+                    <select id="manuelDersSecici"></select>
+
+                    <div id="manuelSorularAlani" class="manuel-sorular"></div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+        <!-- ══════════════════════ SEKME: RAPORLAR ══════════════════════ -->
+        <section class="tab-panel" id="panel-raporlar">
+
+            <section class="card" id="topluTaramaCard">
+                <h2 class="card-title"><span class="icon-badge">📋</span> Tarama Oturumu</h2>
+
+                <div class="oturum-baslik-alani">
+                    <input type="text" id="sinavAdiInput" placeholder="Sınav adı (ör. 2026 Deneme-1)" value="">
+                    <button id="oturumBaslatBtn" type="button">▶️ Oturum Başlat</button>
+                </div>
+
+                <div id="oturumBilgi" style="display:none;" class="oturum-bilgi">
+                    <span id="oturumSayac">0 öğrenci tarandı</span>
+                    <button id="oturumSifirlaBtn" type="button" class="btn-kucuk btn-tehlike">🔄 Sıfırla</button>
+                </div>
+
+                <!-- Taranan öğrenciler listesi -->
+                <div id="taramaSonucListesi" class="tarama-listesi" style="display:none;"></div>
+
+                <!-- Özet ve dışa aktarma -->
+                <div id="disaAktarPanel" style="display:none;" class="disa-aktar-panel">
+                    <div class="ozet-satirlar" id="ozetSatirlar"></div>
+                    <div class="disa-butonlar">
+                        <button id="pdfRaporBtn" type="button">📄 PDF Rapor</button>
+                        <button id="excelRaporBtn" type="button">📊 Excel İndir</button>
+                    </div>
+                </div>
+            </section>
+
+        </section>
+
+    </main>
+
+</div>
+
+<!-- ══════════════════════ TAM EKRAN KAMERA OVERLAY'İ ══════════════════════ -->
+<div id="kameraOverlay" class="kamera-overlay">
+
+    <div class="kamera-ust-bar">
+        <span class="kamera-baslik">Kağıt Tara</span>
+        <button type="button" id="kameraKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
+    </div>
+
+    <div class="kamera-video-alani">
+
+        <video
+            id="video"
+            autoplay
+            playsinline
+            muted>
+        </video>
+
+        <canvas
+            id="canvas"
+            style="display:none;">
+        </canvas>
+
+        <div id="koseSecimAlani" style="display:none;">
+            <p id="koseTalimat" class="kose-talimat"></p>
+            <canvas id="koseSecimCanvas" class="kose-canvas"></canvas>
+            <div class="kose-butonlar">
+                <button id="koseTamam" type="button">✅ Tamam</button>
+                <button id="koseSifirla" type="button">↺ Sıfırla</button>
+                <button id="koseVazgec" type="button">🤖 Otomatik Dene</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="kamera-alt-bar">
+
+        <label id="galeriEtiketi" for="galeriInput" class="galeri-buton kamera-yan-buton">
+            🖼️ Galeriden Seç
+            <input type="file" id="galeriInput" accept="image/*" style="display:none;">
+        </label>
+
+        <button id="capture" type="button" class="capture-shutter" title="Fotoğraf Çek">📸</button>
+
+        <span class="kamera-yan-buton kamera-yan-bosluk"></span>
+
+    </div>
+
+    <!-- Kamerayı gerçekten başlatan/durduran butonlar — görsel olarak
+         gizli, mantık camera.js/app.js'te değişmeden kalsın diyeburada
+         tutuluyor; FAB ve kapat butonu bunları programatik olarak tetikler. -->
+    <button id="start" type="button" style="display:none;"></button>
+    <button id="stop" type="button" style="display:none;"></button>
+
+</div>
+
+<button type="button" class="fab" id="fabTara" title="Kağıt Oku">📷</button>
+
+<script>
+
+// Devtools açmadan (özellikle mobilde) hata görebilmek için: tüm script
+// hatalarını doğrudan sayfaya basıyoruz.
+function hataGoster(mesaj){
+    const kutu = document.getElementById("hataKutusu");
+    kutu.style.display = "block";
+    kutu.textContent += (kutu.textContent ? "\n" : "") + mesaj;
+}
+
+window.addEventListener("error", function(e){
+    hataGoster("HATA: " + e.message + " (" + e.filename + ":" + e.lineno + ")");
+});
+
+function motorHazirMi(){
+
+    return typeof window.jsQR === "function"
+        && typeof window.LayoutEngine === "object"
+        && typeof window.OmrOkuyucu === "object";
+
+}
+
+let denemeSayisi = 0;
+
+function waitForEngine(){
+
+    if(motorHazirMi()){
+
+        import("./js/app.js").catch(function(e){
+            hataGoster("app.js yüklenemedi: " + e.message);
+        });
+
+    }else{
+
+        denemeSayisi++;
+
+        if(denemeSayisi > 100){ // ~5 saniye
+
+            hataGoster(
+                "Motor 5 saniyede hazır olmadı. Eksik olanlar:\n" +
+                "jsQR: " + typeof window.jsQR + "\n" +
+                "LayoutEngine: " + typeof window.LayoutEngine + "\n" +
+                "OmrOkuyucu: " + typeof window.OmrOkuyucu
+            );
+
+            return; // döngüyü durdur, sonsuz denemeyi bırak
+
+        }
+
+        setTimeout(waitForEngine,50);
+
+    }
+
+}
+
+waitForEngine();
+
+// ─────────────────────────────────────────────────────────────────
+// SEKME GEÇİŞİ (Kağıtlar / Anahtarlar / Raporlar)
+// ─────────────────────────────────────────────────────────────────
+
+(function () {
+
+    const tabBar = document.getElementById("tabBar");
+    if (!tabBar) return;
+
+    const butonlar = Array.from(tabBar.querySelectorAll(".tab-btn"));
+    const panelKap = { kagitlar: "panel-kagitlar", anahtarlar: "panel-anahtarlar", raporlar: "panel-raporlar" };
+
+    function sekmeyeGec(ad){
+
+        butonlar.forEach(function (b) {
+            b.classList.toggle("active", b.dataset.tab === ad);
+        });
+
+        Object.keys(panelKap).forEach(function (k) {
+            const panel = document.getElementById(panelKap[k]);
+            if (panel) panel.classList.toggle("active", k === ad);
+        });
+
+        const fab = document.getElementById("fabTara");
+        if (fab) fab.style.display = (ad === "kagitlar") ? "flex" : "none";
+
+    }
+
+    butonlar.forEach(function (b) {
+        b.addEventListener("click", function () { sekmeyeGec(b.dataset.tab); });
+    });
+
+})();
+
+// ─────────────────────────────────────────────────────────────────
+// TAM EKRAN KAMERA OVERLAY'İ
+// ─────────────────────────────────────────────────────────────────
+
+(function () {
+
+    const overlay = document.getElementById("kameraOverlay");
+    const fab = document.getElementById("fabTara");
+    const kapatBtn = document.getElementById("kameraKapatBtn");
+    const galeriInput = document.getElementById("galeriInput");
+
+    function overlayAc() {
+        if (!overlay) return;
+        overlay.classList.add("acik");
+        const startBtn = document.getElementById("start");
+        if (startBtn) startBtn.click();
+    }
+
+    function overlayKapat() {
+        if (!overlay) return;
+        const stopBtn = document.getElementById("stop");
+        if (stopBtn) stopBtn.click();
+        overlay.classList.remove("acik");
+    }
+
+    if (fab) {
+        fab.addEventListener("click", overlayAc);
+    }
+
+    if (kapatBtn) {
+        kapatBtn.addEventListener("click", overlayKapat);
+    }
+
+    // Galeriden bir fotoğraf seçilince kamera akışını (varsa) durdur —
+    // köşe seçim ekranı overlay içinde kalıp görünmeye devam eder.
+    if (galeriInput) {
+        galeriInput.addEventListener("change", function () {
+            const video = document.getElementById("video");
+            if (video && video.srcObject) {
+                const stopBtn = document.getElementById("stop");
+                if (stopBtn) stopBtn.click();
+            }
+        });
+    }
+
+    // Okuma (başarılı ya da hatalı) tamamlanınca kamera penceresini
+    // otomatik kapat, sonuçlar ana sayfada görünsün.
+    window.addEventListener("omrOkumaTamamlandi", overlayKapat);
+
+})();
+
+</script>
+
+<script type="module">
+
+import { formPdfOlustur } from "./js/pdfFormGenerator.js";
+
+const pdfBtn = document.getElementById("pdfOlusturBtn");
+const pdfDurum = document.getElementById("pdfDurum");
+
+pdfBtn.addEventListener("click", async () => {
+
+    pdfBtn.disabled = true;
+    pdfDurum.textContent = "Oluşturuluyor...";
+
+    try {
+
+        const sinavTuru = document.getElementById("sinavTuru").value;
+        const params = { sinavTuru };
+
+        if (sinavTuru === "ozel") {
+            params.soruSayisi = parseInt(document.getElementById("soruSayisi").value, 10);
+            params.sikSayisi = parseInt(document.getElementById("sikSayisi").value, 10);
+
+            // Tekli: her zaman sayfa başına 1 form (farklı öğrenciler için ayrı
+            // ayrı üretilecekse doğru seçim). Çoklu: layoutEngine kağıt
+            // tasarrufu için otomatik olarak sayfa başına birden fazla AYNI
+            // formu seçebilir (boş kağıt dağıtımı için kullanışlı, ama tek bir
+            // öğrenci bilgisiyle üretilirse o bilgi TÜM kopyalara basılır).
+            const sayfaDuzeniSecim = document.getElementById("ogrSayfaDuzeni").value;
+            params.sayfaDuzeni = sayfaDuzeniSecim === "tekli" ? 1 : "otomatik";
+        }
+
+        const layout = window.LayoutEngine.layoutHesapla(params);
+
+        const ogrenci = {
+            adSoyad: document.getElementById("ogrAdSoyad").value,
+            ogrenciNo: document.getElementById("ogrNo").value,
+            sinif: document.getElementById("ogrSinif").value,
+            kitapcikTuru: document.getElementById("ogrKitapcik").value || "",
+            sinavAdi: document.getElementById("ogrSinavAdi").value,
+            ogrenciId: document.getElementById("ogrNo").value,
+            sinavId: sinavTuru
+        };
+
+        if (
+            layout.formlar.length > 1 &&
+            (ogrenci.adSoyad.trim() || ogrenci.ogrenciNo.trim()) &&
+            !confirm(
+                "Çoklu sayfa düzeni seçili — bu sayfada " + layout.formlar.length +
+                " kopya olacak ve HEPSİNE aynı Ad Soyad/Öğrenci No basılacak.\n\n" +
+                "Farklı öğrenciler için ayrı ayrı PDF üretmek istiyorsan " +
+                "\"Sayfa Düzeni\"ni Tekli yapıp tekrar oluştur.\n\n" +
+                "Bu şekilde (aynı bilgiyle çoklu kopya) devam edilsin mi?"
+            )
+        ) {
+            pdfDurum.textContent = "İptal edildi.";
+            pdfBtn.disabled = false;
+            return;
+        }
+
+        const doc = await formPdfOlustur(layout, ogrenci);
+
+        doc.save((ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
+
+        pdfDurum.textContent = "İndirildi.";
+
+    } catch (e) {
+
+        console.error("PDF oluşturma hatası:", e);
+        pdfDurum.textContent = "Hata: " + e.message;
+
+    } finally {
+
+        pdfBtn.disabled = false;
+
+    }
+
+});
+
+</script>
+
+</body>
+</html>
