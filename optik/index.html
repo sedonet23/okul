@@ -134,6 +134,11 @@
 
                         <div id="pdfOgrenciListesi" class="ogrenci-secim-listesi"></div>
 
+                        <div id="pdfSecimOzeti" class="secim-ozeti" style="display:none;">
+                            <span id="pdfSecimOzetiMetin"></span>
+                            <button type="button" id="pdfSecimTemizleBtn" class="btn-kucuk btn-tehlike">Seçimi Temizle</button>
+                        </div>
+
                     </div>
 
                     <label for="ogrKitapcik">Kitapçık Türü</label>
@@ -478,7 +483,35 @@ function _veriKaynagi() {
     return null;
 }
 
-let _secilenOgrenciler = [];
+// jsPDF'in kendi doc.save() metodu <a download> blob indirmesine dayanır —
+// bu, Optik'in içinde çalıştığı Android WebView'de SESSİZCE başarısız olur
+// (hata fırlatmaz, "indirildi" mesajı görünür ama dosya hiçbir yere
+// yazılmaz). Uygulama içine gömülüyken bunun yerine ana uygulamanın native
+// kaydetme köprüsünü (OptikVeriKaynagi.dosyaKaydet → SavePlugin) kullan;
+// bağımsız (tarayıcıda doğrudan açılmış) çalışıyorsa klasik doc.save()'e
+// geri dön — orada normal blob indirmesi zaten çalışır.
+async function _pdfKaydet(doc, dosyaAdi) {
+    const kaynak = _veriKaynagi();
+    if (kaynak && typeof kaynak.dosyaKaydet === 'function') {
+        const veriUri = doc.output('datauristring');
+        const base64Veri = veriUri.split(',').pop();
+        const basarili = kaynak.dosyaKaydet(base64Veri, dosyaAdi, 'application/pdf');
+        if (basarili) return;
+    }
+    doc.save(dosyaAdi);
+}
+
+const secimOzeti = document.getElementById("pdfSecimOzeti");
+const secimOzetiMetin = document.getElementById("pdfSecimOzetiMetin");
+const secimTemizleBtn = document.getElementById("pdfSecimTemizleBtn");
+
+// Sınıflar arası kalıcı öğrenci seçimi — cevap anahtarı sınavda ders ders
+// girilip her dersin cevapları ayrı saklandığı, ders değişince önceki
+// dersin girdiği kaybolmadığı gibi (bkz. js/cevapAnahtari.js), burada da
+// seçilen öğrenciler öğrenci id'sine göre bir haritada tutulur; sınıf
+// değiştirmek önceki sınıftan yapılan seçimleri SİLMEZ. PDF oluşturma bu
+// haritadaki TÜM öğrencileri (görüntülenen sınıftan bağımsız) kullanır.
+let _secilenOgrenciMap = {}; // id -> {id, adSoyad, ogrenciNo, sinifAdi}
 
 function _sinifDropdownDoldur() {
     const kaynak = _veriKaynagi();
@@ -498,34 +531,52 @@ function _ogrenciListesiCiz() {
     if (!kaynak || !sinifId) {
         ogrenciListesiEl.innerHTML = '';
         ogrenciSecimUst.style.display = 'none';
-        _secilenOgrenciler = [];
         return;
     }
+    const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
     const ogrenciler = kaynak.ogrencilerGetir(sinifId);
     if (!ogrenciler.length) {
         ogrenciListesiEl.innerHTML = '<p class="card-empty">Bu sınıfta kayıtlı öğrenci yok.</p>';
         ogrenciSecimUst.style.display = 'none';
-        _secilenOgrenciler = [];
         return;
     }
     ogrenciSecimUst.style.display = 'flex';
     ogrenciListesiEl.innerHTML = ogrenciler.map(function(o){
-        return '<label class="ogrenci-secim-satiri"><input type="checkbox" class="ogrenci-cb" value="' + o.id + '" checked> ' +
+        const seciliMi = !!_secilenOgrenciMap[o.id];
+        return '<label class="ogrenci-secim-satiri"><input type="checkbox" class="ogrenci-cb" value="' + o.id + '"' + (seciliMi ? ' checked' : '') + '> ' +
             o.adSoyad + (o.ogrenciNo ? ' <span style="color:var(--text-faint);">(No: ' + o.ogrenciNo + ')</span>' : '') + '</label>';
     }).join('');
-    tumOgrenciSecCb.checked = true;
-    ogrenciListesiEl.dataset.ogrenciler = JSON.stringify(ogrenciler);
-    _secilenSayaciGuncelle();
-    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb){
-        cb.addEventListener('change', _secilenSayaciGuncelle);
+    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb, i){
+        cb.addEventListener('change', function(){
+            const o = ogrenciler[i];
+            if (cb.checked) {
+                _secilenOgrenciMap[o.id] = { id: o.id, adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinifAdi: sinifAdi };
+            } else {
+                delete _secilenOgrenciMap[o.id];
+            }
+            _secilenSayaciGuncelle(ogrenciler);
+            _secimOzetiGuncelle();
+        });
     });
+    _secilenSayaciGuncelle(ogrenciler);
+    _secimOzetiGuncelle();
 }
 
-function _secilenSayaciGuncelle() {
-    const kutular = Array.from(ogrenciListesiEl.querySelectorAll('.ogrenci-cb'));
-    const secilen = kutular.filter(function(cb){ return cb.checked; }).length;
-    ogrenciSayisiEl.textContent = secilen + ' / ' + kutular.length + ' seçili';
-    tumOgrenciSecCb.checked = secilen === kutular.length && kutular.length > 0;
+function _secilenSayaciGuncelle(ogrenciler) {
+    const secilen = ogrenciler.filter(function(o){ return !!_secilenOgrenciMap[o.id]; }).length;
+    ogrenciSayisiEl.textContent = secilen + ' / ' + ogrenciler.length + ' seçili';
+    tumOgrenciSecCb.checked = secilen === ogrenciler.length && ogrenciler.length > 0;
+}
+
+function _secimOzetiGuncelle() {
+    const tumSecilenler = Object.values(_secilenOgrenciMap);
+    if (!tumSecilenler.length) {
+        secimOzeti.style.display = 'none';
+        return;
+    }
+    const sinifSayisi = new Set(tumSecilenler.map(function(o){ return o.sinifAdi; })).size;
+    secimOzeti.style.display = 'flex';
+    secimOzetiMetin.textContent = 'Toplam ' + tumSecilenler.length + ' öğrenci seçildi (' + sinifSayisi + ' sınıf)';
 }
 
 kaynakSecici.addEventListener("change", function(){
@@ -541,8 +592,27 @@ kaynakSecici.addEventListener("change", function(){
 sinifSecici.addEventListener("change", _ogrenciListesiCiz);
 
 tumOgrenciSecCb.addEventListener("change", function(){
-    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb){ cb.checked = tumOgrenciSecCb.checked; });
-    _secilenSayaciGuncelle();
+    const kaynak = _veriKaynagi();
+    const sinifId = sinifSecici.value;
+    if (!kaynak || !sinifId) return;
+    const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
+    const ogrenciler = kaynak.ogrencilerGetir(sinifId);
+    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb, i){
+        cb.checked = tumOgrenciSecCb.checked;
+        const o = ogrenciler[i];
+        if (tumOgrenciSecCb.checked) {
+            _secilenOgrenciMap[o.id] = { id: o.id, adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinifAdi: sinifAdi };
+        } else {
+            delete _secilenOgrenciMap[o.id];
+        }
+    });
+    _secilenSayaciGuncelle(ogrenciler);
+    _secimOzetiGuncelle();
+});
+
+secimTemizleBtn.addEventListener("click", function(){
+    _secilenOgrenciMap = {};
+    _ogrenciListesiCiz();
 });
 
 _sinifDropdownDoldur();
@@ -577,40 +647,28 @@ pdfBtn.addEventListener("click", async () => {
 
         if (sinifModu) {
 
-            const kaynak = _veriKaynagi();
-            if (!kaynak || !sinifSecici.value) {
-                pdfDurum.textContent = "Lütfen önce bir sınıf seçin.";
-                pdfBtn.disabled = false;
-                return;
-            }
-
-            const secilenIdler = Array.from(ogrenciListesiEl.querySelectorAll('.ogrenci-cb:checked')).map(function(cb){ return cb.value; });
-            if (!secilenIdler.length) {
+            const tumSecilenler = Object.values(_secilenOgrenciMap);
+            if (!tumSecilenler.length) {
                 pdfDurum.textContent = "Lütfen en az bir öğrenci seçin.";
                 pdfBtn.disabled = false;
                 return;
             }
 
-            const tumOgrenciler = JSON.parse(ogrenciListesiEl.dataset.ogrenciler || "[]");
-            const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
-
-            const ogrenciListesi = tumOgrenciler
-                .filter(function(o){ return secilenIdler.indexOf(o.id) !== -1; })
-                .map(function(o){
-                    return {
-                        adSoyad: o.adSoyad,
-                        ogrenciNo: o.ogrenciNo,
-                        sinif: sinifAdi,
-                        kitapcikTuru: kitapcikTuru,
-                        sinavAdi: sinavAdi,
-                        ogrenciId: o.id,
-                        sinavId: sinavTuru
-                    };
-                });
+            const ogrenciListesi = tumSecilenler.map(function(o){
+                return {
+                    adSoyad: o.adSoyad,
+                    ogrenciNo: o.ogrenciNo,
+                    sinif: o.sinifAdi,
+                    kitapcikTuru: kitapcikTuru,
+                    sinavAdi: sinavAdi,
+                    ogrenciId: o.id,
+                    sinavId: sinavTuru
+                };
+            });
 
             pdfDurum.textContent = "Oluşturuluyor... (" + ogrenciListesi.length + " öğrenci)";
             const doc = await topluFormPdfOlustur(layout, ogrenciListesi);
-            doc.save((sinifAdi || "sinif").replace(/[\s/]+/g, "_") + "_" + ogrenciListesi.length + "_ogrenci.pdf");
+            await _pdfKaydet(doc, "secili_ogrenciler_" + ogrenciListesi.length + ".pdf");
             pdfDurum.textContent = ogrenciListesi.length + " öğrenci için PDF indirildi.";
 
         } else {
@@ -642,7 +700,7 @@ pdfBtn.addEventListener("click", async () => {
             }
 
             const doc = await formPdfOlustur(layout, ogrenci);
-            doc.save((ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
+            await _pdfKaydet(doc, (ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
             pdfDurum.textContent = "İndirildi.";
 
         }
