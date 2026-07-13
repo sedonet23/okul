@@ -1990,6 +1990,16 @@ function sekmeAc(tab){
    şey yapmasın) veya 'exit' (uygulamanın en üst seviyesindeyiz, native
    çift-basışla-çık mantığını uygulasın). */
 function geriTusuIsle(){
+  // Optik Okuma tam ekran iframe overlay'i her şeyin ÜSTÜNDE açılıyor
+  // (z-index 99999) — bu yüzden ilk kontrol edilmesi gereken o. Not:
+  // iframe içindeki kendi alt ekranları (ör. kamera görünümü) için ayrı
+  // bir geri-adımı YOK; geri tuşu doğrudan tüm Optik aracını kapatır,
+  // kullanıcı iframe içindeki "✕" ile kendi alt ekranlarını kapatabilir.
+  if(typeof OptikSistemi !== 'undefined' && OptikSistemi.acikMi && OptikSistemi.acikMi()){
+    OptikSistemi.kapat();
+    return 'handled';
+  }
+
   // Not: modalOverlay/detayOverlay, AltNav panelinin (Menü/Profilim)
   // ÜSTÜNDE açılabiliyor (örn. Profilim'de "Ders Programım" gibi bir
   // modal açıkken Profilim panelinin kendisi hâlâ altında açık kalır).

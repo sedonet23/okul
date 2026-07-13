@@ -35,6 +35,7 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'personel', ad:'Personel İşleri'},
   {grup:'Genel', modul:'harita', ad:'Harita'},
   {grup:'Genel', modul:'sinavIslemleri', ad:'Sınav İşlemleri'},
+  {grup:'Genel', modul:'optikOkuma', ad:'Optik Okuma (OMR)'},
   {grup:'Genel', modul:'dokumanlar', ad:'Dökümanlar'},
   {grup:'Genel', modul:'haberler', ad:'Haberler'},
   {grup:'Genel', modul:'duyurular', ad:'Duyuru Panosu'},

@@ -55,6 +55,7 @@
     imza: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h5"/><path d="M14 2v6h6"/><path d="m17 14 3 3-6.5 6.5H10v-3.5L16.5 13Z"/>',
     damga: '<path d="M12 3v6"/><rect x="7" y="9" width="10" height="5" rx="1"/><path d="M5 21h14M6 21c0-3 1-5 6-5s6 2 6 5"/>',
     saat: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    tarama: '<path d="M4 7V5a2 2 0 0 1 2-2h2M16 3h2a2 2 0 0 1 2 2v2M20 17v2a2 2 0 0 1-2 2h-2M8 21H6a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/>',
     ayarlar: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
     bina: '<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M9 21v-4h6v4"/><path d="M8 7h1M8 11h1M8 15h1M15 7h1M15 11h1M15 15h1"/>',
     veritabani: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
@@ -95,6 +96,7 @@
       {ad:'Deneme Sınavları', ikon:'deneme', modul:'sinavIslemleri', aksiyon:git('denemeSinavlari')},
       {ad:'Ders Et. Kat. Puan Dağıtımı', ikon:'puan', modul:'sinavIslemleri', aksiyon:cagir('KriterDagitimAraci','ac')},
       {ad:'Proje Değerlendirme Ölçeği', ikon:'olcek', modul:'sinavIslemleri', aksiyon:cagir('ProjeDegerlendirmeAraci','ac')},
+      {ad:'Optik Okuma (OMR)', ikon:'tarama', modul:'optikOkuma', aksiyon:cagir('OptikSistemi','ac')},
     ]},
     { ad:'İletişim & Haberler', renk:'#EE5A45', ikon:I.mesaj, ogeler:[
       {ad:'Mesajlaşma', ikon:'mesaj', modul:'mesajlasma', aksiyon:git('mesajlasma')},
