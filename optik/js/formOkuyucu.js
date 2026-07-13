@@ -13,6 +13,35 @@
 import { showStatus } from "./utils.js";
 
 /**
+ * Düzeltilmiş (dewarp edilmiş) kağıt görüntüsünü localStorage'a kaydedilecek
+ * kadar küçültüp JPEG'e sıkıştırır. Amaç: her taranan kağıdın "sonuca
+ * tıklayınca görüntüle + gerekirse elle düzelt" akışında kullanılmak üzere
+ * saklanabilmesi — ama tam çözünürlükte onlarca/yüzlerce kağıt saklamak
+ * localStorage kotasını (~5-10MB) hızla doldurur, bu yüzden küçültülüyor.
+ * @param {HTMLCanvasElement} canvas
+ * @param {number} maxGenislik
+ * @param {number} kalite - 0..1 arası JPEG kalitesi
+ * @returns {string|null} dataURL ya da (hata olursa) null
+ */
+function _kucukGoruntuUret(canvas, maxGenislik = 900, kalite = 0.55) {
+    try {
+        let kaynak = canvas;
+        if (canvas.width > maxGenislik) {
+            const oran = maxGenislik / canvas.width;
+            const kucukCanvas = document.createElement("canvas");
+            kucukCanvas.width = maxGenislik;
+            kucukCanvas.height = Math.round(canvas.height * oran);
+            kucukCanvas.getContext("2d").drawImage(canvas, 0, 0, kucukCanvas.width, kucukCanvas.height);
+            kaynak = kucukCanvas;
+        }
+        return kaynak.toDataURL("image/jpeg", kalite);
+    } catch (err) {
+        console.error("Kağıt görüntüsü sıkıştırılamadı (kayıt görüntüsüz devam edecek):", err);
+        return null;
+    }
+}
+
+/**
  * Sayfadaki "Sınav Türü" seçimine (ve varsa soru/şık sayısı girdilerine)
  * göre okunacak form şablonunu kurar. İlgili elemanlar bulunamazsa
  * (ör. eski bir index.html) LGS'ye düşer.
@@ -128,6 +157,13 @@ export async function formuOkuToplu(sourceCanvas) {
     }
 
     if (sonuc && sonuc.basarili) {
+        // Kalıcı kayıt için düzeltilmiş kağıt görüntüsünü de ekle (bkz.
+        // sonucuGoster()'daki aynı işlem — burada resultCanvas'a çizim
+        // yapılmadığı için doğrudan duzeltilmisCanvas'tan üretiliyor).
+        const duzCanvas = sonuc.hataAyiklama && sonuc.hataAyiklama.duzeltilmisCanvas;
+        if (duzCanvas) {
+            sonuc.kagitGoruntusu = _kucukGoruntuUret(duzCanvas);
+        }
         window.dispatchEvent(new CustomEvent("omrSonucHazir", { detail: sonuc }));
     }
 
@@ -197,6 +233,13 @@ function sonucuGoster(sonuc) {
     // Düzeltilmiş (canonical) görüntüyü resultCanvas'ta göster.
     const resultCanvas = document.getElementById("resultCanvas");
     const duzCanvas = sonuc.hataAyiklama && sonuc.hataAyiklama.duzeltilmisCanvas;
+
+    // Kalıcı kayıt için: TEMİZ (teşhis noktaları çizilmeden ÖNCEKİ) kağıt
+    // görüntüsünü sıkıştırıp sonuca ekle. TopluTarama.ekle() bunu saklar,
+    // "sonuca tıkla → kağıdı gör" akışında kullanılır.
+    if (duzCanvas) {
+        sonuc.kagitGoruntusu = _kucukGoruntuUret(duzCanvas);
+    }
 
     if (duzCanvas && resultCanvas) {
         resultCanvas.width = duzCanvas.width;

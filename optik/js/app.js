@@ -20,6 +20,18 @@ window.addEventListener("omrSonucHazir", function (e) {
 // TopluTarama güncellenince UI'ı yenile
 window.addEventListener("topluTaramaGuncellendi", function (e) {
     _taramaListesiniYenile(e.detail);
+    _gecmisSinavlariCiz();
+});
+
+// Kalıcı depoya (localStorage) yazma başarısız olduysa (kota dolmuş
+// olabilir — çok sayıda kağıt görüntüsü birikmiştir) kullanıcıyı uyar.
+window.addEventListener("topluTaramaDepoHatasi", function () {
+    alert(
+        "⚠️ Tarama kaydedilirken depolama alanı doldu.\n\n" +
+        "Cihazın yerel depolaması (localStorage) dolmuş olabilir. Eski " +
+        "sınavlardan bazılarını (Raporlar sekmesi → Kayıtlı Sınavlar → Sil) " +
+        "silip yer açman gerekebilir."
+    );
 });
 
 function baslat() {
@@ -82,6 +94,20 @@ function baslat() {
     // ── Toplu tarama bağlamaları ──
     _topluTaramaBaglantilari();
     _ogrenciAtaBaglantilari();
+    _sinavDetayBaglantilari();
+    _gecmisSinavlariCiz();
+
+    // Sayfa yeniden yüklendiğinde (ör. iframe kapatılıp açıldığında) daha
+    // önce kalıcı depoya kaydedilmiş aktif bir sınav oturumu varsa, o
+    // oturumu hemen ekrana yansıt (topluTarama.js'in kendi başlangıç
+    // olayına güvenmiyoruz — dinamik import ile yarış durumu olabilir).
+    if (window.TopluTarama && window.TopluTarama.aktifSinavBilgisi()) {
+        const sonuclar = window.TopluTarama.sonuclar();
+        if (sonuclar.length) {
+            _oturumPanelleriGoster();
+            _taramaListesiniYenile({ sonuclar, ozet: window.TopluTarama.ozet() });
+        }
+    }
 
     // Sayfa yüklenince mevcut anahtarı göster
     _anahtarDurumGuncelle();
@@ -355,8 +381,7 @@ function _topluTaramaBaglantilari() {
         oturumBaslatBtn.addEventListener("click", () => {
             const ad = document.getElementById("sinavAdiInput").value.trim() || "İsimsiz Sınav";
             window.TopluTarama.baslat(ad);
-            document.getElementById("oturumBilgi").style.display = "flex";
-            document.getElementById("taramaSonucListesi").style.display = "block";
+            _oturumPanelleriGoster();
         });
     }
 
@@ -365,6 +390,24 @@ function _topluTaramaBaglantilari() {
         sifirlaBtn.addEventListener("click", () => {
             if (confirm("Tüm tarama sonuçları silinsin mi?")) {
                 window.TopluTarama.temizle();
+            }
+        });
+    }
+
+    // Cevap anahtarında değişiklik yapıldıktan sonra, o anahtarla henüz
+    // puanlanmamış (veya eski anahtarla puanlanmış) tüm sonuçları güncel
+    // anahtara göre yeniden değerlendirmek için. Ham işaretlemeler
+    // (öğrencinin/okumanın işaretlediği şıklar) DEĞİŞMEZ, sadece puan.
+    const yenidenHesaplaBtn = document.getElementById("yenidenHesaplaBtn");
+    if (yenidenHesaplaBtn) {
+        yenidenHesaplaBtn.addEventListener("click", () => {
+            const sayi = (window.TopluTarama.sonuclar() || []).length;
+            if (!sayi) {
+                alert("Yeniden hesaplanacak sonuç yok.");
+                return;
+            }
+            if (confirm(`${sayi} öğrencinin sonucu, GÜNCEL cevap anahtarına göre yeniden hesaplansın mı?`)) {
+                window.TopluTarama.yenidenHesapla();
             }
         });
     }
@@ -500,6 +543,179 @@ function _ogrenciAtaBaglantilari() {
 
 }
 
+function _oturumPanelleriGoster() {
+    document.getElementById("oturumBilgi").style.display = "flex";
+    document.getElementById("taramaSonucListesi").style.display = "block";
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// KAYITLI SINAVLAR (localStorage'da kalıcı duran tüm sınavların listesi)
+// ─────────────────────────────────────────────────────────────────────
+
+function _gecmisSinavlariCiz() {
+
+    const alan = document.getElementById("gecmisSinavlarListesi");
+    if (!alan) return;
+
+    const liste = window.TopluTarama.sinavlariListele();
+
+    if (!liste.length) {
+        alan.innerHTML = '<p class="liste-bos">Henüz kayıtlı sınav yok.</p>';
+        return;
+    }
+
+    alan.innerHTML = liste.map((s) => {
+        const tarih = s.sonGuncelleme ? new Date(s.sonGuncelleme).toLocaleString("tr-TR") : "";
+        const ort = s.ortPuan != null ? `Ort: ${s.ortPuan}%` : "Henüz puanlanmadı";
+        return `<div class="gecmis-sinav-satiri ${s.aktifMi ? "aktif" : ""}">
+            <div class="gecmis-sinav-bilgi">
+                <strong>${s.sinavAdi}</strong>
+                <small>${s.ogrenciSayisi} öğrenci · ${ort} · ${tarih}</small>
+            </div>
+            <div class="gecmis-sinav-butonlar">
+                ${s.aktifMi
+                    ? '<span class="etiket-aktif">✓ Açık</span>'
+                    : `<button type="button" class="btn-kucuk gecmis-ac-btn" data-id="${s.id}">📂 Aç</button>`
+                }
+                <button type="button" class="btn-kucuk btn-tehlike gecmis-sil-btn" data-id="${s.id}">🗑️</button>
+            </div>
+        </div>`;
+    }).join("");
+
+    alan.querySelectorAll(".gecmis-ac-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            window.TopluTarama.sinaviYukle(this.dataset.id);
+            _oturumPanelleriGoster();
+        });
+    });
+
+    alan.querySelectorAll(".gecmis-sil-btn").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            if (confirm("Bu sınav ve tüm tarama kayıtları kalıcı olarak silinsin mi?")) {
+                window.TopluTarama.sinaviSil(this.dataset.id);
+            }
+        });
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// SINAV KAĞIDI DETAYI / ELLE DÜZENLEME
+// (Raporlar sekmesinde bir öğrenci sonucuna tıklanınca açılır)
+// ─────────────────────────────────────────────────────────────────────
+
+function _sinavDetayBaglantilari() {
+
+    const overlay = document.getElementById("sinavDetayOverlay");
+    const kapatBtn = document.getElementById("detayKapatBtn");
+    if (!overlay || !kapatBtn) return;
+
+    function _kapat() {
+        overlay.classList.remove("acik");
+    }
+
+    kapatBtn.addEventListener("click", _kapat);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) _kapat(); });
+
+    // _taramaListesiniYenile()'deki "🔍 Gör" bağlantılarından erişilebilmesi
+    // için global olarak açığa çıkar.
+    window._sinavDetayAc = function (idx) {
+        _detayCiz(idx);
+        overlay.classList.add("acik");
+    };
+
+}
+
+/** Bir öğrencinin kağıt görüntüsünü + soru bazlı doğru/yanlış/boş
+ * durumunu çizer; her soruya tıklanarak işaretli şık elle değiştirilebilir. */
+function _detayCiz(idx) {
+
+    const kayit = (window.TopluTarama.sonuclar() || [])[idx];
+    if (!kayit) return;
+
+    const ogr = kayit.ogrenci || {};
+    const baslikEl = document.getElementById("detayBaslik");
+    if (baslikEl) {
+        const ad = ogr.adSoyad || ogr.ad_soyad || "(isimsiz)";
+        baslikEl.textContent = `🔍 ${ad}${ogr.ogrenciNo ? " · No: " + ogr.ogrenciNo : ""}`;
+    }
+
+    const ozetEl = document.getElementById("detayOzetSatiri");
+    if (ozetEl) {
+        const p = kayit.puan;
+        const pText = p.toplam != null ? `${p.toplam}%` : "—";
+        ozetEl.innerHTML = `
+            <span class="detay-puan">${pText}</span>
+            <span>D:${p.dogru ?? "—"}</span>
+            <span>Y:${p.yanlis ?? "—"}</span>
+            <span>B:${p.bos ?? "—"}</span>
+            ${kayit.elleDuzenlendiMi ? '<span class="etiket-elle">✏️ elle düzenlendi</span>' : ""}
+        `;
+    }
+
+    const goruntuAlani = document.getElementById("detayGoruntuAlani");
+    if (goruntuAlani) {
+        goruntuAlani.innerHTML = kayit.kagitGoruntusu
+            ? `<img src="${kayit.kagitGoruntusu}" alt="Taranan kağıt" class="detay-kagit-img">`
+            : '<p class="card-empty">Bu kayıt için saklanmış kağıt görüntüsü yok.</p>';
+    }
+
+    const sorularAlani = document.getElementById("detaySorularAlani");
+    if (!sorularAlani) return;
+
+    // Detayları derse göre grupla (dersiz formlarda ders null/"Genel" olur).
+    const gruplar = {};
+    (kayit.puan.detay || []).forEach((d) => {
+        const dersAdi = d.ders && d.ders !== "null" ? d.ders : "Genel";
+        if (!gruplar[dersAdi]) gruplar[dersAdi] = [];
+        gruplar[dersAdi].push(d);
+    });
+
+    sorularAlani.innerHTML = Object.keys(gruplar).map((dersAdi) => {
+
+        const sorular = gruplar[dersAdi].sort((a, b) => a.soruNo - b.soruNo);
+        // Şık sayısını bu dersteki mevcut işaretlemelerden/anahtardan tahmin
+        // et; hiçbiri yoksa güvenli varsayılan olarak 5'e kadar destekle.
+        const dersKaydi = _mevcutDersler.find((d) => d.dersAdi === dersAdi);
+        const sikSayisi = dersKaydi ? dersKaydi.sikSayisi : 5;
+        const harfler = [];
+        for (let i = 0; i < sikSayisi; i++) harfler.push(String.fromCharCode(65 + i));
+
+        const satirlar = sorular.map((s) => {
+            const durumSinif = s.durum === "dogru" ? "detay-dogru" : s.durum === "yanlis" ? "detay-yanlis" : "detay-bos";
+            const sikDugmeleri = harfler.map((h) => {
+                const seciliMi = s.isaretli === h;
+                const dogruMu = s.dogru === h;
+                let ekSinif = "";
+                if (dogruMu) ekSinif += " dogru-sik";
+                if (seciliMi) ekSinif += " secili";
+                return `<button type="button" class="sik-daire${ekSinif}" data-ders="${dersAdi}" data-soru="${s.soruNo}" data-harf="${h}">${h}</button>`;
+            }).join("");
+
+            return `<div class="manuel-satir detay-satir ${durumSinif}">
+                <span class="soru-no">${s.soruNo})</span>
+                <div class="sik-grubu">${sikDugmeleri}</div>
+            </div>`;
+        }).join("");
+
+        return `<div class="detay-ders-grubu">
+            <h3 class="detay-ders-basligi">${dersAdi}</h3>
+            ${satirlar}
+        </div>`;
+
+    }).join("");
+
+    sorularAlani.querySelectorAll(".sik-daire").forEach((btn) => {
+        btn.addEventListener("click", function () {
+            const ders = this.dataset.ders;
+            const soruNo = parseInt(this.dataset.soru, 10);
+            const harf = this.dataset.harf;
+            const zatenSeciliMi = this.classList.contains("secili");
+            window.TopluTarama.cevabiGuncelle(idx, ders, soruNo, zatenSeciliMi ? null : harf);
+            _detayCiz(idx); // güncel puan/işaretle yeniden çiz
+        });
+    });
+}
+
 function _taramaListesiniYenile({ sonuclar, ozet }) {
 
     const sayac = document.getElementById("oturumSayac");
@@ -525,13 +741,24 @@ function _taramaListesiniYenile({ sonuclar, ozet }) {
                 <span class="tarama-sira">${r.sira}</span>
                 <div class="tarama-bilgi">
                     <strong>${adHtml}</strong>
-                    <small>${ogr.ogrenciNo || ""} · ${ogr.sinif || ""} · ${r.tarih || ""}</small>
+                    <small>${ogr.ogrenciNo || ""} · ${ogr.sinif || ""} · ${r.tarih || ""}${r.elleDuzenlendiMi ? " · ✏️ elle düzenlendi" : ""}</small>
                 </div>
                 <div class="tarama-puan ${renkSinif}">${pText}</div>
                 <div class="tarama-detay">D:${p.dogru ?? "—"} Y:${p.yanlis ?? "—"} B:${p.bos ?? "—"}</div>
-                <button type="button" class="btn-sil-kayit" data-idx="${idx}">✕</button>
+                <div class="tarama-aksiyonlar">
+                    <button type="button" class="btn-gor-kayit" data-idx="${idx}" title="Kağıdı gör / elle düzenle">🔍</button>
+                    <button type="button" class="btn-sil-kayit" data-idx="${idx}">✕</button>
+                </div>
             </div>`;
         }).join("");
+
+        liste.querySelectorAll(".btn-gor-kayit").forEach(btn => {
+            btn.addEventListener("click", function () {
+                if (typeof window._sinavDetayAc === "function") {
+                    window._sinavDetayAc(parseInt(this.dataset.idx, 10));
+                }
+            });
+        });
 
         liste.querySelectorAll(".btn-sil-kayit").forEach(btn => {
             btn.addEventListener("click", function () {
