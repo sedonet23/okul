@@ -1230,6 +1230,74 @@ canvas{
 
 .fab:active{ transform:scale(0.94); }
 
+/* ── Öğrenci Atama Overlay'i (belirsiz taramaları elle düzeltme) ── */
+
+.ata-overlay{
+
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:60;
+    background:rgba(10,20,20,0.55);
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+
+}
+
+.ata-overlay.acik{
+
+    display:flex;
+
+}
+
+.ata-panel{
+
+    background:var(--bg);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--nm-lg);
+    width:100%;
+    max-width:420px;
+    max-height:80vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+
+}
+
+.ata-baslik{
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    background:linear-gradient(135deg, var(--accent-2), var(--accent));
+    color:#fff;
+    font-weight:700;
+    flex-shrink:0;
+
+}
+
+.ata-govde{
+
+    padding:16px;
+    overflow-y:auto;
+
+}
+
+.ogrenci-ata-link{
+
+    background:none;
+    border:none;
+    padding:0;
+    color:var(--warning);
+    font-weight:700;
+    font-size:13px;
+    text-decoration:underline;
+    cursor:pointer;
+
+}
+
 /* Küçük ekranlarda kart başlıklarının taşmasını engelle */
 
 @media (max-width:360px){
