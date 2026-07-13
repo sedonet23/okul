@@ -215,16 +215,26 @@
         <!-- ══════════════════════ SEKME: RAPORLAR ══════════════════════ -->
         <section class="tab-panel" id="panel-raporlar">
 
+            <!-- Kayıtlı (kalıcı) sınavlar — sayfa yenilense/uygulama kapansa
+                 bile localStorage'da saklanır, buradan tekrar açılabilir. -->
+            <section class="card" id="gecmisSinavlarKart">
+                <h2 class="card-title"><span class="icon-badge">🗂️</span> Kayıtlı Sınavlar</h2>
+                <div id="gecmisSinavlarListesi" class="gecmis-sinavlar-listesi">
+                    <p class="liste-bos">Henüz kayıtlı sınav yok.</p>
+                </div>
+            </section>
+
             <section class="card" id="topluTaramaCard">
                 <h2 class="card-title"><span class="icon-badge">📋</span> Tarama Oturumu</h2>
 
                 <div class="oturum-baslik-alani">
                     <input type="text" id="sinavAdiInput" placeholder="Sınav adı (ör. 2026 Deneme-1)" value="">
-                    <button id="oturumBaslatBtn" type="button">▶️ Oturum Başlat</button>
+                    <button id="oturumBaslatBtn" type="button">▶️ Yeni Oturum Başlat</button>
                 </div>
 
                 <div id="oturumBilgi" style="display:none;" class="oturum-bilgi">
                     <span id="oturumSayac">0 öğrenci tarandı</span>
+                    <button id="yenidenHesaplaBtn" type="button" class="btn-kucuk">🔁 Yeniden Hesapla</button>
                     <button id="oturumSifirlaBtn" type="button" class="btn-kucuk btn-tehlike">🔄 Sıfırla</button>
                 </div>
 
@@ -318,6 +328,26 @@
             <label for="ataSinifSecici">Sınıf</label>
             <select id="ataSinifSecici"><option value="">— Sınıf seçin —</option></select>
             <div id="ataOgrenciListesi" class="ogrenci-secim-listesi" style="margin-top:10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════ SINAV KAĞIDI DETAY / ELLE DÜZENLEME OVERLAY'İ ══════════════════════
+     Raporlar sekmesindeki bir öğrenci sonucuna tıklanınca açılır: taranan
+     kağıt görüntüsü + soru bazında doğru/yanlış/boş durumu gösterilir,
+     gerekirse her sorunun işaretli şıkkı elle değiştirilip o öğrencinin
+     puanı anında yeniden hesaplanabilir. -->
+<div id="sinavDetayOverlay" class="ata-overlay">
+    <div class="ata-panel detay-panel">
+        <div class="ata-baslik">
+            <span id="detayBaslik">🔍 Kağıt Detayı</span>
+            <button type="button" id="detayKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
+        </div>
+        <div class="ata-govde detay-govde">
+            <div id="detayOzetSatiri" class="detay-ozet-satiri"></div>
+            <div id="detayGoruntuAlani" class="detay-goruntu-alani"></div>
+            <p class="detay-not">Bir soruya tıklayıp doğru şıkkı seçerek okumayı elle düzeltebilirsin. Tekrar aynı şıkka basmak boşa alır.</p>
+            <div id="detaySorularAlani" class="detay-sorular-alani"></div>
         </div>
     </div>
 </div>
