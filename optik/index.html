@@ -304,6 +304,24 @@
 
 <button type="button" class="fab" id="fabTara" title="Kağıt Oku">📷</button>
 
+<!-- ══════════════════════ ÖĞRENCİ ATAMA OVERLAY'İ ══════════════════════
+     Otomatik okuma bir taramanın öğrencisini tanıyamadığında (NUMARA
+     baloncukları net okunamadığında) elle düzeltme yapılabilmesi için. -->
+<div id="ogrenciAtaOverlay" class="ata-overlay">
+    <div class="ata-panel">
+        <div class="ata-baslik">
+            <span>🔗 Öğrenciyi Seç</span>
+            <button type="button" id="ataKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
+        </div>
+        <div class="ata-govde">
+            <p id="ataBagimsizUyari" class="card-empty" style="display:none;">Bu özellik yalnızca uygulama içine gömülüyken (okul yönetim uygulamasından açıldığında) kullanılabilir.</p>
+            <label for="ataSinifSecici">Sınıf</label>
+            <select id="ataSinifSecici"><option value="">— Sınıf seçin —</option></select>
+            <div id="ataOgrenciListesi" class="ogrenci-secim-listesi" style="margin-top:10px;"></div>
+        </div>
+    </div>
+</div>
+
 <script>
 
 // Devtools açmadan (özellikle mobilde) hata görebilmek için: tüm script
