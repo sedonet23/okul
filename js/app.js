@@ -598,6 +598,17 @@ function modalAc(title, bodyHtml, kaydetFn, silFn, kaydetBtnMetni){
   document.body.classList.add('modal-open');
   _pullToRefreshAyarla(false);
 }
+/* Menüden (AltNav) açılan bir araç/kayıt kapatıldığında, eğer o araç
+   menü listesinden açılmışsa (bkz. js/alt-navigasyon.js _donusEkrani),
+   kullanıcıyı ana sayfaya değil o menü listesine geri döndürür. Menü
+   dışından açılmışsa (örn. personel detay panelindeki bir buton) hiçbir
+   şey yapmaz — AltNav.geriTusu() zaten bu durumda false döner. Her
+   modal/overlay kapatma noktası (modalKapat, detayPanelKapat, Puantaj/
+   Dilekçe/Optik gibi araçların kendi "✕ Kapat" butonları) bunu çağırır. */
+function _menuyeGeriDon(){
+  if(typeof AltNav !== 'undefined' && typeof AltNav.geriTusu === 'function') AltNav.geriTusu();
+}
+
 function modalKapat(){
   document.getElementById('modalOverlay').classList.remove('active');
   document.body.classList.remove('modal-open');

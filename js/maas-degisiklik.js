@@ -352,6 +352,7 @@
       document.body.classList.remove('dlk-overlay-acik');
       document.documentElement.style.overscrollBehaviorY = '';
       if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+      if (typeof _menuyeGeriDon === 'function') _menuyeGeriDon();
     };
     ov.querySelector('#mdfPrintBtn').onclick = _yazdir;
     ov.querySelector('#mdf_ay').onchange = (e) => { _state.ay = e.target.value; };

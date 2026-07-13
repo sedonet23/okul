@@ -477,6 +477,7 @@
     ov.querySelector('#ptCloseBtn').onclick = function(){
       ov.remove();
       document.body.classList.remove('pt-overlay-acik');
+      if (typeof _menuyeGeriDon === 'function') _menuyeGeriDon();
     };
     ov.querySelector('#ptPrintBtn').onclick = function(){
       if (typeof _ptYazdirmaHandler === 'function') {

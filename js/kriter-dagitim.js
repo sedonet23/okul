@@ -428,6 +428,7 @@
       ov.remove();
       document.body.classList.remove('dlk-overlay-acik');
       if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+      if (typeof _menuyeGeriDon === 'function') _menuyeGeriDon();
     };
     ov.querySelector('#kdOlcutDuzenleBtn').onclick = () => _olcutModaliAc(ov);
 

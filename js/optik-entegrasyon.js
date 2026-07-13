@@ -74,6 +74,7 @@
       _ov.style.display = 'none';
       document.body.classList.remove('modal-open');
       if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+      if (typeof _menuyeGeriDon === 'function') _menuyeGeriDon();
     },
     acikMi() {
       return !!(_ov && _ov.style.display === 'flex');
@@ -81,4 +82,30 @@
   };
 
   window.OptikSistemi = OptikSistemi;
+
+  /* ----------------------------------------------------------------
+     ÖĞRENCİ LİSTESİ KÖPRÜSÜ
+     Optik iframe'i aynı origin'den servis edildiği için window.parent
+     üzerinden bu nesneye doğrudan erişebilir (bkz. optik/js/*.js).
+     Ana uygulamada sınıf/öğrenci verileri `let siniflar`/`let veliler`
+     ile (js/siniflar.js) tanımlı — bunlar top-level `let` olduğundan
+     window.siniflar / window.veliler olarak GÖRÜNMÜYOR (var değil let).
+     Bu yüzden burada fonksiyonlarla köprü kuruluyor.
+     Veri modeli: veliler[] içindeki her kayıt aslında bir ÖĞRENCİ
+     kaydı (ogrenciAdi, ogrenciNo, sinifId) — bkz. js/siniflar.js. */
+  window.OptikVeriKaynagi = {
+    siniflarGetir() {
+      if (typeof siniflar === 'undefined' || !siniflar) return [];
+      return siniflar
+        .map(function(s){ return { id: s.id, ad: s.ad || '' }; })
+        .sort(function(a,b){ return a.ad.localeCompare(b.ad, 'tr'); });
+    },
+    ogrencilerGetir(sinifId) {
+      if (typeof veliler === 'undefined' || !veliler) return [];
+      return veliler
+        .filter(function(v){ return v.sinifId === sinifId; })
+        .map(function(v){ return { id: v.id, adSoyad: v.ogrenciAdi || '', ogrenciNo: v.ogrenciNo || '' }; })
+        .sort(function(a,b){ return a.adSoyad.localeCompare(b.adSoyad, 'tr'); });
+    }
+  };
 })();

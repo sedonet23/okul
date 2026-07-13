@@ -412,6 +412,7 @@
       document.body.classList.remove('dlk-overlay-acik');
       document.documentElement.style.overscrollBehaviorY = '';
       if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+      if (typeof _menuyeGeriDon === 'function') _menuyeGeriDon();
     };
     ov.querySelector('#dlkPrintBtn').onclick = () => {
       const fr = ov.querySelector('#dlkFrame');
