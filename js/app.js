@@ -1855,21 +1855,39 @@ async function yedektenGeriYukle(file){
    başlatılır (_TEMBEL_BASLATILANLAR seti sayesinde bir daha
    tekrar başlatılmaz — sekmeye her dönüşte yeniden abone olmaz).
 
-   DİKKAT (Sedat): 'tab' değerleri buradaki fonksiyon isimlerinden
-   TAHMİN edildi (örn. servisOturmaBaglantisiKur → 'servisOturma').
-   Gerçek data-tab / AltNav sekme id'leriyle eşleşmiyorsa aşağıdaki
-   TEMBEL_MODUL_TABLOSU'ndaki anahtarları (sol taraf) düzelt yeter,
-   başka bir yeri değiştirmene gerek yok.
+   DÜZELTME (bkz. kullanıcı bildirimi): Aşağıdaki anahtarların bir kısmı
+   gerçek data-tab / AltNav sekme id'leriyle EŞLEŞMİYORDU (örn. 'sinav'
+   yerine gerçek id'ler 'yaziliSinavlar'/'denemeSinavlari'; 'anketler'
+   yerine 'anket'; 'periyodik' yerine 'periyodikIsler'; 'cizelgeler' diye
+   bir sekme hiç yok — Çizelgeler grubundaki 8 alt sekmenin HER BİRİ ayrı
+   id taşıyor). Sonuç: o modüllerin Firestore dinleyicisi HİÇBİR ZAMAN
+   başlamıyordu — kayıt "Kaydedildi" diyip başarıyla yazılıyordu ama
+   ekrandaki liste hiç güncellenmiyordu (veri gerçekte Firestore'da var,
+   sadece istemci onu dinlemiyordu). Bu yüzden anahtarlar artık index.html
+   içindeki GERÇEK data-tab değerleriyle birebir eşleşiyor; birden çok
+   sekmenin aynı bağlantı fonksiyonunu paylaştığı yerlerde anahtar
+   tekrarlanıyor.
    ============================================================ */
 const TEMBEL_MODUL_TABLOSU = {
-  cizelgeler:     () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  anketler:       () => { if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur(); },
-  periyodik:      () => { periyodikBaglantilariKur(); },
-  tasima:         () => { tasimaBaglantilariKur(); },
-  servisOturma:   () => { if(typeof servisOturmaBaglantisiKur === 'function') servisOturmaBaglantisiKur(); },
-  sinav:          () => { sinavBaglantilariKur(); },
+  // Çizelgeler grubu — 8 alt sekmenin tamamı tek bir dinleyici setini paylaşır
+  sosyalKulupler: () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  belirliGunler:  () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  zumre:          () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  sok:            () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  bepPlani:       () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  rehberlik:      () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  maarifRapor:    () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  digerEvrak:     () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  anket:          () => { if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur(); },
+  periyodikIsler: () => { periyodikBaglantilariKur(); },
+  // Taşıma sekmesi açılınca hem servis listesi hem de servis oturma
+  // (yerleşim editörü) verisi birlikte hazır olsun diye ikisi de burada.
+  tasima:         () => { tasimaBaglantilariKur(); if(typeof servisOturmaBaglantisiKur === 'function') servisOturmaBaglantisiKur(); },
+  // "Sınav İşlemleri" iki ayrı sekmeye bölündü (bkz. kullanici-yonetimi.js
+  // MODUL_ALIAS) — ikisi de aynı sinavlar+denemeSinavlari dinleyicisini kurar.
+  yaziliSinavlar:   () => { sinavBaglantilariKur(); },
+  denemeSinavlari:  () => { sinavBaglantilariKur(); },
   dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
-  personelIzin:   () => { if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   },
@@ -1912,11 +1930,19 @@ function baglantilariKur(){
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
   }, hataGoster);
   if(typeof personelBaglantilariKur === 'function') personelBaglantilariKur();
+  // DÜZELTME: personelIzinler (İzin/Rapor kayıtları) ayrı bir sekme DEĞİL —
+  // personel detay panelinin içinde gösteriliyor. Bu yüzden eskiden tembel
+  // tabloya 'personelIzin' anahtarıyla eklenmişti ama böyle bir sekme hiç
+  // açılmadığı için dinleyici asla başlamıyordu: kayıt Firestore'a başarıyla
+  // yazılıyor ("Kaydedildi" doğruydu) ama liste hiç güncellenmiyordu. Artık
+  // personel verisiyle birlikte, uygulama açılışında koşulsuz başlatılıyor.
+  if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur();
 
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
-  // cizelgeler, anketler, periyodik, tasima, servisOturma, sinav,
-  // dokumanlar, personelIzin, evrak, ayarlar(ders/branş listesi)
+  // Çizelgeler grubu (sosyalKulupler/belirliGunler/zumre/sok/bepPlani/
+  // rehberlik/maarifRapor/digerEvrak), anket, periyodikIsler, tasima,
+  // yaziliSinavlar, denemeSinavlari, dokumanlar, evrak, ayarlar(ders/branş listesi)
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */

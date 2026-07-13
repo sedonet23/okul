@@ -59,6 +59,7 @@ function personelAramaGuncelle(){ renderPersonelListesi(); }
 function personelDetayAc(id){
   const p = personelListesi.find(x=>x.id===id);
   if(!p) return;
+  window._acikPersonelDetayId = id;
 
   document.getElementById('detayBaslik').textContent = p.adSoyad || 'Personel';
   document.getElementById('detayAltBaslik').textContent = p.gorev || 'Personel';

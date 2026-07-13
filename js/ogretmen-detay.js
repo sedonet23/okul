@@ -540,6 +540,34 @@ function ogretmenRaporOlustur(id) {
        </table>`
     : '<p style="color:#888;font-style:italic;">Yazılı sınav kaydı yok.</p>';
 
+  /* ---- İzinler / Raporlar ---- */
+  const izinKayitlari = (typeof _izinKayitlariniGetirOgretmen === 'function')
+    ? _izinKayitlariniGetirOgretmen(id)
+    : (typeof ogretmenIzinleri !== 'undefined' ? ogretmenIzinleri.filter(k => k.ogretmenId === id) : []);
+
+  const izinTabloHtml = izinKayitlari.length
+    ? `<table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:#0A6E6E;color:#fff;">
+          <th style="padding:5px 8px;text-align:left;">Tür</th>
+          <th style="padding:5px 8px;text-align:left;">Tarih Aralığı</th>
+          <th style="padding:5px 8px;text-align:center;">Gün</th>
+          <th style="padding:5px 8px;text-align:left;">Belge No</th>
+          <th style="padding:5px 8px;text-align:left;">Açıklama</th>
+          <th style="padding:5px 8px;text-align:center;">MEBBİS</th>
+        </tr></thead>
+        <tbody>${izinKayitlari.map(k =>
+          `<tr>
+            <td style="padding:4px 8px;">${escapeHtml(k.tur || '—')}</td>
+            <td style="padding:4px 8px;">${formatTarih(k.baslangic)} — ${formatTarih(k.bitis)}</td>
+            <td style="padding:4px 8px;text-align:center;">${escapeHtml(String(k.gunSayisi ?? '—'))}</td>
+            <td style="padding:4px 8px;">${escapeHtml(k.belgeNo || '—')}</td>
+            <td style="padding:4px 8px;">${escapeHtml(k.aciklama || '—')}</td>
+            <td style="padding:4px 8px;text-align:center;">${k.mebbisIslendiMi ? '✅' : '⚠️'}</td>
+          </tr>`
+        ).join('')}</tbody>
+       </table>`
+    : '<p style="color:#888;font-style:italic;">İzin/rapor kaydı yok.</p>';
+
   /* ---- Diğer Evraklar ---- */
   const evraklar = (digerEvrakListesi || [])
     .filter(e => (e.ogretmen || '').localeCompare(adSoyad, 'tr', { sensitivity: 'base' }) === 0);
@@ -625,6 +653,12 @@ function ogretmenRaporOlustur(id) {
     <div class="ogr-rapor-bolum">
       <h3>📁 Belge Durumu</h3>
       ${belgeDurumHtml}
+    </div>
+
+    <!-- İzinler / Raporlar -->
+    <div class="ogr-rapor-bolum">
+      <h3>📋 İzinler / Raporlar <span style="font-weight:400;font-size:10px;color:#888;">(${izinKayitlari.length} kayıt)</span></h3>
+      ${izinTabloHtml}
     </div>
 
     <!-- Evrak -->

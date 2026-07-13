@@ -144,6 +144,7 @@
       {ad:'Okul Bilgileri', ikon:'bina', modul:'okulBilgileri', aksiyon:git('okulBilgileri')},
       {ad:'Veriler', ikon:'veritabani', modul:'veri', aksiyon:git('veri')},
       {ad:'Kullanıcı İşlemleri', ikon:'kalkan', modul:'kullaniciYonetimi', aksiyon:git('kullaniciYonetimi')},
+      {ad:'Kullanıcı İstatistikleri', ikon:'liste', modul:'kullaniciYonetimi', aksiyon:git('istatistikler', function(){ if(typeof renderIstatistikler==='function') renderIstatistikler(); })},
     ]},
   ];
 
@@ -597,6 +598,12 @@
       listeIcerigiDoldur(GRUPLAR[_acikGrupIndex], _acikGrupIndex);
     }
     if(_ekran === 'profil') profilDoldur();
+    // Menü katmanlarından biri açıkken "aşağı çekince yenile" jesti kapatılır —
+    // aksi halde grid/liste/profil panelini yukarıdan aşağı kaydırmaya çalışırken
+    // native sayfa yenileme jesti araya giriyordu (bkz. js/app.js _pullToRefreshAyarla).
+    if(typeof _pullToRefreshAyarla === 'function'){
+      _pullToRefreshAyarla(_ekran === 'ana');
+    }
   }
 
   const AltNav = {

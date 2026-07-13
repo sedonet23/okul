@@ -194,6 +194,13 @@
   function personelIzinBaglantilariKur() {
     PersonelRepository.izinleriDinle(function(v){
       personelIzinler = v;
+      // Personel detay paneli açıkken (izin kaydı ekleme/silme sonrası veya
+      // başka bir cihazdan gelen değişiklikte) listeyi canlı güncelle —
+      // bkz. js/ogretmen-izin.js'teki eşdeğer desen.
+      const overlay = document.getElementById('detayOverlay');
+      if (overlay && overlay.classList.contains('active') && window._acikPersonelDetayId) {
+        renderPersonelIzinListesi(window._acikPersonelDetayId);
+      }
     });
   }
 
