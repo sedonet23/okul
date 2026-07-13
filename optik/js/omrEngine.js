@@ -1466,10 +1466,34 @@ window.OmrOkuyucu = (function () {
    * tutuluyor.
    */
   function baloncukGrubundanEnKoyuyuSec(cImageData, bubbles, ppmm) {
-    const sonuclar = bubbles.map((b) => {
-      const px = b.cx * ppmm;
-      const py = b.cy * ppmm;
-      const pr = b.r * ppmm;
+    const sikler = bubbles.map((b) => ({ px: b.cx * ppmm, py: b.cy * ppmm, pr: b.r * ppmm }));
+
+    // YEREL DİKEY KAYMA KİLİDİ (bkz. satirIcinDikeyKaymaBul'un başındaki
+    // açıklama — burada AYNI mantık, cevap ızgarasındaki bir "satır" yerine
+    // NUMARA/Kitapçık sütunundaki TÜM baloncuklara uygulanıyor).
+    //
+    // NEDEN GEREKLİ: bu blok sayfanın SOL KENARINDA, köşe hizalama
+    // işaretlerinden en uzak noktada duruyor — global (ve varsa genel
+    // ızgara) homografinin telafi edemediği artık kağıt eğriliği burada en
+    // büyük etkiyi yapıyor. Basılı çember sinyali öğrencinin işaretinden
+    // bağımsız olduğu için, homografi ne kadar kayık olursa olsun sütunu
+    // doğru yere kilitleyebiliyor (aynı teknik ana ızgarada blank/boş
+    // okuma sorununu çözmüştü — bkz. dosya başındaki not).
+    let dy = 0;
+    if (sikler.length >= 2) {
+      const yler = sikler.map((s) => s.py).sort((a, b) => a - b);
+      const araliklar = [];
+      for (let i = 1; i < yler.length; i++) araliklar.push(yler[i] - yler[i - 1]);
+      const ortAralik = araliklar.reduce((a, b) => a + b, 0) / araliklar.length;
+      if (ortAralik > 0) {
+        dy = satirIcinDikeyKaymaBul(cImageData, sikler, ortAralik, false, false);
+      }
+    }
+
+    const sonuclar = bubbles.map((b, i) => {
+      const px = sikler[i].px;
+      const py = sikler[i].py + dy;
+      const pr = sikler[i].pr;
       const sonuc = baloncukKaranlikOraniYerelArama(cImageData, px, py, pr, 0.5, 0.15);
       return { deger: b.deger !== undefined ? b.deger : b.harf, oran: sonuc.oran };
     });
