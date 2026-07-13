@@ -102,6 +102,10 @@
       {ad:'Duyurular', ikon:'duyuru', modul:'duyurular', aksiyon:git('duyurular')},
       {ad:'Anketler', ikon:'anket', modul:'anket', aksiyon:git('anket')},
     ]},
+    { ad:'Programlar', renk:'#0EA766', ikon:I.takvim, ogeler:[
+      {ad:'Ders Programı', ikon:'yazili', modul:'dersProgrami', aksiyon:git('dersProgrami')},
+      {ad:'Nöbet Programı', ikon:'kalkan', modul:'nobet', aksiyon:git('nobet')},
+    ]},
     { ad:'Takvim & Notlar', renk:'#1F9FD1', ikon:I.takvim, ogeler:[
       {ad:'Takvim', ikon:'takvim', modul:'takvim', aksiyon:git('takvim')},
       {ad:'Notlar', ikon:'not', modul:'notlar', aksiyon:git('notlar')},

@@ -467,8 +467,23 @@
     return ov;
   }
 
+  function _personelSeciciHtml(state) {
+    const liste = (typeof personelListesi !== 'undefined' && personelListesi) ? personelListesi.slice() : [];
+    liste.sort(function(a,b){ return (a.adSoyad||'').localeCompare(b.adSoyad||'', 'tr'); });
+    const secenekler = '<option value="">— Personel seçin —</option>' +
+      liste.map(function(p){
+        const secili = p.id === state.personelId ? ' selected' : '';
+        return '<option value="' + escapeHtml(p.id) + '"' + secili + '>' + escapeHtml(p.adSoyad||'İsimsiz') + '</option>';
+      }).join('');
+    return '<div style="margin-bottom:14px;">' +
+        '<label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Personel</label>' +
+        '<select id="pt_personel" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;">' + secenekler + '</select>' +
+      '</div>';
+  }
+
   function _formPanelHtml(state) {
     return '<h3 style="font-size:15px;margin-bottom:14px;color:#1b5e20;">Dönem Seçimi</h3>' +
+      _personelSeciciHtml(state) +
       '<div style="margin-bottom:12px;">' +
         '<label style="font-size:12.5px;font-weight:700;color:#555;display:block;margin-bottom:5px;">Başlangıç Tarihi</label>' +
         '<input id="pt_baslangic" type="date" value="' + escapeHtml(state.baslangic||'') + '" style="width:100%;padding:7px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;">' +
@@ -521,6 +536,19 @@
     }
 
     function _bagla() {
+      formPanel.querySelector('#pt_personel').onchange = function(e){
+        const secilenId = e.target.value || null;
+        const secilenPersonel = (secilenId && typeof personelListesi !== 'undefined')
+          ? personelListesi.find(function(p){ return p.id === secilenId; }) || null
+          : null;
+        state.personelId = secilenId;
+        state.adSoyad = secilenPersonel ? secilenPersonel.adSoyad : '';
+        state.tc = secilenPersonel ? secilenPersonel.tc : '';
+        state.gorev = secilenPersonel ? secilenPersonel.gorev : '';
+        _personelId = secilenId;
+        _personel = secilenPersonel;
+        render();
+      };
       formPanel.querySelector('#pt_baslangic').onchange = function(e){
         state.baslangic = e.target.value;
         frame.srcdoc = state.aktifSekme === 'imza' ? _imzaSirkususHtml(state) : _puantajHtml(state);
