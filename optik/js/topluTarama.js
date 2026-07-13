@@ -73,7 +73,7 @@ window.TopluTarama = (function () {
     // Yeni tarama ekle
     // ----------------------------------------------------------------
 
-    async function ekle(omrSonuc) {
+    function ekle(omrSonuc) {
         if (!omrSonuc || !omrSonuc.basarili) return null;
 
         const anahtar = window.CevapAnahtari ? window.CevapAnahtari.getir() : null;
@@ -88,7 +88,7 @@ window.TopluTarama = (function () {
         if (omrNo && /^\d+$/.test(omrNo)) {
             const temizNo = String(parseInt(omrNo, 10)); // "0039" → "39"
             try {
-                const bulunan = await _ogrenciNoIleGetir(temizNo);
+                const bulunan = _ogrenciNoIleGetir(temizNo);
                 if (bulunan) {
                     ogrenciBilgisi = {
                         ...omrKimlik,
@@ -127,20 +127,28 @@ window.TopluTarama = (function () {
      * window.db (Firestore instance) ve window.FirestoreSDK ({ collection,
      * query, where, getDocs }) global olarak tanımlı olmalıdır.
      */
-    async function _ogrenciNoIleGetir(ogrenciNo) {
-        const db = window.db;
-        const sdk = window.FirestoreSDK;
-        if (!db || !sdk) return null;
-
-        const { collection, query, where, getDocs } = sdk;
-        const q = query(
-            collection(db, 'oy_ogrenciler'),
-            where('ogrenciNo', '==', ogrenciNo)
-        );
-        const snap = await getDocs(q);
-        if (snap.empty) return null;
-        const doc = snap.docs[0];
-        return { _id: doc.id, ...doc.data() };
+    function _ogrenciNoIleGetir(ogrenciNo) {
+        // Önce aynı origin'deki parent frame'in OptikVeriKaynagi köprüsünü dene
+        // (bkz. js/optik-entegrasyon.js — veliler[] dizisini expose eder).
+        try {
+            const kaynak = window.parent && window.parent.OptikVeriKaynagi;
+            if (kaynak && typeof kaynak.ogrencilerGetir === 'function') {
+                // Tüm sınıfları tara, no eşleşen öğrenciyi bul
+                const siniflar = kaynak.siniflarGetir ? kaynak.siniflarGetir() : [];
+                for (const sinif of siniflar) {
+                    const liste = kaynak.ogrencilerGetir(sinif.id);
+                    const bulunan = liste.find(function(o) {
+                        return String(o.ogrenciNo) === String(ogrenciNo);
+                    });
+                    if (bulunan) {
+                        return { adSoyad: bulunan.adSoyad, sinif: sinif.ad, ogrenciNo: bulunan.ogrenciNo };
+                    }
+                }
+            }
+        } catch(e) {
+            console.warn('OptikVeriKaynagi erişim hatası:', e);
+        }
+        return null;
     }
 
     // ----------------------------------------------------------------
@@ -224,6 +232,12 @@ window.TopluTarama = (function () {
         window.dispatchEvent(event);
     }
 
-    return { baslat, ekle, sil, temizle, sonuclar, ozet };
+    function sinavlariListele() {
+        return _oturum.sinavAdi
+            ? [{ sinavAdi: _oturum.sinavAdi, baslangic: _oturum.baslangic, ogrenciSayisi: _oturum.sonuclar.length }]
+            : [];
+    }
+
+    return { baslat, ekle, sil, temizle, sonuclar, ozet, sinavlariListele };
 
 })();
