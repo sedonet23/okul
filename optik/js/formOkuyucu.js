@@ -94,6 +94,48 @@ export async function formuOkuVeGoster(sourceCanvas) {
 }
 
 /**
+ * Galeriden TOPLU (çoklu dosya) içe aktarma için kullanılır — otomatik
+ * QR + hizalama tespitiyle okur (köşe seçim UI'sini ATLAR, çünkü onlarca
+ * fotoğraf için tek tek elle köşe düzeltmesi pratik değil). formuOkuVeGoster()'dan
+ * farkı: 1) paylaşılan resultCanvas/sonucKutusu'na diagnostic ÇİZMEZ (her
+ * görüntü için pahalı ve gereksiz — sadece son işlenen görünürdü), 2)
+ * "omrOkumaTamamlandi" olayını YAYMAZ (bu olay kamera overlay'ini otomatik
+ * kapatıyor — toplu işlem sırasında ilk görüntüden sonra kapanmasını
+ * engellemek için batch tamamlanana kadar bastırılır, çağıran taraf tüm
+ * dosyalar bitince kendi tamamlandı olayını tetikler).
+ * @param {HTMLCanvasElement} sourceCanvas
+ * @returns {Promise<object>} OmrOkuyucu.formuOku() sonucu ({basarili, uyarilar, ...})
+ */
+export async function formuOkuToplu(sourceCanvas) {
+
+    if (typeof window.jsQR === "undefined") {
+        return { basarili: false, uyarilar: ["jsQR yüklenemedi."] };
+    }
+
+    if (typeof window.LayoutEngine === "undefined" || typeof window.OmrOkuyucu === "undefined") {
+        return { basarili: false, uyarilar: ["OMR motoru yüklenemedi."] };
+    }
+
+    const form = testFormunuOlustur();
+
+    let sonuc;
+
+    try {
+        sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form);
+    } catch (err) {
+        console.error("formuOku (toplu) hatası:", err);
+        return { basarili: false, uyarilar: ["Hata: " + err.message] };
+    }
+
+    if (sonuc && sonuc.basarili) {
+        window.dispatchEvent(new CustomEvent("omrSonucHazir", { detail: sonuc }));
+    }
+
+    return sonuc;
+
+}
+
+/**
  * Kullanıcının elle işaretlediği 4 köşeyle okur (otomatik QR/hizalama
  * tespiti atlanır). Köşe seçimi güvenilmez/başarısız otomatik tespiti
  * atlatmak veya doğrulamak için kullanılır.

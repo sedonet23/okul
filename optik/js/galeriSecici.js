@@ -3,8 +3,18 @@
 // Galeriden seçilen fotoğrafı okumadan önce, ortak köşe seçim UI'sinden
 // (koseSecici.js) geçirir. "Tamam" ile elle seçilen köşeler kullanılır;
 // "Otomatik Devam Et" ile eski otomatik QR+hizalama tespiti denenir.
+//
+// TOPLU İÇE AKTARMA: input çoklu dosya seçimine izin verir (galeriden
+// aynı anda birden fazla fotoğraf seçilebilir — "input multiple"). Tek
+// dosya seçilirse eski akış (elle köşe düzeltme imkânı) aynen çalışır;
+// birden fazla dosya seçilirse köşe seçim UI'si ATLANIR (onlarca kağıt
+// için tek tek elle düzeltme pratik değil) ve her fotoğraf otomatik
+// QR+hizalama tespitiyle sırayla okunur, sonuçlar Toplu Tarama oturumuna
+// eklenir. Otomatik tespiti başarısız olan kağıtlar özetle bildirilir —
+// o öğrencinin fotoğrafı tek başına (galeriden 1 dosya seçilerek) elle
+// köşe düzeltmesiyle tekrar denenebilir.
 
-import { formuOkuVeGoster, formuOkuElleKoseliVeGoster } from "./formOkuyucu.js";
+import { formuOkuVeGoster, formuOkuElleKoseliVeGoster, formuOkuToplu } from "./formOkuyucu.js";
 import { showStatus } from "./utils.js";
 import { koseSeciciElemanlariniAl, koseSecimAkisi } from "./koseSecici.js";
 
@@ -35,6 +45,69 @@ function dosyayiResmeCevir(dosya) {
 }
 
 /**
+ * Birden fazla dosyayı sırayla, OTOMATİK tespitle (köşe seçim UI'si
+ * ATLANARAK) okur. Her sonuç (başarılıysa) Toplu Tarama oturumuna
+ * otomatik eklenir (bkz. formuOkuToplu → "omrSonucHazir" olayı).
+ * @param {FileList|File[]} dosyalar
+ * @param {HTMLCanvasElement} canvas - ara işlem canvas'ı
+ */
+async function topluIceAktar(dosyalar, canvas) {
+
+    const toplam = dosyalar.length;
+    let basarili = 0;
+    const basarisizlar = [];
+
+    for (let i = 0; i < toplam; i++) {
+
+        const dosya = dosyalar[i];
+        showStatus(`Taranıyor... (${i + 1}/${toplam}) ${dosya.name || ""}`);
+
+        try {
+
+            const img = await dosyayiResmeCevir(dosya);
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            canvas.getContext("2d").drawImage(img, 0, 0);
+
+            const sonuc = await formuOkuToplu(canvas);
+
+            if (sonuc && sonuc.basarili) {
+                basarili++;
+            } else {
+                basarisizlar.push(dosya.name || `#${i + 1}`);
+            }
+
+        } catch (err) {
+            console.error("Toplu içe aktarma — dosya okunamadı:", dosya.name, err);
+            basarisizlar.push(dosya.name || `#${i + 1}`);
+        }
+
+    }
+
+    const ozetSatirlari = [`Toplu içe aktarma tamamlandı: ${basarili}/${toplam} başarılı.`];
+
+    if (basarisizlar.length) {
+        ozetSatirlari.push("");
+        ozetSatirlari.push("Otomatik okunamayanlar (bunları tek tek, galeriden 1 fotoğraf seçip elle köşe düzelterek tekrar deneyin):");
+        basarisizlar.forEach((ad) => ozetSatirlari.push("• " + ad));
+    }
+
+    showStatus(`Toplu içe aktarma: ${basarili}/${toplam} başarılı` + (basarisizlar.length ? `, ${basarisizlar.length} başarısız` : ""));
+
+    const sonucKutusu = document.getElementById("sonucKutusu");
+    if (sonucKutusu) {
+        sonucKutusu.textContent = ozetSatirlari.join("\n");
+        sonucKutusu.style.display = "block";
+    }
+
+    // Tüm dosyalar bitti — kamera overlay'ini kapatmak isteyen dinleyiciyi
+    // (bkz. index.html overlayKapat) ŞİMDİ tetikle (batch sırasında ARA
+    // adımlarda tetiklenmedi, bkz. formuOkuToplu).
+    window.dispatchEvent(new CustomEvent("omrOkumaTamamlandi", { detail: { toplu: true, basarili, toplam } }));
+
+}
+
+/**
  * Galeri seçici <input type="file"> elemanını dinlemeye başlar.
  * @param {string} inputId
  * @param {string} canvasId - ara işlem için kullanılacak gizli canvas
@@ -52,32 +125,43 @@ export function baglaGaleriSecici(inputId, canvasId) {
 
     input.addEventListener("change", async () => {
 
-        const dosya = input.files && input.files[0];
+        const dosyalar = input.files;
 
-        if (!dosya) {
+        if (!dosyalar || !dosyalar.length) {
             return;
         }
 
         try {
 
-            showStatus("Fotoğraf yükleniyor...");
+            if (dosyalar.length > 1) {
 
-            const img = await dosyayiResmeCevir(dosya);
+                // Toplu içe aktarma — köşe seçim UI'si atlanır.
+                await topluIceAktar(dosyalar, canvas);
 
-            const koseler = await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari);
-
-            // Okuma için TEMİZ görüntüyü kullan — köşe seçim canvas'ında
-            // kullanıcının sürüklediği yeşil tutamaçlar/çizgiler çizili,
-            // onları piksel verisine karıştırmamak için ayrı bir canvas'a
-            // orijinal görseli yeniden çiziyoruz.
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            canvas.getContext("2d").drawImage(img, 0, 0);
-
-            if (koseler) {
-                await formuOkuElleKoseliVeGoster(canvas, koseler);
             } else {
-                await formuOkuVeGoster(canvas);
+
+                const dosya = dosyalar[0];
+
+                showStatus("Fotoğraf yükleniyor...");
+
+                const img = await dosyayiResmeCevir(dosya);
+
+                const koseler = await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari);
+
+                // Okuma için TEMİZ görüntüyü kullan — köşe seçim canvas'ında
+                // kullanıcının sürüklediği yeşil tutamaçlar/çizgiler çizili,
+                // onları piksel verisine karıştırmamak için ayrı bir canvas'a
+                // orijinal görseli yeniden çiziyoruz.
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext("2d").drawImage(img, 0, 0);
+
+                if (koseler) {
+                    await formuOkuElleKoseliVeGoster(canvas, koseler);
+                } else {
+                    await formuOkuVeGoster(canvas);
+                }
+
             }
 
         } catch (err) {
@@ -87,7 +171,7 @@ export function baglaGaleriSecici(inputId, canvasId) {
 
         } finally {
 
-            // Aynı dosyayı art arda seçebilmek için input'u sıfırla
+            // Aynı dosya(lar)ı art arda seçebilmek için input'u sıfırla
             // (tarayıcı aynı dosya seçilince "change" olayını tetiklemez).
             input.value = "";
 
