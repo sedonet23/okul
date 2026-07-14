@@ -70,29 +70,44 @@
     <main class="content">
 
         <!-- ══════════════════════ SEKME: KAĞITLAR ══════════════════════ -->
+        <!-- Hidden: sinavTuru cevap anahtarı için gerekli -->
+        <select id="sinavTuru" style="display:none;"><option value="lgs">LGS</option><option value="bursluluk">Bursluluk</option><option value="ozel">Özel</option></select>
+        <div id="ozelAlanlar" style="display:none;"><input type="number" id="soruSayisi" value="20"><input type="number" id="sikSayisi" value="4"></div>
+
         <section class="tab-panel active" id="panel-kagitlar">
 
-            <section class="card">
-                <h2 class="card-title"><span class="icon-badge">⚙️</span> Sınav Ayarları</h2>
-
-                <div class="ayarlar">
-
-                    <label for="sinavTuru">Sınav Türü</label>
-                    <select id="sinavTuru">
-                        <option value="lgs">LGS</option>
-                        <option value="bursluluk">Bursluluk</option>
-                        <option value="ozel">Özel Test (soru/şık sayısı gir)</option>
-                    </select>
-
-                    <div id="ozelAlanlar" style="display:none;">
-                        <label for="soruSayisi">Soru Sayısı</label>
-                        <input type="number" id="soruSayisi" value="20">
-                        <label for="sikSayisi">Şık Sayısı</label>
-                        <input type="number" id="sikSayisi" value="4">
-                    </div>
-
+            <!-- Arama + filtreler -->
+            <div class="arama-satiri">
+                <div class="arama-kutu">
+                    <svg class="arama-ikon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="arama-input" id="kagitArama" placeholder="Öğrenci, numara veya sınıf ...">
                 </div>
-            </section>
+            </div>
+            <div class="filtre-satiri">
+                <button class="sirala-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="chip-scroll" id="kagitSinifChipleri">
+                    <button class="chip aktif" data-sinif="">Tümü 0</button>
+                </div>
+            </div>
+
+            <!-- Taranmış öğrenci listesi -->
+            <div id="taranmisOgrenciListesi" class="kart-listesi"></div>
+
+            <!-- Boş durum -->
+            <div id="kagitBosDurum" class="liste-bos-alan">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity=".3"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <p>Henüz tarama yapılmadı.<br><small>+ ile kağıt ekleyin.</small></p>
+            </div>
+
+            <!-- OMR işlem durumu (tarama sırasında görünür) -->
+            <div id="omrDurumAlani" class="card" style="display:none; margin:12px 16px;">
+                <div class="status"><span id="statusText">Hazır</span></div>
+                <canvas id="resultCanvas" class="result-canvas" style="width:100%;height:auto;display:none;"></canvas>
+                <div id="hataKutusu" style="display:none; color:var(--danger); padding:8px; font-size:12px;"></div>
+                <pre id="sonucKutusu" style="display:none; font-size:11px; overflow:auto;"></pre>
+            </div>
 
             <section class="card">
                 <details class="pdf-uretim">
@@ -179,79 +194,99 @@
 
         </section>
 
-        <!-- ══════════════════════ SEKME: ANAHTARLAR ══════════════════════ -->
+        <!-- ══ SEKME: ANAHTARLAR ══ -->
         <section class="tab-panel" id="panel-anahtarlar">
 
-            <section class="card" id="cevapAnahtariCard">
-                <h2 class="card-title"><span class="icon-badge">🗝️</span> Cevap Anahtarı</h2>
-
-                <div id="anahtarDurum" class="anahtar-durum anahtar-yok">
-                    Cevap anahtarı yüklenmedi
+            <!-- 3 dropdown -->
+            <div class="anahtar-dropdown-satiri">
+                <div class="floating-select-wrap">
+                    <label class="floating-label">Ders</label>
+                    <select id="manuelDersSecici" class="floating-select"></select>
                 </div>
-
-                <div class="anahtar-butonlar">
-                    <label class="galeri-buton" for="anahtarExcelInput">
-                        📊 Excel'den Yükle
-                        <input type="file" id="anahtarExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
-                    </label>
-                    <button id="anahtarDisaAktarBtn" type="button" style="display:none;">⬇️ Dışa Aktar</button>
-                    <button id="anahtarTemizleBtn" type="button" class="btn-tehlike" style="display:none;">🗑️ Tümünü Sil</button>
+                <div class="floating-select-wrap">
+                    <label class="floating-label">Kitapçık</label>
+                    <select id="anahtarKitapcik" class="floating-select">
+                        <option value="">—</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
                 </div>
-
-                <!-- Ders seçimi + şık işaretleme (her zaman görünür manuel editör) -->
-                <div id="manuelAnahtarPanel">
-
-                    <label for="manuelDersSecici">Ders</label>
-                    <select id="manuelDersSecici"></select>
-
-                    <div id="manuelSorularAlani" class="manuel-sorular"></div>
-
+                <div class="floating-select-wrap">
+                    <label class="floating-label">Eşleşeceği</label>
+                    <select id="anahtarEslesen" class="floating-select">
+                        <option value="">Yok</option>
+                    </select>
                 </div>
+            </div>
 
-            </section>
+            <!-- Durum etiketi -->
+            <div id="anahtarDurum" class="anahtar-durum-etiket anahtar-yok" style="display:none;">
+                Cevap anahtarı yüklenmedi
+            </div>
+
+            <!-- Soru listesi -->
+            <div id="manuelSorularAlani" class="anahtar-soru-listesi"></div>
+
+            <!-- Hidden inputs -->
+            <input type="file" id="anahtarExcelInput" accept=".xlsx,.xls,.csv" style="display:none;">
+            <button id="anahtarDisaAktarBtn" style="display:none;"></button>
+            <button id="anahtarTemizleBtn" style="display:none;"></button>
 
         </section>
 
-        <!-- ══════════════════════ SEKME: RAPORLAR ══════════════════════ -->
+        <!-- ══ SEKME: RAPORLAR ══ -->
         <section class="tab-panel" id="panel-raporlar">
+            <div class="rapor-govde">
 
-            <!-- Kayıtlı (kalıcı) sınavlar — sayfa yenilense/uygulama kapansa
-                 bile localStorage'da saklanır, buradan tekrar açılabilir. -->
-            <section class="card" id="gecmisSinavlarKart">
-                <h2 class="card-title"><span class="icon-badge">🗂️</span> Kayıtlı Sınavlar</h2>
-                <div id="gecmisSinavlarListesi" class="gecmis-sinavlar-listesi">
-                    <p class="liste-bos">Henüz kayıtlı sınav yok.</p>
-                </div>
-            </section>
-
-            <section class="card" id="topluTaramaCard">
-                <h2 class="card-title"><span class="icon-badge">📋</span> Tarama Oturumu</h2>
-
-                <div class="oturum-baslik-alani">
-                    <input type="text" id="sinavAdiInput" placeholder="Sınav adı (ör. 2026 Deneme-1)" value="">
-                    <button id="oturumBaslatBtn" type="button">▶️ Yeni Oturum Başlat</button>
+                <div class="rapor-grup-baslik">GENEL RAPORLAR</div>
+                <div class="rapor-kart">
+                    <button class="rapor-satir" data-rapor="basit-genel"><div class="rapor-ikon" style="background:#E3F2FD;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1E88E5" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span>Basit</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="detayli-genel"><div class="rapor-ikon" style="background:#F3E5F5;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8E24AA" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Detaylı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="karsilastir"><div class="rapor-ikon" style="background:#FFF8E1;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F9A825" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></div><span>Sınıfları Karşılaştır</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir son" data-rapor="hizli"><div class="rapor-ikon" style="background:#FFEBEE;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E53935" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><span>Hızlı Rapor</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                 </div>
 
-                <div id="oturumBilgi" style="display:none;" class="oturum-bilgi">
-                    <span id="oturumSayac">0 öğrenci tarandı</span>
-                    <button id="yenidenHesaplaBtn" type="button" class="btn-kucuk">🔁 Yeniden Hesapla</button>
-                    <button id="oturumSifirlaBtn" type="button" class="btn-kucuk btn-tehlike">🔄 Sıfırla</button>
+                <div class="rapor-grup-baslik">AYRINTILI RAPORLAR</div>
+                <div class="rapor-kart">
+                    <button class="rapor-satir son" data-rapor="ogr-sonuc"><div class="rapor-ikon" style="background:#E8F5E9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><span>Öğrenci Sonuçları</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                 </div>
 
-                <!-- Taranan öğrenciler listesi -->
-                <div id="taramaSonucListesi" class="tarama-listesi" style="display:none;"></div>
-
-                <!-- Özet ve dışa aktarma -->
-                <div id="disaAktarPanel" style="display:none;" class="disa-aktar-panel">
-                    <div class="ozet-satirlar" id="ozetSatirlar"></div>
-                    <div class="disa-butonlar">
-                        <button id="pdfRaporBtn" type="button">📄 PDF Rapor</button>
-                        <button id="excelRaporBtn" type="button">📊 Excel İndir</button>
-                    </div>
+                <div class="rapor-grup-baslik">ÇOKLU DERS SINAVI RAPORLARI</div>
+                <div class="rapor-kart">
+                    <button class="rapor-satir" data-rapor="cds-basit"><div class="rapor-ikon" style="background:#EDE7F6;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5E35B1" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg></div><span>Basit</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="cds-detayli"><div class="rapor-ikon" style="background:#EDE7F6;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7B1FA2" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Detaylı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir son" data-rapor="ders-sonuc"><div class="rapor-ikon" style="background:#FCE4EC;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E91E63" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></div><span>Ders Sonuçları</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                 </div>
-            </section>
 
+                <div class="rapor-grup-baslik">ANALİZ RAPORLARI</div>
+                <div class="rapor-kart">
+                    <button class="rapor-satir" data-rapor="cevap-analiz"><div class="rapor-ikon" style="background:#E0F7FA;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00838F" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><span>Cevap Analiz</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="soru-analiz"><div class="rapor-ikon" style="background:#FFF8E1;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F9A825" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><span>Soru Analiz</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="istatistik"><div class="rapor-ikon" style="background:#ECEFF1;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#607D8B" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="8" y1="12" x2="8" y2="17"/><line x1="12" y1="7" x2="12" y2="17"/><line x1="16" y1="10" x2="16" y2="17"/></svg></div><span>İstatistik</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir son" data-rapor="pdf-rapor"><div class="rapor-ikon" style="background:#FFEBEE;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E53935" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><span>PDF Rapor</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+
+                <div class="rapor-grup-baslik">DİĞER RAPORLAR</div>
+                <div class="rapor-kart">
+                    <button class="rapor-satir" data-rapor="girmeyenler"><div class="rapor-ikon" style="background:#E8EAF6;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3949AB" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div><span>Sınava Girmeyenler</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="basarili"><div class="rapor-ikon" style="background:#FFF8E1;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F9A825" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div><span>Başarılı Öğrenciler</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                    <button class="rapor-satir" data-rapor="excel-rapor"><div class="rapor-ikon" style="background:#E8F5E9;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div><span>Excel İndir</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+
+                <!-- Mevcut sayaç + sıfırlama (gizli, işlevsellik için) -->
+                <div style="display:none;">
+                    <span id="oturumSayac"></span>
+                    <button id="yenidenHesaplaBtn"></button>
+                    <button id="oturumSifirlaBtn"></button>
+                    <div id="taramaSonucListesi"></div>
+                    <div id="disaAktarPanel"><div id="ozetSatirlar"></div><button id="pdfRaporBtn"></button><button id="excelRaporBtn"></button></div>
+                </div>
+
+            </div>
         </section>
+
 
     </main>
 
@@ -260,75 +295,155 @@
 <!-- ══════════════════════ TAM EKRAN KAMERA OVERLAY'İ ══════════════════════ -->
 <div id="kameraOverlay" class="kamera-overlay">
 
+    <!-- Transparan üst bar -->
     <div class="kamera-ust-bar">
-        <span class="kamera-baslik">Kağıt Tara</span>
-        <button type="button" id="kameraKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
+        <button type="button" id="kameraKapatBtn" class="kamera-geri-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="kamera-baslik" id="kameraFormAdi">LGS</span>
+        <div class="kamera-ust-saglar">
+            <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></button>
+            <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></button>
+            <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
+        </div>
     </div>
 
-    <div class="kamera-video-alani">
+    <!-- Video tam ekran -->
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas" style="display:none;"></canvas>
 
-        <video
-            id="video"
-            autoplay
-            playsinline
-            muted>
-        </video>
-
-        <canvas
-            id="canvas"
-            style="display:none;">
-        </canvas>
-
-        <!-- ── Seviye Göstergesi ── -->
-        <div id="seviyeGosterge" class="seviye-gosterge">
-            <div id="seviyeHalka" class="seviye-halka">
-                <div id="seviyeNokta" class="seviye-nokta"></div>
-                <div class="seviye-merkez-nokta"></div>
-            </div>
-            <span id="seviyeMesaj" class="seviye-mesaj">Telefonu düzleştirin</span>
+    <!-- Seviye göstergesi -->
+    <div id="seviyeGosterge" class="seviye-gosterge">
+        <div id="seviyeHalka" class="seviye-halka">
+            <div id="seviyeNokta" class="seviye-nokta"></div>
+            <div class="seviye-merkez-nokta"></div>
         </div>
-
-        <div id="koseSecimAlani" style="display:none;">
-            <p id="koseTalimat" class="kose-talimat"></p>
-            <canvas id="koseSecimCanvas" class="kose-canvas"></canvas>
-            <div class="kose-butonlar">
-                <button id="koseTamam" type="button">✅ Tamam</button>
-                <button id="koseSifirla" type="button">↺ Sıfırla</button>
-                <button id="koseVazgec" type="button">🤖 Otomatik Dene</button>
-            </div>
-        </div>
-
+        <span id="seviyeMesaj" class="seviye-mesaj">Düzleştirin</span>
     </div>
 
-    <div class="kamera-alt-bar">
+    <!-- Köşe seçim overlay -->
+    <div id="koseSecimAlani" style="display:none;" class="kose-tam-overlay">
+        <p id="koseTalimat" class="kose-talimat"></p>
+        <canvas id="koseSecimCanvas" class="kose-canvas"></canvas>
+    </div>
 
-        <label id="galeriEtiketi" for="galeriInput" class="kamera-yan-btn" title="Galeriden Seç">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <!-- Alt ipucu alanı -->
+    <div class="kamera-ipucu-alani" id="kameraIpucu">
+        <span class="kamera-sekme-etiketi">Kağıtlar</span>
+        <div class="kamera-ipucu-bant">Kamerayı Optik Forma Tutun</div>
+        <span class="kamera-alt-form-adi" id="kameraAltFormAdi">LGS</span>
+    </div>
+
+    <!-- Alt aksiyonlar — normal mod -->
+    <div class="kamera-alt-bar" id="kameraAltNormal">
+        <label class="kamera-aksiyon-btn" for="galeriInput">
+            <div class="kamera-aksiyon-ikon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
             <span>Galeri</span>
             <input type="file" id="galeriInput" accept="image/*" multiple style="display:none;">
         </label>
 
-        <button id="capture" type="button" class="capture-shutter" title="Fotoğraf Çek">
+        <button id="capture" type="button" class="kamera-shutter">
+            <span class="shutter-dis"></span>
             <span class="shutter-ic"></span>
         </button>
 
-        <span class="kamera-yan-btn" style="visibility:hidden;">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10"/></svg>
-        </span>
-
+        <button class="kamera-aksiyon-btn" id="kameraArtiBtnPlus">
+            <div class="kamera-aksiyon-ikon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <span>Ekle</span>
+        </button>
     </div>
 
-    <!-- Kamerayı gerçekten başlatan/durduran butonlar — görsel olarak
-         gizli, mantık camera.js/app.js'te değişmeden kalsın diyeburada
-         tutuluyor; FAB ve kapat butonu bunları programatik olarak tetikler. -->
+    <!-- Alt aksiyonlar — köşe seçim modu -->
+    <div class="kamera-alt-bar kamera-kose-bar" id="kameraAltKose" style="display:none;">
+        <button id="koseTamam" type="button" class="kose-btn kose-tamam">✅ Tamam</button>
+        <button id="koseSifirla" type="button" class="kose-btn">↺ Sıfırla</button>
+        <button id="koseVazgec" type="button" class="kose-btn">🤖 Otomatik Dene</button>
+    </div>
+
     <button id="start" type="button" style="display:none;"></button>
     <button id="stop" type="button" style="display:none;"></button>
 
 </div>
 
-<button type="button" class="fab" id="fabTara" title="Kağıt Ekle">
+<!-- FABlar -->
+<button type="button" class="fab fab-etiketli" id="fabYeniSinav">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Yeni Sınav
+</button>
+<button type="button" class="fab" id="fabTara" title="Kağıt Ekle" style="display:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
+<button type="button" class="fab fab-etiketli" id="fabAnahtarEkle" style="display:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+    Anahtar Ekle
+</button>
+<button type="button" class="fab fab-etiketli" id="fabOptikForm" style="display:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Optik Form Oluştur
+</button>
+
+<!-- ════ YENİ SINAV TAM EKRANI ════ -->
+<div id="ekranYeniSinav" class="ekran" style="display:none;">
+    <header class="app-header" style="background:linear-gradient(135deg,var(--accent-2),var(--accent));flex-shrink:0;">
+        <button id="ysMoKapat" class="header-icon-btn" style="color:#fff;">✕</button>
+        <h1 class="header-baslik" style="color:#fff;font-size:17px;">Yeni Sınav</h1>
+        <button id="ysMoKaydet" class="modal-kaydet-btn" style="color:#fff;font-size:16px;">Kaydet</button>
+    </header>
+    <div style="flex:1;overflow-y:auto;padding:16px;">
+        <div class="ys-kart">
+            <h3 class="ys-kart-baslik">Sınav Bilgileri</h3>
+            <p style="color:var(--danger);font-size:12px;margin:0 0 8px;"><em>* Zorunlu Alanlar</em></p>
+            <div class="ys-alan">
+                <div class="ys-pill"><span class="ys-ikon">✏️</span><input type="text" id="ysSinavAd" class="ys-input" placeholder="Sınav Ad *" autocomplete="off"></div>
+            </div>
+            <div class="ys-alan-label">Optik Form *</div>
+            <div class="ys-alan">
+                <div class="ys-pill ys-tiklanabilir" id="ysOptikFormSec">
+                    <span class="ys-ikon">📋</span>
+                    <span id="ysOptikFormMetin" style="color:var(--text-faint);flex:1;">Optik Form Seçin</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+            </div>
+            <div class="ys-alan-label">Yanlış Cevaplara Ne Yapılsın</div>
+            <div class="ys-alan">
+                <div class="ys-pill"><span class="ys-ikon">≠</span><select id="ysYanlisHesap" class="ys-select"><option value="oldugugibi">Olduğu gibi bırak</option><option value="cikar">Çıkar (1/4)</option></select></div>
+            </div>
+            <div class="ys-alan">
+                <div class="ys-pill"><span class="ys-ikon">📁</span><input type="text" id="ysKlasor" class="ys-input" placeholder="Sınav Klasörü"></div>
+            </div>
+            <div class="ys-alan-label">Sınav Tarihi</div>
+            <div class="ys-alan">
+                <div class="ys-pill"><span class="ys-ikon">📅</span><input type="date" id="ysTarih" class="ys-input"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════ CEVAP ANAHTARI EKLE SHEET ════ -->
+<div id="anahtarEkleSheet" class="bottom-sheet-overlay">
+    <div class="bottom-sheet-panel">
+        <div class="bottom-sheet-tutac"></div>
+        <h3 class="bottom-sheet-baslik">Cevap Anahtarı Ekle</h3>
+        <div class="kagit-ekle-grid" style="grid-template-columns:repeat(3,1fr);">
+            <button class="kagit-ekle-btn" id="anahtarBtnKamera">
+                <div class="kagit-ekle-ikon" style="background:#BBDEFB;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1E88E5" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+                <span>Kamera</span>
+            </button>
+            <button class="kagit-ekle-btn" id="anahtarBtnBelge">
+                <div class="kagit-ekle-ikon" style="background:#FFF8E1;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F9A825" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/></svg></div>
+                <span>Belge Tara</span>
+            </button>
+            <button class="kagit-ekle-btn" id="anahtarBtnExcel">
+                <div class="kagit-ekle-ikon" style="background:#E8F5E9;"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                <span>Excel</span>
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- ════ KAĞIT EKLE BOTTOM SHEET ════ -->
 <div id="kagitEkleSheet" class="bottom-sheet-overlay">
@@ -434,25 +549,99 @@
     </div>
 </div>
 
-<!-- ══════════════════════ SINAV KAĞIDI DETAY / ELLE DÜZENLEME OVERLAY'İ ══════════════════════
-     Raporlar sekmesindeki bir öğrenci sonucuna tıklanınca açılır: taranan
-     kağıt görüntüsü + soru bazında doğru/yanlış/boş durumu gösterilir,
-     gerekirse her sorunun işaretli şıkkı elle değiştirilip o öğrencinin
-     puanı anında yeniden hesaplanabilir. -->
-<div id="sinavDetayOverlay" class="ata-overlay">
-    <div class="ata-panel detay-panel">
-        <div class="ata-baslik">
-            <span id="detayBaslik">🔍 Kağıt Detayı</span>
-            <button type="button" id="detayKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
+<!-- ════════════════════════════════════════════════════════════════
+     ÖĞRENCI DETAY TAM EKRANI (İçerik + Resim sekmeleri)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="ekranOgrenciDetay" class="ekran" style="display:none;">
+
+    <header class="app-header ogr-detay-header">
+        <button id="ogrDetayKapatBtn" class="header-icon-btn" style="color:#fff;">✕</button>
+        <h1 class="header-baslik ogr-detay-baslik" id="ogrDetayBaslik">Kağıt Detayı</h1>
+        <button id="ogrDetayKaydetBtn" class="modal-kaydet-btn" style="color:#fff;">Kaydet</button>
+        <button class="header-icon-btn" style="color:#fff;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        </button>
+    </header>
+
+    <!-- İçerik / Resim sekmeler -->
+    <div class="ir-sekmeler">
+        <button class="ir-sekme aktif" data-ir="icerik">İçerik</button>
+        <button class="ir-sekme" data-ir="resim">Resim</button>
+    </div>
+
+    <!-- İstatistik bar -->
+    <div class="ogr-stats-bar">
+        <span class="ogr-stats-net">Toplam Net : <strong id="ogrDetayNet">0.0</strong></span>
+        <span class="ogr-stats-puan" id="ogrDetayPuan">—</span>
+    </div>
+
+    <!-- İÇERİK PANELİ -->
+    <div class="ir-panel aktif" id="irPanelIcerik">
+
+        <!-- Pill inputs -->
+        <div class="pill-grid">
+            <div class="pill-wrap">
+                <label class="pill-label">Numara</label>
+                <div class="pill-input-satir">
+                    <input type="text" id="ogrDetayNumara" class="pill-input">
+                    <button class="pill-temizle" data-hedef="ogrDetayNumara">×</button>
+                </div>
+            </div>
+            <div class="pill-wrap">
+                <label class="pill-label">Sınıf</label>
+                <div class="pill-input-satir">
+                    <input type="text" id="ogrDetaySinif" class="pill-input">
+                    <button class="pill-temizle" data-hedef="ogrDetaySinif">×</button>
+                </div>
+            </div>
+            <div class="pill-wrap pill-tam">
+                <label class="pill-label">Ad Soyad</label>
+                <div class="pill-input-satir">
+                    <input type="text" id="ogrDetayAdSoyad" class="pill-input">
+                    <button class="pill-temizle" data-hedef="ogrDetayAdSoyad">×</button>
+                </div>
+            </div>
         </div>
-        <div class="ata-govde detay-govde">
-            <div id="detayOzetSatiri" class="detay-ozet-satiri"></div>
-            <div id="detayGoruntuAlani" class="detay-goruntu-alani"></div>
-            <p class="detay-not">Bir soruya tıklayıp doğru şıkkı seçerek okumayı elle düzeltebilirsin. Tekrar aynı şıkka basmak boşa alır.</p>
-            <div id="detaySorularAlani" class="detay-sorular-alani"></div>
+
+        <!-- Ders + Kitapçık -->
+        <div class="floating-dropdown-satiri">
+            <div class="floating-select-wrap">
+                <label class="floating-label">Ders</label>
+                <select id="ogrDetayDers" class="floating-select"></select>
+            </div>
+            <div class="floating-select-wrap">
+                <label class="floating-label">Kitapçık</label>
+                <select id="ogrDetayKitapcik" class="floating-select">
+                    <option value="">—</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Soru ızgarası -->
+        <div id="ogrDetaySorular" class="ogr-soru-izgarasi"></div>
+
+    </div><!-- irPanelIcerik -->
+
+    <!-- RESİM PANELİ -->
+    <div class="ir-panel" id="irPanelResim">
+        <div id="ogrDetayResim" class="ogr-resim-alani">
+            <p class="card-empty">Bu kayıt için görüntü yok.</p>
         </div>
     </div>
-</div>
+
+    <!-- Alt istatistik bar -->
+    <div class="ogr-alt-bar">
+        <span><span class="stat-renk-d">D</span> : <strong id="ogrAltD">0</strong></span>
+        <span><span class="stat-renk-y">Y</span> : <strong id="ogrAltY">0</strong></span>
+        <span>B : <strong id="ogrAltB">0</strong></span>
+        <span><span class="stat-renk-n">N</span> : <strong id="ogrAltN">0.0</strong></span>
+    </div>
+
+</div><!-- #ekranOgrenciDetay -->
 
 <script>
 
@@ -524,19 +713,18 @@ waitForEngine();
     const panelKap = { kagitlar: "panel-kagitlar", anahtarlar: "panel-anahtarlar", raporlar: "panel-raporlar" };
 
     function sekmeyeGec(ad){
-
-        butonlar.forEach(function (b) {
-            b.classList.toggle("active", b.dataset.tab === ad);
+        butonlar.forEach(function(b){ b.classList.toggle("active", b.dataset.tab===ad); });
+        Object.keys(panelKap).forEach(function(k){
+            const panel=document.getElementById(panelKap[k]);
+            if(panel) panel.classList.toggle("active", k===ad);
         });
-
-        Object.keys(panelKap).forEach(function (k) {
-            const panel = document.getElementById(panelKap[k]);
-            if (panel) panel.classList.toggle("active", k === ad);
-        });
-
-        const fab = document.getElementById("fabTara");
-        if (fab) fab.style.display = (ad === "kagitlar") ? "flex" : "none";
-
+        // FAB yönetimi: her tab için doğru FAB
+        const fabTara   =document.getElementById("fabTara");
+        const fabAnahtar=document.getElementById("fabAnahtarEkle");
+        if(fabTara)    fabTara.style.display    = ad==="kagitlar"   ? "flex" : "none";
+        if(fabAnahtar) fabAnahtar.style.display = ad==="anahtarlar" ? "flex" : "none";
+        // Anahtarlar sekmesi açıldığında soru ızgarasını yenile
+        if(ad==="anahtarlar" && typeof _dersSeciciYenile==="function") _dersSeciciYenile();
     }
 
     butonlar.forEach(function (b) {
