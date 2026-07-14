@@ -1162,7 +1162,6 @@ function galeriSecimIsle(dosyalar) {
                 cvs.width = img.width; cvs.height = img.height;
                 cvs.getContext('2d').drawImage(img, 0, 0);
                 try {
-                    if (typeof window.baglaGaleriSecici !== 'undefined') return;
                     // formOkuyucu.js ile işle
                     const { formuOkuVeGoster } = await import('./formOkuyucu.js');
                     await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
@@ -1329,9 +1328,8 @@ function baslat() {
         const inp = document.getElementById('galeriInputSheet');
         if (inp) inp.click();
     });
-    document.getElementById('galeriInputSheet')?.addEventListener('change', function () {
-        galeriSecimIsle(this.files); this.value = '';
-    });
+    // galeriInputSheet kamera overlay dışında (bottom sheet) kullanılıyor
+    // baglaGaleriSecici aşağıda galeriInput için bağlanıyor; sheet için manuel yönlendirme:
     document.getElementById('bsManuel').addEventListener('click', () => { sheetKapat('sheetKagitEkle'); manuelKagitAc(); });
 
     // ── Anahtar araçlar ──
@@ -1365,6 +1363,7 @@ function baslat() {
     // galeriSecici.js bağla (kamera için)
     if (typeof window.baglaGaleriSecici === 'function') {
         window.baglaGaleriSecici('galeriInput', 'canvas');
+        window.baglaGaleriSecici('galeriInputSheet', 'canvas');
     }
 
     // Kamera start/stop butonları
