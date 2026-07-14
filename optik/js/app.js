@@ -1124,9 +1124,28 @@ async function galeriSecimIsle(dosyalar) {
         const dosya = dosyaListesi[0];
         const img = await dosyaToImg(dosya);
 
-        const koseler = koseElemanlari
-            ? await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari)
-            : null;
+        // ÖNEMLİ: köşe seçim ekranı (#koseSecimAlani), DOM'da #kameraOverlay'in
+        // İÇİNDE yaşıyor. #kameraOverlay'in kendi "hidden" özelliği açık
+        // kaldığı sürece (yani kamera açılmadan, sadece "+ > Galeri" ile tek
+        // dosya seçildiğinde), köşe seçici kendi style.display'ini "block"
+        // yapsa bile üst elemanın "hidden" özelliği yüzünden EKRANDA HİÇ
+        // GÖRÜNMÜYORDU — kullanıcı görünmeyen bir ekranda "Tamam"a basamadığı
+        // için akış sonsuza dek beklemede kalıyor, ne sonuç ne de hata/uyarı
+        // çıkıyordu. Bu yüzden köşe seçimi süresince overlay'i geçici olarak
+        // açığa çıkarıyoruz (kamera akışını BAŞLATMADAN, sadece görünür
+        // kılarak) ve işlem bitince eski haline döndürüyoruz.
+        const kameraOverlayEl = document.getElementById('kameraOverlay');
+        const overlayOncekiHidden = kameraOverlayEl ? kameraOverlayEl.hidden : null;
+        if (kameraOverlayEl) kameraOverlayEl.hidden = false;
+
+        let koseler;
+        try {
+            koseler = koseElemanlari
+                ? await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari)
+                : null;
+        } finally {
+            if (kameraOverlayEl) kameraOverlayEl.hidden = overlayOncekiHidden === null ? true : overlayOncekiHidden;
+        }
 
         canvas.width = img.naturalWidth;
         canvas.height = img.naturalHeight;

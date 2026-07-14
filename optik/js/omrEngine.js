@@ -447,9 +447,33 @@ window.OmrOkuyucu = (function () {
       }
     }
 
-    const siraliGriler = Array.from(griler).sort((a, b) => a - b);
-    const esikIndex = Math.floor(siraliGriler.length * 0.12);
-    const esik = siraliGriler[esikIndex];
+    // Eşik: bölgenin KENDİ piksel dağılımının alt yüzdeliği kullanılıyor
+    // (aydınlatma koşulundan bağımsız çalışsın diye) — ama SAF BEYAZ
+    // (>=250) pikseller bu hesaptan ÖNCE ELENİYOR. Neden: LGS gibi
+    // formlarda alt köşelere yakın büyük bir BOŞ (baskısız) alan olabiliyor
+    // — bu durumda pencerenin %12'sinden FAZLASI zaten tam beyaz (255)
+    // oluyor, "%12'lik yüzdelik" hesap DEJENERE OLUP tam 255 çıkıyor, ki
+    // bu da "<=255" koşulunu HERKES sağlıyor demek — yani flood-fill koca
+    // pencereyi TEK BİR BLOB sanıp (gerçek işaret bulunamadan) boyut/şekil
+    // filtrelerine takılıyor. Beyazı hesaptan çıkarıp KALAN (gerçekten
+    // koyu/gri) piksellerin yüzdeliğini almak, işareti boş bir pencerede
+    // bile güvenilir şekilde izole ediyor (gerçek verilerle doğrulandı).
+    const BEYAZ_ESIK = 250;
+    const koyuGriler = [];
+    for (let i = 0; i < griler.length; i++) {
+      if (griler[i] < BEYAZ_ESIK) koyuGriler.push(griler[i]);
+    }
+
+    let esik;
+    if (koyuGriler.length >= 10) {
+      koyuGriler.sort((a, b) => a - b);
+      esik = koyuGriler[Math.floor(koyuGriler.length * 0.3)];
+    } else {
+      // Pencerede neredeyse hiç koyu/gri piksel yok — (nadir/aşırı ışıklı
+      // fotoğraf) eski yönteme geri düş.
+      const siraliGriler = Array.from(griler).sort((a, b) => a - b);
+      esik = siraliGriler[Math.floor(siraliGriler.length * 0.12)];
+    }
 
     const ziyaretEdildi = new Uint8Array(w * h);
     const kuyrukX = new Int32Array(w * h);
