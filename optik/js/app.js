@@ -696,9 +696,21 @@ function _omrSonucuisle(raw) {
     if (!raw || !_aktifSinavId) return;
     const dersler = formDersleriniGetir(_aktifSinavId);
     const anahtar = DB.anahtariGetir(_aktifSinavId);
+
+    // Okunan öğrenci no'yu sınıf listesindeki öğrencilerle eşleştir
+    // (manuel kağıt girişindeki _manuelNoIleAra ile aynı mantık) —
+    // eşleşme bulunursa ad-soyad ve sınıf bilgisini de doldur.
+    const kimlik = raw.ogrenciKimlik || {};
+    const no = String(kimlik.ogrenciNo || '').trim();
+    const eslesen = no ? _manuelTumOgrenciler().find(o => String(o.ogrenciNo || '').trim() === no) : null;
+
+    const ogrenci = eslesen
+        ? { ...kimlik, ogrenciNo: eslesen.ogrenciNo, adSoyad: eslesen.adSoyad, sinif: eslesen.sinifAd, ogrenciId: eslesen.id }
+        : kimlik;
+
     const sonuc = {
         id:            'sonuc_' + Date.now(),
-        ogrenci:       raw.ogrenciKimlik || {},
+        ogrenci,
         cevaplar:      raw.cevaplar || {},
         kagitGoruntusu:raw.kagitGoruntusu || null,
         elleGirildi:   false,
