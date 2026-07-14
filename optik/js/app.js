@@ -974,29 +974,69 @@ function optikFormSheetAc(onSecim) {
 // ════════════════════════════════════════════════════════════════
 // GALERİ
 // ════════════════════════════════════════════════════════════════
-function galeriSecimIsle(dosyalar) {
+async function galeriSecimIsle(dosyalar) {
     if (!dosyalar?.length) return;
     sheetKapat('sheetKagitEkle');
-    // galeriSecici.js baglaGaleriSecici fonksiyonu kullanılıyor
-    // Her dosya için omrEngine ile işle
-    Array.from(dosyalar).forEach(async dosya => {
-        const reader = new FileReader();
-        reader.onload = async e => {
-            const img = new Image();
-            img.onload = async () => {
-                const cvs = document.getElementById('canvas');
-                cvs.width = img.width; cvs.height = img.height;
-                cvs.getContext('2d').drawImage(img, 0, 0);
-                try {
-                    if (typeof window.baglaGaleriSecici !== 'undefined') return;
-                    // formOkuyucu.js ile işle
-                    const { formuOkuVeGoster } = await import('./formOkuyucu.js');
-                    await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
-                } catch(err) { console.error('Galeri okuma hatası', err); }
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(dosya);
+
+    const canvas = document.getElementById('canvas');
+    if (!canvas) { console.error('Galeri okuma: #canvas bulunamadı'); return; }
+
+    try {
+        const { formuOkuVeGoster, formuOkuElleKoseliVeGoster, formuOkuToplu } = await import('./formOkuyucu.js');
+
+        if (dosyalar.length > 1) {
+            // Birden fazla dosya: köşe seçimi atlanır, otomatik toplu okuma.
+            for (const dosya of Array.from(dosyalar)) {
+                const img = await dosyaToImg(dosya);
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+                try { await formuOkuToplu(canvas); }
+                catch (err) { console.error('Toplu galeri okuma hatası:', dosya.name, err); }
+            }
+            return;
+        }
+
+        // Tek dosya: elle köşe seçim akışı (koseSecici.js) üzerinden geçir.
+        const { koseSeciciElemanlariniAl, koseSecimAkisi } = await import('./koseSecici.js');
+        const koseElemanlari = koseSeciciElemanlariniAl();
+
+        const dosya = dosyalar[0];
+        const img = await dosyaToImg(dosya);
+
+        const koseler = koseElemanlari
+            ? await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari)
+            : null;
+
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+
+        if (koseler) {
+            await formuOkuElleKoseliVeGoster(canvas, koseler);
+        } else {
+            await formuOkuVeGoster(canvas);
+        }
+
+    } catch (err) {
+        console.error('Galeri okuma hatası', err);
+        const statusEl = document.getElementById('statusText');
+        if (statusEl) statusEl.textContent = 'Fotoğraf okunamadı: ' + err.message;
+    }
+}
+
+/**
+ * Bir File nesnesini yüklenmiş bir <img>'e çevirir.
+ * @param {File} dosya
+ * @returns {Promise<HTMLImageElement>}
+ */
+function dosyaToImg(dosya) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(dosya);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Görsel yüklenemedi.')); };
+        img.src = url;
     });
 }
 
@@ -1178,10 +1218,8 @@ function baslat() {
         })
     );
 
-    // galeriSecici.js bağla (kamera için)
-    if (typeof window.baglaGaleriSecici === 'function') {
-        window.baglaGaleriSecici('galeriInput', 'canvas');
-    }
+    // Not: galeriInput ve galeriInputSheet için okuma akışı galeriSecimIsle()
+    // içinde ele alınıyor (yukarıda 'change' dinleyicileriyle bağlandı).
 
     // Kamera start/stop butonları
     import('./camera.js').then(mod => {
