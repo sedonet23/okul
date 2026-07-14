@@ -690,3 +690,38 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 .fab-kume {
     display: none; /* sekmeAktiflestir JS ile kontrol eder */
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST — Galeri/tarama geri bildirimi (bkz. app.js toastGoster())
+   NOT: #omrDurum/#statusText eski (standalone) sürümden kalma gizli
+   bir konteyner ve hiçbir yerde görünür kılınmıyordu; bu yüzden okuma
+   sonucu/hatası kullanıcıya hiç gösterilmiyordu. Bu toast, o geri
+   bildirimin yerini alır.
+═══════════════════════════════════════════════════════════════ */
+.o-toast-kap {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translate(-50%, 12px);
+    max-width: calc(100% - 32px);
+    width: max-content;
+    z-index: 999;
+    background: var(--bg-card);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--nm-sm);
+    padding: 12px 16px;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease, transform .2s ease;
+    border-left: 4px solid var(--accent);
+    white-space: pre-line;
+}
+.o-toast-kap.gorunur { opacity: 1; transform: translate(-50%, 0); }
+.o-toast-kap.basari  { border-left-color: var(--accent); }
+.o-toast-kap.uyari   { border-left-color: #F59E0B; }
+.o-toast-kap.hata    { border-left-color: var(--tehlike); color: var(--tehlike); }
