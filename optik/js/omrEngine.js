@@ -1520,7 +1520,11 @@ window.OmrOkuyucu = (function () {
     let numara = '';
     let tamOkunduMu = true;
     for (const basamak of numaraAlani.basamaklar) {
-      const sonuc = baloncukGrubundanEnKoyuyuSec(cImageData, basamak.bubbles, ppmm);
+      // Numara alanı için eşiksiz mod: her basamakta en koyu baloncuğu
+      // her zaman seç. Eşik kontrolü (KARANLIK_ESIK) atlanır çünkü
+      // dijital PDF'den üretilen formlarda baskı/tarama farkından dolayı
+      // güven değerleri düşük kalabilir; ama yine de en koyu = işaretli.
+      const sonuc = _basamakEnKoyusu(cImageData, basamak.bubbles, ppmm);
       if (sonuc.deger === null) {
         numara += '?';
         tamOkunduMu = false;
@@ -1529,6 +1533,30 @@ window.OmrOkuyucu = (function () {
       }
     }
     return { numara, tamOkunduMu };
+  }
+
+  /**
+   * Numara basamakları için eşiksiz seçici.
+   * En koyu baloncuğu döndürür. İşaretli baloncuk ile işaretsizler
+   * arasındaki fark en az MIN_FARK olmalı; yoksa belirsiz sayılır.
+   */
+  function _basamakEnKoyusu(cImageData, bubbles, ppmm) {
+    const MIN_FARK = 0.04; // çok düşük tutuldu: dijital formlar için yeterli
+    const sonuclar = bubbles.map(function(b) {
+      const px = b.cx * ppmm;
+      const py = b.cy * ppmm;
+      const pr = b.r * ppmm;
+      const s = baloncukKaranlikOraniYerelArama(cImageData, px, py, pr, 0.5, 0.15);
+      return { deger: b.deger !== undefined ? b.deger : b.harf, oran: s.oran };
+    });
+    sonuclar.sort(function(a, b) { return b.oran - a.oran; });
+    const birinci = sonuclar[0];
+    const ikinci = sonuclar[1];
+    // İkinci yoksa (tek baloncuk) veya fark yeterliyse seç
+    if (!birinci) return { deger: null, guven: 0 };
+    const fark = ikinci ? (birinci.oran - ikinci.oran) : 1;
+    if (fark < MIN_FARK) return { deger: null, guven: birinci.oran };
+    return { deger: birinci.deger, guven: birinci.oran };
   }
 
   /** Basit çapraz çarpım işareti — 3 noktanın döndüğü yönü (saat/saat-yönü-tersi) verir. */
