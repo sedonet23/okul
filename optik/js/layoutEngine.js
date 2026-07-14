@@ -9,6 +9,22 @@ const SABIT_SABLONLAR = {
 };
 
 /**
+ * FORM KODU — kağıdın HANGİ optik form şablonuyla üretildiğini (LGS /
+ * Bursluluk / Özel) OMR ile doğrulamak için kullanılan, öğrencinin
+ * doldurmadığı, PDF üretilirken OTOMATİK önceden işaretlenen (bkz.
+ * pdfFormGenerator.js: formKoduAlaniCiz) küçük bir baloncuk bloğu.
+ * Amaç: seçili sınavdan farklı bir optik form kağıdının yanlışlıkla
+ * (o sınavın şablonuymuş gibi) okunmasını engellemek — bkz.
+ * omrEngine.js: formKoduOku, formOkuyucu.js: form kodu doğrulaması.
+ * Her şablon SABİT bir harfe karşılık gelir (kitapcikAlaniHesapla'daki
+ * A/B/C... baloncuklarıyla aynı geometri, secenekSayisi=3 sabit).
+ */
+const FORM_KODU_HARFLERI = { lgs: 'A', bursluluk: 'B', ozel: 'C' };
+function formKoduHarfiGetir(sinavTuru) {
+  return FORM_KODU_HARFLERI[sinavTuru] || 'C';
+}
+
+/**
  * A4 sayfasını istenen forma-sayısına göre alt bölgelere ayırır.
  * @param {1|2|4|6} formsPerA4
  * @returns {Array<{x:number,y:number,width:number,height:number}>}
@@ -597,6 +613,8 @@ function lgsSablonuOlustur() {
     kitapcikAlani.y + kitapcikAlani.height + 4,
     4
   );
+  // Form Kodu: sol blokta, Numara'nın hemen altında — bkz. FORM_KODU_HARFLERI notu.
+  const formKoduAlani = kitapcikAlaniHesapla(solBlokX, numaraAlani.y + numaraAlani.height + 4, 3);
 
   const sutunBaslangicX = KENAR_PAY + SOL_BLOK_GENISLIK + SOL_BLOK_BOSLUK;
 
@@ -630,6 +648,7 @@ function lgsSablonuOlustur() {
         ...standartHeaderOlustur(KENAR_PAY, 'LGS SINAV CEVAP KAĞIDI'),
         kitapcikAlani,
         numaraAlani,
+        formKoduAlani,
         bolumler, // dinamik "izgara" yerine bölüm bazlı yapı
         genelIzgaraCercevesi: genelIzgaraCercevesiHesapla(bolumler),
         kontrol: { hesaplananToplamGenislik: kullanilanGenislik, sayfaGenisligi: A4.width },
@@ -677,6 +696,8 @@ function burslulukSablonuOlustur() {
     kitapcikAlani.y + kitapcikAlani.height + 4,
     4
   );
+  // Form Kodu: sol blokta, Numara'nın hemen altında — bkz. FORM_KODU_HARFLERI notu.
+  const formKoduAlani = kitapcikAlaniHesapla(solBlokX, numaraAlani.y + numaraAlani.height + 4, 3);
 
   const sutunBaslangicX = KENAR_PAY + SOL_BLOK_GENISLIK + SOL_BLOK_BOSLUK;
 
@@ -713,6 +734,7 @@ function burslulukSablonuOlustur() {
         }),
         kitapcikAlani,
         numaraAlani,
+        formKoduAlani,
         bolumler,
         genelIzgaraCercevesi: genelIzgaraCercevesiHesapla(bolumler),
         kontrol: { hesaplananToplamGenislik: kullanilanGenislik, sayfaGenisligi: A4.width },
@@ -808,6 +830,7 @@ window.LayoutEngine = {
   sayfaDuzeniOner,
   lgsSablonuOlustur,
   burslulukSablonuOlustur,
+  formKoduHarfiGetir,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

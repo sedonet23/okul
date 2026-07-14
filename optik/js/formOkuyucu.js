@@ -45,6 +45,7 @@ function _kucukGoruntuUret(canvas, maxGenislik = 900, kalite = 0.55) {
  * Sayfadaki "Sınav Türü" seçimine (ve varsa soru/şık sayısı girdilerine)
  * göre okunacak form şablonunu kurar. İlgili elemanlar bulunamazsa
  * (ör. eski bir index.html) LGS'ye düşer.
+ * @returns {{form: object, sinavTuru: string}}
  */
 function testFormunuOlustur() {
 
@@ -65,7 +66,35 @@ function testFormunuOlustur() {
 
     const layout = window.LayoutEngine.layoutHesapla(secenekler);
 
-    return layout.formlar[0];
+    return { form: layout.formlar[0], sinavTuru };
+}
+
+/**
+ * Okunan kağıdın FORM KODU'nun (bkz. layoutEngine.js: FORM_KODU_HARFLERI,
+ * omrEngine.js: formKoduOku), o an aktif olan sınavın BEKLEDİĞİ form
+ * koduyla eşleşip eşleşmediğini doğrular. Eşleşmiyorsa okumayı
+ * BAŞARISIZ sayar — amaç, seçili sınavdan farklı bir optik form kağıdının
+ * (ör. Bursluluk sınavı açıkken bir LGS kağıdının) yanlışlıkla o sınava
+ * ait gibi okunup kaydedilmesini engellemek.
+ *
+ * `formKodu` okunamadıysa (null — eski/uyumsuz bir şablonla üretilmiş
+ * kağıt) doğrulama ATLANIR, geriye dönük uyumluluk için okuma kabul edilir.
+ */
+function formKoduDogrula(sonuc, sinavTuru) {
+    if (!sonuc || !sonuc.basarili || !sonuc.formKodu) return sonuc;
+
+    const beklenen = window.LayoutEngine.formKoduHarfiGetir(sinavTuru);
+
+    if (sonuc.formKodu !== beklenen) {
+        sonuc.basarili = false;
+        sonuc.uyarilar = [
+            'Bu kağıt seçili sınavın optik formuyla eşleşmiyor (başka bir sınava/form türüne ait olabilir). ' +
+            'Doğru sınavı seçtiğinizden ve doğru kağıdı taradığınızdan emin olun.',
+            ...(sonuc.uyarilar || []),
+        ];
+    }
+
+    return sonuc;
 }
 
 /**
@@ -87,12 +116,13 @@ export async function formuOkuVeGoster(sourceCanvas) {
 
     showStatus("Form okunuyor...");
 
-    const form = testFormunuOlustur();
+    const { form, sinavTuru } = testFormunuOlustur();
 
     let sonuc;
 
     try {
         sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form);
+        formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOku hatası:", err);
         showStatus("Okuma sırasında hata oluştu: " + err.message);
@@ -145,12 +175,13 @@ export async function formuOkuToplu(sourceCanvas) {
         return { basarili: false, uyarilar: ["OMR motoru yüklenemedi."] };
     }
 
-    const form = testFormunuOlustur();
+    const { form, sinavTuru } = testFormunuOlustur();
 
     let sonuc;
 
     try {
         sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form);
+        formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOku (toplu) hatası:", err);
         return { basarili: false, uyarilar: ["Hata: " + err.message] };
@@ -187,12 +218,13 @@ export async function formuOkuElleKoseliVeGoster(sourceCanvas, koseler) {
 
     showStatus("Form (elle seçilen köşelerle) okunuyor...");
 
-    const form = testFormunuOlustur();
+    const { form, sinavTuru } = testFormunuOlustur();
 
     let sonuc;
 
     try {
         sonuc = await window.OmrOkuyucu.formuOkuElleKoseli(sourceCanvas, form, koseler);
+        formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOkuElleKoseli hatası:", err);
         showStatus("Okuma sırasında hata oluştu: " + err.message);

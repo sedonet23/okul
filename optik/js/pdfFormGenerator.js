@@ -181,8 +181,28 @@ function numaraAlaniCiz(doc, numaraAlani, ogrenciNo) {
   });
 }
 
+/**
+ * Form Kodu baloncuk bloğunu çizer. Öğrenciyle/kitapçıkla İLGİSİ YOK —
+ * kağıdın HANGİ optik form şablonuyla (LGS/Bursluluk/Özel) üretildiğini
+ * OMR ile doğrulamak için, `sinavTuru`ya karşılık gelen SABİT harf her
+ * zaman otomatik DOLU basılır (bkz. layoutEngine.js: FORM_KODU_HARFLERI,
+ * omrEngine.js: formKoduOku). Amaç: seçili sınavdan farklı bir optik
+ * form kağıdının yanlışlıkla okunmasını engellemek.
+ */
+function formKoduAlaniCiz(doc, formKoduAlani, sinavTuru) {
+  const hedefHarf = window.LayoutEngine.formKoduHarfiGetir(sinavTuru);
+  doc.setFont('Poppins', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...ANA_RENK);
+  doc.text('F', formKoduAlani.x + formKoduAlani.genislik / 2, formKoduAlani.y + formKoduAlani.baslikYukseklik * 0.85, { align: 'center' });
+  for (const secenek of formKoduAlani.secenekler) {
+    const dolu = secenek.harf === hedefHarf;
+    kucukBaloncukCiz(doc, secenek.cx, secenek.cy, secenek.r, secenek.harf, dolu);
+  }
+}
+
 /** Ortak header'ı (Ad Soyad / Öğrenci No / Sınıf / Kitapçık Türü / Sınav Adı) çizer. */
-async function headerCiz(doc, form, ogrenci) {
+async function headerCiz(doc, form, ogrenci, sinavTuru) {
   const b = form.baslikAlani;
   cerceveCiz(doc, b.x, b.y, b.width, b.height, ANA_RENK, 0.5);
   doc.setFont('Poppins', 'bold');
@@ -208,6 +228,10 @@ async function headerCiz(doc, form, ogrenci) {
 
   if (form.numaraAlani) {
     numaraAlaniCiz(doc, form.numaraAlani, ogrenci.ogrenciNo);
+  }
+
+  if (form.formKoduAlani) {
+    formKoduAlaniCiz(doc, form.formKoduAlani, sinavTuru);
   }
 }
 
@@ -346,7 +370,7 @@ async function formPdfOlustur(layout, ogrenci = {}) {
 
   for (const form of layout.formlar) {
     hizalamaIsaretleriCiz(doc, form);
-    await headerCiz(doc, form, ogrenci);
+    await headerCiz(doc, form, ogrenci, layout.sinavTuru);
 
     if (form.bolumler) {
       bolumlerCiz(doc, form);
@@ -374,7 +398,7 @@ async function topluFormPdfOlustur(layout, ogrenciListesi) {
     const ogrenci = ogrenciListesi[i];
     for (const form of layout.formlar) {
       hizalamaIsaretleriCiz(doc, form);
-      await headerCiz(doc, form, ogrenci);
+      await headerCiz(doc, form, ogrenci, layout.sinavTuru);
       if (form.bolumler) {
         bolumlerCiz(doc, form);
       } else if (form.izgara) {

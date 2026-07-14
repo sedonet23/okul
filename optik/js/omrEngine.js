@@ -1511,6 +1511,19 @@ window.OmrOkuyucu = (function () {
   }
 
   /**
+   * Form Kodu baloncuk bloğunu okur (A/B/C). Bu, kağıdın HANGİ optik form
+   * şablonuyla üretildiğini doğrulamak için kullanılan, PDF üretilirken
+   * otomatik önceden işaretlenen sabit bir bloktur (bkz. layoutEngine.js:
+   * FORM_KODU_HARFLERI, pdfFormGenerator.js: formKoduAlaniCiz). Alan
+   * tanımlı değilse (eski/farklı bir şablon) null döner — bu durumda
+   * çağıran taraf doğrulamayı ATLAR (geriye dönük uyumluluk).
+   */
+  function formKoduOku(cImageData, formKoduAlani, ppmm) {
+    if (!formKoduAlani || !formKoduAlani.secenekler) return null;
+    return baloncukGrubundanEnKoyuyuSec(cImageData, formKoduAlani.secenekler, ppmm).deger;
+  }
+
+  /**
    * Numara (öğrenci no) baloncuk ızgarasını okur — her basamak sütunu için
    * en koyu baloncuğu seçip rakamları birleştirir. QR'nin YERİNİ alan
    * kimlik-okuma yöntemi (bkz. layoutEngine.js: numaraAlaniHesapla).
@@ -1787,6 +1800,7 @@ window.OmrOkuyucu = (function () {
     let ogrenciKimlik = null;
     const numaraSonuc = numaraOku(cImageData, form.numaraAlani, ppmm);
     const kitapcikSonuc = kitapcikOku(cImageData, form.kitapcikAlani, ppmm);
+    const formKodu = formKoduOku(cImageData, form.formKoduAlani, ppmm);
     if (numaraSonuc) {
       ogrenciKimlik = { ogrenciNo: numaraSonuc.numara, kitapcikTuru: kitapcikSonuc };
       if (!numaraSonuc.tamOkunduMu) {
@@ -1813,6 +1827,7 @@ window.OmrOkuyucu = (function () {
     return {
       basarili: true,
       ogrenciKimlik,
+      formKodu,
       cevaplar,
       uyarilar,
       hataAyiklama: {
@@ -2007,6 +2022,7 @@ window.OmrOkuyucu = (function () {
     let ogrenciKimlik = null;
     const numaraSonuc = numaraOku(cImageData, form.numaraAlani, ppmm);
     const kitapcikSonuc = kitapcikOku(cImageData, form.kitapcikAlani, ppmm);
+    const formKodu = formKoduOku(cImageData, form.formKoduAlani, ppmm);
     if (numaraSonuc) {
       ogrenciKimlik = { ogrenciNo: numaraSonuc.numara, kitapcikTuru: kitapcikSonuc };
       if (!numaraSonuc.tamOkunduMu) {
@@ -2051,6 +2067,7 @@ window.OmrOkuyucu = (function () {
     return {
       basarili: true,
       ogrenciKimlik,
+      formKodu,
       cevaplar,
       uyarilar,
       hataAyiklama: {
