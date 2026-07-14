@@ -920,25 +920,53 @@ function galeriSecimIsle(dosyalar) {
 // ════════════════════════════════════════════════════════════════
 async function anahtarExcelYukle(dosya) {
     try {
-        const { CevapAnahtari } = await import('./cevapAnahtari.js').catch(() => ({ CevapAnahtari: window.CevapAnahtari }));
-        const kaynak = CevapAnahtari || window.CevapAnahtari;
-        if (!kaynak) return;
-        await kaynak.exceldenYukle?.(dosya);
-        const a = kaynak.getir?.();
-        if (a) DB.anahtarKaydet(_aktifSinavId, a);
+        // Önce eski CevapAnahtari modülünü dene
+        const kaynak = window.CevapAnahtari;
+        if (kaynak?.exceldenYukle) {
+            await kaynak.exceldenYukle(dosya);
+            const a = kaynak.getir?.();
+            if (a?.dersler?.length) { DB.anahtarKaydet(_aktifSinavId, a); anahtarIzgaraCiz(); _tumSonuclariYenidenHesapla(); return; }
+        }
+        // CSV fallback
+        const metin = await dosya.text();
+        const satirlar = metin.split('\n').filter(s => s.trim());
+        const baslikSatir = satirlar[0].toLowerCase();
+        const dersIdx  = baslikSatir.split(',').findIndex(h => h.includes('ders'));
+        const soruIdx  = baslikSatir.split(',').findIndex(h => h.includes('soru') || h.includes('no'));
+        const cevapIdx = baslikSatir.split(',').findIndex(h => h.includes('cevap') || h.includes('doğru') || h.includes('dogru'));
+        if (dersIdx < 0 || soruIdx < 0 || cevapIdx < 0) { alert('CSV formatı tanınmadı. Beklenen sütunlar: Ders, Soru No, Doğru Cevap'); return; }
+        const yeniAnahtar = { dersler: [] };
+        satirlar.slice(1).forEach(satir => {
+            const huc = satir.split(',');
+            const dersAdi = (huc[dersIdx] || '').trim();
+            const soruNo  = parseInt((huc[soruIdx] || '').trim(), 10);
+            const dogru   = (huc[cevapIdx] || '').trim().toUpperCase();
+            if (!dersAdi || !soruNo || !dogru) return;
+            let ders = yeniAnahtar.dersler.find(d => d.dersAdi === dersAdi);
+            if (!ders) { ders = { dersAdi, anahtarlar: [] }; yeniAnahtar.dersler.push(ders); }
+            ders.anahtarlar.push({ soruNo, dogru });
+        });
+        DB.anahtarKaydet(_aktifSinavId, yeniAnahtar);
         anahtarIzgaraCiz();
         _tumSonuclariYenidenHesapla();
-    } catch (e) { alert('Excel yükleme hatası: ' + e.message); }
+        alert(`✅ ${yeniAnahtar.dersler.reduce((t, d) => t + d.anahtarlar.length, 0)} soru cevabı yüklendi.`);
+    } catch (e) { alert('İçe aktarma hatası: ' + e.message); }
 }
 
 async function anahtarDisaAktar() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
-    if (!anahtar.dersler?.length) { alert('Cevap anahtarı boş.'); return; }
-    try {
-        const { DisaAktar } = await import('./disaAktar.js').catch(() => ({ DisaAktar: window.DisaAktar }));
-        const kaynak = DisaAktar || window.DisaAktar;
-        if (kaynak?.cevapAnahtariniIndir) await kaynak.cevapAnahtariniIndir(anahtar);
-    } catch (e) { alert('Dışa aktarma hatası: ' + e.message); }
+    const derslerDolu = (anahtar.dersler || []).filter(d => d.anahtarlar?.length);
+    if (!derslerDolu.length) { alert('Dışa aktarılacak cevap anahtarı yok.'); return; }
+    let csv = '\uFEFFDers,Soru No,Doğru Cevap\n';
+    derslerDolu.forEach(d => d.anahtarlar.forEach(a => {
+        csv += `${d.dersAdi},${a.soruNo},${a.dogru}\n`;
+    }));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    URL.revokeObjectURL(url);
 }
 
 // ════════════════════════════════════════════════════════════════
