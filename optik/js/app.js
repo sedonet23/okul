@@ -1189,37 +1189,91 @@ function dosyaToImg(dosya) {
 // ════════════════════════════════════════════════════════════════
 async function anahtarExcelYukle(dosya) {
     try {
-        // Önce eski CevapAnahtari modülünü dene
-        const kaynak = window.CevapAnahtari;
-        if (kaynak?.exceldenYukle) {
-            await kaynak.exceldenYukle(dosya);
-            const a = kaynak.getir?.();
-            if (a?.dersler?.length) { DB.anahtarKaydet(_aktifSinavId, a); anahtarIzgaraCiz(); _tumSonuclariYenidenHesapla(); return; }
+        const dosyaAdi = (dosya.name || '').toLowerCase();
+        const xlsxMi = dosyaAdi.endsWith('.xlsx') || dosyaAdi.endsWith('.xls')
+            || dosya.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            || dosya.type === 'application/vnd.ms-excel';
+
+        let yeniAnahtar;
+
+        if (xlsxMi) {
+            // GERÇEK Excel dosyası: js/cevapAnahtari.js hiçbir yerde
+            // <script> ile yüklenmiyor (ölü/kullanılmayan modül) — bu
+            // yüzden window.CevapAnahtari HER ZAMAN undefined'dı ve kod
+            // hep aşağıdaki CSV metin ayrıştırmaya düşüyordu; xlsx ikili
+            // (binary) içeriği metin gibi okunduğunda başlık satırı hiç
+            // eşleşmiyor, "CSV formatı tanınmadı" hatası çıkıyordu. Onun
+            // yerine burada SheetJS (XLSX) ile doğrudan gerçek Excel
+            // ayrıştırması yapılıyor (dışa aktarmada zaten yüklenen aynı
+            // kütüphane — bkz. _xlsxKutuphaneYukle).
+            await _xlsxKutuphaneYukle();
+            const veri = new Uint8Array(await dosya.arrayBuffer());
+            const wb = XLSX.read(veri, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const satirlar = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+            if (satirlar.length < 2) { alert('Excel dosyası boş veya yalnızca başlık içeriyor.'); return; }
+            const baslik = satirlar[0].map(h => String(h).trim().toLowerCase());
+            yeniAnahtar = _anahtarSatirlariniIsle(
+                baslik,
+                satirlar.slice(1),
+                (s, i) => (s[i] === undefined || s[i] === null) ? '' : String(s[i])
+            );
+        } else {
+            // CSV
+            const metin = await dosya.text();
+            const satirlar = metin.split('\n').filter(s => s.trim()).map(s => s.split(','));
+            if (satirlar.length < 2) { alert('CSV dosyası boş veya yalnızca başlık içeriyor.'); return; }
+            const baslik = satirlar[0].map(h => h.trim().toLowerCase());
+            yeniAnahtar = _anahtarSatirlariniIsle(
+                baslik,
+                satirlar.slice(1),
+                (s, i) => (s[i] || '')
+            );
         }
-        // CSV fallback
-        const metin = await dosya.text();
-        const satirlar = metin.split('\n').filter(s => s.trim());
-        const baslikSatir = satirlar[0].toLowerCase();
-        const dersIdx  = baslikSatir.split(',').findIndex(h => h.includes('ders'));
-        const soruIdx  = baslikSatir.split(',').findIndex(h => h.includes('soru') || h.includes('no'));
-        const cevapIdx = baslikSatir.split(',').findIndex(h => h.includes('cevap') || h.includes('doğru') || h.includes('dogru'));
-        if (dersIdx < 0 || soruIdx < 0 || cevapIdx < 0) { alert('CSV formatı tanınmadı. Beklenen sütunlar: Ders, Soru No, Doğru Cevap'); return; }
-        const yeniAnahtar = { dersler: [] };
-        satirlar.slice(1).forEach(satir => {
-            const huc = satir.split(',');
-            const dersAdi = (huc[dersIdx] || '').trim();
-            const soruNo  = parseInt((huc[soruIdx] || '').trim(), 10);
-            const dogru   = (huc[cevapIdx] || '').trim().toUpperCase();
-            if (!dersAdi || !soruNo || !dogru) return;
-            let ders = yeniAnahtar.dersler.find(d => d.dersAdi === dersAdi);
-            if (!ders) { ders = { dersAdi, anahtarlar: [] }; yeniAnahtar.dersler.push(ders); }
-            ders.anahtarlar.push({ soruNo, dogru });
-        });
+
+        if (!yeniAnahtar) { return; } // hata mesajı _anahtarSatirlariniIsle içinde zaten gösterildi
+
         DB.anahtarKaydet(_aktifSinavId, yeniAnahtar);
         anahtarIzgaraCiz();
         _tumSonuclariYenidenHesapla();
         alert(`✅ ${yeniAnahtar.dersler.reduce((t, d) => t + d.anahtarlar.length, 0)} soru cevabı yüklendi.`);
     } catch (e) { alert('İçe aktarma hatası: ' + e.message); }
+}
+
+/**
+ * Başlık satırından Ders/Soru No/Doğru Cevap sütunlarını esnek eşleştirir
+ * (xlsx ve CSV için ORTAK mantık). `hucreAl(satir, index)` her iki format
+ * için de tek bir hücre okuma arayüzü sağlıyor.
+ * @returns {{dersler: Array}|null} hata varsa alert gösterir ve null döner
+ */
+function _anahtarSatirlariniIsle(baslik, veriSatirlari, hucreAl) {
+    const dersIdx  = baslik.findIndex(h => h.includes('ders'));
+    const soruIdx  = baslik.findIndex(h => h.includes('soru') || h.includes('no'));
+    const cevapIdx = baslik.findIndex(h => h.includes('cevap') || h.includes('doğru') || h.includes('dogru'));
+
+    if (soruIdx < 0 || cevapIdx < 0) {
+        alert('Beklenen sütunlar bulunamadı: Ders, Soru No, Doğru Cevap.\nMevcut başlıklar: ' + baslik.join(', '));
+        return null;
+    }
+
+    const yeniAnahtar = { dersler: [] };
+    veriSatirlari.forEach(satir => {
+        const dersAdi = dersIdx >= 0 ? hucreAl(satir, dersIdx).trim() : '';
+        const soruNo  = parseInt(hucreAl(satir, soruIdx).trim(), 10);
+        const dogru   = hucreAl(satir, cevapIdx).trim().toUpperCase();
+        if (!soruNo || !dogru) return;
+        const adi = dersAdi || 'Genel';
+        let ders = yeniAnahtar.dersler.find(d => d.dersAdi === adi);
+        if (!ders) { ders = { dersAdi: adi, anahtarlar: [] }; yeniAnahtar.dersler.push(ders); }
+        ders.anahtarlar.push({ soruNo, dogru });
+    });
+
+    if (!yeniAnahtar.dersler.length) {
+        alert('Dosyada geçerli bir soru/cevap satırı bulunamadı.');
+        return null;
+    }
+
+    return yeniAnahtar;
 }
 
 function _xlsxKutuphaneYukle() {
