@@ -1164,7 +1164,7 @@ function galeriSecimIsle(dosyalar) {
                 try {
                     // formOkuyucu.js ile işle
                     const { formuOkuVeGoster } = await import('./formOkuyucu.js');
-                    await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
+                    await formuOkuVeGoster(cvs);
                 } catch(err) { console.error('Galeri okuma hatası', err); }
             };
             img.src = e.target.result;
@@ -1311,13 +1311,7 @@ function baslat() {
 
     // ── Kamera ──
     document.getElementById('kameraKapatBtn').addEventListener('click', kameraKapat);
-    // Galeri input (kamera içindeki)
-    document.getElementById('galeriInput').addEventListener('change', function () {
-        const video = document.getElementById('video');
-        if (video?.srcObject) document.getElementById('stop')?.click();
-        galeriSecimIsle(this.files);
-        this.value = '';
-    });
+    // galeriInput → baglaGaleriSecici aşağıda bağlanıyor (çift listener olmasın)
 
     // ── Bottom sheets ──
     document.getElementById('sheetKagitEkle').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetKagitEkle'); });
@@ -1328,8 +1322,7 @@ function baslat() {
         const inp = document.getElementById('galeriInputSheet');
         if (inp) inp.click();
     });
-    // galeriInputSheet kamera overlay dışında (bottom sheet) kullanılıyor
-    // baglaGaleriSecici aşağıda galeriInput için bağlanıyor; sheet için manuel yönlendirme:
+    // galeriInputSheet → baglaGaleriSecici aşağıda bağlanıyor
     document.getElementById('bsManuel').addEventListener('click', () => { sheetKapat('sheetKagitEkle'); manuelKagitAc(); });
 
     // ── Anahtar araçlar ──
@@ -1360,7 +1353,7 @@ function baslat() {
         })
     );
 
-    // galeriSecici.js bağla (kamera için)
+    // galeriSecici.js bağla — hem kamera overlay içindeki hem bottom sheet'teki galeri butonu
     if (typeof window.baglaGaleriSecici === 'function') {
         window.baglaGaleriSecici('galeriInput', 'canvas');
         window.baglaGaleriSecici('galeriInputSheet', 'canvas');
