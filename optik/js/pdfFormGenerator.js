@@ -119,22 +119,26 @@ function kitapcikTuruRozeti(doc, box, deger) {
   doc.text(String(deger), box.x + box.width * 0.78, baselineUst(box.y, box.height, box.height * 0.62, box.height * 0.16), { align: 'center' });
 }
 
-/** Tek bir baloncuğu (daire + harf/rakam) çizer; doluysa=true ise içini boyar. */
+/** Tek bir baloncuğu çizer.
+ * Dolu ise: siyah zemin, rakam basılmaz (OMR okuyucunun güveni artar).
+ * Boş ise: kırmızı/bordo kenarlık + küçük rakam etiketi. */
 function kucukBaloncukCiz(doc, cx, cy, r, etiket, dolu) {
   doc.setLineWidth(0.3);
   if (dolu) {
-    doc.setFillColor(...ANA_RENK);
-    doc.setDrawColor(...ANA_RENK);
+    // Tamamen siyah dolu — OMR için maksimum kontrast
+    doc.setFillColor(0, 0, 0);
+    doc.setDrawColor(0, 0, 0);
     doc.circle(cx, cy, r, 'FD');
-    doc.setTextColor(...BEYAZ);
+    // Rakam basılmıyor: siyah zemin üstünde zaten okunamaz,
+    // OMR motoru da sadece koyuluğa bakıyor.
   } else {
     doc.setDrawColor(...ANA_RENK);
     doc.circle(cx, cy, r, 'S');
     doc.setTextColor(...KOYU_METIN);
+    doc.setFont('Poppins', 'normal');
+    doc.setFontSize(Math.max(2.5, r * 1.9));
+    doc.text(String(etiket), cx, cy + r * 0.35, { align: 'center' });
   }
-  doc.setFont('Poppins', dolu ? 'bold' : 'normal');
-  doc.setFontSize(Math.max(2.5, r * 1.9));
-  doc.text(String(etiket), cx, cy + r * 0.35, { align: 'center' });
 }
 
 /**
