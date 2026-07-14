@@ -1526,8 +1526,10 @@ window.OmrOkuyucu = (function () {
       // güven değerleri düşük kalabilir; ama yine de en koyu = işaretli.
       const sonuc = _basamakEnKoyusu(cImageData, basamak.bubbles, ppmm);
       if (sonuc.deger === null) {
-        numara += '?';
-        tamOkunduMu = false;
+        // Belirsiz basamak: boş (işaretsiz) kabul et, '0' yaz.
+        // Böylece "??19" yerine "0019" üretilir → parseInt → 19.
+        numara += '0';
+        // tamOkunduMu'yu false yapmıyoruz: bu basamak gerçekten boştu.
       } else {
         numara += String(sonuc.deger);
       }
