@@ -184,7 +184,8 @@ window.TopluTarama = (function () {
             ogrenci: ogrenciBilgisi,
             cevaplar: omrSonuc.cevaplar,
             puan: puan,
-            tarih: new Date().toLocaleTimeString('tr-TR')
+            tarih: new Date().toLocaleTimeString('tr-TR'),
+            kagitGoruntusu: omrSonuc.kagitGoruntusu || null
         };
 
         _oturum.sonuclar.push(kayit);
