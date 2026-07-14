@@ -984,6 +984,31 @@ function optikFormSheetAc(onSecim) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// TOAST — kullanıcıya görünür geri bildirim
+// ════════════════════════════════════════════════════════════════
+// NOT: #omrDurum/#statusText (index.html'deki gizli konteyner) hiçbir
+// yerde görünür kılınmıyordu ve #sonucKutusu bu ekranda hiç yok — bu
+// yüzden formOkuyucu.js'in yazdığı durum/hata metinleri kullanıcıya
+// HİÇ ULAŞMIYORDU. Galeriden okuma başarısız da olsa sessizce hiçbir
+// şey olmuyormuş gibi görünüyordu. Bu fonksiyon o boşluğu dolduruyor.
+let _toastZamanlayici = null;
+function toastGoster(mesaj, tip = 'bilgi', sureMs = 2600) {
+    let kap = document.getElementById('oToastKap');
+    if (!kap) {
+        kap = document.createElement('div');
+        kap.id = 'oToastKap';
+        kap.className = 'o-toast-kap';
+        document.body.appendChild(kap);
+    }
+    kap.textContent = mesaj;
+    kap.className = 'o-toast-kap gorunur ' + tip;
+    clearTimeout(_toastZamanlayici);
+    if (sureMs > 0) {
+        _toastZamanlayici = setTimeout(() => { kap.classList.remove('gorunur'); }, sureMs);
+    }
+}
+
+// ════════════════════════════════════════════════════════════════
 // GALERİ
 // ════════════════════════════════════════════════════════════════
 async function galeriSecimIsle(dosyalar) {
@@ -998,14 +1023,39 @@ async function galeriSecimIsle(dosyalar) {
 
         if (dosyalar.length > 1) {
             // Birden fazla dosya: köşe seçimi atlanır, otomatik toplu okuma.
-            for (const dosya of Array.from(dosyalar)) {
-                const img = await dosyaToImg(dosya);
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                canvas.getContext('2d').drawImage(img, 0, 0);
-                try { await formuOkuToplu(canvas); }
-                catch (err) { console.error('Toplu galeri okuma hatası:', dosya.name, err); }
+            const dosyaListesi = Array.from(dosyalar);
+            const toplam = dosyaListesi.length;
+            let basarili = 0;
+            const basarisizlar = [];
+
+            for (let i = 0; i < toplam; i++) {
+                const dosya = dosyaListesi[i];
+                toastGoster(`Taranıyor... (${i + 1}/${toplam})`, 'bilgi', 30000);
+                try {
+                    const img = await dosyaToImg(dosya);
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.getContext('2d').drawImage(img, 0, 0);
+                    const sonuc = await formuOkuToplu(canvas);
+                    if (sonuc && sonuc.basarili) {
+                        basarili++;
+                    } else {
+                        basarisizlar.push(dosya.name || `#${i + 1}`);
+                    }
+                } catch (err) {
+                    console.error('Toplu galeri okuma hatası:', dosya.name, err);
+                    basarisizlar.push(dosya.name || `#${i + 1}`);
+                }
             }
+
+            kagitlariRender();
+
+            let ozet = `Toplu içe aktarma: ${basarili}/${toplam} kağıt okundu.`;
+            if (basarisizlar.length) {
+                ozet += `\nOkunamayan ${basarisizlar.length} kağıt: ${basarisizlar.slice(0, 4).join(', ')}${basarisizlar.length > 4 ? '…' : ''}`;
+                ozet += `\nBunları galeriden TEK TEK (bir seferde 1 fotoğraf) seçip elle köşe düzelterek tekrar deneyin.`;
+            }
+            toastGoster(ozet, basarisizlar.length ? 'uyari' : 'basari', basarisizlar.length ? 7000 : 3500);
             return;
         }
 
@@ -1024,16 +1074,21 @@ async function galeriSecimIsle(dosyalar) {
         canvas.height = img.naturalHeight;
         canvas.getContext('2d').drawImage(img, 0, 0);
 
-        if (koseler) {
-            await formuOkuElleKoseliVeGoster(canvas, koseler);
+        const sonuc = koseler
+            ? await formuOkuElleKoseliVeGoster(canvas, koseler)
+            : await formuOkuVeGoster(canvas);
+
+        if (sonuc && sonuc.basarili) {
+            const isaretli = (sonuc.cevaplar || []).filter(c => c.isaretliSik).length;
+            toastGoster(`Kağıt okundu ✓ (${sonuc.cevaplar.length} soru, ${isaretli} işaretli)`, 'basari');
         } else {
-            await formuOkuVeGoster(canvas);
+            const mesaj = (sonuc && sonuc.uyarilar && sonuc.uyarilar[0]) || 'bilinmeyen hata';
+            toastGoster('Okunamadı: ' + mesaj + '\nKöşeleri elle seçip tekrar deneyin.', 'hata', 6000);
         }
 
     } catch (err) {
         console.error('Galeri okuma hatası', err);
-        const statusEl = document.getElementById('statusText');
-        if (statusEl) statusEl.textContent = 'Fotoğraf okunamadı: ' + err.message;
+        toastGoster('Fotoğraf okunamadı: ' + err.message, 'hata', 6000);
     }
 }
 
