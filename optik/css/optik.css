@@ -458,7 +458,21 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
    MANUEL KAĞIT
 ═══════════════════════════════════════════════════════════════ */
 .manuel-ogr-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px 8px;
+    display: grid; grid-template-columns: 1fr; gap: 10px; padding: 14px 16px 8px;
+}
+.manuel-siniftan-sec-wrap { padding: 0 16px 12px; }
+.manuel-siniftan-sec-btn {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    border: 1.5px dashed var(--border); border-radius: 999px; padding: 10px 16px;
+    background: transparent; color: var(--accent); font-family: var(--font);
+    font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.manuel-ogr-secim-alani { margin-top: 10px; max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.manuel-ogr-satir { cursor: pointer; }
+.manuel-ogr-satir:active { background: var(--accent-soft); }
+.manuel-eslesme-etiketi {
+    display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); font-size: 10px; font-weight: 700; vertical-align: middle;
 }
 .manuel-ders-satiri {
     display: flex; gap: 10px; padding: 8px 16px 12px;
