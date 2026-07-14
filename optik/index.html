@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
     <title>Optik Form Okuyucu</title>
 
-    <!-- Tema senkronizasyonu: ana uygulama ile aynı localStorage anahtarı
-         ('oyTema') okunur, CSS boyanmadan ÖNCE data-theme uygulanır ki
-         yanlış temayla kısa bir "flash" görülmesin. -->
+    <!-- Tema senkronizasyonu: ana uygulama ile aynı localStorage anahtarı -->
     <script>
         try{
             if(localStorage.getItem('oyTema') === 'dark'){
@@ -19,7 +16,6 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="css/optik.css">
 
     <!-- Cevap anahtarı, toplu tarama, dışa aktarma modülleri -->
@@ -27,161 +23,164 @@
     <script src="js/topluTarama.js"></script>
     <script src="js/disaAktar.js"></script>
 
-    <!-- OMR motoru: jsQR (QR okuma) + layoutEngine.js + omrEngine.js -->
-    <!-- Not: OpenCV.js kasıtlı olarak KULLANILMIYOR. formuOku() kendi
-         DLT homografisini (QR + hizalama işaretleri) hesaplıyor, bu
-         yüzden ayrı bir "kağıt bul + warp'la" adımına ihtiyaç yok. -->
+    <!-- OMR motoru -->
     <script src="js/jsqr.min.js"></script>
     <script src="js/layoutEngine.js"></script>
     <script src="js/omrEngine.js"></script>
 
-    <!-- PDF form üretimi: jsPDF (PDF çizim) + qrcodejs (öğrenci QR kodu).
-         Sadece "PDF Oluştur" akışı için gerekli; OMR okuma bunlara ihtiyaç duymaz. -->
+    <!-- PDF + QR -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
 
-<div class="app">
+<!-- ════════════════════════════════════════════════════════════════
+     EKRAN 1: ANA (Sınavlar / Öğrenciler / Optikler)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="ekran" id="ekranAna">
 
     <header class="app-header">
-        <div class="header-row">
-            <div class="header-icon">🔍</div>
-            <div>
-                <h1>Optik Form Okuyucu</h1>
-                <p>Sınav kağıtlarını tarayın, otomatik değerlendirin</p>
+        <button class="header-icon-btn" id="headerMenuBtn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <h1 class="header-baslik" id="headerBaslik">Sınavlar</h1>
+        <div class="header-saglar">
+            <button class="header-icon-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+            </button>
+            <button class="header-icon-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="ekran-icerik">
+
+        <!-- ══ SINAV LİSTESİ PANELİ ══ -->
+        <section class="ana-panel aktif" id="panelSinavlar">
+            <div class="arama-satiri">
+                <div class="arama-kutu">
+                    <svg class="arama-ikon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="arama-input" id="sinavArama" placeholder="Sınav veya klasör ara">
+                </div>
             </div>
+            <div class="filtre-satiri">
+                <button class="sirala-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </button>
+                <div class="chip-scroll">
+                    <button class="chip aktif" data-filtre="tumu">Tümü <span id="sayTumu">0</span></button>
+                    <button class="chip" data-filtre="okundu">Okundu <span id="sayOkundu">0</span></button>
+                    <button class="chip" data-filtre="bekliyor">Bekliyor <span id="sayBekliyor">0</span></button>
+                </div>
+            </div>
+            <div id="sinavListesi" class="kart-listesi"></div>
+        </section>
+
+        <!-- ══ ÖĞRENCİLER PANELİ ══ -->
+        <section class="ana-panel" id="panelOgrenciler">
+            <div class="arama-satiri">
+                <div class="arama-kutu">
+                    <svg class="arama-ikon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="arama-input" id="ogrenciArama" placeholder="Öğrenci, numara veya sınıf ...">
+                </div>
+            </div>
+            <div class="filtre-satiri" id="sinifChipleri">
+                <div class="chip-scroll">
+                    <button class="chip aktif" data-sinif="">Tümü</button>
+                </div>
+            </div>
+            <div id="ogrenciListesi" class="ogrenci-listesi"></div>
+        </section>
+
+        <!-- ══ OPTİKLER PANELİ ══ -->
+        <section class="ana-panel" id="panelOptikler">
+            <div class="arama-satiri">
+                <div class="arama-kutu">
+                    <svg class="arama-ikon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input class="arama-input" id="optikArama" placeholder="Optik form veya klasör ara">
+                </div>
+            </div>
+            <div class="filtre-satiri">
+                <div class="chip-scroll">
+                    <button class="chip aktif" data-filtre="tumu">Tümü <span id="optikSayTumu">0</span></button>
+                    <button class="chip" data-filtre="standart">Standart <span id="optikSayStandart">0</span></button>
+                    <button class="chip" data-filtre="kullanici">Kullanıcı <span id="optikSayKullanici">0</span></button>
+                </div>
+            </div>
+            <div id="optikFormListesi" class="kart-listesi"></div>
+        </section>
+
+    </div><!-- .ekran-icerik -->
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+        <button class="nav-btn aktif" data-nav="sinavlar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Sınavlar</span>
+        </button>
+        <button class="nav-btn" data-nav="ogrenciler">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Öğrenciler</span>
+        </button>
+        <button class="nav-btn" data-nav="optikler">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <span>Optikler</span>
+        </button>
+    </nav>
+
+</div><!-- #ekranAna -->
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     EKRAN 2: SINAV DETAYI (Kağıtlar / Anahtarlar / Raporlar)
+     ════════════════════════════════════════════════════════════════ -->
+<div class="ekran" id="ekranSinavDetay" style="display:none;">
+
+    <header class="app-header">
+        <button class="header-icon-btn" id="geriBtn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <h1 class="header-baslik" id="sinavDetayBaslik">Sınav</h1>
+        <div class="header-saglar">
+            <button class="header-icon-btn">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+            </button>
         </div>
     </header>
 
     <nav class="tab-bar" id="tabBar">
-        <button type="button" class="tab-btn active" data-tab="kagitlar">
-            <span class="tab-icon">📄</span> Kağıtlar
+        <button class="tab-btn active" data-tab="kagitlar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Kağıtlar
         </button>
-        <button type="button" class="tab-btn" data-tab="anahtarlar">
-            <span class="tab-icon">🔑</span> Anahtarlar
+        <button class="tab-btn" data-tab="anahtarlar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            Anahtarlar
         </button>
-        <button type="button" class="tab-btn" data-tab="raporlar">
-            <span class="tab-icon">📊</span> Raporlar
+        <button class="tab-btn" data-tab="raporlar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Raporlar
         </button>
     </nav>
 
-    <main class="content">
+    <main class="sinav-detay-icerik">
 
-        <!-- ══════════════════════ SEKME: KAĞITLAR ══════════════════════ -->
+        <!-- ── Kağıtlar ── -->
         <section class="tab-panel active" id="panel-kagitlar">
-
-            <section class="card">
-                <h2 class="card-title"><span class="icon-badge">⚙️</span> Sınav Ayarları</h2>
-
-                <div class="ayarlar">
-
-                    <label for="sinavTuru">Sınav Türü</label>
-                    <select id="sinavTuru">
-                        <option value="lgs">LGS</option>
-                        <option value="bursluluk">Bursluluk</option>
-                        <option value="ozel">Özel Test (soru/şık sayısı gir)</option>
-                    </select>
-
-                    <div id="ozelAlanlar" style="display:none;">
-                        <label for="soruSayisi">Soru Sayısı</label>
-                        <input type="number" id="soruSayisi" value="20">
-                        <label for="sikSayisi">Şık Sayısı</label>
-                        <input type="number" id="sikSayisi" value="4">
-                    </div>
-
-                </div>
-            </section>
-
-            <section class="card">
-                <details class="pdf-uretim">
-
-                    <summary>📄 PDF Form Oluştur</summary>
-
-                    <label for="pdfKaynak">Öğrenci Kaynağı</label>
-                    <select id="pdfKaynak">
-                        <option value="manuel">Manuel Giriş</option>
-                        <option value="sinif">Okul Sınıf Listesinden Seç</option>
-                    </select>
-
-                    <div id="pdfManuelAlanlar">
-
-                        <label for="ogrAdSoyad">Ad Soyad</label>
-                        <input type="text" id="ogrAdSoyad" value="Ahmet YILMAZ">
-
-                        <label for="ogrNo">Öğrenci No</label>
-                        <input type="text" id="ogrNo" value="2026048">
-
-                        <label for="ogrSinif">Sınıf</label>
-                        <input type="text" id="ogrSinif" value="8/A">
-
-                    </div>
-
-                    <div id="pdfSinifAlanlari" style="display:none;">
-
-                        <div class="sinif-secici-alani">
-                            <label for="pdfSinifSecici">Sınıf</label>
-                            <select id="pdfSinifSecici"><option value="">— Sınıf seçin —</option></select>
-                        </div>
-
-                        <div id="pdfOgrenciSecimUst" class="ogrenci-secim-ust" style="display:none;">
-                            <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:600;cursor:pointer;">
-                                <input type="checkbox" id="pdfTumOgrenciSec"> Tümünü Seç
-                            </label>
-                            <span class="say" id="pdfOgrenciSayisi"></span>
-                        </div>
-
-                        <div id="pdfOgrenciListesi" class="ogrenci-secim-listesi"></div>
-
-                        <div id="pdfSecimOzeti" class="secim-ozeti" style="display:none;">
-                            <span id="pdfSecimOzetiMetin"></span>
-                            <button type="button" id="pdfSecimTemizleBtn" class="btn-kucuk btn-tehlike">Seçimi Temizle</button>
-                        </div>
-
-                    </div>
-
-                    <label for="ogrKitapcik">Kitapçık Türü</label>
-                    <input type="text" id="ogrKitapcik" value="" maxlength="1" placeholder="ör. A (boş = işaretlenmez)">
-
-                    <label for="ogrSinavAdi">Sınav Adı</label>
-                    <input type="text" id="ogrSinavAdi" value="2026 Deneme Sınavı - 1">
-
-                    <div id="pdfSayfaDuzeniAlani">
-                        <label for="ogrSayfaDuzeni">Sayfa Düzeni</label>
-                        <select id="ogrSayfaDuzeni">
-                            <option value="tekli">Tekli — sayfa başına 1 form (farklı öğrenciler için ayrı ayrı üretin)</option>
-                            <option value="coklu">Çoklu — kağıt tasarruflu, sayfa başına birden fazla AYNI form (boş dağıtım için)</option>
-                        </select>
-                    </div>
-
-                    <button id="pdfOlusturBtn" type="button">📄 PDF Oluştur ve İndir</button>
-
-                    <div id="pdfDurum" class="pdf-durum"></div>
-
-                </details>
-            </section>
-
             <section class="card status-card">
                 <div class="status">
-                    <span id="statusText">Hazır</span>
+                    <span id="statusText">Hazır — FAB ile kağıt tarayın</span>
                 </div>
-
-                <canvas
-                    id="resultCanvas"
-                    class="result-canvas">
-                </canvas>
-
+                <canvas id="resultCanvas" class="result-canvas"></canvas>
                 <div id="hataKutusu" style="display:none;"></div>
-
                 <pre id="sonucKutusu" style="display:none;"></pre>
             </section>
-
         </section>
 
-        <!-- ══════════════════════ SEKME: ANAHTARLAR ══════════════════════ -->
+        <!-- ── Anahtarlar ── -->
         <section class="tab-panel" id="panel-anahtarlar">
-
             <section class="card" id="cevapAnahtariCard">
                 <h2 class="card-title"><span class="icon-badge">🗝️</span> Cevap Anahtarı</h2>
 
@@ -198,50 +197,27 @@
                     <button id="anahtarTemizleBtn" type="button" class="btn-tehlike" style="display:none;">🗑️ Tümünü Sil</button>
                 </div>
 
-                <!-- Ders seçimi + şık işaretleme (her zaman görünür manuel editör) -->
                 <div id="manuelAnahtarPanel">
-
                     <label for="manuelDersSecici">Ders</label>
                     <select id="manuelDersSecici"></select>
-
                     <div id="manuelSorularAlani" class="manuel-sorular"></div>
-
                 </div>
-
             </section>
-
         </section>
 
-        <!-- ══════════════════════ SEKME: RAPORLAR ══════════════════════ -->
+        <!-- ── Raporlar ── -->
         <section class="tab-panel" id="panel-raporlar">
-
-            <!-- Kayıtlı (kalıcı) sınavlar — sayfa yenilense/uygulama kapansa
-                 bile localStorage'da saklanır, buradan tekrar açılabilir. -->
-            <section class="card" id="gecmisSinavlarKart">
-                <h2 class="card-title"><span class="icon-badge">🗂️</span> Kayıtlı Sınavlar</h2>
-                <div id="gecmisSinavlarListesi" class="gecmis-sinavlar-listesi">
-                    <p class="liste-bos">Henüz kayıtlı sınav yok.</p>
-                </div>
-            </section>
-
             <section class="card" id="topluTaramaCard">
-                <h2 class="card-title"><span class="icon-badge">📋</span> Tarama Oturumu</h2>
+                <h2 class="card-title"><span class="icon-badge">📋</span> Tarama Sonuçları</h2>
 
-                <div class="oturum-baslik-alani">
-                    <input type="text" id="sinavAdiInput" placeholder="Sınav adı (ör. 2026 Deneme-1)" value="">
-                    <button id="oturumBaslatBtn" type="button">▶️ Yeni Oturum Başlat</button>
-                </div>
-
-                <div id="oturumBilgi" style="display:none;" class="oturum-bilgi">
+                <div id="oturumBilgi" class="oturum-bilgi" style="display:none;">
                     <span id="oturumSayac">0 öğrenci tarandı</span>
                     <button id="yenidenHesaplaBtn" type="button" class="btn-kucuk">🔁 Yeniden Hesapla</button>
                     <button id="oturumSifirlaBtn" type="button" class="btn-kucuk btn-tehlike">🔄 Sıfırla</button>
                 </div>
 
-                <!-- Taranan öğrenciler listesi -->
                 <div id="taramaSonucListesi" class="tarama-listesi" style="display:none;"></div>
 
-                <!-- Özet ve dışa aktarma -->
                 <div id="disaAktarPanel" style="display:none;" class="disa-aktar-panel">
                     <div class="ozet-satirlar" id="ozetSatirlar"></div>
                     <div class="disa-butonlar">
@@ -249,15 +225,193 @@
                         <button id="excelRaporBtn" type="button">📊 Excel İndir</button>
                     </div>
                 </div>
-            </section>
 
+                <p id="taramaYokMesaji" class="liste-bos">
+                    Henüz tarama yapılmadı.<br>
+                    <small>📷 ile kağıt taramaya başlayın.</small>
+                </p>
+            </section>
         </section>
 
-    </main>
+    </main><!-- .sinav-detay-icerik -->
 
+</div><!-- #ekranSinavDetay -->
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL: YENİ SINAV OLUŞTUR
+     ════════════════════════════════════════════════════════════════ -->
+<div id="yeniSinavModal" class="modal-overlay">
+    <div class="modal-sayfa">
+
+        <header class="modal-header">
+            <button class="header-icon-btn" id="ysMoKapat">✕</button>
+            <h2>Yeni Sınav</h2>
+            <button class="modal-kaydet-btn" id="ysMoKaydet">Kaydet</button>
+        </header>
+
+        <div class="modal-govde">
+            <div class="modal-kart">
+                <h3 class="modal-kart-baslik">Sınav Bilgileri</h3>
+                <p class="zorunlu-not"><em>* Zorunlu Alanlar</em></p>
+
+                <!-- Sınav Adı -->
+                <div class="mo-field">
+                    <span class="mo-icon">✏️</span>
+                    <input type="text" id="ysSinavAd" class="mo-input" placeholder="Sınav Ad *" autocomplete="off">
+                </div>
+
+                <!-- Optik Form -->
+                <div class="mo-field-label">Optik Form *</div>
+                <div class="mo-field mo-clickable" id="ysOptikFormSec">
+                    <span class="mo-icon">📋</span>
+                    <span id="ysOptikFormMetin" class="mo-yer-tutucu">Optik Form Seçin</span>
+                    <svg class="mo-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+
+                <!-- Yanlış Hesaplama -->
+                <div class="mo-field-label">Yanlış Cevaplara Ne Yapılsın</div>
+                <div class="mo-field mo-select-wrap">
+                    <span class="mo-icon">≠</span>
+                    <select id="ysYanlisHesap" class="mo-select">
+                        <option value="oldugugibi">Olduğu gibi bırak</option>
+                        <option value="cikar">Çıkar (1/4)</option>
+                    </select>
+                </div>
+
+                <!-- Sınav Klasörü -->
+                <div class="mo-field">
+                    <span class="mo-icon">📁</span>
+                    <input type="text" id="ysKlasor" class="mo-input" placeholder="Sınav Klasörü">
+                </div>
+
+                <!-- Sınav Tarihi -->
+                <div class="mo-field-label">Sınav Tarihi</div>
+                <div class="mo-field">
+                    <span class="mo-icon">📅</span>
+                    <input type="date" id="ysTarih" class="mo-input">
+                </div>
+
+            </div>
+        </div>
+
+    </div>
 </div>
 
-<!-- ══════════════════════ TAM EKRAN KAMERA OVERLAY'İ ══════════════════════ -->
+
+<!-- ════════════════════════════════════════════════════════════════
+     MODAL: OPTİK FORM OLUŞTUR (PDF Üretimi)
+     ════════════════════════════════════════════════════════════════ -->
+<div id="optikFormModal" class="modal-overlay">
+    <div class="modal-sayfa">
+
+        <header class="modal-header">
+            <button class="header-icon-btn" id="optikMoKapat">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h2>Optik Form Oluştur</h2>
+        </header>
+
+        <div class="modal-govde">
+            <div class="modal-kart">
+
+                <label for="sinavTuru">Sınav Türü</label>
+                <select id="sinavTuru">
+                    <option value="lgs">LGS</option>
+                    <option value="bursluluk">Bursluluk</option>
+                    <option value="ozel">Özel Test (soru/şık sayısı gir)</option>
+                </select>
+
+                <div id="ozelAlanlar" style="display:none;">
+                    <label for="soruSayisi">Soru Sayısı</label>
+                    <input type="number" id="soruSayisi" value="20">
+                    <label for="sikSayisi">Şık Sayısı</label>
+                    <input type="number" id="sikSayisi" value="4">
+                </div>
+
+            </div>
+
+            <div class="modal-kart">
+
+                <label for="pdfKaynak">Öğrenci Kaynağı</label>
+                <select id="pdfKaynak">
+                    <option value="manuel">Manuel Giriş</option>
+                    <option value="sinif">Okul Sınıf Listesinden Seç</option>
+                </select>
+
+                <div id="pdfManuelAlanlar">
+                    <label for="ogrAdSoyad">Ad Soyad</label>
+                    <input type="text" id="ogrAdSoyad" value="Ahmet YILMAZ">
+                    <label for="ogrNo">Öğrenci No</label>
+                    <input type="text" id="ogrNo" value="2026048">
+                    <label for="ogrSinif">Sınıf</label>
+                    <input type="text" id="ogrSinif" value="8/A">
+                </div>
+
+                <div id="pdfSinifAlanlari" style="display:none;">
+                    <div class="sinif-secici-alani">
+                        <label for="pdfSinifSecici">Sınıf</label>
+                        <select id="pdfSinifSecici"><option value="">— Sınıf seçin —</option></select>
+                    </div>
+                    <div id="pdfOgrenciSecimUst" class="ogrenci-secim-ust" style="display:none;">
+                        <label style="display:flex;align-items:center;gap:6px;margin:0;font-weight:600;cursor:pointer;">
+                            <input type="checkbox" id="pdfTumOgrenciSec"> Tümünü Seç
+                        </label>
+                        <span class="say" id="pdfOgrenciSayisi"></span>
+                    </div>
+                    <div id="pdfOgrenciListesi" class="ogrenci-secim-listesi"></div>
+                    <div id="pdfSecimOzeti" class="secim-ozeti" style="display:none;">
+                        <span id="pdfSecimOzetiMetin"></span>
+                        <button type="button" id="pdfSecimTemizleBtn" class="btn-kucuk btn-tehlike">Seçimi Temizle</button>
+                    </div>
+                </div>
+
+                <label for="ogrKitapcik">Kitapçık Türü</label>
+                <input type="text" id="ogrKitapcik" value="" maxlength="1" placeholder="ör. A (boş = işaretlenmez)">
+
+                <label for="ogrSinavAdi">Sınav Adı</label>
+                <input type="text" id="ogrSinavAdi" value="2026 Deneme Sınavı - 1">
+
+                <div id="pdfSayfaDuzeniAlani">
+                    <label for="ogrSayfaDuzeni">Sayfa Düzeni</label>
+                    <select id="ogrSayfaDuzeni">
+                        <option value="tekli">Tekli — sayfa başına 1 form</option>
+                        <option value="coklu">Çoklu — kağıt tasarruflu, aynı form</option>
+                    </select>
+                </div>
+
+                <button id="pdfOlusturBtn" type="button">📄 PDF Oluştur ve İndir</button>
+                <div id="pdfDurum" class="pdf-durum"></div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     FABs
+     ════════════════════════════════════════════════════════════════ -->
+<!-- Ana ekran: Sınavlar sekmesinde -->
+<button type="button" class="fab fab-etiketli" id="fabYeniSinav">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Yeni Sınav
+</button>
+
+<!-- Ana ekran: Optikler sekmesinde -->
+<button type="button" class="fab fab-etiketli" id="fabOptikForm" style="display:none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Optik Form Oluştur
+</button>
+
+<!-- Sınav detay ekranı: Kağıtlar sekmesinde -->
+<button type="button" class="fab" id="fabTara" style="display:none;">📷</button>
+
+
+<!-- ════════════════════════════════════════════════════════════════
+     TAM EKRAN KAMERA OVERLAY'İ (değişmedi)
+     ════════════════════════════════════════════════════════════════ -->
 <div id="kameraOverlay" class="kamera-overlay">
 
     <div class="kamera-ust-bar">
@@ -266,18 +420,8 @@
     </div>
 
     <div class="kamera-video-alani">
-
-        <video
-            id="video"
-            autoplay
-            playsinline
-            muted>
-        </video>
-
-        <canvas
-            id="canvas"
-            style="display:none;">
-        </canvas>
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display:none;"></canvas>
 
         <div id="koseSecimAlani" style="display:none;">
             <p id="koseTalimat" class="kose-talimat"></p>
@@ -288,35 +432,25 @@
                 <button id="koseVazgec" type="button">🤖 Otomatik Dene</button>
             </div>
         </div>
-
     </div>
 
     <div class="kamera-alt-bar">
-
         <label id="galeriEtiketi" for="galeriInput" class="galeri-buton kamera-yan-buton">
             🖼️ Galeriden Seç (çoklu olabilir)
             <input type="file" id="galeriInput" accept="image/*" multiple style="display:none;">
         </label>
-
         <button id="capture" type="button" class="capture-shutter" title="Fotoğraf Çek">📸</button>
-
         <span class="kamera-yan-buton kamera-yan-bosluk"></span>
-
     </div>
 
-    <!-- Kamerayı gerçekten başlatan/durduran butonlar — görsel olarak
-         gizli, mantık camera.js/app.js'te değişmeden kalsın diyeburada
-         tutuluyor; FAB ve kapat butonu bunları programatik olarak tetikler. -->
     <button id="start" type="button" style="display:none;"></button>
     <button id="stop" type="button" style="display:none;"></button>
-
 </div>
 
-<button type="button" class="fab" id="fabTara" title="Kağıt Oku">📷</button>
 
-<!-- ══════════════════════ ÖĞRENCİ ATAMA OVERLAY'İ ══════════════════════
-     Otomatik okuma bir taramanın öğrencisini tanıyamadığında (NUMARA
-     baloncukları net okunamadığında) elle düzeltme yapılabilmesi için. -->
+<!-- ════════════════════════════════════════════════════════════════
+     ÖĞRENCİ ATAMA OVERLAY'İ (değişmedi)
+     ════════════════════════════════════════════════════════════════ -->
 <div id="ogrenciAtaOverlay" class="ata-overlay">
     <div class="ata-panel">
         <div class="ata-baslik">
@@ -324,7 +458,7 @@
             <button type="button" id="ataKapatBtn" class="kamera-kapat-btn" title="Kapat">✕</button>
         </div>
         <div class="ata-govde">
-            <p id="ataBagimsizUyari" class="card-empty" style="display:none;">Bu özellik yalnızca uygulama içine gömülüyken (okul yönetim uygulamasından açıldığında) kullanılabilir.</p>
+            <p id="ataBagimsizUyari" class="card-empty" style="display:none;">Bu özellik yalnızca uygulama içine gömülüyken kullanılabilir.</p>
             <label for="ataSinifSecici">Sınıf</label>
             <select id="ataSinifSecici"><option value="">— Sınıf seçin —</option></select>
             <div id="ataOgrenciListesi" class="ogrenci-secim-listesi" style="margin-top:10px;"></div>
@@ -332,11 +466,10 @@
     </div>
 </div>
 
-<!-- ══════════════════════ SINAV KAĞIDI DETAY / ELLE DÜZENLEME OVERLAY'İ ══════════════════════
-     Raporlar sekmesindeki bir öğrenci sonucuna tıklanınca açılır: taranan
-     kağıt görüntüsü + soru bazında doğru/yanlış/boş durumu gösterilir,
-     gerekirse her sorunun işaretli şıkkı elle değiştirilip o öğrencinin
-     puanı anında yeniden hesaplanabilir. -->
+
+<!-- ════════════════════════════════════════════════════════════════
+     SINAV KAĞIDI DETAY OVERLAY'İ (değişmedi)
+     ════════════════════════════════════════════════════════════════ -->
 <div id="sinavDetayOverlay" class="ata-overlay">
     <div class="ata-panel detay-panel">
         <div class="ata-baslik">
@@ -352,420 +485,270 @@
     </div>
 </div>
 
+
+<!-- ════════════════════════════════════════════════════════════════
+     SCRIPT BLOKLARI
+     ════════════════════════════════════════════════════════════════ -->
 <script>
 
-// Devtools açmadan (özellikle mobilde) hata görebilmek için: tüm script
-// hatalarını doğrudan sayfaya basıyoruz.
+// ── Hata gösterici (devtools olmadan) ──
 function hataGoster(mesaj){
-    const kutu = document.getElementById("hataKutusu");
-    kutu.style.display = "block";
-    kutu.textContent += (kutu.textContent ? "\n" : "") + mesaj;
+    const kutu = document.getElementById('hataKutusu');
+    if(kutu){ kutu.style.display='block'; kutu.textContent+=(kutu.textContent?'\n':'')+mesaj; }
 }
-
-window.addEventListener("error", function(e){
-    hataGoster("HATA: " + e.message + " (" + e.filename + ":" + e.lineno + ")");
+window.addEventListener('error', function(e){
+    hataGoster('HATA: '+e.message+' ('+e.filename+':'+e.lineno+')');
 });
 
+// ── Motor hazır mı? ──
 function motorHazirMi(){
-
-    return typeof window.jsQR === "function"
-        && typeof window.LayoutEngine === "object"
-        && typeof window.OmrOkuyucu === "object";
-
+    return typeof window.jsQR==='function'
+        && typeof window.LayoutEngine==='object'
+        && typeof window.OmrOkuyucu==='object';
 }
-
-let denemeSayisi = 0;
-
+let denemeSayisi=0;
 function waitForEngine(){
-
     if(motorHazirMi()){
-
-        import("./js/app.js").catch(function(e){
-            hataGoster("app.js yüklenemedi: " + e.message);
-        });
-
-    }else{
-
+        import('./js/app.js').catch(function(e){ hataGoster('app.js yüklenemedi: '+e.message); });
+    } else {
         denemeSayisi++;
-
-        if(denemeSayisi > 100){ // ~5 saniye
-
-            hataGoster(
-                "Motor 5 saniyede hazır olmadı. Eksik olanlar:\n" +
-                "jsQR: " + typeof window.jsQR + "\n" +
-                "LayoutEngine: " + typeof window.LayoutEngine + "\n" +
-                "OmrOkuyucu: " + typeof window.OmrOkuyucu
-            );
-
-            return; // döngüyü durdur, sonsuz denemeyi bırak
-
+        if(denemeSayisi>100){
+            hataGoster('Motor 5 saniyede hazır olmadı.\njsQR: '+typeof window.jsQR+'\nLayoutEngine: '+typeof window.LayoutEngine+'\nOmrOkuyucu: '+typeof window.OmrOkuyucu);
+            return;
         }
-
         setTimeout(waitForEngine,50);
-
     }
-
 }
-
 waitForEngine();
 
-// ─────────────────────────────────────────────────────────────────
-// SEKME GEÇİŞİ (Kağıtlar / Anahtarlar / Raporlar)
-// ─────────────────────────────────────────────────────────────────
-
-(function () {
-
-    const tabBar = document.getElementById("tabBar");
-    if (!tabBar) return;
-
-    const butonlar = Array.from(tabBar.querySelectorAll(".tab-btn"));
-    const panelKap = { kagitlar: "panel-kagitlar", anahtarlar: "panel-anahtarlar", raporlar: "panel-raporlar" };
-
+// ── Sub-tab geçişi (Kağıtlar/Anahtarlar/Raporlar) ──
+(function(){
+    const tabBar = document.getElementById('tabBar');
+    if(!tabBar) return;
+    const butonlar = Array.from(tabBar.querySelectorAll('.tab-btn'));
+    const paneller = { kagitlar:'panel-kagitlar', anahtarlar:'panel-anahtarlar', raporlar:'panel-raporlar' };
     function sekmeyeGec(ad){
-
-        butonlar.forEach(function (b) {
-            b.classList.toggle("active", b.dataset.tab === ad);
+        butonlar.forEach(function(b){ b.classList.toggle('active', b.dataset.tab===ad); });
+        Object.keys(paneller).forEach(function(k){
+            const p=document.getElementById(paneller[k]);
+            if(p) p.classList.toggle('active', k===ad);
         });
-
-        Object.keys(panelKap).forEach(function (k) {
-            const panel = document.getElementById(panelKap[k]);
-            if (panel) panel.classList.toggle("active", k === ad);
-        });
-
-        const fab = document.getElementById("fabTara");
-        if (fab) fab.style.display = (ad === "kagitlar") ? "flex" : "none";
-
+        const fabTara = document.getElementById('fabTara');
+        if(fabTara) fabTara.style.display = (ad==='kagitlar') ? 'flex' : 'none';
     }
-
-    butonlar.forEach(function (b) {
-        b.addEventListener("click", function () { sekmeyeGec(b.dataset.tab); });
+    butonlar.forEach(function(b){
+        b.addEventListener('click', function(){ sekmeyeGec(b.dataset.tab); });
     });
-
 })();
 
-// ─────────────────────────────────────────────────────────────────
-// TAM EKRAN KAMERA OVERLAY'İ
-// ─────────────────────────────────────────────────────────────────
+// ── Kamera overlay ──
+(function(){
+    const overlay  = document.getElementById('kameraOverlay');
+    const kapatBtn = document.getElementById('kameraKapatBtn');
+    const galeriInput = document.getElementById('galeriInput');
 
-(function () {
-
-    const overlay = document.getElementById("kameraOverlay");
-    const fab = document.getElementById("fabTara");
-    const kapatBtn = document.getElementById("kameraKapatBtn");
-    const galeriInput = document.getElementById("galeriInput");
-
-    function overlayAc() {
-        if (!overlay) return;
-        overlay.classList.add("acik");
-        const startBtn = document.getElementById("start");
-        if (startBtn) startBtn.click();
+    function overlayAc(){
+        if(!overlay) return;
+        overlay.classList.add('acik');
+        const startBtn=document.getElementById('start');
+        if(startBtn) startBtn.click();
+    }
+    function overlayKapat(){
+        if(!overlay) return;
+        const stopBtn=document.getElementById('stop');
+        if(stopBtn) stopBtn.click();
+        overlay.classList.remove('acik');
     }
 
-    function overlayKapat() {
-        if (!overlay) return;
-        const stopBtn = document.getElementById("stop");
-        if (stopBtn) stopBtn.click();
-        overlay.classList.remove("acik");
-    }
+    // FAB tarama butonu
+    const fabTara=document.getElementById('fabTara');
+    if(fabTara) fabTara.addEventListener('click', overlayAc);
+    if(kapatBtn) kapatBtn.addEventListener('click', overlayKapat);
 
-    if (fab) {
-        fab.addEventListener("click", overlayAc);
-    }
-
-    if (kapatBtn) {
-        kapatBtn.addEventListener("click", overlayKapat);
-    }
-
-    // Galeriden bir fotoğraf seçilince kamera akışını (varsa) durdur —
-    // köşe seçim ekranı overlay içinde kalıp görünmeye devam eder.
-    if (galeriInput) {
-        galeriInput.addEventListener("change", function () {
-            const video = document.getElementById("video");
-            if (video && video.srcObject) {
-                const stopBtn = document.getElementById("stop");
-                if (stopBtn) stopBtn.click();
-            }
+    if(galeriInput){
+        galeriInput.addEventListener('change', function(){
+            const video=document.getElementById('video');
+            if(video && video.srcObject){ const s=document.getElementById('stop'); if(s) s.click(); }
         });
     }
-
-    // Okuma (başarılı ya da hatalı) tamamlanınca kamera penceresini
-    // otomatik kapat, sonuçlar ana sayfada görünsün.
-    window.addEventListener("omrOkumaTamamlandi", overlayKapat);
-
+    window.addEventListener('omrOkumaTamamlandi', overlayKapat);
 })();
+
+// ── sinavTuru değişince ozelAlanlar göster/gizle ──
+document.addEventListener('DOMContentLoaded', function(){
+    const st=document.getElementById('sinavTuru');
+    const oa=document.getElementById('ozelAlanlar');
+    if(st && oa){
+        st.addEventListener('change', function(){ oa.style.display = st.value==='ozel'?'block':'none'; });
+    }
+});
 
 </script>
 
+<!-- PDF üretim modülü (element ID'leri korundu) -->
 <script type="module">
+import { formPdfOlustur, topluFormPdfOlustur } from './js/pdfFormGenerator.js';
 
-import { formPdfOlustur, topluFormPdfOlustur } from "./js/pdfFormGenerator.js";
+const pdfBtn   = document.getElementById('pdfOlusturBtn');
+const pdfDurum = document.getElementById('pdfDurum');
 
-const pdfBtn = document.getElementById("pdfOlusturBtn");
-const pdfDurum = document.getElementById("pdfDurum");
-
-// ─────────────────────────────────────────────────────────────────
-// ÖĞRENCİ KAYNAĞI: Manuel giriş / Okul sınıf listesinden seç
-// Okul uygulaması içine <iframe> olarak açıldığında window.parent
-// üzerinden window.parent.OptikVeriKaynagi köprüsüne erişilebilir
-// (bkz. js/optik-entegrasyon.js). Optik bağımsız açıldığında (örn.
-// tarayıcıda doğrudan) bu köprü yoktur — o durumda "Sınıftan Seç"
-// seçeneği devre dışı bırakılır, sadece Manuel Giriş kullanılabilir.
-// ─────────────────────────────────────────────────────────────────
-
-const kaynakSecici = document.getElementById("pdfKaynak");
-const manuelAlanlar = document.getElementById("pdfManuelAlanlar");
-const sinifAlanlari = document.getElementById("pdfSinifAlanlari");
-const sinifSecici = document.getElementById("pdfSinifSecici");
-const ogrenciListesiEl = document.getElementById("pdfOgrenciListesi");
-const ogrenciSecimUst = document.getElementById("pdfOgrenciSecimUst");
-const ogrenciSayisiEl = document.getElementById("pdfOgrenciSayisi");
-const tumOgrenciSecCb = document.getElementById("pdfTumOgrenciSec");
-const sayfaDuzeniAlani = document.getElementById("pdfSayfaDuzeniAlani");
-
-function _veriKaynagi() {
-    try {
-        if (window.parent && window.parent !== window && window.parent.OptikVeriKaynagi) {
+function _veriKaynagi(){
+    try{
+        if(window.parent && window.parent!==window && window.parent.OptikVeriKaynagi)
             return window.parent.OptikVeriKaynagi;
-        }
-    } catch (e) { /* çapraz köken erişim engeli — bağımsız çalışıyor demektir */ }
+    }catch(e){}
     return null;
 }
 
-// jsPDF'in kendi doc.save() metodu <a download> blob indirmesine dayanır —
-// bu, Optik'in içinde çalıştığı Android WebView'de SESSİZCE başarısız olur
-// (hata fırlatmaz, "indirildi" mesajı görünür ama dosya hiçbir yere
-// yazılmaz). Uygulama içine gömülüyken bunun yerine ana uygulamanın native
-// kaydetme köprüsünü (OptikVeriKaynagi.dosyaKaydet → SavePlugin) kullan;
-// bağımsız (tarayıcıda doğrudan açılmış) çalışıyorsa klasik doc.save()'e
-// geri dön — orada normal blob indirmesi zaten çalışır.
-async function _pdfKaydet(doc, dosyaAdi) {
-    const kaynak = _veriKaynagi();
-    if (kaynak && typeof kaynak.dosyaKaydet === 'function') {
-        const veriUri = doc.output('datauristring');
-        const base64Veri = veriUri.split(',').pop();
-        const basarili = kaynak.dosyaKaydet(base64Veri, dosyaAdi, 'application/pdf');
-        if (basarili) return;
+async function _pdfKaydet(doc, dosyaAdi){
+    const kaynak=_veriKaynagi();
+    if(kaynak && typeof kaynak.dosyaKaydet==='function'){
+        const veriUri=doc.output('datauristring');
+        const base64Veri=veriUri.split(',').pop();
+        const basarili=kaynak.dosyaKaydet(base64Veri, dosyaAdi, 'application/pdf');
+        if(basarili) return;
     }
     doc.save(dosyaAdi);
 }
 
-const secimOzeti = document.getElementById("pdfSecimOzeti");
-const secimOzetiMetin = document.getElementById("pdfSecimOzetiMetin");
-const secimTemizleBtn = document.getElementById("pdfSecimTemizleBtn");
+// Öğrenci kaynak seçici
+const kaynakSecici    = document.getElementById('pdfKaynak');
+const manuelAlanlar   = document.getElementById('pdfManuelAlanlar');
+const sinifAlanlari   = document.getElementById('pdfSinifAlanlari');
+const sinifSecici     = document.getElementById('pdfSinifSecici');
+const ogrenciListesiEl= document.getElementById('pdfOgrenciListesi');
+const ogrenciSecimUst = document.getElementById('pdfOgrenciSecimUst');
+const ogrenciSayisiEl = document.getElementById('pdfOgrenciSayisi');
+const tumOgrenciSecCb = document.getElementById('pdfTumOgrenciSec');
+const sayfaDuzeniAlani= document.getElementById('pdfSayfaDuzeniAlani');
+const secimOzeti      = document.getElementById('pdfSecimOzeti');
+const secimOzetiMetin = document.getElementById('pdfSecimOzetiMetin');
+const secimTemizleBtn = document.getElementById('pdfSecimTemizleBtn');
 
-// Sınıflar arası kalıcı öğrenci seçimi — cevap anahtarı sınavda ders ders
-// girilip her dersin cevapları ayrı saklandığı, ders değişince önceki
-// dersin girdiği kaybolmadığı gibi (bkz. js/cevapAnahtari.js), burada da
-// seçilen öğrenciler öğrenci id'sine göre bir haritada tutulur; sınıf
-// değiştirmek önceki sınıftan yapılan seçimleri SİLMEZ. PDF oluşturma bu
-// haritadaki TÜM öğrencileri (görüntülenen sınıftan bağımsız) kullanır.
-let _secilenOgrenciMap = {}; // id -> {id, adSoyad, ogrenciNo, sinifAdi}
+let _secilenOgrenciMap = {};
 
-function _sinifDropdownDoldur() {
-    const kaynak = _veriKaynagi();
-    const okulSecenegi = kaynakSecici.querySelector('option[value="sinif"]');
-    if (!kaynak) {
-        if (okulSecenegi) { okulSecenegi.disabled = true; okulSecenegi.textContent = "Okul Sınıf Listesinden Seç (yalnızca uygulama içinde açıkken kullanılabilir)"; }
+function _sinifDropdownDoldur(){
+    const kaynak=_veriKaynagi();
+    const okulSecenegi=kaynakSecici ? kaynakSecici.querySelector('option[value="sinif"]') : null;
+    if(!kaynak){
+        if(okulSecenegi){ okulSecenegi.disabled=true; okulSecenegi.textContent='Okul Sınıf Listesinden Seç (yalnızca uygulama içinde)'; }
         return;
     }
-    const siniflar = kaynak.siniflarGetir();
-    sinifSecici.innerHTML = '<option value="">— Sınıf seçin —</option>' +
-        siniflar.map(function(s){ return '<option value="' + s.id + '">' + s.ad + '</option>'; }).join('');
+    const siniflar=kaynak.siniflarGetir();
+    if(sinifSecici) sinifSecici.innerHTML='<option value="">— Sınıf seçin —</option>'+
+        siniflar.map(function(s){ return '<option value="'+s.id+'">'+s.ad+'</option>'; }).join('');
 }
 
-function _ogrenciListesiCiz() {
-    const kaynak = _veriKaynagi();
-    const sinifId = sinifSecici.value;
-    if (!kaynak || !sinifId) {
-        ogrenciListesiEl.innerHTML = '';
-        ogrenciSecimUst.style.display = 'none';
-        return;
-    }
-    const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
-    const ogrenciler = kaynak.ogrencilerGetir(sinifId);
-    if (!ogrenciler.length) {
-        ogrenciListesiEl.innerHTML = '<p class="card-empty">Bu sınıfta kayıtlı öğrenci yok.</p>';
-        ogrenciSecimUst.style.display = 'none';
-        return;
-    }
-    ogrenciSecimUst.style.display = 'flex';
-    ogrenciListesiEl.innerHTML = ogrenciler.map(function(o){
-        const seciliMi = !!_secilenOgrenciMap[o.id];
-        return '<label class="ogrenci-secim-satiri"><input type="checkbox" class="ogrenci-cb" value="' + o.id + '"' + (seciliMi ? ' checked' : '') + '> ' +
-            o.adSoyad + (o.ogrenciNo ? ' <span style="color:var(--text-faint);">(No: ' + o.ogrenciNo + ')</span>' : '') + '</label>';
+function _ogrenciListesiCiz(){
+    const kaynak=_veriKaynagi();
+    const sinifId=sinifSecici ? sinifSecici.value : '';
+    if(!kaynak||!sinifId){ if(ogrenciListesiEl) ogrenciListesiEl.innerHTML=''; if(ogrenciSecimUst) ogrenciSecimUst.style.display='none'; return; }
+    const sinifAdi=sinifSecici.options[sinifSecici.selectedIndex].textContent;
+    const ogrenciler=kaynak.ogrencilerGetir(sinifId);
+    if(!ogrenciler.length){ if(ogrenciListesiEl) ogrenciListesiEl.innerHTML='<p class="card-empty">Bu sınıfta kayıtlı öğrenci yok.</p>'; if(ogrenciSecimUst) ogrenciSecimUst.style.display='none'; return; }
+    if(ogrenciSecimUst) ogrenciSecimUst.style.display='flex';
+    if(ogrenciListesiEl) ogrenciListesiEl.innerHTML=ogrenciler.map(function(o){
+        const seciliMi=!!_secilenOgrenciMap[o.id];
+        return '<label class="ogrenci-secim-satiri"><input type="checkbox" class="ogrenci-cb" value="'+o.id+'"'+(seciliMi?' checked':'')+'>'+
+            o.adSoyad+(o.ogrenciNo?' <span style="color:var(--text-faint);">(No: '+o.ogrenciNo+')</span>':'')+' </label>';
     }).join('');
-    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb, i){
+    if(ogrenciListesiEl) ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb,i){
         cb.addEventListener('change', function(){
-            const o = ogrenciler[i];
-            if (cb.checked) {
-                _secilenOgrenciMap[o.id] = { id: o.id, adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinifAdi: sinifAdi };
-            } else {
-                delete _secilenOgrenciMap[o.id];
-            }
-            _secilenSayaciGuncelle(ogrenciler);
-            _secimOzetiGuncelle();
+            const o=ogrenciler[i];
+            if(cb.checked) _secilenOgrenciMap[o.id]={id:o.id,adSoyad:o.adSoyad,ogrenciNo:o.ogrenciNo,sinifAdi:sinifAdi};
+            else delete _secilenOgrenciMap[o.id];
+            _secilenSayaciGuncelle(ogrenciler); _secimOzetiGuncelle();
         });
     });
-    _secilenSayaciGuncelle(ogrenciler);
-    _secimOzetiGuncelle();
+    _secilenSayaciGuncelle(ogrenciler); _secimOzetiGuncelle();
 }
 
-function _secilenSayaciGuncelle(ogrenciler) {
-    const secilen = ogrenciler.filter(function(o){ return !!_secilenOgrenciMap[o.id]; }).length;
-    ogrenciSayisiEl.textContent = secilen + ' / ' + ogrenciler.length + ' seçili';
-    tumOgrenciSecCb.checked = secilen === ogrenciler.length && ogrenciler.length > 0;
+function _secilenSayaciGuncelle(ogrenciler){
+    const secilen=ogrenciler.filter(function(o){ return !!_secilenOgrenciMap[o.id]; }).length;
+    if(ogrenciSayisiEl) ogrenciSayisiEl.textContent=secilen+' / '+ogrenciler.length+' seçili';
+    if(tumOgrenciSecCb) tumOgrenciSecCb.checked=secilen===ogrenciler.length&&ogrenciler.length>0;
 }
 
-function _secimOzetiGuncelle() {
-    const tumSecilenler = Object.values(_secilenOgrenciMap);
-    if (!tumSecilenler.length) {
-        secimOzeti.style.display = 'none';
-        return;
-    }
-    const sinifSayisi = new Set(tumSecilenler.map(function(o){ return o.sinifAdi; })).size;
-    secimOzeti.style.display = 'flex';
-    secimOzetiMetin.textContent = 'Toplam ' + tumSecilenler.length + ' öğrenci seçildi (' + sinifSayisi + ' sınıf)';
+function _secimOzetiGuncelle(){
+    const tumSecilenler=Object.values(_secilenOgrenciMap);
+    if(!tumSecilenler.length){ if(secimOzeti) secimOzeti.style.display='none'; return; }
+    const sinifSayisi=new Set(tumSecilenler.map(function(o){ return o.sinifAdi; })).size;
+    if(secimOzeti) secimOzeti.style.display='flex';
+    if(secimOzetiMetin) secimOzetiMetin.textContent='Toplam '+tumSecilenler.length+' öğrenci seçildi ('+sinifSayisi+' sınıf)';
 }
 
-kaynakSecici.addEventListener("change", function(){
-    const sinifModu = kaynakSecici.value === "sinif";
-    manuelAlanlar.style.display = sinifModu ? "none" : "";
-    sinifAlanlari.style.display = sinifModu ? "" : "none";
-    // Çoklu sayfa düzeni sadece TEK öğrenci basımında anlamlı (aynı formun
-    // birden fazla kopyası) — sınıf listesinden toplu basımda her öğrenci
-    // zaten kendi sayfasını alır, bu yüzden o seçenek gizlenir.
-    sayfaDuzeniAlani.style.display = sinifModu ? "none" : "";
+if(kaynakSecici) kaynakSecici.addEventListener('change', function(){
+    const sinifModu=kaynakSecici.value==='sinif';
+    if(manuelAlanlar) manuelAlanlar.style.display=sinifModu?'none':'';
+    if(sinifAlanlari) sinifAlanlari.style.display=sinifModu?'':'none';
+    if(sayfaDuzeniAlani) sayfaDuzeniAlani.style.display=sinifModu?'none':'';
 });
-
-sinifSecici.addEventListener("change", _ogrenciListesiCiz);
-
-tumOgrenciSecCb.addEventListener("change", function(){
-    const kaynak = _veriKaynagi();
-    const sinifId = sinifSecici.value;
-    if (!kaynak || !sinifId) return;
-    const sinifAdi = sinifSecici.options[sinifSecici.selectedIndex].textContent;
-    const ogrenciler = kaynak.ogrencilerGetir(sinifId);
-    ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb, i){
-        cb.checked = tumOgrenciSecCb.checked;
-        const o = ogrenciler[i];
-        if (tumOgrenciSecCb.checked) {
-            _secilenOgrenciMap[o.id] = { id: o.id, adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinifAdi: sinifAdi };
-        } else {
-            delete _secilenOgrenciMap[o.id];
-        }
+if(sinifSecici) sinifSecici.addEventListener('change', _ogrenciListesiCiz);
+if(tumOgrenciSecCb) tumOgrenciSecCb.addEventListener('change', function(){
+    const kaynak=_veriKaynagi(); const sinifId=sinifSecici?sinifSecici.value:'';
+    if(!kaynak||!sinifId) return;
+    const sinifAdi=sinifSecici.options[sinifSecici.selectedIndex].textContent;
+    const ogrenciler=kaynak.ogrencilerGetir(sinifId);
+    if(ogrenciListesiEl) ogrenciListesiEl.querySelectorAll('.ogrenci-cb').forEach(function(cb,i){
+        cb.checked=tumOgrenciSecCb.checked;
+        const o=ogrenciler[i];
+        if(tumOgrenciSecCb.checked) _secilenOgrenciMap[o.id]={id:o.id,adSoyad:o.adSoyad,ogrenciNo:o.ogrenciNo,sinifAdi:sinifAdi};
+        else delete _secilenOgrenciMap[o.id];
     });
-    _secilenSayaciGuncelle(ogrenciler);
-    _secimOzetiGuncelle();
+    _secilenSayaciGuncelle(ogrenciler); _secimOzetiGuncelle();
 });
-
-secimTemizleBtn.addEventListener("click", function(){
-    _secilenOgrenciMap = {};
-    _ogrenciListesiCiz();
-});
+if(secimTemizleBtn) secimTemizleBtn.addEventListener('click', function(){ _secilenOgrenciMap={}; _ogrenciListesiCiz(); });
 
 _sinifDropdownDoldur();
 
-pdfBtn.addEventListener("click", async () => {
-
-    pdfBtn.disabled = true;
-    pdfDurum.textContent = "Oluşturuluyor...";
-
-    try {
-
-        const sinavTuru = document.getElementById("sinavTuru").value;
-        const params = { sinavTuru };
-        const sinifModu = kaynakSecici.value === "sinif";
-
-        if (sinavTuru === "ozel") {
-            params.soruSayisi = parseInt(document.getElementById("soruSayisi").value, 10);
-            params.sikSayisi = parseInt(document.getElementById("sikSayisi").value, 10);
-
-            // Tekli: her zaman sayfa başına 1 form (farklı öğrenciler için ayrı
-            // ayrı üretilecekse doğru seçim). Çoklu: layoutEngine kağıt
-            // tasarrufu için otomatik olarak sayfa başına birden fazla AYNI
-            // formu seçebilir (boş kağıt dağıtımı için kullanışlı, ama tek bir
-            // öğrenci bilgisiyle üretilirse o bilgi TÜM kopyalara basılır).
-            const sayfaDuzeniSecim = sinifModu ? "tekli" : document.getElementById("ogrSayfaDuzeni").value;
-            params.sayfaDuzeni = sayfaDuzeniSecim === "tekli" ? 1 : "otomatik";
+if(pdfBtn) pdfBtn.addEventListener('click', async ()=>{
+    pdfBtn.disabled=true; pdfDurum.textContent='Oluşturuluyor...';
+    try{
+        const sinavTuruEl=document.getElementById('sinavTuru');
+        const sinavTuru=sinavTuruEl ? sinavTuruEl.value : 'lgs';
+        const params={sinavTuru};
+        const sinifModu=kaynakSecici && kaynakSecici.value==='sinif';
+        if(sinavTuru==='ozel'){
+            params.soruSayisi=parseInt(document.getElementById('soruSayisi').value,10);
+            params.sikSayisi=parseInt(document.getElementById('sikSayisi').value,10);
+            params.sayfaDuzeni=sinifModu?1:(document.getElementById('ogrSayfaDuzeni').value==='tekli'?1:'otomatik');
         }
-
-        const layout = window.LayoutEngine.layoutHesapla(params);
-        const kitapcikTuru = document.getElementById("ogrKitapcik").value || "";
-        const sinavAdi = document.getElementById("ogrSinavAdi").value;
-
-        if (sinifModu) {
-
-            const tumSecilenler = Object.values(_secilenOgrenciMap);
-            if (!tumSecilenler.length) {
-                pdfDurum.textContent = "Lütfen en az bir öğrenci seçin.";
-                pdfBtn.disabled = false;
-                return;
-            }
-
-            const ogrenciListesi = tumSecilenler.map(function(o){
-                return {
-                    adSoyad: o.adSoyad,
-                    ogrenciNo: o.ogrenciNo,
-                    sinif: o.sinifAdi,
-                    kitapcikTuru: kitapcikTuru,
-                    sinavAdi: sinavAdi,
-                    ogrenciId: o.id,
-                    sinavId: sinavTuru
-                };
+        const layout=window.LayoutEngine.layoutHesapla(params);
+        const kitapcikTuru=document.getElementById('ogrKitapcik').value||'';
+        const sinavAdi=document.getElementById('ogrSinavAdi').value;
+        if(sinifModu){
+            const tumSecilenler=Object.values(_secilenOgrenciMap);
+            if(!tumSecilenler.length){ pdfDurum.textContent='Lütfen en az bir öğrenci seçin.'; pdfBtn.disabled=false; return; }
+            const ogrenciListesi=tumSecilenler.map(function(o){
+                return {adSoyad:o.adSoyad,ogrenciNo:o.ogrenciNo,sinif:o.sinifAdi,kitapcikTuru,sinavAdi,ogrenciId:o.id,sinavId:sinavTuru};
             });
-
-            pdfDurum.textContent = "Oluşturuluyor... (" + ogrenciListesi.length + " öğrenci)";
-            const doc = await topluFormPdfOlustur(layout, ogrenciListesi);
-            await _pdfKaydet(doc, "secili_ogrenciler_" + ogrenciListesi.length + ".pdf");
-            pdfDurum.textContent = ogrenciListesi.length + " öğrenci için PDF indirildi.";
-
+            pdfDurum.textContent='Oluşturuluyor... ('+ogrenciListesi.length+' öğrenci)';
+            const doc=await topluFormPdfOlustur(layout, ogrenciListesi);
+            await _pdfKaydet(doc,'secili_ogrenciler_'+ogrenciListesi.length+'.pdf');
+            pdfDurum.textContent=ogrenciListesi.length+' öğrenci için PDF indirildi.';
         } else {
-
-            const ogrenci = {
-                adSoyad: document.getElementById("ogrAdSoyad").value,
-                ogrenciNo: document.getElementById("ogrNo").value,
-                sinif: document.getElementById("ogrSinif").value,
-                kitapcikTuru: kitapcikTuru,
-                sinavAdi: sinavAdi,
-                ogrenciId: document.getElementById("ogrNo").value,
-                sinavId: sinavTuru
+            const ogrenci={
+                adSoyad:document.getElementById('ogrAdSoyad').value,
+                ogrenciNo:document.getElementById('ogrNo').value,
+                sinif:document.getElementById('ogrSinif').value,
+                kitapcikTuru,sinavAdi,
+                ogrenciId:document.getElementById('ogrNo').value,
+                sinavId:sinavTuru
             };
-
-            if (
-                layout.formlar.length > 1 &&
-                (ogrenci.adSoyad.trim() || ogrenci.ogrenciNo.trim()) &&
-                !confirm(
-                    "Çoklu sayfa düzeni seçili — bu sayfada " + layout.formlar.length +
-                    " kopya olacak ve HEPSİNE aynı Ad Soyad/Öğrenci No basılacak.\n\n" +
-                    "Farklı öğrenciler için ayrı ayrı PDF üretmek istiyorsan " +
-                    "\"Sayfa Düzeni\"ni Tekli yapıp tekrar oluştur.\n\n" +
-                    "Bu şekilde (aynı bilgiyle çoklu kopya) devam edilsin mi?"
-                )
-            ) {
-                pdfDurum.textContent = "İptal edildi.";
-                pdfBtn.disabled = false;
-                return;
+            if(layout.formlar.length>1&&(ogrenci.adSoyad.trim()||ogrenci.ogrenciNo.trim())&&
+               !confirm('Çoklu sayfa düzeni — '+layout.formlar.length+' kopya, HEPSİNE aynı bilgi basılacak. Devam?')){
+                pdfDurum.textContent='İptal edildi.'; pdfBtn.disabled=false; return;
             }
-
-            const doc = await formPdfOlustur(layout, ogrenci);
-            await _pdfKaydet(doc, (ogrenci.adSoyad || "form").replace(/\s+/g, "_") + ".pdf");
-            pdfDurum.textContent = "İndirildi.";
-
+            const doc=await formPdfOlustur(layout, ogrenci);
+            await _pdfKaydet(doc,(ogrenci.adSoyad||'form').replace(/\s+/g,'_')+'.pdf');
+            pdfDurum.textContent='İndirildi.';
         }
-
-    } catch (e) {
-
-        console.error("PDF oluşturma hatası:", e);
-        pdfDurum.textContent = "Hata: " + e.message;
-
-    } finally {
-
-        pdfBtn.disabled = false;
-
+    }catch(e){
+        console.error('PDF hatası:',e); pdfDurum.textContent='Hata: '+e.message;
+    }finally{
+        pdfBtn.disabled=false;
     }
-
 });
-
 </script>
 
 </body>
