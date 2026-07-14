@@ -10,12 +10,10 @@
 <script src="js/jsqr.min.js"></script>
 <script src="js/layoutEngine.js"></script>
 <script src="js/omrEngine.js"></script>
-<!-- koseSecici.js, camera.js, galeriSecici.js, formOkuyucu.js artık burada
-     klasik <script> olarak YÜKLENMİYOR: hepsi import/export içeriyor ve
-     type="module" olmadan tarayıcıda "Unexpected token 'export'" /
-     "Cannot use import statement outside a module" hatasıyla sessizce
-     bozuluyordu (window.baglaGaleriSecici hiç tanımlanmıyordu). Bunun
-     yerine js/app.js (type="module") içinden import ediliyorlar. -->
+<script src="js/koseSecici.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/galeriSecici.js"></script>
+<script src="js/formOkuyucu.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -407,7 +405,7 @@
   <div id="koseSecimAlani" style="display:none;position:absolute;inset:0;z-index:8;">
     <p id="koseTalimat" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;white-space:nowrap;z-index:12;"></p>
     <canvas id="koseSecimCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
-    <div style="position:absolute;bottom:0;left:0;right:0;z-index:12;display:flex;gap:8px;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.6),transparent);">
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:30;display:flex;gap:8px;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.6),transparent);">
       <button id="koseTamam" class="kose-btn kose-tamam">✅ Tamam</button>
       <button id="koseSifirla" class="kose-btn">↺ Sıfırla</button>
       <button id="koseVazgec" class="kose-btn">🤖 Otomatik Dene</button>
