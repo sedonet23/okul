@@ -912,6 +912,34 @@ function manuelKaydet() {
 // ════════════════════════════════════════════════════════════════
 // OPTİK FORM OLUŞTUR
 // ════════════════════════════════════════════════════════════════
+
+/**
+ * jsPDF'in kendi doc.save() metodu, gizli bir <a download> linkine
+ * tıklama tekniğiyle çalışır — Android'in çıplak WebView bileşeni bu
+ * blob-indirme davranışını DESTEKLEMİYOR (ana uygulamada aynı sorun
+ * SavePlugin.java ile çözülmüştü). Üstelik Optik ayrı bir IFRAME
+ * içinde çalıştığından, doc.save() zaten o native köprüye erişemez.
+ * Bu yüzden ana uygulamanın window.parent üzerinden erişilebilen ortak
+ * kaydetme yardımcısını (uygulamaDosyaKaydet — native ortamda
+ * SavePlugin/MediaStore, web'de blob+<a> fallback) kullanıyoruz.
+ * Optik bağımsız (iframe dışında) açılmışsa ya da köprü bulunamazsa
+ * jsPDF'in kendi doc.save()'ine geri düşülür.
+ */
+function optikPdfKaydet(doc, dosyaAdi) {
+    try {
+        const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
+        if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
+            const base64 = doc.output('datauristring').split(',')[1];
+            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, 'application/pdf');
+            return true;
+        }
+    } catch (e) {
+        console.warn('Native kaydetme köprüsüne erişilemedi, jsPDF doc.save() kullanılacak:', e);
+    }
+    doc.save(dosyaAdi);
+    return false;
+}
+
 async function optikOlusturAc() {
     document.getElementById('optikOlusturDurum').textContent = '';
     ekranGit('optikOlustur');
@@ -929,8 +957,10 @@ async function bosFormOlustur() {
             adSoyad: '', ogrenciNo: '', sinif: '',
             sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
         });
-        doc.save(sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
-        durumEl.textContent = '✅ PDF indirildi.';
+        const nativeIleKaydedildi = optikPdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+        durumEl.textContent = nativeIleKaydedildi
+            ? '✅ Kaydediliyor... (İndirilenler klasörüne yazılacak)'
+            : '✅ PDF indirildi.';
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
@@ -956,8 +986,10 @@ async function ogrencilerIcinFormOlustur() {
         if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
         durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
         const doc = await topluFormPdfOlustur(layout, ogrList);
-        doc.save(sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
-        durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
+        const nativeIleKaydedildi = optikPdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+        durumEl.textContent = nativeIleKaydedildi
+            ? `✅ Kaydediliyor... (${ogrList.length} öğrenci — İndirilenler klasörüne yazılacak)`
+            : `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
@@ -1179,10 +1211,25 @@ async function anahtarDisaAktar() {
     derslerDolu.forEach(d => d.anahtarlar.forEach(a => {
         csv += `${d.dersAdi},${a.soruNo},${a.dogru}\n`;
     }));
+    const dosyaAdi = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
+
+    // Aynı Android WebView / iframe kısıtı (bkz. optikPdfKaydet notu) —
+    // CSV indirmesi için de ana uygulamanın native köprüsünü kullan.
+    try {
+        const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
+        if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
+            const base64 = btoa(unescape(encodeURIComponent(csv)));
+            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, 'text/csv;charset=utf-8;');
+            return;
+        }
+    } catch (e) {
+        console.warn('Native kaydetme köprüsüne erişilemedi, blob+<a> kullanılacak:', e);
+    }
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url; link.download = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
+    link.href = url; link.download = dosyaAdi;
     document.body.appendChild(link); link.click(); link.remove();
     URL.revokeObjectURL(url);
 }

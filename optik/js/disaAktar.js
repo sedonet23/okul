@@ -11,6 +11,30 @@
 window.DisaAktar = (function () {
 
     // ----------------------------------------------------------------
+    // Native (Android) uyumlu dosya kaydetme köprüsü
+    // ----------------------------------------------------------------
+    // XLSX.writeFile / jsPDF doc.save(), gizli bir <a download> linkine
+    // tıklama tekniğiyle çalışır — Android'in çıplak WebView bileşeni bu
+    // blob-indirme davranışını DESTEKLEMİYOR, üstelik Optik ayrı bir
+    // IFRAME içinde çalıştığından ana uygulamanın native köprüsüne de
+    // (SavePlugin) doğrudan erişemez. Bu yüzden window.parent üzerinden
+    // erişilebilen ortak kaydetme yardımcısı (uygulamaDosyaKaydet) tercih
+    // edilir; bulunamazsa (bağımsız test/masaüstü) eski yönteme (verilen
+    // `eskiYontem` callback'i) geri düşülür.
+    function _dosyaKaydet(base64, dosyaAdi, mimeTuru, eskiYontem) {
+        try {
+            const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
+            if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
+                ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru);
+                return;
+            }
+        } catch (e) {
+            console.warn('Native kaydetme köprüsüne erişilemedi, eski yönteme dönülüyor:', e);
+        }
+        eskiYontem();
+    }
+
+    // ----------------------------------------------------------------
     // EXCEL dışa aktarma (SheetJS)
     // ----------------------------------------------------------------
 
@@ -112,7 +136,12 @@ window.DisaAktar = (function () {
 
         // İndir
         const dosyaAdi = `sinav_sonuclari_${_tarihDamgasi()}.xlsx`;
-        XLSX.writeFile(wb, dosyaAdi);
+        _dosyaKaydet(
+            XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }),
+            dosyaAdi,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            () => XLSX.writeFile(wb, dosyaAdi)
+        );
     }
 
     // ----------------------------------------------------------------
@@ -273,7 +302,13 @@ window.DisaAktar = (function () {
             }
         }
 
-        doc.save(`sinav_raporu_${_tarihDamgasi()}.pdf`);
+        const dosyaAdi = `sinav_raporu_${_tarihDamgasi()}.pdf`;
+        _dosyaKaydet(
+            doc.output('datauristring').split(',')[1],
+            dosyaAdi,
+            'application/pdf',
+            () => doc.save(dosyaAdi)
+        );
     }
 
     // ----------------------------------------------------------------
@@ -326,7 +361,13 @@ window.DisaAktar = (function () {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Cevap Anahtarı");
 
-        XLSX.writeFile(wb, `cevap_anahtari_${_tarihDamgasi()}.xlsx`);
+        const dosyaAdi = `cevap_anahtari_${_tarihDamgasi()}.xlsx`;
+        _dosyaKaydet(
+            XLSX.write(wb, { bookType: 'xlsx', type: 'base64' }),
+            dosyaAdi,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            () => XLSX.writeFile(wb, dosyaAdi)
+        );
     }
 
     function _tarihDamgasi() {
