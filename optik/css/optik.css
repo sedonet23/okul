@@ -1501,3 +1501,41 @@ canvas{
     .card{ padding:14px; }
 
 }
+
+/* ── Detay paneli tam ekran (mobil öncelikli) ── */
+.detay-panel {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100dvh !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+}
+
+/* Overlay padding kaldır, tam doldursun */
+#sinavDetayOverlay.ata-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+}
+
+/* govde flex büyüsün, scroll içinde kalsın */
+.detay-panel .detay-govde {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+}
+
+/* Görüntü alanı: sabit yükseklik yerine esnek */
+.detay-goruntu-alani {
+    min-height: 120px;
+    max-height: 35dvh;
+}
+
+.detay-kagit-img {
+    max-height: 35dvh;
+}
+
+/* Sorular alanı: kalan alanı doldursun */
+.detay-sorular-alani {
+    max-height: none !important;
+    overflow-y: visible !important;
+}
