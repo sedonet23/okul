@@ -157,8 +157,10 @@ window.TopluTarama = (function () {
         let ogrenciBilgisi = { ...omrKimlik };
 
         const omrNo = omrKimlik.ogrenciNo;
-        if (omrNo && /^\d+$/.test(omrNo)) {
-            const temizNo = String(parseInt(omrNo, 10));
+        // "??19", "0019" gibi formatları temizle: soru işareti ve sıfırları at
+        const omrNoTemiz = omrNo ? omrNo.replace(/[^0-9]/g, '') : '';
+        if (omrNoTemiz && parseInt(omrNoTemiz, 10) > 0) {
+            const temizNo = String(parseInt(omrNoTemiz, 10));
             ogrenciBilgisi = { ...omrKimlik, ogrenciNo: temizNo };
             try {
                 const bulunan = _ogrenciNoIleGetir(temizNo);
