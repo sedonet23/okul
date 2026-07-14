@@ -41,6 +41,10 @@ const DB = {
     // Cevap Anahtarı
     anahtariGetir(sid)      { return this._oku('oy_op_anahtar_' + sid, { dersler: [] }); },
     anahtarKaydet(sid, a)   { a.guncelleme = new Date().toISOString(); this._yaz('oy_op_anahtar_' + sid, a); },
+
+    // LGS Puanı — MEB'in açıkladığı gerçek istatistikler (Türkiye ort./std sapma, MinTASP/MaxTASP)
+    lgsAyarGetir(sid)       { return this._oku('oy_op_lgsayar_' + sid, { dersIstatistik: {}, minTasp: null, maxTasp: null }); },
+    lgsAyarKaydet(sid, a)   { this._yaz('oy_op_lgsayar_' + sid, a); },
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -94,6 +98,7 @@ const Ekranlar = {
     ogrDetay:     document.getElementById('ekranOgrDetay'),
     optikOlustur: document.getElementById('ekranOptikOlustur'),
     manuelKagit:  document.getElementById('ekranManuelKagit'),
+    lgsPuan:      document.getElementById('ekranLgsPuan'),
 };
 
 function ekranGit(id) {
@@ -338,21 +343,11 @@ function kagitlariRender() {
         const p     = r.puan || {};
         const puan  = p.toplamNet != null ? p.toplamNet.toFixed(1) : '—';
         const puanSinif = p.toplamNet >= 70 ? 'puan-yuksek' : p.toplamNet >= 40 ? 'puan-orta' : 'puan-dusuk';
-        const dvbVarMi = p.toplamD != null;
-        const dvb = dvbVarMi
-            ? `<small class="kagit-dvb">
-                 <span class="kagit-d">D:${p.toplamD}</span>
-                 <span class="kagit-y">Y:${p.toplamY}</span>
-                 <span class="kagit-b">B:${p.toplamB}</span>
-                 <span class="kagit-n">N:${p.toplamNet != null ? p.toplamNet.toFixed(2) : '0.00'}</span>
-               </small>`
-            : '';
         return `<div class="kagit-kart" data-id="${r.id}">
             <div class="kagit-avatar" style="background:${renk};">${harf1}${harf2}</div>
             <div class="kagit-bilgi">
                 <span class="kagit-ad">${_h(ad)}</span>
                 <small class="kagit-alt">${_h(ogr.sinif||'')} · ${_h(ogr.ogrenciNo||'—')}</small>
-                ${dvb}
             </div>
             <span class="puan-badge ${puanSinif}">${formAd}: ${puan}</span>
             <button class="menu-btn" data-id="${r.id}">
@@ -549,6 +544,175 @@ function puanHesapla(cevaplar, anahtar, dersler) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// LGS PUANI RAPORU (bkz. js/lgsPuanHesapla.js)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * DB'de saklanan LGS ayarını (bazı alanları boş/null olabilir) LgsPuanHesapla'nın
+ * beklediği "harici" formatına çevirir — yalnızca dolu (geçerli sayı) alanlar
+ * dahil edilir, böylece eksik olanlar tahmini hesaplanmaya devam eder.
+ */
+function _lgsHariciVeriyiHazirla() {
+    const ayar = DB.lgsAyarGetir(_aktifSinavId);
+    const dersIstatistik = {};
+    Object.keys(ayar.dersIstatistik || {}).forEach(dersAdi => {
+        const d = ayar.dersIstatistik[dersAdi] || {};
+        const ort = parseFloat(d.ortalama), std = parseFloat(d.stdSapma);
+        if (Number.isFinite(ort) && Number.isFinite(std)) dersIstatistik[dersAdi] = { ortalama: ort, stdSapma: std };
+    });
+    const harici = { dersIstatistik };
+    const minT = parseFloat(ayar.minTasp), maxT = parseFloat(ayar.maxTasp);
+    if (Number.isFinite(minT)) harici.minTasp = minT;
+    if (Number.isFinite(maxT)) harici.maxTasp = maxT;
+    return harici;
+}
+
+function lgsPuanRaporunuAcVeGoster() {
+    const dersler   = formDersleriniGetir(_aktifSinavId);
+    const sonuclar  = DB.sonuclariGetir(_aktifSinavId);
+    const harici    = _lgsHariciVeriyiHazirla();
+    const rapor     = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, harici);
+
+    const bosEl    = document.getElementById('lgsBosAlan');
+    const listEl   = document.getElementById('lgsOgrenciListesi');
+    const kaynakEl = document.getElementById('lgsKaynakEtiketi');
+    if (!rapor || !listEl) return;
+
+    _s('lgsOzetSayi', rapor.gecerliSayisi);
+    _s('lgsOzetOrtalama', rapor.gecerliSayisi ? rapor.sinavOrtalamaMsp.toFixed(1) : '—');
+
+    if (kaynakEl) {
+        if (rapor.tamamiGercek) {
+            kaynakEl.textContent = '✓ Tamamı MEB\'in gerçek verileriyle hesaplandı';
+            kaynakEl.className = 'lgs-kaynak-etiketi gercek';
+        } else if (rapor.dersIstatistik.some(d => d.kaynak === 'gercek') || rapor.taspKaynak === 'gercek') {
+            kaynakEl.textContent = '⚠ Bazı değerler gerçek MEB verisi, kalanı bu sınavdan tahmini';
+            kaynakEl.className = 'lgs-kaynak-etiketi karma';
+        } else {
+            kaynakEl.textContent = '⚠ Tamamı bu sınavın kendi verisinden TAHMİNİ hesaplandı — gerçek MEB puanı değildir';
+            kaynakEl.className = 'lgs-kaynak-etiketi karma';
+        }
+    }
+
+    if (!rapor.gecerliSayisi) {
+        bosEl.style.display = 'flex';
+        listEl.innerHTML = '';
+        ekranGit('lgsPuan');
+        return;
+    }
+    bosEl.style.display = 'none';
+
+    const istatistikMap = {};
+    rapor.dersIstatistik.forEach(i => { istatistikMap[i.dersAdi] = i; });
+
+    listEl.innerHTML = rapor.ogrenciler.map((o, i) => {
+        const ogr = o.ogrenci || {};
+        const detaySatirlari = o.dersPuanlari.map(d => {
+            const kaynak = istatistikMap[d.dersAdi]?.kaynak || 'tahmini';
+            return `
+            <span>${_h(d.dersAdi)}<span class="lgs-ders-rozet ${kaynak}">${kaynak === 'gercek' ? 'MEB' : 'tahmini'}</span></span>
+            <span>${d.net.toFixed(2)}</span>
+            <span>SP ${d.standartPuan.toFixed(1)}</span>
+            <span>×${d.katsayi} = ${d.agirlikliPuan.toFixed(1)}</span>
+        `;
+        }).join('');
+        return `
+        <div class="lgs-ogr-satir" data-idx="${i}">
+            <div class="lgs-ogr-ust">
+                <span class="lgs-ogr-sira">${i + 1}</span>
+                <div class="lgs-ogr-ad">
+                    <strong>${_h(ogr.adSoyad || 'İsimsiz')}</strong>
+                    <small>${_h(ogr.sinif || '')}${ogr.sinif && ogr.ogrenciNo ? ' · ' : ''}${_h(ogr.ogrenciNo || '')}</small>
+                </div>
+                <span class="lgs-ogr-msp">${o.msp.toFixed(1)}</span>
+            </div>
+            <div class="lgs-ogr-detay">
+                <span class="lgs-detay-baslik">Ders</span>
+                <span class="lgs-detay-baslik">Net</span>
+                <span class="lgs-detay-baslik">Standart</span>
+                <span class="lgs-detay-baslik">Ağırlıklı</span>
+                ${detaySatirlari}
+            </div>
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('.lgs-ogr-satir').forEach(satir => {
+        satir.addEventListener('click', () => {
+            satir.querySelector('.lgs-ogr-detay')?.classList.toggle('acik');
+        });
+    });
+
+    ekranGit('lgsPuan');
+}
+
+/**
+ * "MEB Verilerini Gir / Düzenle" panelini, sınavın dersleri ve DB'de kayıtlı
+ * (varsa) değerlerle doldurarak render eder.
+ */
+function _lgsAyarPaneliniRender() {
+    const panel = document.getElementById('lgsAyarPanel');
+    if (!panel || !_aktifSinavId) return;
+    const dersler = formDersleriniGetir(_aktifSinavId);
+    const ayar = DB.lgsAyarGetir(_aktifSinavId);
+
+    const dersSatirlari = dersler.map(d => {
+        const kayitli = (ayar.dersIstatistik || {})[d.dersAdi] || {};
+        return `
+        <div class="lgs-ayar-ders-satir">
+            <span class="lgs-ayar-ders-baslik">${_h(d.dersAdi)} <small style="color:var(--text-faint);font-weight:400;">(katsayı ${window.LgsPuanHesapla?.dersKatsayisi(d.dersAdi) ?? '?'})</small></span>
+            <div class="lgs-ayar-inputlar">
+                <label>Türkiye Ortalaması
+                    <input type="number" step="0.01" class="lgs-ayar-ort" data-ders="${_h(d.dersAdi)}" value="${kayitli.ortalama ?? ''}" placeholder="tahmini">
+                </label>
+                <label>Standart Sapma
+                    <input type="number" step="0.01" class="lgs-ayar-std" data-ders="${_h(d.dersAdi)}" value="${kayitli.stdSapma ?? ''}" placeholder="tahmini">
+                </label>
+            </div>
+        </div>`;
+    }).join('');
+
+    panel.innerHTML = `
+        ${dersSatirlari}
+        <div class="lgs-ayar-genel-satir">
+            <label>MinTASP
+                <input type="number" step="0.01" id="lgsAyarMinTasp" value="${ayar.minTasp ?? ''}" placeholder="tahmini">
+            </label>
+            <label>MaxTASP
+                <input type="number" step="0.01" id="lgsAyarMaxTasp" value="${ayar.maxTasp ?? ''}" placeholder="tahmini">
+            </label>
+        </div>
+        <button type="button" class="lgs-ayar-kaydet-btn" id="btnLgsAyarKaydet">Kaydet ve Yeniden Hesapla</button>
+        <button type="button" class="lgs-ayar-temizle-btn" id="btnLgsAyarTemizle">Tüm girilen değerleri temizle (tahminiye dön)</button>
+    `;
+
+    document.getElementById('btnLgsAyarKaydet').addEventListener('click', _lgsAyarKaydetVeYenile);
+    document.getElementById('btnLgsAyarTemizle').addEventListener('click', () => {
+        DB.lgsAyarKaydet(_aktifSinavId, { dersIstatistik: {}, minTasp: null, maxTasp: null });
+        _lgsAyarPaneliniRender();
+        lgsPuanRaporunuAcVeGoster();
+    });
+}
+
+function _lgsAyarKaydetVeYenile() {
+    const panel = document.getElementById('lgsAyarPanel');
+    const dersIstatistik = {};
+    panel.querySelectorAll('.lgs-ayar-ort').forEach(input => {
+        const dersAdi = input.dataset.ders;
+        const stdInput = panel.querySelector(`.lgs-ayar-std[data-ders="${CSS.escape(dersAdi)}"]`);
+        const ort = input.value.trim(), std = stdInput?.value.trim();
+        if (ort !== '' && std !== '') dersIstatistik[dersAdi] = { ortalama: parseFloat(ort), stdSapma: parseFloat(std) };
+    });
+    const minTaspVal = document.getElementById('lgsAyarMinTasp')?.value.trim();
+    const maxTaspVal = document.getElementById('lgsAyarMaxTasp')?.value.trim();
+    DB.lgsAyarKaydet(_aktifSinavId, {
+        dersIstatistik,
+        minTasp: minTaspVal !== '' ? parseFloat(minTaspVal) : null,
+        maxTasp: maxTaspVal !== '' ? parseFloat(maxTaspVal) : null,
+    });
+    lgsPuanRaporunuAcVeGoster();
+}
+
+// ════════════════════════════════════════════════════════════════
 // ANAHTAR SEKMESİ
 // ════════════════════════════════════════════════════════════════
 function anahtarPaneliniRender() {
@@ -632,40 +796,11 @@ function _anahtarCevapKaydet(dersAdi, soruNo, dogru) {
 function _tumSonuclariYenidenHesapla() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const dersler = formDersleriniGetir(_aktifSinavId);
-    const sonuclar = DB.sonuclariGetir(_aktifSinavId);
-    sonuclar.forEach(sonuc => {
-        // Eski/bozuk kayıtlarda cevaplar dizi biçiminde kalmış olabilir
-        // (bkz. _cevaplarDiziyiObjeyeCevir yorumu) — yeniden hesaplamadan
-        // önce onları da onarıyoruz ki "Yenile" gerçekten düzeltsin.
-        if (Array.isArray(sonuc.cevaplar)) {
-            sonuc.cevaplar = _cevaplarDiziyiObjeyeCevir(sonuc.cevaplar);
-        }
+    DB.sonuclariGetir(_aktifSinavId).forEach(sonuc => {
         sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
         DB.sonucKaydet(_aktifSinavId, sonuc);
     });
     if (_aktifSekme === 'kagitlar') kagitlariRender();
-    return sonuclar.length;
-}
-
-// Kullanıcının elle tetiklediği "Yenile / Yeniden Değerlendir" eylemi —
-// hem Kağıtlar sekmesindeki yenile butonundan hem Anahtar sekmesindeki
-// "Yeniden Değerlendir" butonundan çağrılır. İşlem sonrası kullanıcıya
-// görünür bir geri bildirim (toast) verir.
-function tumKagitlariYenidenDegerlendir() {
-    if (!_aktifSinavId) return;
-    const adet = _tumSonuclariYenidenHesapla();
-    anahtarIzgaraCiz();
-    ogrDetayIzgaraCiz_guncelleAcikSayfaVarsa();
-    toastGoster(adet > 0 ? `${adet} kağıt yeniden değerlendirildi ✓` : 'Yeniden değerlendirilecek kağıt yok', 'basari');
-}
-
-// Öğrenci detay ekranı açıkken "Yenile" tetiklenirse o ekranı da tazele.
-function ogrDetayIzgaraCiz_guncelleAcikSayfaVarsa() {
-    if (!_aktifSonucId) return;
-    const son = DB.sonuclariGetir(_aktifSinavId).find(s => s.id === _aktifSonucId);
-    if (!son) return;
-    ogrDetayIzgaraCiz(son);
-    ogrDetayIstatistikGuncelle(son);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -731,58 +866,14 @@ window.addEventListener('omrOkumaTamamlandi', () => {
     kameraKapat();
 });
 
-// ÖNEMLİ HATA DÜZELTMESİ: omrEngine.js / formOkuyucu.js okuma sonucunu
-// cevaplar: [{ ders, soruNo, isaretliSik, ... }] biçiminde bir DİZİ olarak
-// üretiyor. Ama puanHesapla(), ogrDetayIzgaraCiz() ve anahtar karşılaştırma
-// kodunun tamamı cevaplar[dersAdi][soruNo] = harf şeklinde iç içe bir OBJE
-// bekliyor. Diziyi hiç dönüştürmeden objeymiş gibi kullanmak (cevaplar[dersAdi])
-// her zaman undefined döner, bu yüzden taranan tüm kağıtlar "tamamen boş"
-// görünüyordu (D:0 Y:0 B:soruSayisi) — öğrencinin gerçek işaretleri asla
-// puanlamaya yansımıyordu. Bu fonksiyon o dönüşümü yapar.
-function _cevaplarDiziyiObjeyeCevir(dizi) {
-    const obj = {};
-    (dizi || []).forEach(c => {
-        const dersAdi = c.ders || c.dersAdi || 'Genel';
-        if (!obj[dersAdi]) obj[dersAdi] = {};
-        if (c.isaretliSik) obj[dersAdi][c.soruNo] = c.isaretliSik;
-    });
-    return obj;
-}
-
 function _omrSonucuisle(raw) {
     if (!raw || !_aktifSinavId) return;
     const dersler = formDersleriniGetir(_aktifSinavId);
     const anahtar = DB.anahtariGetir(_aktifSinavId);
-
-    // Okunan öğrenci no'yu sınıf listesindeki öğrencilerle eşleştir
-    // (manuel kağıt girişindeki _manuelNoIleAra ile aynı mantık) —
-    // eşleşme bulunursa ad-soyad ve sınıf bilgisini de doldur.
-    //
-    // ÖNEMLİ: numaraOku() (omrEngine.js) öğrenci no'yu SABİT BASAMAK
-    // SAYISIYLA, başına sıfır ekleyerek üretir (örn. gerçek no "103" ise
-    // baloncuk ızgarası 4 haneliyse "0103" okunur). Sınıf listesindeki
-    // ogrenciNo ise genelde baştaki sıfırlar OLMADAN saklanır ("103").
-    // Ham stringleri birebir karşılaştırmak ("0103" === "103") hep
-    // BAŞARISIZ olur — bu yüzden her iki tarafı da rakam-bazlı (sayısal)
-    // normalize ederek karşılaştırıyoruz.
-    const kimlik = raw.ogrenciKimlik || {};
-    const noTemiz = String(kimlik.ogrenciNo || '').replace(/[^0-9]/g, '');
-    const no = noTemiz && parseInt(noTemiz, 10) > 0 ? String(parseInt(noTemiz, 10)) : '';
-    const eslesen = no
-        ? _manuelTumOgrenciler().find(o => {
-            const oNo = String(o.ogrenciNo || '').replace(/[^0-9]/g, '');
-            return oNo && String(parseInt(oNo, 10)) === no;
-        })
-        : null;
-
-    const ogrenci = eslesen
-        ? { ...kimlik, ogrenciNo: eslesen.ogrenciNo, adSoyad: eslesen.adSoyad, sinif: eslesen.sinifAd, ogrenciId: eslesen.id }
-        : { ...kimlik, ogrenciNo: no || kimlik.ogrenciNo };
-
     const sonuc = {
         id:            'sonuc_' + Date.now(),
-        ogrenci,
-        cevaplar:      Array.isArray(raw.cevaplar) ? _cevaplarDiziyiObjeyeCevir(raw.cevaplar) : (raw.cevaplar || {}),
+        ogrenci:       raw.ogrenciKimlik || {},
+        cevaplar:      raw.cevaplar || {},
         kagitGoruntusu:raw.kagitGoruntusu || null,
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
@@ -969,34 +1060,6 @@ function manuelKaydet() {
 // ════════════════════════════════════════════════════════════════
 // OPTİK FORM OLUŞTUR
 // ════════════════════════════════════════════════════════════════
-
-/**
- * jsPDF'in kendi doc.save() metodu, gizli bir <a download> linkine
- * tıklama tekniğiyle çalışır — Android'in çıplak WebView bileşeni bu
- * blob-indirme davranışını DESTEKLEMİYOR (ana uygulamada aynı sorun
- * SavePlugin.java ile çözülmüştü). Üstelik Optik ayrı bir IFRAME
- * içinde çalıştığından, doc.save() zaten o native köprüye erişemez.
- * Bu yüzden ana uygulamanın window.parent üzerinden erişilebilen ortak
- * kaydetme yardımcısını (uygulamaDosyaKaydet — native ortamda
- * SavePlugin/MediaStore, web'de blob+<a> fallback) kullanıyoruz.
- * Optik bağımsız (iframe dışında) açılmışsa ya da köprü bulunamazsa
- * jsPDF'in kendi doc.save()'ine geri düşülür.
- */
-function optikPdfKaydet(doc, dosyaAdi) {
-    try {
-        const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
-        if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
-            const base64 = doc.output('datauristring').split(',')[1];
-            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, 'application/pdf');
-            return true;
-        }
-    } catch (e) {
-        console.warn('Native kaydetme köprüsüne erişilemedi, jsPDF doc.save() kullanılacak:', e);
-    }
-    doc.save(dosyaAdi);
-    return false;
-}
-
 async function optikOlusturAc() {
     document.getElementById('optikOlusturDurum').textContent = '';
     ekranGit('optikOlustur');
@@ -1014,10 +1077,8 @@ async function bosFormOlustur() {
             adSoyad: '', ogrenciNo: '', sinif: '',
             sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
         });
-        const nativeIleKaydedildi = optikPdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
-        durumEl.textContent = nativeIleKaydedildi
-            ? '✅ Kaydediliyor... (İndirilenler klasörüne yazılacak)'
-            : '✅ PDF indirildi.';
+        doc.save(sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+        durumEl.textContent = '✅ PDF indirildi.';
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
@@ -1043,10 +1104,8 @@ async function ogrencilerIcinFormOlustur() {
         if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
         durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
         const doc = await topluFormPdfOlustur(layout, ogrList);
-        const nativeIleKaydedildi = optikPdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
-        durumEl.textContent = nativeIleKaydedildi
-            ? `✅ Kaydediliyor... (${ogrList.length} öğrenci — İndirilenler klasörüne yazılacak)`
-            : `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
+        doc.save(sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+        durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
@@ -1087,157 +1146,31 @@ function optikFormSheetAc(onSecim) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// TOAST — kullanıcıya görünür geri bildirim
-// ════════════════════════════════════════════════════════════════
-// NOT: #omrDurum/#statusText (index.html'deki gizli konteyner) hiçbir
-// yerde görünür kılınmıyordu ve #sonucKutusu bu ekranda hiç yok — bu
-// yüzden formOkuyucu.js'in yazdığı durum/hata metinleri kullanıcıya
-// HİÇ ULAŞMIYORDU. Galeriden okuma başarısız da olsa sessizce hiçbir
-// şey olmuyormuş gibi görünüyordu. Bu fonksiyon o boşluğu dolduruyor.
-let _toastZamanlayici = null;
-function toastGoster(mesaj, tip = 'bilgi', sureMs = 2600) {
-    let kap = document.getElementById('oToastKap');
-    if (!kap) {
-        kap = document.createElement('div');
-        kap.id = 'oToastKap';
-        kap.className = 'o-toast-kap';
-        document.body.appendChild(kap);
-    }
-    kap.textContent = mesaj;
-    kap.className = 'o-toast-kap gorunur ' + tip;
-    clearTimeout(_toastZamanlayici);
-    if (sureMs > 0) {
-        _toastZamanlayici = setTimeout(() => { kap.classList.remove('gorunur'); }, sureMs);
-    }
-}
-
-// ════════════════════════════════════════════════════════════════
 // GALERİ
 // ════════════════════════════════════════════════════════════════
-async function galeriSecimIsle(dosyalar) {
+function galeriSecimIsle(dosyalar) {
     if (!dosyalar?.length) return;
-
-    // ÖNEMLİ: "dosyalar" parametresi <input>'un CANLI (live) FileList'ine
-    // bir referans. Bu fonksiyonu çağıran 'change' dinleyicisi, çağrının
-    // hemen ardından (senkron olarak) input.value = '' yapıyor (aynı
-    // dosyanın tekrar seçilebilmesi için). Bu fonksiyon async olduğundan,
-    // ilk "await"e (aşağıdaki dynamic import) ulaştığı an kontrolü
-    // çağırana geri verir — tam o sırada input.value='' çalışır ve canlı
-    // FileList (dolayısıyla elimizdeki "dosyalar" referansı) BOŞALIR.
-    // Sonuç: dosyalar[0] undefined olur → createObjectURL(undefined) →
-    // "Overload resolution failed" hatası. Çözüm: herhangi bir await'ten
-    // ÖNCE, senkron olarak sabit bir diziye kopyalıyoruz.
-    const dosyaListesi = Array.from(dosyalar);
-
     sheetKapat('sheetKagitEkle');
-
-    const canvas = document.getElementById('canvas');
-    if (!canvas) { console.error('Galeri okuma: #canvas bulunamadı'); return; }
-
-    try {
-        const { formuOkuVeGoster, formuOkuElleKoseliVeGoster, formuOkuToplu } = await import('./formOkuyucu.js');
-
-        if (dosyaListesi.length > 1) {
-            // Birden fazla dosya: köşe seçimi atlanır, otomatik toplu okuma.
-            const toplam = dosyaListesi.length;
-            let basarili = 0;
-            const basarisizlar = [];
-
-            for (let i = 0; i < toplam; i++) {
-                const dosya = dosyaListesi[i];
-                toastGoster(`Taranıyor... (${i + 1}/${toplam})`, 'bilgi', 30000);
+    // galeriSecici.js baglaGaleriSecici fonksiyonu kullanılıyor
+    // Her dosya için omrEngine ile işle
+    Array.from(dosyalar).forEach(async dosya => {
+        const reader = new FileReader();
+        reader.onload = async e => {
+            const img = new Image();
+            img.onload = async () => {
+                const cvs = document.getElementById('canvas');
+                cvs.width = img.width; cvs.height = img.height;
+                cvs.getContext('2d').drawImage(img, 0, 0);
                 try {
-                    const img = await dosyaToImg(dosya);
-                    canvas.width = img.naturalWidth;
-                    canvas.height = img.naturalHeight;
-                    canvas.getContext('2d').drawImage(img, 0, 0);
-                    const sonuc = await formuOkuToplu(canvas);
-                    if (sonuc && sonuc.basarili) {
-                        basarili++;
-                    } else {
-                        basarisizlar.push(dosya.name || `#${i + 1}`);
-                    }
-                } catch (err) {
-                    console.error('Toplu galeri okuma hatası:', dosya.name, err);
-                    basarisizlar.push(dosya.name || `#${i + 1}`);
-                }
-            }
-
-            kagitlariRender();
-
-            let ozet = `Toplu içe aktarma: ${basarili}/${toplam} kağıt okundu.`;
-            if (basarisizlar.length) {
-                ozet += `\nOkunamayan ${basarisizlar.length} kağıt: ${basarisizlar.slice(0, 4).join(', ')}${basarisizlar.length > 4 ? '…' : ''}`;
-                ozet += `\nBunları galeriden TEK TEK (bir seferde 1 fotoğraf) seçip elle köşe düzelterek tekrar deneyin.`;
-            }
-            toastGoster(ozet, basarisizlar.length ? 'uyari' : 'basari', basarisizlar.length ? 7000 : 3500);
-            return;
-        }
-
-        // Tek dosya: elle köşe seçim akışı (koseSecici.js) üzerinden geçir.
-        const { koseSeciciElemanlariniAl, koseSecimAkisi } = await import('./koseSecici.js');
-        const koseElemanlari = koseSeciciElemanlariniAl();
-
-        const dosya = dosyaListesi[0];
-        const img = await dosyaToImg(dosya);
-
-        // ÖNEMLİ: köşe seçim ekranı (#koseSecimAlani), DOM'da #kameraOverlay'in
-        // İÇİNDE yaşıyor. #kameraOverlay'in kendi "hidden" özelliği açık
-        // kaldığı sürece (yani kamera açılmadan, sadece "+ > Galeri" ile tek
-        // dosya seçildiğinde), köşe seçici kendi style.display'ini "block"
-        // yapsa bile üst elemanın "hidden" özelliği yüzünden EKRANDA HİÇ
-        // GÖRÜNMÜYORDU — kullanıcı görünmeyen bir ekranda "Tamam"a basamadığı
-        // için akış sonsuza dek beklemede kalıyor, ne sonuç ne de hata/uyarı
-        // çıkıyordu. Bu yüzden köşe seçimi süresince overlay'i geçici olarak
-        // açığa çıkarıyoruz (kamera akışını BAŞLATMADAN, sadece görünür
-        // kılarak) ve işlem bitince eski haline döndürüyoruz.
-        const kameraOverlayEl = document.getElementById('kameraOverlay');
-        const overlayOncekiHidden = kameraOverlayEl ? kameraOverlayEl.hidden : null;
-        if (kameraOverlayEl) kameraOverlayEl.hidden = false;
-
-        let koseler;
-        try {
-            koseler = koseElemanlari
-                ? await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari)
-                : null;
-        } finally {
-            if (kameraOverlayEl) kameraOverlayEl.hidden = overlayOncekiHidden === null ? true : overlayOncekiHidden;
-        }
-
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-
-        const sonuc = koseler
-            ? await formuOkuElleKoseliVeGoster(canvas, koseler)
-            : await formuOkuVeGoster(canvas);
-
-        if (sonuc && sonuc.basarili) {
-            const isaretli = (sonuc.cevaplar || []).filter(c => c.isaretliSik).length;
-            toastGoster(`Kağıt okundu ✓ (${sonuc.cevaplar.length} soru, ${isaretli} işaretli)`, 'basari');
-        } else {
-            const mesaj = (sonuc && sonuc.uyarilar && sonuc.uyarilar[0]) || 'bilinmeyen hata';
-            toastGoster('Okunamadı: ' + mesaj + '\nKöşeleri elle seçip tekrar deneyin.', 'hata', 6000);
-        }
-
-    } catch (err) {
-        console.error('Galeri okuma hatası', err);
-        toastGoster('Fotoğraf okunamadı: ' + err.message, 'hata', 6000);
-    }
-}
-
-/**
- * Bir File nesnesini yüklenmiş bir <img>'e çevirir.
- * @param {File} dosya
- * @returns {Promise<HTMLImageElement>}
- */
-function dosyaToImg(dosya) {
-    return new Promise((resolve, reject) => {
-        const url = URL.createObjectURL(dosya);
-        const img = new Image();
-        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Görsel yüklenemedi.')); };
-        img.src = url;
+                    if (typeof window.baglaGaleriSecici !== 'undefined') return;
+                    // formOkuyucu.js ile işle
+                    const { formuOkuVeGoster } = await import('./formOkuyucu.js');
+                    await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
+                } catch(err) { console.error('Galeri okuma hatası', err); }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(dosya);
     });
 }
 
@@ -1246,50 +1179,32 @@ function dosyaToImg(dosya) {
 // ════════════════════════════════════════════════════════════════
 async function anahtarExcelYukle(dosya) {
     try {
-        const dosyaAdi = (dosya.name || '').toLowerCase();
-        const xlsxMi = dosyaAdi.endsWith('.xlsx') || dosyaAdi.endsWith('.xls')
-            || dosya.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            || dosya.type === 'application/vnd.ms-excel';
-
-        let yeniAnahtar;
-
-        if (xlsxMi) {
-            // GERÇEK Excel dosyası: js/cevapAnahtari.js hiçbir yerde
-            // <script> ile yüklenmiyor (ölü/kullanılmayan modül) — bu
-            // yüzden window.CevapAnahtari HER ZAMAN undefined'dı ve kod
-            // hep aşağıdaki CSV metin ayrıştırmaya düşüyordu; xlsx ikili
-            // (binary) içeriği metin gibi okunduğunda başlık satırı hiç
-            // eşleşmiyor, "CSV formatı tanınmadı" hatası çıkıyordu. Onun
-            // yerine burada SheetJS (XLSX) ile doğrudan gerçek Excel
-            // ayrıştırması yapılıyor (dışa aktarmada zaten yüklenen aynı
-            // kütüphane — bkz. _xlsxKutuphaneYukle).
-            await _xlsxKutuphaneYukle();
-            const veri = new Uint8Array(await dosya.arrayBuffer());
-            const wb = XLSX.read(veri, { type: 'array' });
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const satirlar = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-            if (satirlar.length < 2) { alert('Excel dosyası boş veya yalnızca başlık içeriyor.'); return; }
-            const baslik = satirlar[0].map(h => String(h).trim().toLowerCase());
-            yeniAnahtar = _anahtarSatirlariniIsle(
-                baslik,
-                satirlar.slice(1),
-                (s, i) => (s[i] === undefined || s[i] === null) ? '' : String(s[i])
-            );
-        } else {
-            // CSV
-            const metin = await dosya.text();
-            const satirlar = metin.split('\n').filter(s => s.trim()).map(s => s.split(','));
-            if (satirlar.length < 2) { alert('CSV dosyası boş veya yalnızca başlık içeriyor.'); return; }
-            const baslik = satirlar[0].map(h => h.trim().toLowerCase());
-            yeniAnahtar = _anahtarSatirlariniIsle(
-                baslik,
-                satirlar.slice(1),
-                (s, i) => (s[i] || '')
-            );
+        // Önce eski CevapAnahtari modülünü dene
+        const kaynak = window.CevapAnahtari;
+        if (kaynak?.exceldenYukle) {
+            await kaynak.exceldenYukle(dosya);
+            const a = kaynak.getir?.();
+            if (a?.dersler?.length) { DB.anahtarKaydet(_aktifSinavId, a); anahtarIzgaraCiz(); _tumSonuclariYenidenHesapla(); return; }
         }
-
-        if (!yeniAnahtar) { return; } // hata mesajı _anahtarSatirlariniIsle içinde zaten gösterildi
-
+        // CSV fallback
+        const metin = await dosya.text();
+        const satirlar = metin.split('\n').filter(s => s.trim());
+        const baslikSatir = satirlar[0].toLowerCase();
+        const dersIdx  = baslikSatir.split(',').findIndex(h => h.includes('ders'));
+        const soruIdx  = baslikSatir.split(',').findIndex(h => h.includes('soru') || h.includes('no'));
+        const cevapIdx = baslikSatir.split(',').findIndex(h => h.includes('cevap') || h.includes('doğru') || h.includes('dogru'));
+        if (dersIdx < 0 || soruIdx < 0 || cevapIdx < 0) { alert('CSV formatı tanınmadı. Beklenen sütunlar: Ders, Soru No, Doğru Cevap'); return; }
+        const yeniAnahtar = { dersler: [] };
+        satirlar.slice(1).forEach(satir => {
+            const huc = satir.split(',');
+            const dersAdi = (huc[dersIdx] || '').trim();
+            const soruNo  = parseInt((huc[soruIdx] || '').trim(), 10);
+            const dogru   = (huc[cevapIdx] || '').trim().toUpperCase();
+            if (!dersAdi || !soruNo || !dogru) return;
+            let ders = yeniAnahtar.dersler.find(d => d.dersAdi === dersAdi);
+            if (!ders) { ders = { dersAdi, anahtarlar: [] }; yeniAnahtar.dersler.push(ders); }
+            ders.anahtarlar.push({ soruNo, dogru });
+        });
         DB.anahtarKaydet(_aktifSinavId, yeniAnahtar);
         anahtarIzgaraCiz();
         _tumSonuclariYenidenHesapla();
@@ -1297,100 +1212,20 @@ async function anahtarExcelYukle(dosya) {
     } catch (e) { alert('İçe aktarma hatası: ' + e.message); }
 }
 
-/**
- * Başlık satırından Ders/Soru No/Doğru Cevap sütunlarını esnek eşleştirir
- * (xlsx ve CSV için ORTAK mantık). `hucreAl(satir, index)` her iki format
- * için de tek bir hücre okuma arayüzü sağlıyor.
- * @returns {{dersler: Array}|null} hata varsa alert gösterir ve null döner
- */
-function _anahtarSatirlariniIsle(baslik, veriSatirlari, hucreAl) {
-    const dersIdx  = baslik.findIndex(h => h.includes('ders'));
-    const soruIdx  = baslik.findIndex(h => h.includes('soru') || h.includes('no'));
-    const cevapIdx = baslik.findIndex(h => h.includes('cevap') || h.includes('doğru') || h.includes('dogru'));
-
-    if (soruIdx < 0 || cevapIdx < 0) {
-        alert('Beklenen sütunlar bulunamadı: Ders, Soru No, Doğru Cevap.\nMevcut başlıklar: ' + baslik.join(', '));
-        return null;
-    }
-
-    const yeniAnahtar = { dersler: [] };
-    veriSatirlari.forEach(satir => {
-        const dersAdi = dersIdx >= 0 ? hucreAl(satir, dersIdx).trim() : '';
-        const soruNo  = parseInt(hucreAl(satir, soruIdx).trim(), 10);
-        const dogru   = hucreAl(satir, cevapIdx).trim().toUpperCase();
-        if (!soruNo || !dogru) return;
-        const adi = dersAdi || 'Genel';
-        let ders = yeniAnahtar.dersler.find(d => d.dersAdi === adi);
-        if (!ders) { ders = { dersAdi: adi, anahtarlar: [] }; yeniAnahtar.dersler.push(ders); }
-        ders.anahtarlar.push({ soruNo, dogru });
-    });
-
-    if (!yeniAnahtar.dersler.length) {
-        alert('Dosyada geçerli bir soru/cevap satırı bulunamadı.');
-        return null;
-    }
-
-    return yeniAnahtar;
-}
-
-function _xlsxKutuphaneYukle() {
-    return new Promise((resolve, reject) => {
-        if (window.XLSX) { resolve(); return; }
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-        s.onload = resolve;
-        s.onerror = () => reject(new Error('Excel kütüphanesi (SheetJS) yüklenemedi.'));
-        document.head.appendChild(s);
-    });
-}
-
 async function anahtarDisaAktar() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const derslerDolu = (anahtar.dersler || []).filter(d => d.anahtarlar?.length);
     if (!derslerDolu.length) { alert('Dışa aktarılacak cevap anahtarı yok.'); return; }
-
-    // Not: Dışa aktarma da içe aktarmayla (anahtarExcelYukle → CevapAnahtari.
-    // exceldenYukle) AYNI Excel (.xlsx) formatını kullanıyor — CSV'ye göre
-    // avantajı: Android'in dosya seçicisi "accept" filtresi genelde .xlsx
-    // bekliyor ve CSV dosyasını seçilebilir bile göstermiyordu, üstelik
-    // aynı dosyayı hemen geri yükleyebilmek (dışa aktar → düzenle → içe
-    // aktar) artık sorunsuz çalışıyor.
-    try {
-        await _xlsxKutuphaneYukle();
-    } catch (e) {
-        alert('Dışa aktarma hatası: ' + e.message);
-        return;
-    }
-
-    const veri = [['Ders', 'Soru No', 'Doğru Cevap']];
-    derslerDolu.forEach(d => {
-        [...d.anahtarlar].sort((a, b) => a.soruNo - b.soruNo).forEach(a => {
-            veri.push([d.dersAdi, a.soruNo, a.dogru]);
-        });
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(veri);
-    ws['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 14 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cevap Anahtarı');
-
-    const dosyaAdi = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.xlsx';
-    const mimeTuru = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
-    // Android WebView / iframe kısıtı (bkz. optikPdfKaydet notu) — native
-    // köprüyü kullan, yoksa blob+<a>'ya geri düş.
-    try {
-        const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
-        if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
-            const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru);
-            return;
-        }
-    } catch (e) {
-        console.warn('Native kaydetme köprüsüne erişilemedi, XLSX.writeFile kullanılacak:', e);
-    }
-
-    XLSX.writeFile(wb, dosyaAdi);
+    let csv = '\uFEFFDers,Soru No,Doğru Cevap\n';
+    derslerDolu.forEach(d => d.anahtarlar.forEach(a => {
+        csv += `${d.dersAdi},${a.soruNo},${a.dogru}\n`;
+    }));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    URL.revokeObjectURL(url);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1459,6 +1294,14 @@ function baslat() {
 
     // ── Ekran 6: Manuel Kağıt ──
     document.getElementById('btnManuelKapat').addEventListener('click', () => ekranGit('sinavDetay'));
+    document.getElementById('btnLgsPuanGeri').addEventListener('click', () => ekranGit('sinavDetay'));
+    document.getElementById('btnLgsAyarToggle').addEventListener('click', () => {
+        const panel = document.getElementById('lgsAyarPanel');
+        if (!panel) return;
+        const acilacak = panel.style.display === 'none';
+        if (acilacak) _lgsAyarPaneliniRender();
+        panel.style.display = acilacak ? 'flex' : 'none';
+    });
     document.getElementById('btnManuelKaydet').addEventListener('click', manuelKaydet);
     document.getElementById('manuelDers').addEventListener('change', manuelIzgaraCiz);
     document.getElementById('btnManuelSiniftanSec').addEventListener('click', _manuelSiniftanSecToggle);
@@ -1504,8 +1347,6 @@ function baslat() {
         });
     });
     document.getElementById('btnMiniAnahtar').addEventListener('click', () => alert('Mini cevap anahtarı yakında'));
-    document.getElementById('btnAnahtarYenidenDegerlendir')?.addEventListener('click', tumKagitlariYenidenDegerlendir);
-    document.getElementById('btnKagitYenile')?.addEventListener('click', tumKagitlariYenidenDegerlendir);
 
     // Raporlar
     document.querySelectorAll('.rapor-satir').forEach(btn =>
@@ -1515,12 +1356,16 @@ function baslat() {
                 const sonuclar = DB.sonuclariGetir(_aktifSinavId);
                 const { DisaAktar } = await import('./disaAktar.js').catch(() => ({ DisaAktar: window.DisaAktar }));
                 (DisaAktar || window.DisaAktar)?.excelIndir?.(sonuclar, { sinavAdi: DB.sinaviBul(_aktifSinavId)?.ad });
+            } else if (r === 'lgs') {
+                lgsPuanRaporunuAcVeGoster();
             } else { alert(`"${btn.querySelector('span').textContent}" raporu yakında eklenecek.`); }
         })
     );
 
-    // Not: galeriInput ve galeriInputSheet için okuma akışı galeriSecimIsle()
-    // içinde ele alınıyor (yukarıda 'change' dinleyicileriyle bağlandı).
+    // galeriSecici.js bağla (kamera için)
+    if (typeof window.baglaGaleriSecici === 'function') {
+        window.baglaGaleriSecici('galeriInput', 'canvas');
+    }
 
     // Kamera start/stop butonları
     import('./camera.js').then(mod => {
