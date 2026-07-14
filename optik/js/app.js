@@ -714,10 +714,12 @@ function _omrSonucuisle(raw) {
 // ════════════════════════════════════════════════════════════════
 let _manuelCevaplar = {};
 let _manuelDersler  = [];
+let _manuelSeciliOgrenciId = null;
 
 function manuelKagitAc() {
     _manuelCevaplar = {};
     _manuelDersler  = formDersleriniGetir(_aktifSinavId);
+    _manuelSeciliOgrenciId = null;
 
     document.getElementById('manuelAdSoyad').value = '';
     document.getElementById('manuelNo').value = '';
@@ -732,9 +734,91 @@ function manuelKagitAc() {
     dersEl.innerHTML = _manuelDersler.map((d, i) => `<option value="${i}">${d.dersAdi}</option>`).join('');
     dersEl.selectedIndex = 0;
 
+    // Sınıftan seç butonu — sadece ana uygulama içinden açıldığında (öğrenci verisi varsa) göster
+    const siniftanSecWrap = document.getElementById('manuelSiniftanSecWrap');
+    const sinifListesiKap = document.getElementById('manuelSinifListesi');
+    if (siniftanSecWrap) siniftanSecWrap.style.display = veriKaynagi() ? 'block' : 'none';
+    if (sinifListesiKap) { sinifListesiKap.style.display = 'none'; sinifListesiKap.innerHTML = ''; }
+
     manuelIzgaraCiz();
     _manuelIstatistikGuncelle();
     ekranGit('manuelKagit');
+}
+
+// ── Öğrenci no ile otomatik bulma ──
+function _manuelTumOgrenciler() {
+    const kaynak = veriKaynagi();
+    if (!kaynak) return [];
+    try {
+        const siniflar = kaynak.siniflarGetir() || [];
+        const tum = [];
+        siniflar.forEach(s => {
+            (kaynak.ogrencilerGetir(s.id) || []).forEach(o => tum.push({ ...o, sinifAd: s.ad }));
+        });
+        return tum;
+    } catch { return []; }
+}
+
+function _manuelOgrenciSecimiUygula(o) {
+    document.getElementById('manuelNo').value = o.ogrenciNo || '';
+    document.getElementById('manuelAdSoyad').value = o.adSoyad || '';
+    document.getElementById('manuelSinif').value = o.sinifAd || '';
+    _manuelSeciliOgrenciId = o.id || null;
+    const sinifListesiKap = document.getElementById('manuelSinifListesi');
+    if (sinifListesiKap) sinifListesiKap.style.display = 'none';
+}
+
+function _manuelNoIleAra() {
+    const no = document.getElementById('manuelNo').value.trim();
+    if (!no) return;
+    const bulunan = _manuelTumOgrenciler().find(o => String(o.ogrenciNo || '').trim() === no);
+    if (bulunan) _manuelOgrenciSecimiUygula(bulunan);
+}
+
+// ── Sınıf seç → öğrenci listesi ──
+function _manuelSinifListesiRender() {
+    const kap = document.getElementById('manuelSinifListesi');
+    const kaynak = veriKaynagi();
+    if (!kap || !kaynak) return;
+    const siniflar = kaynak.siniflarGetir() || [];
+    if (!siniflar.length) { kap.innerHTML = '<p class="ogr-secim-bilgi">Sınıf bulunamadı.</p>'; return; }
+    kap.innerHTML = siniflar.map(s => {
+        const ogrenciler = kaynak.ogrencilerGetir(s.id) || [];
+        return `<div class="sinif-grup">
+            <div class="sinif-baslik" data-sinif="${s.id}">
+                <span style="flex:1;"><strong>${_h(s.ad)}</strong></span>
+                <small>${ogrenciler.length} öğrenci</small>
+                <svg width="16" height="16" class="sinif-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="ogr-secim-listesi-kap" id="manuelOgrListeKap_${s.id}">
+                ${ogrenciler.map(o => `
+                    <div class="ogr-secim-satir manuel-ogr-satir" data-ogr="${o.id}">
+                        <label style="flex:1;">${_h(o.adSoyad)}</label>
+                        <small>${o.ogrenciNo || ''}</small>
+                    </div>`).join('')}
+            </div>
+        </div>`;
+    }).join('');
+
+    kap.querySelectorAll('.sinif-baslik').forEach(baslik => {
+        baslik.addEventListener('click', () => {
+            document.getElementById('manuelOgrListeKap_' + baslik.dataset.sinif)?.classList.toggle('acik');
+        });
+    });
+    kap.querySelectorAll('.manuel-ogr-satir').forEach(satir => {
+        satir.addEventListener('click', () => {
+            const o = _manuelTumOgrenciler().find(x => x.id === satir.dataset.ogr);
+            if (o) { _manuelOgrenciSecimiUygula(o); _manuelIstatistikGuncelle(); }
+        });
+    });
+}
+
+function _manuelSiniftanSecToggle() {
+    const kap = document.getElementById('manuelSinifListesi');
+    if (!kap) return;
+    const acilacak = kap.style.display === 'none';
+    if (acilacak && !kap.innerHTML) _manuelSinifListesiRender();
+    kap.style.display = acilacak ? 'block' : 'none';
 }
 
 function manuelIzgaraCiz() {
@@ -786,6 +870,7 @@ function manuelKaydet() {
             ogrenciNo: document.getElementById('manuelNo').value,
             sinif:     document.getElementById('manuelSinif').value,
             kitapcikTuru: document.getElementById('manuelKitapcik').value,
+            ogrenciId: _manuelSeciliOgrenciId || '',
         },
         cevaplar:    _manuelCevaplar,
         kagitGoruntusu: null,
@@ -1021,7 +1106,11 @@ function baslat() {
     );
     // Pill sil butonları (öğrenci detay + manuel)
     document.querySelectorAll('.pill-sil').forEach(btn =>
-        btn.addEventListener('click', () => { const el = document.getElementById(btn.dataset.h); if (el) el.value = ''; })
+        btn.addEventListener('click', () => {
+            const el = document.getElementById(btn.dataset.h);
+            if (el) el.value = '';
+            if (['manuelNo', 'manuelAdSoyad', 'manuelSinif'].includes(btn.dataset.h)) _manuelSeciliOgrenciId = null;
+        })
     );
 
     // ── Ekran 5: Optik Oluştur ──
@@ -1033,6 +1122,11 @@ function baslat() {
     document.getElementById('btnManuelKapat').addEventListener('click', () => ekranGit('sinavDetay'));
     document.getElementById('btnManuelKaydet').addEventListener('click', manuelKaydet);
     document.getElementById('manuelDers').addEventListener('change', manuelIzgaraCiz);
+    document.getElementById('btnManuelSiniftanSec').addEventListener('click', _manuelSiniftanSecToggle);
+    document.getElementById('manuelNo').addEventListener('change', _manuelNoIleAra);
+    document.getElementById('manuelNo').addEventListener('blur', _manuelNoIleAra);
+    // Elle sınıf/ad değiştirilirse artık listeden gelen eşleşme geçersiz sayılır
+    document.getElementById('manuelAdSoyad').addEventListener('input', () => { _manuelSeciliOgrenciId = null; });
 
     // ── Kamera ──
     document.getElementById('kameraKapatBtn').addEventListener('click', kameraKapat);
