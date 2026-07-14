@@ -1222,35 +1222,64 @@ async function anahtarExcelYukle(dosya) {
     } catch (e) { alert('İçe aktarma hatası: ' + e.message); }
 }
 
+function _xlsxKutuphaneYukle() {
+    return new Promise((resolve, reject) => {
+        if (window.XLSX) { resolve(); return; }
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Excel kütüphanesi (SheetJS) yüklenemedi.'));
+        document.head.appendChild(s);
+    });
+}
+
 async function anahtarDisaAktar() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const derslerDolu = (anahtar.dersler || []).filter(d => d.anahtarlar?.length);
     if (!derslerDolu.length) { alert('Dışa aktarılacak cevap anahtarı yok.'); return; }
-    let csv = '\uFEFFDers,Soru No,Doğru Cevap\n';
-    derslerDolu.forEach(d => d.anahtarlar.forEach(a => {
-        csv += `${d.dersAdi},${a.soruNo},${a.dogru}\n`;
-    }));
-    const dosyaAdi = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
 
-    // Aynı Android WebView / iframe kısıtı (bkz. optikPdfKaydet notu) —
-    // CSV indirmesi için de ana uygulamanın native köprüsünü kullan.
+    // Not: Dışa aktarma da içe aktarmayla (anahtarExcelYukle → CevapAnahtari.
+    // exceldenYukle) AYNI Excel (.xlsx) formatını kullanıyor — CSV'ye göre
+    // avantajı: Android'in dosya seçicisi "accept" filtresi genelde .xlsx
+    // bekliyor ve CSV dosyasını seçilebilir bile göstermiyordu, üstelik
+    // aynı dosyayı hemen geri yükleyebilmek (dışa aktar → düzenle → içe
+    // aktar) artık sorunsuz çalışıyor.
+    try {
+        await _xlsxKutuphaneYukle();
+    } catch (e) {
+        alert('Dışa aktarma hatası: ' + e.message);
+        return;
+    }
+
+    const veri = [['Ders', 'Soru No', 'Doğru Cevap']];
+    derslerDolu.forEach(d => {
+        [...d.anahtarlar].sort((a, b) => a.soruNo - b.soruNo).forEach(a => {
+            veri.push([d.dersAdi, a.soruNo, a.dogru]);
+        });
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(veri);
+    ws['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cevap Anahtarı');
+
+    const dosyaAdi = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.xlsx';
+    const mimeTuru = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    // Android WebView / iframe kısıtı (bkz. optikPdfKaydet notu) — native
+    // köprüyü kullan, yoksa blob+<a>'ya geri düş.
     try {
         const ustPencere = (window.parent && window.parent !== window) ? window.parent : window;
         if (typeof ustPencere.uygulamaDosyaKaydet === 'function') {
-            const base64 = btoa(unescape(encodeURIComponent(csv)));
-            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, 'text/csv;charset=utf-8;');
+            const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+            ustPencere.uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru);
             return;
         }
     } catch (e) {
-        console.warn('Native kaydetme köprüsüne erişilemedi, blob+<a> kullanılacak:', e);
+        console.warn('Native kaydetme köprüsüne erişilemedi, XLSX.writeFile kullanılacak:', e);
     }
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = dosyaAdi;
-    document.body.appendChild(link); link.click(); link.remove();
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, dosyaAdi);
 }
 
 // ════════════════════════════════════════════════════════════════
