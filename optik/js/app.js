@@ -54,6 +54,7 @@ function baslat() {
     _topluTaramaBaglantilari();
     _ogrenciAtaBaglantilari();
     _sinavDetayBaglantilari();
+    _manuelGirisBaglantilari();
 
     // Sayfa yüklenince aktif oturumu ekrana yansıt
     if (window.TopluTarama && window.TopluTarama.aktifSinavBilgisi()) {
@@ -879,6 +880,205 @@ function _taramaListesiniYenile({ sonuclar, ozet }) {
         disaPanel.style.display='block';
         ozetEl.innerHTML=`<span>📊 Ortalama: <strong>${ozet.ortPuan??'—'}</strong></span><span>⬆️ En yüksek: <strong>${ozet.enYuksek??'—'}</strong></span><span>⬇️ En düşük: <strong>${ozet.enDusuk??'—'}</strong></span>`;
     }
+}
+
+// ════════════════════════════════════════════════════════════════
+// MANUEL GİRİŞ
+// ════════════════════════════════════════════════════════════════
+let _manuelCevaplar = {}; // { dersAdi: { soruNo: 'A'|'B'|'C'|'D'|null } }
+let _manuelDersler  = []; // _mevcutDersler ile aynı format
+
+function _manuelGirisBaglantilari() {
+    const overlay   = document.getElementById('manuelGirisOverlay');
+    const kapatBtn  = document.getElementById('manuelKapatBtn');
+    const kaydetBtn = document.getElementById('manuelKaydetBtn');
+    const sheet     = document.getElementById('kagitEkleSheet');
+    const btnManuel = document.getElementById('btnManuel');
+    const dersSecici= document.getElementById('manuelDersSecici2');
+
+    if (!overlay) return;
+
+    function _ac() {
+        if (sheet) sheet.classList.remove('acik');
+        // Form adını ve dersleri al
+        _manuelCevaplar = {};
+        _manuelDersler  = _formunDersListesiniCikar();
+
+        // Form adı
+        const sinav = window.TopluTarama.aktifSinavBilgisi();
+        const formAdiEl = document.getElementById('manuelFormAdiLabel');
+        if (formAdiEl) formAdiEl.textContent = (sinav && sinav.sinavAdi) ? sinav.sinavAdi : '—';
+
+        // Ders dropdown
+        if (dersSecici) {
+            dersSecici.innerHTML = _manuelDersler.map((d,i)=>
+                `<option value="${i}">${d.dersAdi}</option>`
+            ).join('');
+            dersSecici.selectedIndex = 0;
+        }
+
+        // Alanları temizle
+        ['manuelNumara','manuelSinif','manuelAdSoyad'].forEach(id=>{
+            const el=document.getElementById(id); if(el) el.value='';
+        });
+        const kit = document.getElementById('manuelKitapcik');
+        if(kit) kit.value = '';
+
+        overlay.style.display = 'flex';
+        _manuelIzgaraCiz();
+        _manuelIstatistikGuncelle();
+    }
+
+    function _kapat() {
+        overlay.style.display = 'none';
+    }
+
+    if (btnManuel) btnManuel.addEventListener('click', _ac);
+    if (kapatBtn)  kapatBtn.addEventListener('click', _kapat);
+
+    // Ders değişince ızgarayı yenile (önce mevcut seçimleri kaydet)
+    if (dersSecici) {
+        dersSecici.addEventListener('change', _manuelIzgaraCiz);
+    }
+
+    // Temizle butonları
+    document.querySelectorAll('.manuel-temizle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const hedef = document.getElementById(btn.dataset.hedef);
+            if (hedef) hedef.value = '';
+        });
+    });
+
+    // Kaydet
+    if (kaydetBtn) {
+        kaydetBtn.addEventListener('click', () => {
+            const adSoyad  = document.getElementById('manuelAdSoyad')?.value.trim() || '';
+            const ogrNo    = document.getElementById('manuelNumara')?.value.trim() || '';
+            const sinif    = document.getElementById('manuelSinif')?.value.trim() || '';
+            const kitapcik = document.getElementById('manuelKitapcik')?.value || '';
+
+            // cevaplar nesnesini oluştur: { dersAdi: { soruNo: harf } }
+            const cevaplar = {};
+            _manuelDersler.forEach(d => {
+                const dersMap = _manuelCevaplar[d.dersAdi] || {};
+                cevaplar[d.dersAdi] = {};
+                for (let i = 1; i <= d.soruSayisi; i++) {
+                    cevaplar[d.dersAdi][i] = dersMap[i] || null;
+                }
+            });
+
+            // Sentetik OMR sonucu oluştur
+            const sonuc = {
+                basarili: true,
+                cevaplar,
+                ogrenciKimlik: {
+                    adSoyad,
+                    ogrenciNo: ogrNo,
+                    sinif,
+                    kitapcikTuru: kitapcik
+                },
+                kagitGoruntusu: null,
+                manuelGiris: true
+            };
+
+            // TopluTarama'ya ekle
+            if (window.TopluTarama) {
+                window.TopluTarama.ekle(sonuc);
+            }
+
+            _kapat();
+        });
+    }
+}
+
+function _manuelIzgaraCiz() {
+    const dersSecici = document.getElementById('manuelDersSecici2');
+    const alan       = document.getElementById('manuelSoruIzgarasi');
+    if (!alan || !dersSecici || !_manuelDersler.length) return;
+
+    const idx    = parseInt(dersSecici.value || '0', 10);
+    const ders   = _manuelDersler[idx] || _manuelDersler[0];
+    if (!ders) return;
+
+    const dersAdi   = ders.dersAdi;
+    const soruSayisi= ders.soruSayisi;
+    const sikSayisi = ders.sikSayisi || 4;
+    const harfler   = [];
+    for (let i=0;i<sikSayisi;i++) harfler.push(String.fromCharCode(65+i));
+
+    if (!_manuelCevaplar[dersAdi]) _manuelCevaplar[dersAdi] = {};
+    const dersMap = _manuelCevaplar[dersAdi];
+
+    alan.innerHTML = '';
+    for (let soruNo=1; soruNo<=soruSayisi; soruNo++) {
+        const satir = document.createElement('div');
+        satir.className = 'manuel-soru-satiri';
+
+        const no = document.createElement('span');
+        no.className = 'soru-no';
+        no.textContent = soruNo + ')';
+        satir.appendChild(no);
+
+        const sikGrubu = document.createElement('div');
+        sikGrubu.className = 'sik-grubu manuel-sik-grubu';
+
+        harfler.forEach(harf => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'sik-daire manuel-sik';
+            btn.textContent = harf;
+            if (dersMap[soruNo] === harf) btn.classList.add('secili');
+
+            btn.addEventListener('click', () => {
+                const zaten = btn.classList.contains('secili');
+                sikGrubu.querySelectorAll('.sik-daire').forEach(b => b.classList.remove('secili'));
+                if (!zaten) {
+                    btn.classList.add('secili');
+                    dersMap[soruNo] = harf;
+                } else {
+                    dersMap[soruNo] = null;
+                }
+                _manuelIstatistikGuncelle();
+            });
+
+            sikGrubu.appendChild(btn);
+        });
+
+        satir.appendChild(sikGrubu);
+
+        // Ayraç çizgi
+        const hr = document.createElement('div');
+        hr.className = 'soru-ayrac';
+        satir.appendChild(hr);
+
+        alan.appendChild(satir);
+    }
+}
+
+function _manuelIstatistikGuncelle() {
+    const anahtar = window.CevapAnahtari ? window.CevapAnahtari.getir() : null;
+    let topD=0, topY=0, topB=0;
+
+    _manuelDersler.forEach(d => {
+        const dersMap = _manuelCevaplar[d.dersAdi] || {};
+        const dersAnahtarKaydi = anahtar && (anahtar.dersler||[]).find(x=>x.dersAdi===d.dersAdi);
+        const dogruMap = {};
+        if (dersAnahtarKaydi) dersAnahtarKaydi.anahtarlar.forEach(a=>{ dogruMap[a.soruNo]=a.dogru; });
+
+        for (let i=1; i<=d.soruSayisi; i++) {
+            const isaretli = dersMap[i];
+            if (!isaretli) { topB++; }
+            else if (dogruMap[i] && dogruMap[i] === isaretli) { topD++; }
+            else { topY++; }
+        }
+    });
+
+    const net = (topD - topY/4).toFixed(2);
+    _setText('manuelD', topD);
+    _setText('manuelY', topY);
+    _setText('manuelB', topB);
+    _setText('manuelN', net);
+    _setText('manuelNetSkor', net);
 }
 
 // ════════════════════════════════════════════════════════════════
