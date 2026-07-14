@@ -1013,6 +1013,19 @@ function toastGoster(mesaj, tip = 'bilgi', sureMs = 2600) {
 // ════════════════════════════════════════════════════════════════
 async function galeriSecimIsle(dosyalar) {
     if (!dosyalar?.length) return;
+
+    // ÖNEMLİ: "dosyalar" parametresi <input>'un CANLI (live) FileList'ine
+    // bir referans. Bu fonksiyonu çağıran 'change' dinleyicisi, çağrının
+    // hemen ardından (senkron olarak) input.value = '' yapıyor (aynı
+    // dosyanın tekrar seçilebilmesi için). Bu fonksiyon async olduğundan,
+    // ilk "await"e (aşağıdaki dynamic import) ulaştığı an kontrolü
+    // çağırana geri verir — tam o sırada input.value='' çalışır ve canlı
+    // FileList (dolayısıyla elimizdeki "dosyalar" referansı) BOŞALIR.
+    // Sonuç: dosyalar[0] undefined olur → createObjectURL(undefined) →
+    // "Overload resolution failed" hatası. Çözüm: herhangi bir await'ten
+    // ÖNCE, senkron olarak sabit bir diziye kopyalıyoruz.
+    const dosyaListesi = Array.from(dosyalar);
+
     sheetKapat('sheetKagitEkle');
 
     const canvas = document.getElementById('canvas');
@@ -1021,9 +1034,8 @@ async function galeriSecimIsle(dosyalar) {
     try {
         const { formuOkuVeGoster, formuOkuElleKoseliVeGoster, formuOkuToplu } = await import('./formOkuyucu.js');
 
-        if (dosyalar.length > 1) {
+        if (dosyaListesi.length > 1) {
             // Birden fazla dosya: köşe seçimi atlanır, otomatik toplu okuma.
-            const dosyaListesi = Array.from(dosyalar);
             const toplam = dosyaListesi.length;
             let basarili = 0;
             const basarisizlar = [];
@@ -1063,7 +1075,7 @@ async function galeriSecimIsle(dosyalar) {
         const { koseSeciciElemanlariniAl, koseSecimAkisi } = await import('./koseSecici.js');
         const koseElemanlari = koseSeciciElemanlariniAl();
 
-        const dosya = dosyalar[0];
+        const dosya = dosyaListesi[0];
         const img = await dosyaToImg(dosya);
 
         const koseler = koseElemanlari
