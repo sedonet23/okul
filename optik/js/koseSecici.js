@@ -309,6 +309,19 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
 
     const { koseAlani, koseCanvas, koseTalimat, koseTamamBtn, koseSifirlaBtn, koseVazgecBtn } = elemanlar;
 
+    // Kamera ekranının alt bar'ı, ipucu bandı ve seviye göstergesi
+    // köşe seçim UI'sinin ÜSTÜNDE (daha yüksek z-index) kalıyor ve
+    // "Tamam" butonuna dokunmayı engelliyor. Köşe seçimi sırasında
+    // bunları gizleyip işlem bitince eski haline döndürüyoruz.
+    const gizlenecekler = [
+        document.querySelector(".km-alt-bar"),
+        document.getElementById("kmIpucu"),
+        document.getElementById("seviyeGosterge")
+    ].filter(Boolean);
+
+    const oncekiGorunum = gizlenecekler.map((el) => el.style.display);
+    gizlenecekler.forEach((el) => { el.style.display = "none"; });
+
     koseAlani.style.display = "block";
 
     let vazgecildi = false;
@@ -328,6 +341,8 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
 
     koseAlani.style.display = "none";
     koseVazgecBtn.onclick = null;
+
+    gizlenecekler.forEach((el, i) => { el.style.display = oncekiGorunum[i]; });
 
     return vazgecildi ? null : koseler;
 

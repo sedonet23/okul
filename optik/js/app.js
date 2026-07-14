@@ -1,7 +1,5 @@
 // js/app.js — Optik Okuma Ana Modülü
 
-import { baglaGaleriSecici } from './galeriSecici.js';
-
 // ════════════════════════════════════════════════════════════════
 // VERİ KATMANI (localStorage)
 // ════════════════════════════════════════════════════════════════
@@ -974,6 +972,35 @@ function optikFormSheetAc(onSecim) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// GALERİ
+// ════════════════════════════════════════════════════════════════
+function galeriSecimIsle(dosyalar) {
+    if (!dosyalar?.length) return;
+    sheetKapat('sheetKagitEkle');
+    // galeriSecici.js baglaGaleriSecici fonksiyonu kullanılıyor
+    // Her dosya için omrEngine ile işle
+    Array.from(dosyalar).forEach(async dosya => {
+        const reader = new FileReader();
+        reader.onload = async e => {
+            const img = new Image();
+            img.onload = async () => {
+                const cvs = document.getElementById('canvas');
+                cvs.width = img.width; cvs.height = img.height;
+                cvs.getContext('2d').drawImage(img, 0, 0);
+                try {
+                    if (typeof window.baglaGaleriSecici !== 'undefined') return;
+                    // formOkuyucu.js ile işle
+                    const { formuOkuVeGoster } = await import('./formOkuyucu.js');
+                    await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
+                } catch(err) { console.error('Galeri okuma hatası', err); }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(dosya);
+    });
+}
+
+// ════════════════════════════════════════════════════════════════
 // ANAHTAR EXCEL İÇE/DIŞA AKTAR
 // ════════════════════════════════════════════════════════════════
 async function anahtarExcelYukle(dosya) {
@@ -1103,12 +1130,12 @@ function baslat() {
 
     // ── Kamera ──
     document.getElementById('kameraKapatBtn').addEventListener('click', kameraKapat);
-    // Galeri input (kamera içindeki) — fotoğraf seçilince canlı kamerayı durdur.
-    // Fotoğrafın kendisinin okunması aşağıdaki baglaGaleriSecici('galeriInput', ...)
-    // bağlantısıyla yapılır (köşe seçim akışı dahil); burada tekrar işlenmez.
+    // Galeri input (kamera içindeki)
     document.getElementById('galeriInput').addEventListener('change', function () {
         const video = document.getElementById('video');
         if (video?.srcObject) document.getElementById('stop')?.click();
+        galeriSecimIsle(this.files);
+        this.value = '';
     });
 
     // ── Bottom sheets ──
@@ -1117,8 +1144,11 @@ function baslat() {
     document.getElementById('sheetOnay').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetOnay'); });
     document.getElementById('sheetOnayIptal').addEventListener('click', () => sheetKapat('sheetOnay'));
     document.getElementById('bsGaleri').addEventListener('click', () => {
-        sheetKapat('sheetKagitEkle');
-        document.getElementById('galeriInputSheet')?.click();
+        const inp = document.getElementById('galeriInputSheet');
+        if (inp) inp.click();
+    });
+    document.getElementById('galeriInputSheet')?.addEventListener('change', function () {
+        galeriSecimIsle(this.files); this.value = '';
     });
     document.getElementById('bsManuel').addEventListener('click', () => { sheetKapat('sheetKagitEkle'); manuelKagitAc(); });
 
@@ -1148,11 +1178,10 @@ function baslat() {
         })
     );
 
-    // galeriSecici.js bağla — hem kamera içindeki galeri butonu hem de
-    // "Kağıt Ekle" sheet'indeki galeri butonu için (ikisi de köşe seçim
-    // akışından geçer).
-    baglaGaleriSecici('galeriInput', 'canvas');
-    baglaGaleriSecici('galeriInputSheet', 'canvas');
+    // galeriSecici.js bağla (kamera için)
+    if (typeof window.baglaGaleriSecici === 'function') {
+        window.baglaGaleriSecici('galeriInput', 'canvas');
+    }
 
     // Kamera start/stop butonları
     import('./camera.js').then(mod => {
