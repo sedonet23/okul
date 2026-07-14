@@ -14,6 +14,7 @@
 <script src="js/camera.js"></script>
 <script src="js/galeriSecici.js"></script>
 <script src="js/formOkuyucu.js"></script>
+<script src="js/lgsPuanHesapla.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -126,9 +127,6 @@
           <svg class="arama-ikon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input class="arama-input" id="kagitArama" placeholder="Öğrenci, numara veya sınıf ...">
         </div>
-        <button class="tb-btn" id="btnKagitYenile" title="Tüm puanları yeniden hesapla">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </button>
       </div>
       <div class="kl-filtreler chip-scroll" id="kagitSinifFiltre"></div>
       <div id="kagitListesi" class="kart-listesi"></div>
@@ -169,9 +167,6 @@
           <button class="tb-btn" id="btnMiniAnahtar" title="Mini cevap anahtarı PDF">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
           </button>
-          <button class="tb-btn" id="btnAnahtarYenidenDegerlendir" title="Tüm kağıtları yeniden değerlendir">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-          </button>
           <button class="tb-btn tb-btn-tehlike" id="btnAnahtarTemizle" title="Tümünü sil">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
           </button>
@@ -187,6 +182,7 @@
         <div class="rapor-kart">
           <button class="rapor-satir" data-rapor="basit"><div class="rapor-ikon" style="background:#E3F2FD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E88E5" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span>Basit</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
           <button class="rapor-satir" data-rapor="detayli"><div class="rapor-ikon" style="background:#F3E5F5;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E24AA" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Detaylı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+          <button class="rapor-satir" data-rapor="lgs"><div class="rapor-ikon" style="background:#FCE4EC;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1.5 7L12 17.5 5.5 21 7 14 2 9l7-1z"/></svg></div><span>LGS Puanı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
           <button class="rapor-satir son" data-rapor="excel"><div class="rapor-ikon" style="background:#E8F5E9;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div><span>Excel İndir</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
         <div class="rapor-grup-baslik">DİĞER</div>
@@ -380,6 +376,53 @@
 
 
 <!-- ═══════════════════════════════════════════
+     EKRAN 7 — LGS PUANI RAPORU
+═══════════════════════════════════════════ -->
+<div id="ekranLgsPuan" class="ekran">
+  <header class="o-header o-header-renk">
+    <button class="o-geri-btn" id="btnLgsPuanGeri">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <h1 class="o-baslik" style="color:#fff;">LGS Puanı</h1>
+  </header>
+
+  <div class="o-icerik" style="padding:16px;">
+    <div class="lgs-bilgi-notu">
+      Net = Doğru − Yanlış/3 kuralıyla hesaplanır. Standart puan, ortalama ve standart
+      sapma kullanılarak bulunur. <strong>MEB'in açıkladığı gerçek Türkiye ortalaması/
+      standart sapma/MinTASP/MaxTASP değerlerini aşağıdan girebilirsin</strong> — girilmeyen
+      değerler bu sınavın kendi verisinden <em>tahmini</em> olarak hesaplanır.
+    </div>
+
+    <button type="button" class="lgs-ayar-btn" id="btnLgsAyarToggle">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      MEB Verilerini Gir / Düzenle
+    </button>
+    <div id="lgsAyarPanel" class="lgs-ayar-panel" style="display:none;"></div>
+
+    <div class="lgs-ozet-kart">
+      <div>
+        <small>Sınav Ortalaması (MSP)</small>
+        <strong id="lgsOzetOrtalama">—</strong>
+      </div>
+      <div>
+        <small>Değerlendirilen Öğrenci</small>
+        <strong id="lgsOzetSayi">0</strong>
+      </div>
+    </div>
+
+    <div id="lgsKaynakEtiketi" class="lgs-kaynak-etiketi"></div>
+
+    <div id="lgsBosAlan" class="bos-alan" style="display:none;">
+      <p>Henüz puanlanmış sonuç yok. Önce cevap anahtarını girip kağıtları okutun.</p>
+    </div>
+
+    <div id="lgsOgrenciListesi" class="lgs-ogrenci-listesi"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
      KAMERA OVERLAY
 ═══════════════════════════════════════════ -->
 <div id="kameraOverlay" class="overlay" hidden>
@@ -411,7 +454,7 @@
   <div id="koseSecimAlani" style="display:none;position:absolute;inset:0;z-index:8;">
     <p id="koseTalimat" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;white-space:nowrap;z-index:12;"></p>
     <canvas id="koseSecimCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
-    <div style="position:absolute;bottom:0;left:0;right:0;z-index:30;display:flex;gap:8px;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.6),transparent);">
+    <div style="position:absolute;bottom:0;left:0;right:0;z-index:12;display:flex;gap:8px;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.6),transparent);">
       <button id="koseTamam" class="kose-btn kose-tamam">✅ Tamam</button>
       <button id="koseSifirla" class="kose-btn">↺ Sıfırla</button>
       <button id="koseVazgec" class="kose-btn">🤖 Otomatik Dene</button>
