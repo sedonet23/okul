@@ -1162,7 +1162,6 @@ function galeriSecimIsle(dosyalar) {
                 cvs.width = img.width; cvs.height = img.height;
                 cvs.getContext('2d').drawImage(img, 0, 0);
                 try {
-                    // formOkuyucu.js ile işle
                     const { formuOkuVeGoster } = await import('./formOkuyucu.js');
                     await formuOkuVeGoster(cvs);
                 } catch(err) { console.error('Galeri okuma hatası', err); }
@@ -1311,7 +1310,7 @@ function baslat() {
 
     // ── Kamera ──
     document.getElementById('kameraKapatBtn').addEventListener('click', kameraKapat);
-    // galeriInput → baglaGaleriSecici aşağıda bağlanıyor (çift listener olmasın)
+    // galeriInput → baglaGaleriSecici aşağıda bağlıyor, burada ikinci listener olmayacak
 
     // ── Bottom sheets ──
     document.getElementById('sheetKagitEkle').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetKagitEkle'); });
@@ -1322,7 +1321,7 @@ function baslat() {
         const inp = document.getElementById('galeriInputSheet');
         if (inp) inp.click();
     });
-    // galeriInputSheet → baglaGaleriSecici aşağıda bağlanıyor
+    // galeriInputSheet → baglaGaleriSecici aşağıda bağlıyor
     document.getElementById('bsManuel').addEventListener('click', () => { sheetKapat('sheetKagitEkle'); manuelKagitAc(); });
 
     // ── Anahtar araçlar ──
@@ -1353,7 +1352,7 @@ function baslat() {
         })
     );
 
-    // galeriSecici.js bağla — hem kamera overlay içindeki hem bottom sheet'teki galeri butonu
+    // galeriSecici.js bağla (kamera için)
     if (typeof window.baglaGaleriSecici === 'function') {
         window.baglaGaleriSecici('galeriInput', 'canvas');
         window.baglaGaleriSecici('galeriInputSheet', 'canvas');
