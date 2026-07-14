@@ -61,10 +61,21 @@ window.TopluTarama = (function () {
     // Oturum yönetimi
     // ----------------------------------------------------------------
 
-    function baslat(sinavAdi) {
+    function baslat(sinavBilgisi) {
+        // Geriye dönük uyumluluk: string geldiyse {sinavAdi} objesine çevir
+        const meta = typeof sinavBilgisi === 'string'
+            ? { sinavAdi: sinavBilgisi }
+            : (sinavBilgisi || {});
         _oturum = {
-            id: 'sinav_' + Date.now(),
-            sinavAdi: sinavAdi || 'İsimsiz Sınav',
+            id: meta.id || ('sinav_' + Date.now()),
+            sinavAdi: meta.sinavAdi || 'İsimsiz Sınav',
+            optikFormId: meta.optikFormId || 'lgs',
+            optikFormAd: meta.optikFormAd || 'LGS',
+            soruSayisi: meta.soruSayisi || 90,
+            sikSayisi: meta.sikSayisi || 4,
+            yanlisHesaplama: meta.yanlisHesaplama || 'oldugugibi',
+            klasor: meta.klasor || '',
+            tarih: meta.tarih || new Date().toISOString().split('T')[0],
             baslangic: new Date().toISOString(),
             sonGuncelleme: new Date().toISOString(),
             sonuclar: []
@@ -114,14 +125,22 @@ window.TopluTarama = (function () {
                 const ortPuan = puanlar.length
                     ? Math.round(puanlar.reduce(function(a, b) { return a + b; }, 0) / puanlar.length * 10) / 10
                     : null;
+                const ogrSay = (s.sonuclar || []).length;
                 return {
                     id: s.id,
                     sinavAdi: s.sinavAdi,
+                    optikFormId: s.optikFormId || 'ozel',
+                    optikFormAd: s.optikFormAd || '—',
+                    soruSayisi: s.soruSayisi || null,
+                    yanlisHesaplama: s.yanlisHesaplama || 'oldugugibi',
+                    klasor: s.klasor || '',
+                    tarih: s.tarih || s.baslangic,
                     baslangic: s.baslangic,
                     sonGuncelleme: s.sonGuncelleme,
-                    ogrenciSayisi: (s.sonuclar || []).length,
+                    ogrenciSayisi: ogrSay,
                     ortPuan: ortPuan,
-                    aktifMi: s.id === _oturum.id
+                    aktifMi: s.id === _oturum.id,
+                    durum: ogrSay > 0 ? 'okundu' : 'bekliyor'
                 };
             });
     }
