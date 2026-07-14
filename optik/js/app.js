@@ -338,11 +338,21 @@ function kagitlariRender() {
         const p     = r.puan || {};
         const puan  = p.toplamNet != null ? p.toplamNet.toFixed(1) : '—';
         const puanSinif = p.toplamNet >= 70 ? 'puan-yuksek' : p.toplamNet >= 40 ? 'puan-orta' : 'puan-dusuk';
+        const dvbVarMi = p.toplamD != null;
+        const dvb = dvbVarMi
+            ? `<small class="kagit-dvb">
+                 <span class="kagit-d">D:${p.toplamD}</span>
+                 <span class="kagit-y">Y:${p.toplamY}</span>
+                 <span class="kagit-b">B:${p.toplamB}</span>
+                 <span class="kagit-n">N:${p.toplamNet != null ? p.toplamNet.toFixed(2) : '0.00'}</span>
+               </small>`
+            : '';
         return `<div class="kagit-kart" data-id="${r.id}">
             <div class="kagit-avatar" style="background:${renk};">${harf1}${harf2}</div>
             <div class="kagit-bilgi">
                 <span class="kagit-ad">${_h(ad)}</span>
                 <small class="kagit-alt">${_h(ogr.sinif||'')} · ${_h(ogr.ogrenciNo||'—')}</small>
+                ${dvb}
             </div>
             <span class="puan-badge ${puanSinif}">${formAd}: ${puan}</span>
             <button class="menu-btn" data-id="${r.id}">
@@ -622,11 +632,40 @@ function _anahtarCevapKaydet(dersAdi, soruNo, dogru) {
 function _tumSonuclariYenidenHesapla() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const dersler = formDersleriniGetir(_aktifSinavId);
-    DB.sonuclariGetir(_aktifSinavId).forEach(sonuc => {
+    const sonuclar = DB.sonuclariGetir(_aktifSinavId);
+    sonuclar.forEach(sonuc => {
+        // Eski/bozuk kayıtlarda cevaplar dizi biçiminde kalmış olabilir
+        // (bkz. _cevaplarDiziyiObjeyeCevir yorumu) — yeniden hesaplamadan
+        // önce onları da onarıyoruz ki "Yenile" gerçekten düzeltsin.
+        if (Array.isArray(sonuc.cevaplar)) {
+            sonuc.cevaplar = _cevaplarDiziyiObjeyeCevir(sonuc.cevaplar);
+        }
         sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
         DB.sonucKaydet(_aktifSinavId, sonuc);
     });
     if (_aktifSekme === 'kagitlar') kagitlariRender();
+    return sonuclar.length;
+}
+
+// Kullanıcının elle tetiklediği "Yenile / Yeniden Değerlendir" eylemi —
+// hem Kağıtlar sekmesindeki yenile butonundan hem Anahtar sekmesindeki
+// "Yeniden Değerlendir" butonundan çağrılır. İşlem sonrası kullanıcıya
+// görünür bir geri bildirim (toast) verir.
+function tumKagitlariYenidenDegerlendir() {
+    if (!_aktifSinavId) return;
+    const adet = _tumSonuclariYenidenHesapla();
+    anahtarIzgaraCiz();
+    ogrDetayIzgaraCiz_guncelleAcikSayfaVarsa();
+    toastGoster(adet > 0 ? `${adet} kağıt yeniden değerlendirildi ✓` : 'Yeniden değerlendirilecek kağıt yok', 'basari');
+}
+
+// Öğrenci detay ekranı açıkken "Yenile" tetiklenirse o ekranı da tazele.
+function ogrDetayIzgaraCiz_guncelleAcikSayfaVarsa() {
+    if (!_aktifSonucId) return;
+    const son = DB.sonuclariGetir(_aktifSinavId).find(s => s.id === _aktifSonucId);
+    if (!son) return;
+    ogrDetayIzgaraCiz(son);
+    ogrDetayIstatistikGuncelle(son);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -692,6 +731,24 @@ window.addEventListener('omrOkumaTamamlandi', () => {
     kameraKapat();
 });
 
+// ÖNEMLİ HATA DÜZELTMESİ: omrEngine.js / formOkuyucu.js okuma sonucunu
+// cevaplar: [{ ders, soruNo, isaretliSik, ... }] biçiminde bir DİZİ olarak
+// üretiyor. Ama puanHesapla(), ogrDetayIzgaraCiz() ve anahtar karşılaştırma
+// kodunun tamamı cevaplar[dersAdi][soruNo] = harf şeklinde iç içe bir OBJE
+// bekliyor. Diziyi hiç dönüştürmeden objeymiş gibi kullanmak (cevaplar[dersAdi])
+// her zaman undefined döner, bu yüzden taranan tüm kağıtlar "tamamen boş"
+// görünüyordu (D:0 Y:0 B:soruSayisi) — öğrencinin gerçek işaretleri asla
+// puanlamaya yansımıyordu. Bu fonksiyon o dönüşümü yapar.
+function _cevaplarDiziyiObjeyeCevir(dizi) {
+    const obj = {};
+    (dizi || []).forEach(c => {
+        const dersAdi = c.ders || c.dersAdi || 'Genel';
+        if (!obj[dersAdi]) obj[dersAdi] = {};
+        if (c.isaretliSik) obj[dersAdi][c.soruNo] = c.isaretliSik;
+    });
+    return obj;
+}
+
 function _omrSonucuisle(raw) {
     if (!raw || !_aktifSinavId) return;
     const dersler = formDersleriniGetir(_aktifSinavId);
@@ -725,7 +782,7 @@ function _omrSonucuisle(raw) {
     const sonuc = {
         id:            'sonuc_' + Date.now(),
         ogrenci,
-        cevaplar:      raw.cevaplar || {},
+        cevaplar:      Array.isArray(raw.cevaplar) ? _cevaplarDiziyiObjeyeCevir(raw.cevaplar) : (raw.cevaplar || {}),
         kagitGoruntusu:raw.kagitGoruntusu || null,
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
@@ -1447,6 +1504,8 @@ function baslat() {
         });
     });
     document.getElementById('btnMiniAnahtar').addEventListener('click', () => alert('Mini cevap anahtarı yakında'));
+    document.getElementById('btnAnahtarYenidenDegerlendir')?.addEventListener('click', tumKagitlariYenidenDegerlendir);
+    document.getElementById('btnKagitYenile')?.addEventListener('click', tumKagitlariYenidenDegerlendir);
 
     // Raporlar
     document.querySelectorAll('.rapor-satir').forEach(btn =>
