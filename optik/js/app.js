@@ -700,13 +700,27 @@ function _omrSonucuisle(raw) {
     // Okunan öğrenci no'yu sınıf listesindeki öğrencilerle eşleştir
     // (manuel kağıt girişindeki _manuelNoIleAra ile aynı mantık) —
     // eşleşme bulunursa ad-soyad ve sınıf bilgisini de doldur.
+    //
+    // ÖNEMLİ: numaraOku() (omrEngine.js) öğrenci no'yu SABİT BASAMAK
+    // SAYISIYLA, başına sıfır ekleyerek üretir (örn. gerçek no "103" ise
+    // baloncuk ızgarası 4 haneliyse "0103" okunur). Sınıf listesindeki
+    // ogrenciNo ise genelde baştaki sıfırlar OLMADAN saklanır ("103").
+    // Ham stringleri birebir karşılaştırmak ("0103" === "103") hep
+    // BAŞARISIZ olur — bu yüzden her iki tarafı da rakam-bazlı (sayısal)
+    // normalize ederek karşılaştırıyoruz.
     const kimlik = raw.ogrenciKimlik || {};
-    const no = String(kimlik.ogrenciNo || '').trim();
-    const eslesen = no ? _manuelTumOgrenciler().find(o => String(o.ogrenciNo || '').trim() === no) : null;
+    const noTemiz = String(kimlik.ogrenciNo || '').replace(/[^0-9]/g, '');
+    const no = noTemiz && parseInt(noTemiz, 10) > 0 ? String(parseInt(noTemiz, 10)) : '';
+    const eslesen = no
+        ? _manuelTumOgrenciler().find(o => {
+            const oNo = String(o.ogrenciNo || '').replace(/[^0-9]/g, '');
+            return oNo && String(parseInt(oNo, 10)) === no;
+        })
+        : null;
 
     const ogrenci = eslesen
         ? { ...kimlik, ogrenciNo: eslesen.ogrenciNo, adSoyad: eslesen.adSoyad, sinif: eslesen.sinifAd, ogrenciId: eslesen.id }
-        : kimlik;
+        : { ...kimlik, ogrenciNo: no || kimlik.ogrenciNo };
 
     const sonuc = {
         id:            'sonuc_' + Date.now(),
