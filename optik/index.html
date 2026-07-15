@@ -185,7 +185,7 @@
         <div class="rapor-kart">
           <button class="rapor-satir" data-rapor="basit"><div class="rapor-ikon" style="background:#E3F2FD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E88E5" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span>Basit</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
           <button class="rapor-satir" data-rapor="detayli"><div class="rapor-ikon" style="background:#F3E5F5;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E24AA" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Detaylı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="rapor-satir" data-rapor="lgs"><div class="rapor-ikon" style="background:#FCE4EC;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1.5 7L12 17.5 5.5 21 7 14 2 9l7-1z"/></svg></div><span>LGS Puanı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+          <button class="rapor-satir" data-rapor="lgs"><div class="rapor-ikon" style="background:#FCE4EC;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1.5 7L12 17.5 5.5 21 7 14 2 9l7-1z"/></svg></div><span id="raporLgsEtiket">LGS Puanı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
           <button class="rapor-satir son" data-rapor="excel"><div class="rapor-ikon" style="background:#E8F5E9;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div><span>Excel İndir</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
         </div>
         <div class="rapor-grup-baslik">DİĞER</div>
@@ -386,11 +386,11 @@
     <button class="o-geri-btn" id="btnLgsPuanGeri">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <h1 class="o-baslik" style="color:#fff;">LGS Puanı</h1>
+    <h1 class="o-baslik" style="color:#fff;" id="lgsPuanBaslik">LGS Puanı</h1>
   </header>
 
   <div class="o-icerik" style="padding:16px;">
-    <div class="lgs-bilgi-notu">
+    <div class="lgs-bilgi-notu" id="lgsBilgiNotu">
       Net = Doğru − Yanlış/3 kuralıyla hesaplanır. Standart puan, ortalama ve standart
       sapma kullanılarak bulunur. <strong>MEB'in açıkladığı gerçek Türkiye ortalaması/
       standart sapma/MinTASP/MaxTASP değerlerini aşağıdan girebilirsin</strong> — girilmeyen
@@ -405,7 +405,7 @@
 
     <div class="lgs-ozet-kart">
       <div>
-        <small>Sınav Ortalaması (Tahmini Puan)</small>
+        <small id="lgsOzetOrtalamaEtiket">Sınav Ortalaması (Tahmini Puan)</small>
         <strong id="lgsOzetOrtalama">—</strong>
       </div>
       <div>
