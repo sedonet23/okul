@@ -660,6 +660,15 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 }
 .arama-input::placeholder { color: var(--text-faint); }
 
+.kl-yenile-btn {
+    flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; border: none;
+    background: var(--bg-card); box-shadow: var(--nm-sm); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.kl-yenile-btn:active { box-shadow: var(--nm-in); transform: scale(.95); }
+.kl-yenile-btn.donuyor svg { animation: kl-donme .6s linear; }
+@keyframes kl-donme { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 /* ═══════════════════════════════════════════════════════════════
    YARDIMCI
 ═══════════════════════════════════════════════════════════════ */
