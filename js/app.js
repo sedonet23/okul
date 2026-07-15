@@ -421,25 +421,28 @@ function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru, paylas){
     window.Capacitor.Plugins && window.Capacitor.Plugins.SavePlugin);
 
   if(nativeVarMi){
-    window.Capacitor.Plugins.SavePlugin.kaydet({ base64: base64Veri, dosyaAdi, mimeTuru, paylas: !!paylas })
+    return window.Capacitor.Plugins.SavePlugin.kaydet({ base64: base64Veri, dosyaAdi, mimeTuru, paylas: !!paylas })
       .then(()=> { if(!paylas) toast(`"${dosyaAdi}" İndirilenler klasörüne kaydedildi.`); })
-      .catch(e=> toast('Dosya kaydedilemedi: ' + (e && e.message)));
-    return;
+      .catch(e=> { toast('Dosya kaydedilemedi: ' + (e && e.message)); throw e; });
   }
 
-  try{
-    const ikiliVeri = atob(base64Veri);
-    const baytlar = new Uint8Array(ikiliVeri.length);
-    for(let i=0; i<ikiliVeri.length; i++) baytlar[i] = ikiliVeri.charCodeAt(i);
-    const blob = new Blob([baytlar], { type: mimeTuru });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = dosyaAdi;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }catch(e){
-    toast('Dosya indirilemedi: ' + e.message);
-  }
+  return new Promise((resolve, reject) => {
+    try{
+      const ikiliVeri = atob(base64Veri);
+      const baytlar = new Uint8Array(ikiliVeri.length);
+      for(let i=0; i<ikiliVeri.length; i++) baytlar[i] = ikiliVeri.charCodeAt(i);
+      const blob = new Blob([baytlar], { type: mimeTuru });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = dosyaAdi;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      resolve();
+    }catch(e){
+      toast('Dosya indirilemedi: ' + e.message);
+      reject(e);
+    }
+  });
 }
 window.uygulamaDosyaKaydet = uygulamaDosyaKaydet;
 
@@ -1626,7 +1629,7 @@ async function tumVerileriYedekle(){
   // paylas=true: native ortamda kaydettikten hemen sonra Android'in "Paylaş"
   // menüsünü açar — kullanıcı dosyayı doğrudan Drive/WhatsApp/e-posta gibi
   // istediği yere gönderebilir (ayrı bir Google girişi gerekmeden).
-  uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true);
+  uygulamaDosyaKaydet(base64Json, `okul-yedek-${todayISO()}.json`, 'application/json', true).catch(()=>{});
 }
 /* ---------- Native confirm() yerine kullanılan özel onay modalı ----------
    Bazı Android WebView'lerde native confirm(), kullanıcı dokunuşundan
@@ -2467,7 +2470,7 @@ function sablonIndir(tip) {
 
   XLSX.utils.book_append_sheet(wb, ws, t.baslik.slice(0, 31));
   const base64Xlsx = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-  uygulamaDosyaKaydet(base64Xlsx, `${tip}_sablonu.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  uygulamaDosyaKaydet(base64Xlsx, `${tip}_sablonu.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet').catch(()=>{});
 }
 
 function tumSablonlariIndir() {
