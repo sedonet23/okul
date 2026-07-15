@@ -1250,16 +1250,27 @@ async function anahtarDisaAktar() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const derslerDolu = (anahtar.dersler || []).filter(d => d.anahtarlar?.length);
     if (!derslerDolu.length) { alert('Dışa aktarılacak cevap anahtarı yok.'); return; }
-    let csv = '\uFEFFDers,Soru No,Doğru Cevap\n';
+
+    // SheetJS ile xlsx oluştur
+    if (!window.XLSX) {
+        await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload = res; s.onerror = rej;
+            document.head.appendChild(s);
+        });
+    }
+
+    const satirlar = [['Ders', 'Soru No', 'Doğru Cevap']];
     derslerDolu.forEach(d => d.anahtarlar.forEach(a => {
-        csv += `${d.dersAdi},${a.soruNo},${a.dogru}\n`;
+        satirlar.push([d.dersAdi, a.soruNo, a.dogru]);
     }));
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url; link.download = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.csv';
-    document.body.appendChild(link); link.click(); link.remove();
-    URL.revokeObjectURL(url);
+
+    const ws = XLSX.utils.aoa_to_sheet(satirlar);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cevap Anahtarı');
+    const dosyaAdi = (DB.sinaviBul(_aktifSinavId)?.ad || 'anahtar') + '_cevap_anahtari.xlsx';
+    XLSX.writeFile(wb, dosyaAdi);
 }
 
 // ════════════════════════════════════════════════════════════════
