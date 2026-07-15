@@ -12,8 +12,10 @@
 <script src="js/omrEngine.js"></script>
 <script src="js/koseSecici.js"></script>
 <script src="js/camera.js"></script>
-<script src="js/galeriSecici.js"></script>
-<script src="js/formOkuyucu.js"></script>
+<script type="module">
+    import { baglaGaleriSecici } from './js/galeriSecici.js';
+    window.baglaGaleriSecici = baglaGaleriSecici;
+</script>
 <script src="js/lgsPuanHesapla.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
