@@ -396,7 +396,7 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 
 .ogr-resim-alani { padding: 12px; }
 .ogr-resim-alani img,
-.ogr-resim-alani canvas { width: 100%; height: auto; border-radius: 12px; display: block; }
+.ogr-resim-alani canvas { width: 100%; height: auto; border-radius: 12px; display: block; cursor: zoom-in; }
 
 .ogr-alt-bar {
     display: flex; justify-content: space-around; align-items: center;
