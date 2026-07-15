@@ -1558,6 +1558,12 @@ function baslat() {
     // Kağıtlar FABları
     document.getElementById('fabKamera').addEventListener('click', kameraAc);
     document.getElementById('fabKagitEkle').addEventListener('click', () => sheetAc('sheetKagitEkle'));
+    document.getElementById('btnPuanYenidenHesapla')?.addEventListener('click', function () {
+        this.classList.remove('donuyor');
+        void this.offsetWidth; // animasyonu sıfırla, tekrar tetikleyebilmek için
+        this.classList.add('donuyor');
+        _tumSonuclariYenidenHesapla();
+    });
 
     // ── Ekran 4: Öğrenci Detay ──
     document.getElementById('btnOgrDetayGeri').addEventListener('click', () => { _aktifSonucId = null; ekranGit('sinavDetay'); });
