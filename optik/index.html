@@ -438,15 +438,51 @@
     </button>
     <span class="kamera-baslik" id="kameraFormAdi">LGS</span>
     <div style="display:flex;gap:4px;">
-      <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg></button>
-      <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></button>
-      <button class="kamera-ikon-btn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
+      <button class="kamera-ikon-btn" id="kameraTorchBtn" title="Kamera flaşı" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></button>
+      <button class="kamera-ikon-btn" id="kameraMenuBtn" title="Tarama Ayarları"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
     </div>
   </div>
 
   <video id="video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none;"></video>
   <canvas id="canvas" hidden></canvas>
   <canvas id="koseTespitOverlay" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
+
+  <!-- Canlı tarama: otomatik kaydedilen sonucu birkaç saniye gösteren kart -->
+  <div id="canliSonucKart" class="km-sonuc-kart" hidden>
+    <div class="ksk-satir"><span>Ad</span><b id="kskAd">—</b></div>
+    <div class="ksk-satir"><span>Numara</span><b id="kskNumara">—</b></div>
+    <div class="ksk-satir"><span>Sınıf</span><b id="kskSinif">—</b></div>
+    <div class="ksk-satir"><span>Puan</span><b id="kskPuan">—</b></div>
+    <div class="ksk-satir"><span>Net</span><b id="kskNet">—</b></div>
+    <div class="ksk-btnlar">
+      <button id="kskSil" class="ksk-btn ksk-btn-sil">Sil</button>
+      <button id="kskDuzenle" class="ksk-btn ksk-btn-duzenle">Düzenle</button>
+    </div>
+  </div>
+
+  <!-- Ayarlar sheet: canlı tarama aç/kapat + hassasiyet ayarları -->
+  <div id="kameraAyarSheet" class="km-ayar-sheet" hidden>
+    <div class="km-ayar-baslik">Tarama Ayarları<button id="kameraAyarKapat" class="ksk-btn">✕</button></div>
+    <label class="km-ayar-satir">
+      <span>Canlı Tarama Modu</span>
+      <input type="checkbox" id="canliModSwitch">
+    </label>
+    <p class="km-ayar-aciklama">Açıkken kamera kapanmaz; her kağıt otomatik okunup kaydedilir, sıradaki kağıda geçebilirsiniz.</p>
+    <hr class="km-ayar-ayrac">
+    <label class="km-ayar-satir">
+      <span>Köşe Hassasiyeti</span>
+      <input type="range" id="hsYuzdelik" min="10" max="50" step="1">
+    </label>
+    <label class="km-ayar-satir">
+      <span>Minimum Doluluk</span>
+      <input type="range" id="hsDoluluk" min="20" max="70" step="1">
+    </label>
+    <label class="km-ayar-satir">
+      <span>Analiz Hızı</span>
+      <input type="range" id="hsHiz" min="200" max="800" step="50">
+    </label>
+    <button id="hsSifirla" class="ksk-btn" style="width:100%;margin-top:8px;">Varsayılana Sıfırla</button>
+  </div>
 
   <!-- Seviye göstergesi -->
   <div id="seviyeGosterge" class="seviye-gosterge">
