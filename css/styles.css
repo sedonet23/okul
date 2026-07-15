@@ -851,10 +851,7 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 }
 .detay-head .btn-ghost{ border-color: rgba(255,255,255,0.40); color: #FFFFFF; background: rgba(255,255,255,0.12); font-weight:700; }
 .detay-head .btn-ghost:hover{ background: rgba(255,255,255,0.22); color:#fff; }
-.detay-body{ padding:18px; display:flex; flex-direction:column; gap:14px; }
-@media (max-width:1100px){
-  .detay-body{ padding-bottom:calc(18px + 64px + env(safe-area-inset-bottom)); }
-}
+.detay-body{ padding:18px; display:flex; flex-direction:column; gap:14px; padding-bottom:calc(18px + 64px + env(safe-area-inset-bottom)); }
 .detay-card{ background: var(--nm-bg); border:none; box-shadow: inset 4px 4px 10px rgba(163,177,198,0.45), inset -4px -4px 10px rgba(255,255,255,0.85); border-radius: var(--radius-md); padding:14px 16px; }
 .detay-card h4{ font-size:12.5px; text-transform:uppercase; letter-spacing:.03em; color: var(--ink-muted); margin-bottom:8px; }
 .detay-card-header{ display:flex; flex-wrap:wrap; gap:8px 10px; justify-content:space-between; align-items:center; }
@@ -2418,7 +2415,7 @@ body:has(#tab-panel.dash-modern.active) #asistanFab{
   color:#fff;
 }
 body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92); }
-@media (max-width:1100px){ #asistanFab{ bottom:84px; } }
+#asistanFab{ bottom:84px; }
 @media (max-width:400px){
   .topbar{ gap:8px; padding:0 10px; }
   #topbarHava{ display:none !important; }
@@ -2426,20 +2423,27 @@ body:has(#tab-panel.dash-modern.active) #asistanFab:active{ transform:scale(.92)
 }
 
 /* =========================================================================
-   MOBİL ALT NAVİGASYON (5 ikon) — sadece <1100px görünür.
-   Masaüstünde mevcut sol sidebar kullanılmaya devam eder; çakışma yok.
+   ALT NAVİGASYON (5 ikon) — artık TEK gezinme sistemi, tüm ekran
+   genişliklerinde görünür (sidebar kaldırıldı, bkz. "YENİ GEZİNME SİSTEMİ").
    Tüm butonlar var olan sekmeAc() / evrakModalAc() fonksiyonlarını çağırır.
    ========================================================================= */
-.bottom-nav{ display:none; }
-@media (max-width:1100px){
+.bottom-nav{
+  display:flex; align-items:center; justify-content:space-around;
+  position:fixed; left:0; right:0; bottom:0; height:64px; z-index:7000;
+  background:rgba(255,255,255,.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-top:1px solid #EEF1F6; box-shadow:0 -4px 18px rgba(16,24,40,.07);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+[data-theme="dark"] .bottom-nav{ background:rgba(28,42,46,.94); border-top-color:rgba(255,255,255,.08); box-shadow:0 -4px 18px rgba(0,0,0,.35); }
+/* Geniş ekranlarda (masaüstü) tam genişliğe yayılmasın diye ortalanmış,
+   sınırlı genişlikli bir "dock" olarak gösteriliyor. */
+@media (min-width:1101px){
   .bottom-nav{
-    display:flex; align-items:center; justify-content:space-around;
-    position:fixed; left:0; right:0; bottom:0; height:64px; z-index:7000;
-    background:rgba(255,255,255,.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-    border-top:1px solid #EEF1F6; box-shadow:0 -4px 18px rgba(16,24,40,.07);
-    padding-bottom:env(safe-area-inset-bottom);
+    left:50%; right:auto; transform:translateX(-50%);
+    width:min(92vw, 480px); border-radius:18px 18px 0 0;
+    border-left:1px solid #EEF1F6; border-right:1px solid #EEF1F6;
   }
-  [data-theme="dark"] .bottom-nav{ background:rgba(28,42,46,.94); border-top-color:rgba(255,255,255,.08); box-shadow:0 -4px 18px rgba(0,0,0,.35); }
+  [data-theme="dark"] .bottom-nav{ border-left-color:rgba(255,255,255,.08); border-right-color:rgba(255,255,255,.08); }
 }
 .bn-item{ background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; font-family:'Inter'; font-size:10.5px; font-weight:600; color:#94A3B8; cursor:pointer; padding:6px 8px; flex:1; }
 [data-theme="dark"] .bn-item{ color:#7FA0A0; }
@@ -2850,14 +2854,13 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 }
 
 /* =========================================================================
-   YENİ: İÇERİK ALT MENÜNÜN ALTINDA KALMAZ
-   Tüm .content ve tab-panel'lere bottom padding eklendi
+   İÇERİK ALT MENÜNÜN ALTINDA KALMAZ
+   Bottom-nav artık tüm ekran genişliklerinde göründüğü için bu boşluklar
+   da genişlikten bağımsız uygulanıyor.
    ========================================================================= */
-@media (max-width:1100px){
-  .content{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
-  #tab-panel.dash-modern{ padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
-  .tab-panel{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
-}
+.content{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important; }
+#tab-panel.dash-modern{ padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+.tab-panel{ padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
 
 /* =========================================================================
    YENİ: STAT KARTI İKONU DAHA BÜYÜK + CİNSİYET SATIRI DÜZENLEMESİ
