@@ -605,6 +605,91 @@ function ogrDetayResimCiz(sonuc) {
     img.src = kagitGoruntusu;
 }
 
+/**
+ * "Resim" sekmesindeki kağıt görüntüsüne (öğrenci detayında dokununca)
+ * tam ekran, iki parmakla yakınlaştırılabilir/kaydırılabilir bir
+ * görüntüleyici açar — js/duyurular.js'deki duyuruLightboxAcById ile
+ * AYNI pinch-zoom/pan deseni (tek görsel, ok/sayaç yok).
+ * @param {string} kaynakUrl - img.src ya da canvas.toDataURL() çıktısı
+ */
+function ogrDetayResimBuyutAc(kaynakUrl) {
+    if (!kaynakUrl) return;
+    const eski = document.getElementById('ogrResimBuyutOverlay');
+    if (eski) eski.remove();
+
+    const ov = document.createElement('div');
+    ov.id = 'ogrResimBuyutOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:999998;background:rgba(0,0,0,.92);display:flex;flex-direction:column;';
+    ov.innerHTML = `
+      <div style="display:flex;justify-content:flex-end;padding:10px;">
+        <button id="orbKapat" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:20px;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>
+      </div>
+      <div id="orbGovde" style="flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;touch-action:none;">
+        <img id="orbResim" src="${kaynakUrl}" style="max-width:92%;max-height:92%;object-fit:contain;border-radius:6px;transform-origin:center center;">
+      </div>
+      <div style="text-align:center;color:rgba(255,255,255,.6);padding:10px;font-size:12px;">İki parmakla yakınlaştırın</div>
+    `;
+    document.body.appendChild(ov);
+
+    ov.querySelector('#orbKapat').onclick = () => ov.remove();
+
+    let zoom = 1, panX = 0, panY = 0;
+    const resimEl = ov.querySelector('#orbResim');
+    function transformUygula() {
+        resimEl.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+    }
+
+    let baslangicX = null, baslangicY = null;
+    let surukleniyor = false, panBaslX = 0, panBaslY = 0;
+    let pinchBaslangic = 0, zoomBaslangic = 1;
+    const govdeEl = ov.querySelector('#orbGovde');
+
+    function mesafe(t1, t2) {
+        const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    govdeEl.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            pinchBaslangic = mesafe(e.touches[0], e.touches[1]);
+            zoomBaslangic = zoom;
+            surukleniyor = false;
+        } else if (e.touches.length === 1 && zoom > 1.02) {
+            surukleniyor = true;
+            baslangicX = e.touches[0].clientX;
+            baslangicY = e.touches[0].clientY;
+            panBaslX = panX; panBaslY = panY;
+        }
+    }, { passive: true });
+
+    govdeEl.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            const m = mesafe(e.touches[0], e.touches[1]);
+            zoom = Math.min(4, Math.max(1, zoomBaslangic * (m / pinchBaslangic)));
+            if (zoom <= 1.02) { panX = 0; panY = 0; }
+            transformUygula();
+        } else if (e.touches.length === 1 && surukleniyor) {
+            panX = panBaslX + (e.touches[0].clientX - baslangicX);
+            panY = panBaslY + (e.touches[0].clientY - baslangicY);
+            transformUygula();
+        }
+    }, { passive: true });
+
+    govdeEl.addEventListener('touchend', () => { surukleniyor = false; });
+
+    // Çift dokunma: yakınlaştır/eski haline döndür.
+    let sonDokunma = 0;
+    govdeEl.addEventListener('touchend', (e) => {
+        const simdi = Date.now();
+        if (simdi - sonDokunma < 300 && e.changedTouches.length === 1) {
+            zoom = zoom > 1.02 ? 1 : 2.2;
+            panX = 0; panY = 0;
+            transformUygula();
+        }
+        sonDokunma = simdi;
+    });
+}
+
 function ogrDetayIzgaraCiz(sonuc) {
     const dersSecici = document.getElementById('ogrDetayDers');
     const alan       = document.getElementById('ogrDetaySorular');
@@ -1698,6 +1783,15 @@ function baslat() {
     // ── Ekran 4: Öğrenci Detay ──
     document.getElementById('btnOgrDetayGeri').addEventListener('click', () => { _aktifSonucId = null; ekranGit('sinavDetay'); });
     document.getElementById('btnOgrDetayKaydet').addEventListener('click', ogrDetayKaydet);
+    // Kağıt görüntüsüne dokununca tam ekran yakınlaştırılabilir görüntüleyici
+    // aç — içerik dinamik olarak img/canvas olarak değiştiği için delege
+    // (event delegation) kullanılıyor, o an ne varsa onun kaynağını alır.
+    document.getElementById('ogrDetayResimAlani').addEventListener('click', (e) => {
+        const img = e.currentTarget.querySelector('img');
+        const canvas = e.currentTarget.querySelector('canvas');
+        const kaynak = canvas ? canvas.toDataURL('image/png') : (img ? img.src : null);
+        if (kaynak) ogrDetayResimBuyutAc(kaynak);
+    });
     document.getElementById('ogrDetayNo').addEventListener('change', _ogrDetayNoIleAra);
     document.getElementById('ogrDetayNo').addEventListener('blur', _ogrDetayNoIleAra);
     document.getElementById('ogrDetayDers').addEventListener('change', () => {
