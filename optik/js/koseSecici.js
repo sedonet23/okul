@@ -127,8 +127,18 @@ export function koseleriSectir(kaynak, genislik, yukseklik, secimCanvas, talimat
         // sağlıyoruz — sabit yüzdelik pay farklı en-boy oranlarında yetersiz
         // kalabiliyordu.
         const altButonCubugu = tamamBtn ? tamamBtn.parentElement : null;
+        // .km-ust-bar normalde köşe seçimi sırasında gizleniyor (bkz.
+        // koseSecimAkisi) ve gizliyken genişliği/yüksekliği 0 ölçülür, yani
+        // burada bir etkisi olmaz. Yine de EK bir güvenlik payı olarak
+        // hesaba katılıyor — herhangi bir nedenle hâlâ görünür kalırsa
+        // (dokunuşlar artık pointer-events:none ile zaten ona gitmiyor,
+        // ama varsayılan tutamaç görsel olarak da altında kalmasın diye).
+        const ustBar = document.querySelector(".km-ust-bar");
         const disariBirakilanY = {
-            ust: ustteTasanYukseklikPx(talimatEl, secimCanvas, yukseklik),
+            ust: Math.max(
+                ustteTasanYukseklikPx(talimatEl, secimCanvas, yukseklik),
+                ustteTasanYukseklikPx(ustBar, secimCanvas, yukseklik)
+            ),
             alt: altaTasanYukseklikPx(altButonCubugu, secimCanvas, yukseklik)
         };
 
@@ -399,8 +409,18 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
         document.getElementById("seviyeGosterge")
     ].filter(Boolean);
 
+    // NOT: display:none zaten görsel olarak gizler VE dokunuşları da devre
+    // dışı bırakır — ama (ör. bu elemanlardan biri başka bir kod yolunca
+    // tekrar görünür kılınırsa) sağlam olsun diye pointer-events:none de
+    // ayrıca veriliyor. Böylece görünürlük her ne sebeple bozulursa bozulsun,
+    // dokunuşlar bu barların ALTINDAKİ canvas'a ulaşmaya devam eder — köşe
+    // tutamaçları "hiç sürüklenemiyor" durumuna asla düşmez.
     const oncekiGorunum = gizlenecekler.map((el) => el.style.display);
-    gizlenecekler.forEach((el) => { el.style.display = "none"; });
+    const oncekiPointerEvents = gizlenecekler.map((el) => el.style.pointerEvents);
+    gizlenecekler.forEach((el) => {
+        el.style.display = "none";
+        el.style.pointerEvents = "none";
+    });
 
     koseAlani.style.display = "block";
 
@@ -422,7 +442,10 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
     koseAlani.style.display = "none";
     koseVazgecBtn.onclick = null;
 
-    gizlenecekler.forEach((el, i) => { el.style.display = oncekiGorunum[i]; });
+    gizlenecekler.forEach((el, i) => {
+        el.style.display = oncekiGorunum[i];
+        el.style.pointerEvents = oncekiPointerEvents[i];
+    });
 
     return vazgecildi ? null : koseler;
 
