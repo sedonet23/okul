@@ -147,6 +147,87 @@
         return netHesapla(detay?.d || 0, detay?.y || 0);
     }
 
+    // ────────────────────────────────────────────────────────────────
+    // SABİT KATSAYILI TAHMİNİ PUAN (yaygın kullanılan formül)
+    // ────────────────────────────────────────────────────────────────
+    // MEB'in resmî standardizasyon yöntemi (yukarısı) Türkiye ortalaması,
+    // standart sapma ve MinTASP/MaxTASP gibi sınav SONRASI açıklanan
+    // değerlere ihtiyaç duyar — deneme sınavlarında bunlar YOKTUR.
+    // Bu bölüm, hiçbir dışarıdan veri gerektirmeyen, netlerin SABİT
+    // katsayılarla çarpılıp toplanmasına dayanan, yaygın kullanılan
+    // tahmini puan formülünü uygular:
+    //
+    //   Puan = TürkçeNet×4.348 + İnkılapNet×1.666 + DinKültürüNet×1.899
+    //        + YabancıDilNet×1.5075 + MatematikNet×4.2538 + FenNet×4.1230
+    //        + 194.752082
+
+    const SABIT_FORMUL_KATSAYI_TABLOSU = {
+        'türkçe': 4.348,
+        'matematik': 4.2538,
+        'fen bilimleri': 4.1230,
+        't.c. inkılap tarihi ve atatürkçülük': 1.666,
+        'din kültürü ve ahlak bilgisi': 1.899,
+        'i̇ngilizce': 1.5075, // 'İngilizce'.toLocaleLowerCase('tr-TR')
+    };
+    const SABIT_FORMUL_ANAHTAR_KELIME = [
+        { anahtarlar: ['türkçe', 'turkce'], katsayi: 4.348 },
+        { anahtarlar: ['matematik'], katsayi: 4.2538 },
+        { anahtarlar: ['fen'], katsayi: 4.1230 },
+        { anahtarlar: ['inkılap', 'inkilap', 'atatürkçülük', 'ataturkculuk'], katsayi: 1.666 },
+        { anahtarlar: ['din kültürü', 'din kulturu', 'ahlak'], katsayi: 1.899 },
+        { anahtarlar: ['ingilizce', 'i̇ngilizce', 'yabancı dil', 'yabanci dil'], katsayi: 1.5075 },
+    ];
+    const SABIT_FORMUL_SABIT = 194.752082;
+
+    /**
+     * Ders adına göre sabit formülün katsayısını döndürür. Formülde YER
+     * ALMAYAN bir ders ise (ör. özel/ek bir ders eklenmişse) null döner
+     * — bu ders toplam puana dahil edilmez.
+     * @param {string} dersAdi
+     * @returns {number|null}
+     */
+    function sabitFormulKatsayisi(dersAdi) {
+        const ad = normalizeDersAdi(dersAdi);
+        if (ad in SABIT_FORMUL_KATSAYI_TABLOSU) return SABIT_FORMUL_KATSAYI_TABLOSU[ad];
+        const eslesen = SABIT_FORMUL_ANAHTAR_KELIME.find(k => k.anahtarlar.some(a => ad.includes(a)));
+        return eslesen ? eslesen.katsayi : null;
+    }
+
+    /**
+     * Tek bir öğrencinin sabit katsayılı tahmini LGS puanını hesaplar.
+     * @param {Array<{dersAdi:string, d:number, y:number}>} dersDetay - puanHesapla() çıktısındaki dersDetay
+     * @returns {{puan:number, dersNetleri:Array<{dersAdi:string, net:number, katsayi:number|null, katki:number}>}}
+     */
+    function sabitFormulPuanHesapla(dersDetay) {
+        let toplam = SABIT_FORMUL_SABIT;
+        const dersNetleri = (dersDetay || []).map(detay => {
+            const net = detaydanNetHesapla(detay);
+            const katsayi = sabitFormulKatsayisi(detay.dersAdi);
+            const katki = katsayi != null ? net * katsayi : 0;
+            if (katsayi != null) toplam += katki;
+            return { dersAdi: detay.dersAdi, net, katsayi, katki: parseFloat(katki.toFixed(3)) };
+        });
+        return { puan: parseFloat(toplam.toFixed(2)), dersNetleri };
+    }
+
+    /**
+     * Bir sınavın TÜM sonuçları için sabit katsayılı tahmini puanı hesaplar,
+     * puana göre büyükten küçüğe sıralı döner. Hiçbir dışarıdan veri
+     * (Türkiye ortalaması vb.) gerektirmez — bu yüzden deneme sınavlarında
+     * da (gerçek MEB istatistikleri açıklanmadan önce) kullanılabilir.
+     * @param {Array} sonuclar - DB.sonuclariGetir(sinavId): her biri {ogrenci, puan:{dersDetay}}
+     * @returns {Array<{sonucId:string, ogrenci:object, puan:number, dersNetleri:Array}>}
+     */
+    function sinavRaporuSabitFormulHesapla(sonuclar) {
+        const gecerli = (sonuclar || []).filter(s => s?.puan?.dersDetay?.length);
+        const liste = gecerli.map(sonuc => {
+            const { puan, dersNetleri } = sabitFormulPuanHesapla(sonuc.puan.dersDetay);
+            return { sonucId: sonuc.id, ogrenci: sonuc.ogrenci || {}, puan, dersNetleri };
+        });
+        liste.sort((a, b) => b.puan - a.puan);
+        return liste;
+    }
+
     /**
      * Bir sınavın tüm sonuçlarından LGS puan raporu üretir.
      *
@@ -274,8 +355,12 @@
         taspHesapla,
         mspHesapla,
         dersKatsayisi,
-        // Üst seviye rapor
+        // Üst seviye rapor (resmî MEB standardizasyon yöntemi — harici veri gerektirir)
         sinavRaporuHesapla,
+        // Sabit katsayılı tahmini puan (harici veri GEREKTİRMEZ — deneme sınavları için)
+        sabitFormulKatsayisi,
+        sabitFormulPuanHesapla,
+        sinavRaporuSabitFormulHesapla,
     };
 
 })(window);

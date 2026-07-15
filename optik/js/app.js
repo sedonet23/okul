@@ -653,26 +653,27 @@ function lgsPuanRaporunuAcVeGoster() {
     const sonuclar  = DB.sonuclariGetir(_aktifSinavId);
     const harici    = _lgsHariciVeriyiHazirla();
     const rapor     = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, harici);
+    const sabitListe = window.LgsPuanHesapla?.sinavRaporuSabitFormulHesapla(sonuclar) || [];
 
     const bosEl    = document.getElementById('lgsBosAlan');
     const listEl   = document.getElementById('lgsOgrenciListesi');
     const kaynakEl = document.getElementById('lgsKaynakEtiketi');
     if (!rapor || !listEl) return;
 
+    // Sabit formül puanına göre öğrenci -> puan eşlemesi (sonucId ile)
+    const sabitPuanMap = {};
+    sabitListe.forEach(s => { sabitPuanMap[s.sonucId] = s; });
+
+    const sabitOrtalama = sabitListe.length
+        ? sabitListe.reduce((a, s) => a + s.puan, 0) / sabitListe.length
+        : 0;
+
     _s('lgsOzetSayi', rapor.gecerliSayisi);
-    _s('lgsOzetOrtalama', rapor.gecerliSayisi ? rapor.sinavOrtalamaMsp.toFixed(1) : '—');
+    _s('lgsOzetOrtalama', sabitListe.length ? sabitOrtalama.toFixed(1) : '—');
 
     if (kaynakEl) {
-        if (rapor.tamamiGercek) {
-            kaynakEl.textContent = '✓ Tamamı MEB\'in gerçek verileriyle hesaplandı';
-            kaynakEl.className = 'lgs-kaynak-etiketi gercek';
-        } else if (rapor.dersIstatistik.some(d => d.kaynak === 'gercek') || rapor.taspKaynak === 'gercek') {
-            kaynakEl.textContent = '⚠ Bazı değerler gerçek MEB verisi, kalanı bu sınavdan tahmini';
-            kaynakEl.className = 'lgs-kaynak-etiketi karma';
-        } else {
-            kaynakEl.textContent = '⚠ Tamamı bu sınavın kendi verisinden TAHMİNİ hesaplandı — gerçek MEB puanı değildir';
-            kaynakEl.className = 'lgs-kaynak-etiketi karma';
-        }
+        kaynakEl.textContent = 'Sabit katsayılı tahmini puan formülü kullanıldı (Türkiye ortalaması gerektirmez — deneme sınavı için uygundur).';
+        kaynakEl.className = 'lgs-kaynak-etiketi karma';
     }
 
     if (!rapor.gecerliSayisi) {
@@ -686,15 +687,24 @@ function lgsPuanRaporunuAcVeGoster() {
     const istatistikMap = {};
     rapor.dersIstatistik.forEach(i => { istatistikMap[i.dersAdi] = i; });
 
-    listEl.innerHTML = rapor.ogrenciler.map((o, i) => {
+    // Sıralama: sabit formül puanına göre büyükten küçüğe (bu artık ana puan)
+    const siraliOgrenciler = rapor.ogrenciler.slice().sort((a, b) => {
+        const pa = sabitPuanMap[a.sonucId]?.puan ?? -Infinity;
+        const pb = sabitPuanMap[b.sonucId]?.puan ?? -Infinity;
+        return pb - pa;
+    });
+
+    listEl.innerHTML = siraliOgrenciler.map((o, i) => {
         const ogr = o.ogrenci || {};
+        const sabit = sabitPuanMap[o.sonucId];
         const detaySatirlari = o.dersPuanlari.map(d => {
             const kaynak = istatistikMap[d.dersAdi]?.kaynak || 'tahmini';
+            const sabitDers = sabit?.dersNetleri.find(x => x.dersAdi === d.dersAdi);
             return `
-            <span>${_h(d.dersAdi)}<span class="lgs-ders-rozet ${kaynak}">${kaynak === 'gercek' ? 'MEB' : 'tahmini'}</span></span>
+            <span>${_h(d.dersAdi)}</span>
             <span>${d.net.toFixed(2)}</span>
-            <span>SP ${d.standartPuan.toFixed(1)}</span>
-            <span>×${d.katsayi} = ${d.agirlikliPuan.toFixed(1)}</span>
+            <span>×${sabitDers?.katsayi ?? '—'} = ${sabitDers ? sabitDers.katki.toFixed(1) : '—'}</span>
+            <span>SP ${d.standartPuan.toFixed(1)} <span class="lgs-ders-rozet ${kaynak}">${kaynak === 'gercek' ? 'MEB' : 'tahmini'}</span></span>
         `;
         }).join('');
         return `
@@ -705,13 +715,16 @@ function lgsPuanRaporunuAcVeGoster() {
                     <strong>${_h(ogr.adSoyad || 'İsimsiz')}</strong>
                     <small>${_h(ogr.sinif || '')}${ogr.sinif && ogr.ogrenciNo ? ' · ' : ''}${_h(ogr.ogrenciNo || '')}</small>
                 </div>
-                <span class="lgs-ogr-msp">${o.msp.toFixed(1)}</span>
+                <div class="lgs-ogr-puanlar">
+                    <span class="lgs-ogr-sabit">${sabit ? sabit.puan.toFixed(1) : '—'}</span>
+                    <span class="lgs-ogr-msp2">İst. MSP: ${o.msp.toFixed(1)}</span>
+                </div>
             </div>
             <div class="lgs-ogr-detay">
                 <span class="lgs-detay-baslik">Ders</span>
                 <span class="lgs-detay-baslik">Net</span>
-                <span class="lgs-detay-baslik">Standart</span>
-                <span class="lgs-detay-baslik">Ağırlıklı</span>
+                <span class="lgs-detay-baslik">Sabit Katkı</span>
+                <span class="lgs-detay-baslik">İst. Standart</span>
                 ${detaySatirlari}
             </div>
         </div>`;
@@ -1472,6 +1485,7 @@ function baslat() {
     document.getElementById('sheetOnay').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetOnay'); });
     document.getElementById('sheetOnayIptal').addEventListener('click', () => sheetKapat('sheetOnay'));
     document.getElementById('bsGaleri').addEventListener('click', () => {
+        sheetKapat('sheetKagitEkle');
         const inp = document.getElementById('galeriInputSheet');
         if (inp) inp.click();
     });
