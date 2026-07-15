@@ -243,9 +243,13 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 .kagit-dvb-b { color: var(--text-faint); }
 .kagit-dvb-n { color: var(--accent); }
 .puan-badge {
-    padding: 4px 10px; border-radius: 12px;
-    font-size: 11.5px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 4px 8px; border-radius: 10px;
+    white-space: nowrap; flex-shrink: 0;
+    max-width: 62px; overflow: hidden;
 }
+.puan-badge-sayi { font-size: 13px; font-weight: 800; line-height: 1.15; }
+.puan-badge-ad { font-size: 7.5px; font-weight: 600; line-height: 1.1; opacity: .75; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .puan-yuksek { background: #FFF3E0; color: #E65100; }
 .puan-orta   { background: #FCE4EC; color: #C62828; }
 .puan-dusuk  { background: #FFEBEE; color: #B71C1C; }
