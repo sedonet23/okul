@@ -376,7 +376,10 @@ function kagitlariRender() {
         const puanBadgeHtml = puan != null
             ? (() => {
                 const puanSinif = puan >= 350 ? 'puan-yuksek' : puan >= 250 ? 'puan-orta' : 'puan-dusuk';
-                return `<span class="puan-badge ${puanSinif}">${_h(formAd)}: ${puan.toFixed(1)}</span>`;
+                return `<span class="puan-badge ${puanSinif}">
+                    <span class="puan-badge-sayi">${puan.toFixed(1)}</span>
+                    <span class="puan-badge-ad">${_h(formAd)}</span>
+                </span>`;
             })()
             : '';
 
