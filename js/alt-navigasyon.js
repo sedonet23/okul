@@ -671,7 +671,15 @@
         btn.className = 'an-notlara-git-btn';
         btn.style.cssText = 'width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;';
         btn.innerHTML = `${ikonSvg('not',20)}<span>Notlarım'a Git</span><span style="margin-left:auto;color:var(--ink-muted);display:flex;">${ikonSvg('ok',16)}</span>`;
-        btn.addEventListener('click', ()=>{ if(typeof modalKapat==='function') modalKapat(); sekmeAc('notlar'); });
+        btn.addEventListener('click', ()=>{
+          if(typeof modalKapat==='function') modalKapat();
+          // DÜZELTME: "Hızlı Not" butonu genelde an-liste-katman/an-grid-katman
+          // paneli (z-index:9500) açıkken tıklanıyor. sekmeAc() bu paneli
+          // kapatmadığından, Notlar sekmesi panelin ALTINDA açılıp görünmüyordu
+          // — kullanıcı menüyü elle kapatana kadar fark etmiyordu.
+          AltNav.kapat();
+          sekmeAc('notlar');
+        });
         govde.appendChild(ayrac);
         govde.appendChild(btn);
       }, 0);
