@@ -521,6 +521,35 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
     border: none; background: transparent; color: #fff; cursor: pointer; border-radius: 20px;
 }
 
+/* Canlı tarama sonuç kartı — okuma bitince birkaç saniye görünür kalır */
+.km-sonuc-kart {
+    position: absolute; left: 12px; right: 12px; top: 64px; z-index: 25;
+    background: rgba(20,26,28,.86); backdrop-filter: blur(6px);
+    border-radius: 16px; padding: 14px 16px; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.ksk-satir { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; font-size: 13.5px; }
+.ksk-satir span { color: rgba(255,255,255,.65); }
+.ksk-satir b { font-weight: 700; }
+.ksk-btnlar { display: flex; gap: 8px; margin-top: 10px; }
+.ksk-btn { flex: 1; padding: 9px; border: none; border-radius: 10px; background: rgba(255,255,255,.15); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+.ksk-btn-sil { background: rgba(220,38,38,.55); }
+.ksk-btn-duzenle { background: rgba(37,99,235,.6); }
+
+/* Tarama ayarları sheet — hassasiyet kaydırıcıları + canlı mod anahtarı */
+.km-ayar-sheet {
+    position: absolute; left: 12px; right: 12px; top: 64px; z-index: 26;
+    background: rgba(20,26,28,.92); backdrop-filter: blur(6px);
+    border-radius: 16px; padding: 14px 16px 18px; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4); max-height: 70vh; overflow-y: auto;
+}
+.km-ayar-baslik { display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+.km-ayar-baslik .ksk-btn { flex: none; width: 30px; height: 30px; padding: 0; font-size: 13px; }
+.km-ayar-satir { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 0; font-size: 13.5px; }
+.km-ayar-satir input[type="range"] { flex: 1; max-width: 150px; }
+.km-ayar-aciklama { font-size: 11.5px; color: rgba(255,255,255,.6); line-height: 1.5; margin: 0 0 4px; }
+.km-ayar-ayrac { border: none; border-top: 1px solid rgba(255,255,255,.15); margin: 8px 0; }
+
 .seviye-gosterge {
     position: absolute; left: 50%; bottom: 110px;
     transform: translateX(-50%); z-index: 15;
