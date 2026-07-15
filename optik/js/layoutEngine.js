@@ -752,7 +752,13 @@ SABIT_SABLONLAR.bursluluk = burslulukSablonuOlustur();
  */
 function hizalamaIsaretleriEkle(bolge) {
   const MARKER_BOYUT = 4; // mm, dolu kare
-  const PAY = 2;
+  // ÖNEMLİ: çoğu yazıcı/fotokopi kenara çok yakın alanı basamaz
+  // (yazdırılamayan kenar payı — özellikle SAYFANIN ALT kenarında, kağıt
+  // besleme mekanizması yüzünden diğer kenarlardan daha büyük olabilir).
+  // PAY çok küçükse (eski değer: 2mm) köşe kareleri bu basılamayan
+  // bölgeye düşüp kırpılabiliyor. 4mm, çoğu yazıcının garantili basılabilir
+  // alanının içinde kalırken köşe içeriğiyle (KENAR_PAY=8mm) çakışmıyor.
+  const PAY = 4;
   return [
     { x: bolge.x + PAY, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sol-ust' },
     { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sag-ust' },
