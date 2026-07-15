@@ -110,6 +110,71 @@ function ekranGit(id) {
 }
 
 // ════════════════════════════════════════════════════════════════
+// GERİ TUŞU KÖPRÜSÜ (ana uygulamadan çağrılır — bkz. js/app.js
+// geriTusuIsle, js/optik-entegrasyon.js). Telefonun donanım geri
+// tuşuna basılınca Optik aracının TAMAMINI kapatmak yerine, önce
+// kendi iç durumunu (köşe seçimi/ayarlar/sheet/kamera/alt ekran)
+// bir kademe geri alır; hiçbir iç durum kalmadığında false döner
+// ve üst uygulama tüm aracı kapatır.
+// ════════════════════════════════════════════════════════════════
+const _EKRAN_USTU = {
+    yeniSinav: 'sinavlar',
+    sinavDetay: 'sinavlar',
+    ogrDetay: 'sinavDetay',
+    optikOlustur: 'sinavDetay',
+    manuelKagit: 'sinavDetay',
+    lgsPuan: 'sinavDetay',
+};
+
+function _aktifEkranId() {
+    for (const id in Ekranlar) {
+        if (Ekranlar[id]?.classList.contains('aktif')) return id;
+    }
+    return null;
+}
+
+window.optikGeriTusuIsle = function () {
+    // 1) Köşe seçim ekranı (manuel köşe düzeltme) açıksa onu kapat.
+    const koseAlani = document.getElementById('koseSecimAlani');
+    if (koseAlani && koseAlani.style.display !== 'none') {
+        const iptalBtn = document.getElementById('koseIptal');
+        if (iptalBtn) iptalBtn.click(); else koseAlani.style.display = 'none';
+        return true;
+    }
+
+    // 2) Kamera ayarlar sheet'i açıksa kapat.
+    const ayarSheet = document.getElementById('kameraAyarSheet');
+    if (ayarSheet && !ayarSheet.hidden) { ayarSheet.hidden = true; return true; }
+
+    // 3) Canlı tarama sonuç kartı gösteriliyorsa kapat.
+    const kart = document.getElementById('canliSonucKart');
+    if (kart && !kart.hidden) { kart.hidden = true; return true; }
+
+    // 4) Herhangi bir bottom-sheet (Kağıt Ekle, Form Seç, Onay) açıksa kapat.
+    const acikSheet = document.querySelector('.bs-overlay:not([hidden])');
+    if (acikSheet) { acikSheet.hidden = true; return true; }
+
+    // 5) Kamera ekranı açıksa (tarama modundaysa) kamerayı kapat — bir
+    //    önceki ekrana (genelde sınav detayı) döner.
+    const kameraOv = document.getElementById('kameraOverlay');
+    if (kameraOv && !kameraOv.hidden) {
+        if (typeof kameraKapat === 'function') kameraKapat();
+        return true;
+    }
+
+    // 6) Kök olmayan bir ekrandaysa bir üst ekrana dön.
+    const aktif = _aktifEkranId();
+    if (aktif && aktif !== 'sinavlar' && _EKRAN_USTU[aktif]) {
+        ekranGit(_EKRAN_USTU[aktif]);
+        return true;
+    }
+
+    // 7) Kökteyiz (sınav listesi, hiçbir şey açık değil) — üst uygulama
+    //    tüm Optik aracını kapatsın.
+    return false;
+};
+
+// ════════════════════════════════════════════════════════════════
 // EKRAN 1 — SINAVLAR LİSTESİ
 // ════════════════════════════════════════════════════════════════
 function sinavlariRender() {
