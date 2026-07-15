@@ -646,6 +646,17 @@ function ogrDetayKaydet() {
     ekranGit('sinavDetay');
 }
 
+// ── Öğrenci detay: numara girilince ad soyad / sınıfı otomatik doldur ──
+function _ogrDetayNoIleAra() {
+    const no = document.getElementById('ogrDetayNo').value.trim();
+    if (!no) return;
+    const bulunan = _manuelTumOgrenciler().find(o => String(o.ogrenciNo || '').trim() === no);
+    if (!bulunan) return;
+    document.getElementById('ogrDetayAdSoyad').value = bulunan.adSoyad || '';
+    document.getElementById('ogrDetaySinif').value   = bulunan.sinifAd || '';
+    document.getElementById('ogrDetayAd').textContent = bulunan.adSoyad || 'Kağıt Detayı';
+}
+
 // ════════════════════════════════════════════════════════════════
 // PUAN HESAPLAMA
 // ════════════════════════════════════════════════════════════════
@@ -1588,6 +1599,8 @@ function baslat() {
     // ── Ekran 4: Öğrenci Detay ──
     document.getElementById('btnOgrDetayGeri').addEventListener('click', () => { _aktifSonucId = null; ekranGit('sinavDetay'); });
     document.getElementById('btnOgrDetayKaydet').addEventListener('click', ogrDetayKaydet);
+    document.getElementById('ogrDetayNo').addEventListener('change', _ogrDetayNoIleAra);
+    document.getElementById('ogrDetayNo').addEventListener('blur', _ogrDetayNoIleAra);
     document.getElementById('ogrDetayDers').addEventListener('change', () => {
         const son = DB.sonuclariGetir(_aktifSinavId).find(s => s.id === _aktifSonucId);
         if (son) ogrDetayIzgaraCiz(son);
