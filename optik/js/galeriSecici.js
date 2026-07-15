@@ -16,7 +16,7 @@
 
 import { formuOkuVeGoster, formuOkuElleKoseliVeGoster, formuOkuToplu } from "./formOkuyucu.js";
 import { showStatus } from "./utils.js";
-import { koseSeciciElemanlariniAl, koseSecimAkisi } from "./koseSecici.js";
+import { koseSeciciElemanlariniAl, koseSecimAkisi, KOSE_SECIM_IPTAL } from "./koseSecici.js";
 
 /**
  * Seçilen dosyayı bir <img> nesnesine (yüklenmiş halde) çevirir.
@@ -167,6 +167,15 @@ export function baglaGaleriSecici(inputId, canvasId) {
                 try {
 
                     const koseler = await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari);
+
+                    if (koseler === KOSE_SECIM_IPTAL) {
+                        // Kullanıcı "✕" (Vazgeç, farklı resim seç) dedi —
+                        // bu fotoğrafı HİÇ okumaya çalışma. "finally" bloğu
+                        // (biz açtıysak) overlay'i zaten kapatacak; kullanıcı
+                        // "Galeri"ye tekrar dokunup başka bir dosya seçebilir.
+                        showStatus("İptal edildi. Galeriden başka bir fotoğraf seçebilirsiniz.");
+                        return;
+                    }
 
                     // Okuma için TEMİZ görüntüyü kullan — köşe seçim canvas'ında
                     // kullanıcının sürüklediği yeşil tutamaçlar/çizgiler çizili,

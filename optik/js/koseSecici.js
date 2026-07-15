@@ -367,7 +367,8 @@ export function koseSeciciElemanlariniAl() {
         koseTalimat: document.getElementById("koseTalimat"),
         koseTamamBtn: document.getElementById("koseTamam"),
         koseSifirlaBtn: document.getElementById("koseSifirla"),
-        koseVazgecBtn: document.getElementById("koseVazgec")
+        koseVazgecBtn: document.getElementById("koseVazgec"),
+        koseIptalBtn: document.getElementById("koseIptal")
     };
 
     const eksik = Object.entries(elemanlar).filter(([, el]) => !el);
@@ -382,19 +383,31 @@ export function koseSeciciElemanlariniAl() {
 }
 
 /**
+ * koseSecimAkisi() tarafından, kullanıcı "✕" (Vazgeç, farklı resim seç)
+ * butonuna bastığında döndürülen özel işaret değeri. Hem geçerli köşe
+ * nesnelerinden hem de "Otomatik Dene"nin döndürdüğü null'dan kesin olarak
+ * ayırt edilebilsin diye benzersiz bir string kullanılıyor — çağıran kod
+ * (`camera.js`, `galeriSecici.js`) bunu `=== KOSE_SECIM_IPTAL` ile
+ * kontrol edip HİÇBİR okuma denemesi yapmadan (ne elle köşeyle ne
+ * otomatik) sessizce çıkmalı, kullanıcının yeni bir resim seçmesine izin
+ * vermeli.
+ */
+export const KOSE_SECIM_IPTAL = "__KOSE_SECIM_IPTAL__";
+
+/**
  * Ortak akış: köşe seçim UI'sini gösterir, kullanıcı "Tamam" derse seçilen
- * köşeleri, "Otomatik Devam Et" derse null döner. Her iki durumda da
- * koseAlani'yı tekrar gizler.
+ * köşeleri, "Otomatik Devam Et" derse null, "✕" (Vazgeç) derse
+ * KOSE_SECIM_IPTAL döner. Her durumda koseAlani'yı tekrar gizler.
  *
  * @param {CanvasImageSource} kaynak
  * @param {number} genislik
  * @param {number} yukseklik
  * @param {object} elemanlar - koseSeciciElemanlariniAl() çıktısı
- * @returns {Promise<{solUst,sagUst,sagAlt,solAlt}|null>}
+ * @returns {Promise<{solUst,sagUst,sagAlt,solAlt}|null|typeof KOSE_SECIM_IPTAL>}
  */
 export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
 
-    const { koseAlani, koseCanvas, koseTalimat, koseTamamBtn, koseSifirlaBtn, koseVazgecBtn } = elemanlar;
+    const { koseAlani, koseCanvas, koseTalimat, koseTamamBtn, koseSifirlaBtn, koseVazgecBtn, koseIptalBtn } = elemanlar;
 
     // Kamera ekranının üst bar'ı, alt bar'ı, ipucu bandı ve seviye
     // göstergesi köşe seçim UI'sinin ÜSTÜNDE (daha yüksek z-index) kalıyor
@@ -425,6 +438,7 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
     koseAlani.style.display = "block";
 
     let vazgecildi = false;
+    let iptalEdildi = false;
 
     const vazgecPromise = new Promise((resolve) => {
         koseVazgecBtn.onclick = () => {
@@ -433,19 +447,29 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
         };
     });
 
+    const iptalPromise = new Promise((resolve) => {
+        koseIptalBtn.onclick = () => {
+            iptalEdildi = true;
+            resolve(null);
+        };
+    });
+
     const koseSecimPromise = koseleriSectir(
         kaynak, genislik, yukseklik, koseCanvas, koseTalimat, koseTamamBtn, koseSifirlaBtn
     );
 
-    const koseler = await Promise.race([koseSecimPromise, vazgecPromise]);
+    const koseler = await Promise.race([koseSecimPromise, vazgecPromise, iptalPromise]);
 
     koseAlani.style.display = "none";
     koseVazgecBtn.onclick = null;
+    koseIptalBtn.onclick = null;
 
     gizlenecekler.forEach((el, i) => {
         el.style.display = oncekiGorunum[i];
         el.style.pointerEvents = oncekiPointerEvents[i];
     });
+
+    if (iptalEdildi) return KOSE_SECIM_IPTAL;
 
     return vazgecildi ? null : koseler;
 

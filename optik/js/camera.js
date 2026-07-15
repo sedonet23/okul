@@ -1,5 +1,5 @@
 import { formuOkuVeGoster, formuOkuElleKoseliVeGoster } from "./formOkuyucu.js";
-import { koseSeciciElemanlariniAl, koseSecimAkisi } from "./koseSecici.js";
+import { koseSeciciElemanlariniAl, koseSecimAkisi, KOSE_SECIM_IPTAL } from "./koseSecici.js";
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
@@ -218,6 +218,13 @@ export async function capturePhoto() {
     }
 
     const koseler = await koseSecimAkisi(canvas, canvas.width, canvas.height, koseElemanlari);
+
+    if (koseler === KOSE_SECIM_IPTAL) {
+        // Kullanıcı "✕" (Vazgeç, farklı resim seç) dedi — bu fotoğrafı HİÇ
+        // okumaya çalışma. Kamera zaten açık/akıyor durumda kalır, kullanıcı
+        // doğrudan tekrar çekim yapabilir.
+        return null;
+    }
 
     if (koseler) {
         return formuOkuElleKoseliVeGoster(canvas, koseler);
