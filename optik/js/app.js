@@ -872,10 +872,42 @@ function _omrSonucuisle(raw) {
     if (!raw || !_aktifSinavId) return;
     const dersler = formDersleriniGetir(_aktifSinavId);
     const anahtar = DB.anahtariGetir(_aktifSinavId);
+
+    // omrEngine dizi dondurur: [{ders, soruNo, isaretliSik}]
+    // puanHesapla nesne bekler: {dersAdi: {soruNo: harf}}
+    const cevaplarDizi = Array.isArray(raw.cevaplar) ? raw.cevaplar : [];
+    const cevaplarNesne = {};
+    cevaplarDizi.forEach(c => {
+        if (!c.ders) return;
+        if (!cevaplarNesne[c.ders]) cevaplarNesne[c.ders] = {};
+        if (c.isaretliSik) cevaplarNesne[c.ders][c.soruNo] = c.isaretliSik;
+    });
+
+    // Numara: "0103" -> "103" (leading zero kaldir)
+    const kimlik = Object.assign({}, raw.ogrenciKimlik || {});
+    if (kimlik.ogrenciNo) {
+        const parsed = parseInt(kimlik.ogrenciNo, 10);
+        if (!isNaN(parsed)) kimlik.ogrenciNo = String(parsed);
+    }
+
+    // Ad soyad eslestir - ana uygulamadan ogrenci verisi varsa
+    if (kimlik.ogrenciNo) {
+        try {
+            const ogrenciler = _manuelTumOgrenciler();
+            const eslesme = ogrenciler.find(o =>
+                String(parseInt(o.ogrenciNo || '0', 10)) === kimlik.ogrenciNo
+            );
+            if (eslesme) {
+                kimlik.adSoyad = eslesme.adSoyad || kimlik.adSoyad || '';
+                kimlik.sinif   = eslesme.sinifAd || kimlik.sinif || '';
+            }
+        } catch(e) {}
+    }
+
     const sonuc = {
         id:            'sonuc_' + Date.now(),
-        ogrenci:       raw.ogrenciKimlik || {},
-        cevaplar:      raw.cevaplar || {},
+        ogrenci:       kimlik,
+        cevaplar:      cevaplarNesne,
         kagitGoruntusu:raw.kagitGoruntusu || null,
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
@@ -1164,8 +1196,10 @@ function galeriSecimIsle(dosyalar) {
                 cvs.width = img.width; cvs.height = img.height;
                 cvs.getContext('2d').drawImage(img, 0, 0);
                 try {
+                    // galeriSecici.js flow'u kullaniliyor - bu satir kaldirildi
+                    // formOkuyucu.js ile işle
                     const { formuOkuVeGoster } = await import('./formOkuyucu.js');
-                    await formuOkuVeGoster(cvs);
+                    await formuOkuVeGoster('canvas', 'resultCanvas', 'statusText', 'hataKutusu');
                 } catch(err) { console.error('Galeri okuma hatası', err); }
             };
             img.src = e.target.result;
@@ -1312,7 +1346,7 @@ function baslat() {
 
     // ── Kamera ──
     document.getElementById('kameraKapatBtn').addEventListener('click', kameraKapat);
-    // galeriInput → baglaGaleriSecici aşağıda bağlıyor, burada ikinci listener olmayacak
+    // galeriInput -> baglaGaleriSecici asagida bagliyor
 
     // ── Bottom sheets ──
     document.getElementById('sheetKagitEkle').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetKagitEkle'); });
@@ -1323,7 +1357,7 @@ function baslat() {
         const inp = document.getElementById('galeriInputSheet');
         if (inp) inp.click();
     });
-    // galeriInputSheet → baglaGaleriSecici aşağıda bağlıyor
+    // galeriInputSheet -> baglaGaleriSecici asagida bagliyor
     document.getElementById('bsManuel').addEventListener('click', () => { sheetKapat('sheetKagitEkle'); manuelKagitAc(); });
 
     // ── Anahtar araçlar ──
@@ -1354,7 +1388,7 @@ function baslat() {
         })
     );
 
-    // galeriSecici.js bağla (kamera için)
+    // galeriSecici.js bağla - hem kamera overlay hem bottom sheet
     baglaGaleriSecici('galeriInput', 'canvas');
     baglaGaleriSecici('galeriInputSheet', 'canvas');
 
