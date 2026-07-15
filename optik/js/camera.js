@@ -1,5 +1,6 @@
 import { formuOkuVeGoster, formuOkuElleKoseliVeGoster } from "./formOkuyucu.js";
 import { koseSeciciElemanlariniAl, koseSecimAkisi, KOSE_SECIM_IPTAL } from "./koseSecici.js";
+import { ayarlariGetir } from "./hassasiyetAyarlari.js";
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
@@ -8,21 +9,37 @@ const ctx = canvas.getContext("2d");
 let stream = null;
 
 // ────────────────────────────────────────────────────────────────
-// CANLI KÖŞE YAKALAMA GÖSTERGESİ
+// CANLI KÖŞE YAKALAMA GÖSTERGESİ + CANLI TARAMA MODU
 // ────────────────────────────────────────────────────────────────
 // Kamera önizlemesi (video) üzerine, sayfanın 4 köşesindeki hizalama
 // karelerinin o an fotoğrafta YAKALANIP yakalanmadığını gösteren canlı
 // bir gösterge çizer: bulunduysa YEŞİL, bulunamadıysa (o köşe bölgesinin
-// yaklaşık beklenen konumunda) KIRAMIZI daire+artı işareti. Gerçek
-// yakalama/okuma mantığıyla AYNI fonksiyonu (OmrOkuyucu.sayfaKoseleriniAra)
-// kullanır — bu yüzden "yeşil görününce çek" kuralı gerçek okuma
-// başarısıyla doğrudan ilişkilidir.
+// yaklaşık beklenen konumunda) KIRMIZI daire+artı işareti; 4 köşe ayrıca
+// bir dörtgen ÇİZGİSİYLE birbirine bağlanır (sayfanın genel hizasını
+// göstermek için). Gerçek yakalama/okuma mantığıyla AYNI fonksiyonu
+// (OmrOkuyucu.sayfaKoseleriniAra) kullanır.
+//
+// CANLI TARAMA MODU açıkken (bkz. canliTaramaBaslat/Durdur): 4 köşe art
+// arda birkaç kare boyunca STABİL (neredeyse aynı yerde) bulunursa tam
+// okuma otomatik tetiklenir — kullanıcı çekim tuşuna basmadan kağıt
+// okunup kaydedilir. Aynı kağıt kameradan çıkana kadar tekrar tetiklenmez
+// (bkz. _sonIslenenImza).
 const _koseTespitAnalizCanvas = document.createElement("canvas");
 let _koseTespitTimer = null;
 let _koseTespitCalisiyor = false; // örtüşen (üst üste binen) çalıştırmaları engelle
 
-const KOSE_TESPIT_ARALIK_MS = 450;
-const KOSE_TESPIT_ANALIZ_GENISLIK = 480; // analiz hızı için düşürülmüş çözünürlük
+const KOSE_TESPIT_ANALIZ_GENISLIK = 360; // analiz hızı için düşürülmüş çözünürlük (önceki 480'den hızlandırıldı)
+
+// ---- Canlı tarama modu durumu ----
+let _canliModAktif = false;
+let _canliIsleniyor = false;       // tam okuma o an çalışıyor mu (döngü bu sürece dokunmaz)
+let _sonIslenenImza = null;        // son işlenen kağıdın köşe "imzası" — aynı kağıdı tekrar tetiklememek için
+let _stabilGecmis = [];            // son birkaç tespit turunun köşe konumları (stabilite kontrolü için)
+const STABIL_GEREKEN_TUR = 3;      // bu kadar ardışık turda ~aynı konumda bulunursa "stabil" say
+const STABIL_TOLERANS_PX = 6;      // analiz çözünürlüğünde izin verilen konum sapması
+
+let _onSonucCallback = null;       // app.js tarafından set edilir: canlı modda her okuma sonrası çağrılır
+let _onDurumCallback = null;       // app.js tarafından set edilir: "aranıyor/hizalandı/okunuyor" durumu için
 
 function _koseTespitTemizle() {
     const overlay = document.getElementById("koseTespitOverlay");
@@ -33,7 +50,8 @@ function _koseTespitTemizle() {
 
 function _koseTespitBaslat() {
     _koseTespitDurdur();
-    _koseTespitTimer = setInterval(_koseTespitCalistir, KOSE_TESPIT_ARALIK_MS);
+    const aralik = (ayarlariGetir().tespitAraligiMs) || 350;
+    _koseTespitTimer = setInterval(_koseTespitCalistir, aralik);
 }
 
 function _koseTespitDurdur() {
@@ -44,9 +62,33 @@ function _koseTespitDurdur() {
     _koseTespitTemizle();
 }
 
+/** İki köşe kümesinin (analiz çözünürlüğünde) birbirine yeterince yakın olup olmadığını kontrol eder. */
+function _koselerYakinMi(a, b) {
+    if (!a || !b) return false;
+    const anahtarlar = ["solUst", "sagUst", "solAlt", "sagAlt"];
+    for (const k of anahtarlar) {
+        if (!a[k] || !b[k]) return false;
+        const dx = a[k].x - b[k].x, dy = a[k].y - b[k].y;
+        if (Math.sqrt(dx * dx + dy * dy) > STABIL_TOLERANS_PX) return false;
+    }
+    return true;
+}
+
+/** 4 köşenin hepsi bulunmuş mu? */
+function _tumKoselerVarMi(koseler) {
+    return !!(koseler && koseler.solUst && koseler.sagUst && koseler.solAlt && koseler.sagAlt);
+}
+
+/** Basit bir "imza" — aynı fiziksel kağıdın kamerada durmaya devam edip etmediğini anlamak için. */
+function _imzaUret(koseler) {
+    if (!_tumKoselerVarMi(koseler)) return null;
+    const r = (n) => Math.round(n / 4) * 4; // 4px'e yuvarla — küçük titreşimleri yut
+    return ["solUst", "sagUst", "solAlt", "sagAlt"].map(k => `${r(koseler[k].x)},${r(koseler[k].y)}`).join("|");
+}
+
 function _koseTespitCalistir() {
 
-    if (_koseTespitCalisiyor) return; // önceki tur hâlâ işleniyor, atla
+    if (_koseTespitCalisiyor || _canliIsleniyor) return; // önceki tur / tam okuma hâlâ sürüyor, atla
     if (!video.videoWidth || !video.videoHeight) return;
     if (typeof window.OmrOkuyucu === "undefined" || typeof window.OmrOkuyucu.sayfaKoseleriniAra !== "function") return;
 
@@ -57,6 +99,7 @@ function _koseTespitCalistir() {
 
     try {
 
+        const ayarlar = ayarlariGetir();
         const aOlcek = KOSE_TESPIT_ANALIZ_GENISLIK / video.videoWidth;
         const aGenislik = KOSE_TESPIT_ANALIZ_GENISLIK;
         const aYukseklik = Math.round(video.videoHeight * aOlcek);
@@ -73,7 +116,8 @@ function _koseTespitCalistir() {
             return; // (nadir) canvas okuma hatası — bu turu sessizce atla
         }
 
-        const koseler = window.OmrOkuyucu.sayfaKoseleriniAra(imageData);
+        const hassasiyet = { yuzdelik: ayarlar.yuzdelik, minDoluluk: ayarlar.minDoluluk };
+        const koseler = window.OmrOkuyucu.sayfaKoseleriniAra(imageData, hassasiyet);
 
         // Analiz çözünürlüğünden GERÇEK (native) video çözünürlüğüne geri ölçekle
         const geriOlcek = video.videoWidth / aGenislik;
@@ -105,6 +149,8 @@ function _koseTespitCalistir() {
             sagAlt: { x: dispW * 0.92, y: dispH * 0.93 },
         };
 
+        const ekranNoktalari = {};
+
         Object.keys(BEKLENEN).forEach((konum) => {
 
             const nokta = koseler[konum];
@@ -121,6 +167,8 @@ function _koseTespitCalistir() {
                 cy = BEKLENEN[konum].y;
                 bulunduMu = false;
             }
+
+            ekranNoktalari[konum] = { x: cx, y: cy, bulunduMu };
 
             const renk = bulunduMu ? "#2ecc71" : "#e74c3c";
 
@@ -141,6 +189,49 @@ function _koseTespitCalistir() {
 
         });
 
+        // 4 köşeyi birbirine bağlayan dörtgen — bulunan komşu köşeler
+        // arasında YEŞİL düz, en az biri eksikse KIRMIZI kesikli çizgi
+        // (kullanıcı sayfanın genel hizasını/eğikliğini anlık görsün diye).
+        const sira = [["solUst", "sagUst"], ["sagUst", "sagAlt"], ["sagAlt", "solAlt"], ["solAlt", "solUst"]];
+        for (const [a, b] of sira) {
+            const p1 = ekranNoktalari[a], p2 = ekranNoktalari[b];
+            const ikisiDeVar = p1.bulunduMu && p2.bulunduMu;
+            octx.beginPath();
+            octx.setLineDash(ikisiDeVar ? [] : [6, 5]);
+            octx.moveTo(p1.x, p1.y);
+            octx.lineTo(p2.x, p2.y);
+            octx.strokeStyle = ikisiDeVar ? "rgba(46,204,113,.85)" : "rgba(231,76,60,.55)";
+            octx.lineWidth = 2;
+            octx.stroke();
+            octx.setLineDash([]);
+        }
+
+        // ---- Canlı tarama modu: stabilite kontrolü + otomatik tetikleme ----
+        if (_canliModAktif) {
+            const tumuVar = _tumKoselerVarMi(koseler);
+
+            _stabilGecmis.push(tumuVar ? koseler : null);
+            if (_stabilGecmis.length > STABIL_GEREKEN_TUR) _stabilGecmis.shift();
+
+            if (typeof _onDurumCallback === "function") {
+                _onDurumCallback(tumuVar ? "hizalandi" : "araniyor");
+            }
+
+            if (_stabilGecmis.length === STABIL_GEREKEN_TUR && _stabilGecmis.every(k => k)) {
+                const ilkTur = _stabilGecmis[0];
+                const stabilMi = _stabilGecmis.every(k => _koselerYakinMi(k, ilkTur));
+
+                if (stabilMi) {
+                    const imza = _imzaUret(ilkTur);
+                    if (imza && imza !== _sonIslenenImza) {
+                        _sonIslenenImza = imza;
+                        _stabilGecmis = [];
+                        _canliOtomatikOku();
+                    }
+                }
+            }
+        }
+
     } catch (err) {
         console.error("Canlı köşe tespiti hatası (görmezden gelindi):", err);
     } finally {
@@ -148,6 +239,87 @@ function _koseTespitCalistir() {
     }
 
 }
+
+/**
+ * Canlı modda: kullanıcı çekim tuşuna basmadan, video karesini yakalayıp
+ * otomatik (elle köşe seçim UI'sı OLMADAN) okur. Okuma bitince sonucu
+ * app.js'e (bkz. canliTaramaBaslat'a verilen callback) iletir, kamerayı
+ * KAPATMAZ — döngü otomatik olarak sıradaki kağıt için devam eder.
+ */
+async function _canliOtomatikOku() {
+    if (!video.videoWidth || !video.videoHeight) return;
+    _canliIsleniyor = true;
+    if (typeof _onDurumCallback === "function") _onDurumCallback("okunuyor");
+
+    try {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const sonuc = await formuOkuVeGoster(canvas);
+
+        if (typeof _onSonucCallback === "function") _onSonucCallback(sonuc);
+
+    } catch (err) {
+        console.error("Canlı otomatik okuma hatası:", err);
+    } finally {
+        // Kısa bir "soğuma" süresi — sonuç kartının bir an ekranda kalması
+        // ve aynı kağıdın hemen art arda tekrar tetiklenmemesi için.
+        setTimeout(() => { _canliIsleniyor = false; }, 900);
+    }
+}
+
+/** app.js tarafından çağrılır: canlı tarama modunu açar. */
+export function canliTaramaBaslat(onSonuc, onDurum) {
+    _canliModAktif = true;
+    _sonIslenenImza = null;
+    _stabilGecmis = [];
+    _onSonucCallback = onSonuc || null;
+    _onDurumCallback = onDurum || null;
+}
+
+/** app.js tarafından çağrılır: canlı tarama modunu kapatır (manuel çekim moduna döner). */
+export function canliTaramaDurdur() {
+    _canliModAktif = false;
+    _sonIslenenImza = null;
+    _stabilGecmis = [];
+}
+
+export function canliTaramaAktifMi() {
+    return _canliModAktif;
+}
+
+// ────────────────────────────────────────────────────────────────
+// KAMERA FLAŞI (TORCH)
+// ────────────────────────────────────────────────────────────────
+/** Cihaz/tarayıcı torch (flaş) özelliğini destekliyor mu? */
+export function torchDesteginiKontrolEt() {
+    try {
+        if (!stream) return false;
+        const track = stream.getVideoTracks()[0];
+        if (!track || typeof track.getCapabilities !== "function") return false;
+        const cap = track.getCapabilities();
+        return !!(cap && cap.torch);
+    } catch (e) {
+        return false;
+    }
+}
+
+let _torchAcikMi = false;
+export async function torchAyarla(acik) {
+    try {
+        if (!stream) return false;
+        const track = stream.getVideoTracks()[0];
+        if (!track) return false;
+        await track.applyConstraints({ advanced: [{ torch: !!acik }] });
+        _torchAcikMi = !!acik;
+        return true;
+    } catch (e) {
+        console.error("Torch ayarlanamadı:", e);
+        return false;
+    }
+}
+export function torchDurumu() { return _torchAcikMi; }
 
 /**
  * Kamerayı başlat
@@ -239,6 +411,7 @@ export async function capturePhoto() {
 export function stopCamera() {
 
     _koseTespitDurdur();
+    _canliModAktif = false;
 
     if (!stream) return;
 

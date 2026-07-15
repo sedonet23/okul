@@ -341,6 +341,15 @@ function hizalamaIsaretleriCiz(doc, form) {
   for (const m of form.hizalamaIsaretleri) {
     doc.rect(m.x, m.y, m.boyut, m.boyut, 'F');
   }
+  // 4 köşe karesini birbirine bağlayan ince çerçeve — kenar/çizgi tabanlı
+  // köşe tespitine (bkz. omrEngine.js kenarCizgisiIleKoseBul) sağlam bir
+  // referans verir; izole karelerden çok daha zor gölgeyle karışır.
+  if (form.sayfaCercevesi) {
+    const c = form.sayfaCercevesi;
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.35);
+    doc.rect(c.x, c.y, c.width, c.height, 'S');
+  }
 }
 
 /**

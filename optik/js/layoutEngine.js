@@ -645,6 +645,7 @@ function lgsSablonuOlustur() {
         formIndex: 0,
         bolge: { x: 0, y: 0, width: A4.width, height: A4.height },
         hizalamaIsaretleri: hizalamaIsaretleriEkle({ x: 0, y: 0, width: A4.width, height: A4.height }),
+        sayfaCercevesi: sayfaCercevesiHesapla({ x: 0, y: 0, width: A4.width, height: A4.height }),
         ...standartHeaderOlustur(KENAR_PAY, 'LGS SINAV CEVAP KAĞIDI'),
         kitapcikAlani,
         numaraAlani,
@@ -729,6 +730,7 @@ function burslulukSablonuOlustur() {
         formIndex: 0,
         bolge: { x: 0, y: 0, width: A4.width, height: A4.height },
         hizalamaIsaretleri: hizalamaIsaretleriEkle({ x: 0, y: 0, width: A4.width, height: A4.height }),
+        sayfaCercevesi: sayfaCercevesiHesapla({ x: 0, y: 0, width: A4.width, height: A4.height }),
         ...standartHeaderOlustur(KENAR_PAY, 'BURSLULUK SINAVI CEVAP KAĞIDI', {
           bilgiSatiriOran: 0.8, // öğrenci no / sınıf / kitapçık türü kutuları daha dar
         }),
@@ -750,21 +752,46 @@ SABIT_SABLONLAR.bursluluk = burslulukSablonuOlustur();
  * Her mini-form için 4 köşe hizalama işareti (fiducial marker) koordinatı.
  * Bunlar OMR okuma sırasında perspektif düzeltme için kritik referans noktalarıdır.
  */
+// Köşe karesi boyutu/payı — hem hizalamaIsaretleriEkle hem de
+// sayfaCercevesiHesapla aynı sabitleri kullanmalı (çerçeve çizgisi köşe
+// karelerinin TAM ORTASINDAN geçsin, görsel + algoritmik olarak "bağlı"
+// olsun diye).
+const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare
+const HIZALAMA_PAY = 4; // mm, sayfa/bölge kenarından köşe karesine mesafe
+
 function hizalamaIsaretleriEkle(bolge) {
-  const MARKER_BOYUT = 4; // mm, dolu kare
+  const MARKER_BOYUT = HIZALAMA_MARKER_BOYUT;
   // ÖNEMLİ: çoğu yazıcı/fotokopi kenara çok yakın alanı basamaz
   // (yazdırılamayan kenar payı — özellikle SAYFANIN ALT kenarında, kağıt
   // besleme mekanizması yüzünden diğer kenarlardan daha büyük olabilir).
   // PAY çok küçükse (eski değer: 2mm) köşe kareleri bu basılamayan
   // bölgeye düşüp kırpılabiliyor. 4mm, çoğu yazıcının garantili basılabilir
   // alanının içinde kalırken köşe içeriğiyle (KENAR_PAY=8mm) çakışmıyor.
-  const PAY = 4;
+  const PAY = HIZALAMA_PAY;
   return [
     { x: bolge.x + PAY, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sol-ust' },
     { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sag-ust' },
     { x: bolge.x + PAY, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sol-alt' },
     { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sag-alt' },
   ];
+}
+
+/**
+ * 4 köşe karesini birbirine bağlayan ince dış çerçeve çizgisinin
+ * koordinatlarını hesaplar — çizgi, köşe karelerinin TAM ORTASINDAN
+ * geçer (görsel olarak "kareler çizgiye bağlı" algısı verir, ve OMR
+ * tarafında kenar/çizgi tabanlı köşe tespitine sağlam bir referans
+ * sağlar — bkz. omrEngine.js kenarCizgisiIleKoseBul).
+ */
+function sayfaCercevesiHesapla(bolge) {
+  const yarim = HIZALAMA_MARKER_BOYUT / 2;
+  const kenar = HIZALAMA_PAY + yarim;
+  return {
+    x: bolge.x + kenar,
+    y: bolge.y + kenar,
+    width: bolge.width - 2 * kenar,
+    height: bolge.height - 2 * kenar,
+  };
 }
 
 /**
@@ -813,6 +840,7 @@ function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'ot
       formIndex: index, // A4 üzerindeki kaçıncı mini-form (0-tabanlı)
       bolge,
       hizalamaIsaretleri: hizalama,
+      sayfaCercevesi: sayfaCercevesiHesapla(bolge),
       ...header,
       izgara,
     };

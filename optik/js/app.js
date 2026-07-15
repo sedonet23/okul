@@ -1,6 +1,7 @@
 // js/app.js — Optik Okuma Ana Modülü
 
 import { baglaGaleriSecici } from './galeriSecici.js';
+import { ayarlariGetir, ayarlariKaydet, ayarlariSifirla, VARSAYILAN as HASSASIYET_VARSAYILAN } from './hassasiyetAyarlari.js';
 
 // ════════════════════════════════════════════════════════════════
 // VERİ KATMANI (localStorage)
@@ -1042,6 +1043,8 @@ function _tumSonuclariYenidenHesapla() {
 // KAMERA
 // ════════════════════════════════════════════════════════════════
 let _seviyeAktif = false;
+let _canliModAktif = false;   // canlı tarama modu açık mı (camera.js ile senkron tutulur)
+let _canliKartZamanlayici = null;
 
 function kameraAc() {
     const ov = document.getElementById('kameraOverlay');
@@ -1060,6 +1063,12 @@ function kameraKapat() {
     if (st) st.click();
     ov.hidden = true;
     _seviyeKaldir();
+    _canliModAktif = false;
+    if (_canliKartZamanlayici) { clearTimeout(_canliKartZamanlayici); _canliKartZamanlayici = null; }
+    const kart = document.getElementById('canliSonucKart');
+    if (kart) kart.hidden = true;
+    const ayarSheet = document.getElementById('kameraAyarSheet');
+    if (ayarSheet) ayarSheet.hidden = true;
 }
 
 function _seviyeGuncelle(e) {
@@ -1098,6 +1107,9 @@ window.addEventListener('omrSonucHazir', e => {
     _omrSonucuisle(e.detail);
 });
 window.addEventListener('omrOkumaTamamlandi', () => {
+    // Canlı tarama modunda kamerayı KAPATMA — döngü otomatik olarak
+    // sıradaki kağıt için devam eder (bkz. camera.js _canliOtomatikOku).
+    if (_canliModAktif) return;
     kameraKapat();
 });
 
@@ -1166,6 +1178,7 @@ function _omrSonucuisle(raw) {
                 sonuc.id = mevcut.id; // aynı id ile kaydet = DB.sonucKaydet üzerine yazar
                 DB.sonucKaydet(_aktifSinavId, sonuc);
                 kagitlariRender();
+                if (_canliModAktif) _canliKartGoster(sonuc);
             },
             'Güncelle'
         );
@@ -1174,6 +1187,27 @@ function _omrSonucuisle(raw) {
 
     DB.sonucKaydet(_aktifSinavId, sonuc);
     kagitlariRender();
+    if (_canliModAktif) _canliKartGoster(sonuc);
+}
+
+/** Canlı tarama modunda: otomatik kaydedilen sonucu birkaç saniye gösteren kart. */
+function _canliKartGoster(sonuc) {
+    const kart = document.getElementById('canliSonucKart');
+    if (!kart) return;
+    const o = sonuc.ogrenci || {};
+    _s('kskAd', o.adSoyad || '—');
+    _s('kskNumara', o.ogrenciNo || '—');
+    _s('kskSinif', o.sinif || '—');
+    const p = sonuc.puan || {};
+    const toplamSoru = (p.toplamD || 0) + (p.toplamY || 0) + (p.toplamB || 0);
+    const yuzde = toplamSoru ? ((p.toplamD || 0) / toplamSoru * 100) : null;
+    _s('kskPuan', yuzde != null ? yuzde.toFixed(1) : '—');
+    _s('kskNet', p.toplamNet != null ? p.toplamNet.toFixed(2) : '—');
+    kart.dataset.sonucId = sonuc.id;
+    kart.hidden = false;
+
+    if (_canliKartZamanlayici) clearTimeout(_canliKartZamanlayici);
+    _canliKartZamanlayici = setTimeout(() => { kart.hidden = true; }, 3500);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1700,11 +1734,112 @@ function baslat() {
         const captureBtn = document.getElementById('capture');
         const statusEl = document.getElementById('statusText');
         if (startBtn) startBtn.addEventListener('click', async () => {
-            try { statusEl.textContent = 'Kamera açılıyor...'; await (mod.startCamera?.() || window.startCamera?.()); statusEl.textContent = 'Hazır'; } catch (e) { statusEl.textContent = 'Kamera açılamadı'; }
+            try {
+                statusEl.textContent = 'Kamera açılıyor...';
+                await (mod.startCamera?.() || window.startCamera?.());
+                statusEl.textContent = 'Hazır';
+                // Torch butonunu sadece cihaz destekliyorsa göster.
+                const torchBtn = document.getElementById('kameraTorchBtn');
+                if (torchBtn) {
+                    setTimeout(() => {
+                        torchBtn.hidden = !mod.torchDesteginiKontrolEt?.();
+                    }, 300); // stream track'i hazır olsun diye küçük gecikme
+                }
+            } catch (e) { statusEl.textContent = 'Kamera açılamadı'; }
         });
-        if (stopBtn) stopBtn.addEventListener('click', () => { try { mod.stopCamera?.() || window.stopCamera?.(); } catch {} });
+        if (stopBtn) stopBtn.addEventListener('click', () => {
+            try { mod.stopCamera?.() || window.stopCamera?.(); } catch {}
+            _canliModAktif = false;
+            const sw = document.getElementById('canliModSwitch');
+            if (sw) sw.checked = false;
+        });
         if (captureBtn) captureBtn.addEventListener('click', async () => {
             try { statusEl.textContent = 'İşleniyor...'; await (mod.capturePhoto?.() || window.capturePhoto?.()); } catch (e) { statusEl.textContent = 'Fotoğraf alınamadı'; }
+        });
+
+        // ── Canlı tarama modu aç/kapat ──
+        const canliSw = document.getElementById('canliModSwitch');
+        if (canliSw) canliSw.addEventListener('change', () => {
+            if (canliSw.checked) {
+                _canliModAktif = true;
+                mod.canliTaramaBaslat?.(
+                    () => { /* sonuç zaten omrSonucHazir olayıyla _omrSonucuisle'a gidiyor */ },
+                    (durum) => { if (statusEl) statusEl.textContent = durum === 'okunuyor' ? 'Okunuyor...' : (durum === 'hizalandi' ? 'Hizalandı, sabit tutun...' : 'Kağıt aranıyor...'); }
+                );
+                captureBtn.style.opacity = '0.45'; // manuel tuş hâlâ çalışır ama vurgu canlı modda
+            } else {
+                _canliModAktif = false;
+                mod.canliTaramaDurdur?.();
+                captureBtn.style.opacity = '1';
+                if (statusEl) statusEl.textContent = 'Hazır';
+            }
+        });
+
+        // ── Ayarlar sheet aç/kapat ──
+        const menuBtn = document.getElementById('kameraMenuBtn');
+        const ayarSheet = document.getElementById('kameraAyarSheet');
+        const ayarKapat = document.getElementById('kameraAyarKapat');
+        if (menuBtn && ayarSheet) menuBtn.addEventListener('click', () => {
+            const a = ayarlariGetir();
+            const hy = document.getElementById('hsYuzdelik');
+            const hd = document.getElementById('hsDoluluk');
+            const hh = document.getElementById('hsHiz');
+            if (hy) hy.value = Math.round(a.yuzdelik * 100);
+            if (hd) hd.value = Math.round(a.minDoluluk * 100);
+            if (hh) hh.value = a.tespitAraligiMs;
+            if (canliSw) canliSw.checked = _canliModAktif;
+            ayarSheet.hidden = false;
+        });
+        if (ayarKapat) ayarKapat.addEventListener('click', () => { ayarSheet.hidden = true; });
+
+        const _ayarUygula = () => {
+            const hy = document.getElementById('hsYuzdelik');
+            const hd = document.getElementById('hsDoluluk');
+            const hh = document.getElementById('hsHiz');
+            ayarlariKaydet({
+                yuzdelik: hy ? Number(hy.value) / 100 : undefined,
+                minDoluluk: hd ? Number(hd.value) / 100 : undefined,
+                tespitAraligiMs: hh ? Number(hh.value) : undefined,
+            });
+        };
+        ['hsYuzdelik', 'hsDoluluk', 'hsHiz'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', _ayarUygula);
+        });
+        const hsSifirla = document.getElementById('hsSifirla');
+        if (hsSifirla) hsSifirla.addEventListener('click', () => {
+            ayarlariSifirla();
+            const a = HASSASIYET_VARSAYILAN;
+            const hy = document.getElementById('hsYuzdelik');
+            const hd = document.getElementById('hsDoluluk');
+            const hh = document.getElementById('hsHiz');
+            if (hy) hy.value = Math.round(a.yuzdelik * 100);
+            if (hd) hd.value = Math.round(a.minDoluluk * 100);
+            if (hh) hh.value = a.tespitAraligiMs;
+        });
+
+        // ── Kamera flaşı (torch) ──
+        const torchBtn = document.getElementById('kameraTorchBtn');
+        if (torchBtn) torchBtn.addEventListener('click', async () => {
+            const yeniDurum = !mod.torchDurumu?.();
+            const basarili = await mod.torchAyarla?.(yeniDurum);
+            if (basarili) torchBtn.style.color = yeniDurum ? '#FFD54A' : '#fff';
+        });
+
+        // ── Canlı sonuç kartı: Sil / Düzenle ──
+        const kskSil = document.getElementById('kskSil');
+        const kskDuzenle = document.getElementById('kskDuzenle');
+        const kart = document.getElementById('canliSonucKart');
+        if (kskSil) kskSil.addEventListener('click', () => {
+            const id = kart?.dataset.sonucId;
+            if (id && _aktifSinavId) { DB.sonucSil(_aktifSinavId, id); kagitlariRender(); }
+            if (kart) kart.hidden = true;
+        });
+        if (kskDuzenle) kskDuzenle.addEventListener('click', () => {
+            if (kart) kart.hidden = true;
+            mod.stopCamera?.();
+            kameraKapat();
+            ekranGit('sinavDetay');
         });
     }).catch(() => {
         // camera.js global fonksiyonlardan kullan

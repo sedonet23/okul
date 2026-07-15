@@ -415,6 +415,121 @@ window.OmrOkuyucu = (function () {
   }
 
   /**
+   * Bir dizi {x,y} noktasına en küçük kareler yöntemiyle doğru uydurur.
+   * xEksenli=true: y = m*x + c (yatay çizgiler — üst/alt kenar, x bağımsız değişken)
+   * xEksenli=false: x = m*y + c (dikey çizgiler — sol/sağ kenar, y bağımsız değişken)
+   * Uydurma kalitesini (rmse) de döner — gerçek düz bir çizgi değilse (gölge/gürültü
+   * noktaları) rmse yüksek çıkar ve çağıran taraf sonucu reddedebilir.
+   */
+  function enKucukKarelerDogru(noktalar, xEksenli) {
+    const n = noktalar.length;
+    if (n < 6) return null;
+    let sA = 0, sB = 0, sAB = 0, sAA = 0;
+    for (const p of noktalar) {
+      const a = xEksenli ? p.x : p.y;
+      const b = xEksenli ? p.y : p.x;
+      sA += a; sB += b; sAB += a * b; sAA += a * a;
+    }
+    const payda = n * sAA - sA * sA;
+    if (Math.abs(payda) < 1e-6) return null;
+    const m = (n * sAB - sA * sB) / payda;
+    const c = (sB - m * sA) / n;
+    let toplamKare = 0;
+    for (const p of noktalar) {
+      const a = xEksenli ? p.x : p.y;
+      const b = xEksenli ? p.y : p.x;
+      const tahmin = m * a + c;
+      toplamKare += (b - tahmin) ** 2;
+    }
+    return { m, c, rmse: Math.sqrt(toplamKare / n), n };
+  }
+
+  /**
+   * Bir kenar şeridi (yatay ya da dikey) içinde, her satır/sütun boyunca en
+   * koyu pikselin konumunu bulup örnek noktalar toplar — bu noktalara
+   * doğru uydurulacak (bkz. kenarCizgisiIleKoseBul). Sayfa sınırı ince ama
+   * SÜREKLİ bir çizgi olduğundan, her sütun/satırda tutarlı bir koyu nokta
+   * bulunması beklenir; bulunamayan (çok açık) örnekler atlanır.
+   */
+  function _koyuSeritOrnekleri(imageData, x0, y0, x1, y1, yatay, ADIM) {
+    const { width, data } = imageData;
+    const noktalar = [];
+    if (yatay) {
+      for (let x = x0; x < x1; x += ADIM) {
+        let enKoyuY = -1, enKoyuDeger = 256;
+        for (let y = y0; y < y1; y++) {
+          const g = grilikDegeri(data, (y * width + x) * 4);
+          if (g < enKoyuDeger) { enKoyuDeger = g; enKoyuY = y; }
+        }
+        if (enKoyuY >= 0 && enKoyuDeger < 180) noktalar.push({ x, y: enKoyuY, deger: enKoyuDeger });
+      }
+    } else {
+      for (let y = y0; y < y1; y += ADIM) {
+        let enKoyuX = -1, enKoyuDeger = 256;
+        for (let x = x0; x < x1; x++) {
+          const g = grilikDegeri(data, (y * width + x) * 4);
+          if (g < enKoyuDeger) { enKoyuDeger = g; enKoyuX = x; }
+        }
+        if (enKoyuX >= 0 && enKoyuDeger < 180) noktalar.push({ x: enKoyuX, y, deger: enKoyuDeger });
+      }
+    }
+    return noktalar;
+  }
+
+  /**
+   * YENİ (çizgi tabanlı) köşe tespiti: izole bir kare/blob aramak yerine,
+   * köşeyi oluşturan iki kenar çizgisini (yatay + dikey) ayrı ayrı bulup
+   * en küçük kareler doğrusu uydurur, sonra bu iki doğrunun KESİŞİMİNİ
+   * köşe noktası olarak döner. Sayfayı baştan sona kat eden düz bir çizgi,
+   * gölge/kırışıklık gibi düzensiz şekillerle karışmaz ve onlarca örnek
+   * noktadan hesaplandığı için tek bir blob merkezinden çok daha kararlıdır.
+   *
+   * Sadece köşe karelerini birbirine bağlayan çerçeve çizgisi BASILI olan
+   * formlarda (bkz. layoutEngine.js sayfaCercevesiHesapla) çalışır — eski
+   * (çizgisiz) formlarda rmse eşiği aşılamayacağından null döner ve çağıran
+   * taraf (sayfaKoseleriniAra) otomatik olarak eski blob yöntemine düşer.
+   *
+   * @param {boolean} ustMu - bu köşe sayfanın ÜST kenarında mı
+   * @param {boolean} solMu - bu köşe sayfanın SOL kenarında mı
+   */
+  function kenarCizgisiIleKoseBul(imageData, x0, y0, x1, y1, ustMu, solMu) {
+    const w = x1 - x0, h = y1 - y0;
+    if (w < 10 || h < 10) return null;
+
+    const ADIM = 2;
+    const BAND = 0.35; // pencerenin dış %35'lik şeridinde ara (çerçeve payı küçük, tam köşede)
+
+    const ySerit0 = ustMu ? y0 : Math.round(y1 - h * BAND);
+    const ySerit1 = ustMu ? Math.round(y0 + h * BAND) : y1;
+    const yatayNoktalar = _koyuSeritOrnekleri(imageData, x0, ySerit0, x1, ySerit1, true, ADIM);
+    const yatayDogru = enKucukKarelerDogru(yatayNoktalar, true);
+
+    const xSerit0 = solMu ? x0 : Math.round(x1 - w * BAND);
+    const xSerit1 = solMu ? Math.round(x0 + w * BAND) : x1;
+    const dikeyNoktalar = _koyuSeritOrnekleri(imageData, xSerit0, y0, xSerit1, y1, false, ADIM);
+    const dikeyDogru = enKucukKarelerDogru(dikeyNoktalar, false);
+
+    // Kalite kontrolü: her iki doğru da yeterli örnekle ve düşük artıkla
+    // (gerçekten DÜZ) bulunmuş olmalı — aksi halde bu yöntemi reddet.
+    const RMSE_ESIK = 2.2; // px (analiz çözünürlüğünde)
+    if (!yatayDogru || !dikeyDogru) return null;
+    if (yatayDogru.rmse > RMSE_ESIK || dikeyDogru.rmse > RMSE_ESIK) return null;
+    if (yatayDogru.n < w / ADIM * 0.4 || dikeyDogru.n < h / ADIM * 0.4) return null; // çok fazla kayıp örnek varsa güvenme
+
+    // Kesişim: y = m1*x + c1  ile  x = m2*y + c2
+    const { m: m1, c: c1 } = yatayDogru;
+    const { m: m2, c: c2 } = dikeyDogru;
+    const payda = 1 - m1 * m2;
+    if (Math.abs(payda) < 1e-6) return null;
+    const y = (m1 * c2 + c1) / payda;
+    const x = m2 * y + c2;
+
+    if (x < x0 - w * 0.5 || x > x1 + w * 0.5 || y < y0 - h * 0.5 || y > y1 + h * 0.5) return null;
+
+    return { x, y };
+  }
+
+  /**
    * Bir dikdörtgen BÖLGE içinde en "kare ve dolu" koyu blob'u arar (QR/kaba
    * tahmin OLMADAN, sıfırdan). Sayfanın 4 köşesindeki hizalama karelerini
    * doğrudan fotoğrafta bulmak için kullanılıyor — bkz. sayfaKoseleriniAra.
@@ -424,7 +539,13 @@ window.OmrOkuyucu = (function () {
    * fotoğraf parlak/karanlık çekilmiş olsa bile, "bölgenin en koyu ~%12'si"
    * genelde doğru şekilde basılı kareye karşılık geliyor.
    */
-  function enBuyukKareBlobuBul(imageData, x0, y0, x1, y1, disKoseX, disKoseY) {
+  function enBuyukKareBlobuBul(imageData, x0, y0, x1, y1, disKoseX, disKoseY, hassasiyet) {
+    const hsAyar = hassasiyet || {};
+    const YUZDELIK = hsAyar.yuzdelik ?? 0.3;           // eşik: bölgenin en koyu %kaçı
+    const MIN_DOLULUK = hsAyar.minDoluluk ?? 0.45;      // minimum doluluk oranı
+    const MIN_ENBOY = hsAyar.minEnboy ?? 0.5;           // min en/boy oranı
+    const MAX_ENBOY = hsAyar.maxEnboy ?? 2.0;           // max en/boy oranı
+    const MAX_BOYUT_ORAN = hsAyar.maxBoyutOran ?? 0.22; // pencereye oranla üst boyut sınırı
     const { width, height, data } = imageData;
     x0 = Math.max(0, Math.floor(x0));
     y0 = Math.max(0, Math.floor(y0));
@@ -467,12 +588,12 @@ window.OmrOkuyucu = (function () {
     let esik;
     if (koyuGriler.length >= 10) {
       koyuGriler.sort((a, b) => a - b);
-      esik = koyuGriler[Math.floor(koyuGriler.length * 0.3)];
+      esik = koyuGriler[Math.floor(koyuGriler.length * YUZDELIK)];
     } else {
       // Pencerede neredeyse hiç koyu/gri piksel yok — (nadir/aşırı ışıklı
       // fotoğraf) eski yönteme geri düş.
       const siraliGriler = Array.from(griler).sort((a, b) => a - b);
-      esik = siraliGriler[Math.floor(siraliGriler.length * 0.12)];
+      esik = siraliGriler[Math.floor(siraliGriler.length * Math.min(YUZDELIK, 0.12))];
     }
 
     const ziyaretEdildi = new Uint8Array(w * h);
@@ -521,7 +642,7 @@ window.OmrOkuyucu = (function () {
         // Kare-benzeri (1:2 ile 2:1 arası) ve makul dolulukta (>%45) değilse
         // ele (bir kağıt kenarı/gölge/masa çizgisi gibi uzun ince şekilleri
         // dışlamak için) — hizalama kareleri gerçekte ~%90+ dolu çıkar.
-        if (enBoyOrani < 0.5 || enBoyOrani > 2.0 || dolulukOrani < 0.45) continue;
+        if (enBoyOrani < MIN_ENBOY || enBoyOrani > MAX_ENBOY || dolulukOrani < MIN_DOLULUK) continue;
 
         // ÜST BOYUT SINIRI (v2 — "arka planı/gölgeyi köşe sanma" hatası
         // düzeltildi): hizalama karesi sayfanın küçük bir detayıdır; arama
@@ -535,7 +656,7 @@ window.OmrOkuyucu = (function () {
         // bundan büyük hiçbir blob köşe adayı olamaz.
         const pencereGenislik = x1 - x0;
         const pencereYukseklik = y1 - y0;
-        if (bbGenislik * ADIM > pencereGenislik * 0.22 || bbYukseklik * ADIM > pencereYukseklik * 0.22) continue;
+        if (bbGenislik * ADIM > pencereGenislik * MAX_BOYUT_ORAN || bbYukseklik * ADIM > pencereYukseklik * MAX_BOYUT_ORAN) continue;
 
         const merkezXlok = xToplam / boyut;
         const merkezYlok = yToplam / boyut;
@@ -568,17 +689,26 @@ window.OmrOkuyucu = (function () {
    * kabaca dolduracak şekilde çekiyor — bu, elle köşe seçiminde zaten
    * istenen çekim şekliyle aynı.
    */
-  function sayfaKoseleriniAra(imageData) {
+  function sayfaKoseleriniAra(imageData, hassasiyet) {
     const { width, height } = imageData;
     const ORAN = 0.4; // her köşe arama penceresi, kısa kenarın bu kadarı
 
     const pencereX = width * ORAN;
     const pencereY = height * ORAN;
 
-    const solUst = enBuyukKareBlobuBul(imageData, 0, 0, pencereX, pencereY, 0, 0);
-    const sagUst = enBuyukKareBlobuBul(imageData, width - pencereX, 0, width, pencereY, width, 0);
-    const solAlt = enBuyukKareBlobuBul(imageData, 0, height - pencereY, pencereX, height, 0, height);
-    const sagAlt = enBuyukKareBlobuBul(imageData, width - pencereX, height - pencereY, width, height, width, height);
+    function koseBul(x0, y0, x1, y1, disKoseX, disKoseY, ustMu, solMu) {
+      // 1) Önce çizgi tabanlı yöntemi dene (çerçeveli formlarda çok daha
+      //    kararlı) — başarısız olursa (eski/çizgisiz form, ya da düz
+      //    çizgi bulunamadı) eski blob yöntemine düş.
+      const cizgiSonuc = kenarCizgisiIleKoseBul(imageData, x0, y0, x1, y1, ustMu, solMu);
+      if (cizgiSonuc) return cizgiSonuc;
+      return enBuyukKareBlobuBul(imageData, x0, y0, x1, y1, disKoseX, disKoseY, hassasiyet);
+    }
+
+    const solUst = koseBul(0, 0, pencereX, pencereY, 0, 0, true, true);
+    const sagUst = koseBul(width - pencereX, 0, width, pencereY, width, 0, true, false);
+    const solAlt = koseBul(0, height - pencereY, pencereX, height, 0, height, false, true);
+    const sagAlt = koseBul(width - pencereX, height - pencereY, width, height, width, height, false, false);
 
     return { solUst, sagUst, solAlt, sagAlt };
   }
