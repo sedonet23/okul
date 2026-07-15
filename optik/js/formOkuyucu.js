@@ -104,32 +104,40 @@ function formKoduDogrula(sonuc, sinavTuru) {
  */
 export async function formuOkuVeGoster(sourceCanvas) {
 
-    console.log('[OMR] formuOkuVeGoster çağrıldı, canvas:', sourceCanvas?.id, sourceCanvas?.width, 'x', sourceCanvas?.height);
+    // DEBUG — ekranda göster
+    function dbg(msg) {
+        const el = document.getElementById('sonucKutusu') || document.getElementById('statusText');
+        if (el) { el.style.display = 'block'; el.textContent = (el.textContent ? el.textContent + '\n' : '') + msg; }
+    }
+
+    dbg('▶ formuOkuVeGoster başladı. Canvas: ' + (sourceCanvas ? sourceCanvas.width + 'x' + sourceCanvas.height : 'YOK'));
 
     if (typeof window.jsQR === "undefined") {
+        dbg('❌ jsQR yüklenemedi');
         showStatus("jsQR yüklenemedi.");
-        console.error('[OMR] jsQR yok!');
         return null;
     }
 
     if (typeof window.LayoutEngine === "undefined" || typeof window.OmrOkuyucu === "undefined") {
+        dbg('❌ LayoutEngine=' + !!window.LayoutEngine + ' OmrOkuyucu=' + !!window.OmrOkuyucu);
         showStatus("OMR motoru yüklenemedi (layoutEngine.js / omrEngine.js).");
-        console.error('[OMR] LayoutEngine veya OmrOkuyucu yok!', { LayoutEngine: !!window.LayoutEngine, OmrOkuyucu: !!window.OmrOkuyucu });
         return null;
     }
 
     showStatus("Form okunuyor...");
 
     const { form, sinavTuru } = testFormunuOlustur();
-    console.log('[OMR] sinavTuru:', sinavTuru, '| form:', form?.sinavTuru);
+    dbg('sinavTuru=' + sinavTuru);
 
     let sonuc;
 
     try {
         sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form);
+        dbg('formuOku: basarili=' + sonuc?.basarili + ' uyari=' + (sonuc?.uyarilar?.[0] || '-'));
         console.log('[OMR] sonuc: basarili=', sonuc?.basarili, 'uyarilar=', sonuc?.uyarilar);
         formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
+        dbg('❌ formuOku HATA: ' + err.message);
         console.error("formuOku hatası:", err);
         showStatus("Okuma sırasında hata oluştu: " + err.message);
         window.dispatchEvent(new CustomEvent("omrOkumaTamamlandi", { detail: null }));

@@ -127,6 +127,11 @@ export function baglaGaleriSecici(inputId, canvasId) {
 
         const dosyalar = input.files;
 
+        // DEBUG
+        const dbgEl = document.getElementById('sonucKutusu') || document.getElementById('statusText');
+        function dbg(m) { if (dbgEl) { dbgEl.style.display='block'; dbgEl.textContent = (dbgEl.textContent?dbgEl.textContent+'\n':'')+m; } }
+        dbg('📂 galeriSecici tetiklendi: ' + (dosyalar?.length || 0) + ' dosya | input=' + inputId);
+
         if (!dosyalar || !dosyalar.length) {
             return;
         }
