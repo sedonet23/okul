@@ -16,7 +16,13 @@ const KOSE_SIRASI = ["solUst", "sagUst", "sagAlt", "solAlt"];
 function varsayilanKoseler(genislik, yukseklik) {
 
     const mx = genislik * 0.05;
-    const my = yukseklik * 0.04;
+    // ÖNEMLİ: dikey kenar payı yatay olandan büyük tutuluyor — köşe seçim
+    // ekranının kendi kontrol çubuğu (Tamam/Sıfırla/Otomatik Dene, alt
+    // kenarda hep GÖRÜNÜR kalıyor) varsayılan alt tutamaçların TAM
+    // ÜSTÜNE denk gelip onları erişilemez (dokunulamaz) kılıyordu —
+    // kullanıcı köşeleri hiç sürükleyemiyordu. %4 yerine %10 pay, varsayılan
+    // tutamaçları bu kontrol çubuğunun üstünde, açıkça erişilebilir bırakır.
+    const my = yukseklik * 0.10;
 
     return {
         solUst: { x: mx, y: my },
@@ -309,11 +315,14 @@ export async function koseSecimAkisi(kaynak, genislik, yukseklik, elemanlar) {
 
     const { koseAlani, koseCanvas, koseTalimat, koseTamamBtn, koseSifirlaBtn, koseVazgecBtn } = elemanlar;
 
-    // Kamera ekranının alt bar'ı, ipucu bandı ve seviye göstergesi
-    // köşe seçim UI'sinin ÜSTÜNDE (daha yüksek z-index) kalıyor ve
-    // "Tamam" butonuna dokunmayı engelliyor. Köşe seçimi sırasında
+    // Kamera ekranının üst bar'ı, alt bar'ı, ipucu bandı ve seviye
+    // göstergesi köşe seçim UI'sinin ÜSTÜNDE (daha yüksek z-index) kalıyor
+    // ve dokunuşları engelliyor — üst bar özellikle üst köşe tutamaçlarının
+    // TAM ÜSTÜNE denk geldiği için onları tamamen erişilemez kılıyordu
+    // (kullanıcı köşeleri sürükleyemiyordu). Köşe seçimi sırasında
     // bunları gizleyip işlem bitince eski haline döndürüyoruz.
     const gizlenecekler = [
+        document.querySelector(".km-ust-bar"),
         document.querySelector(".km-alt-bar"),
         document.getElementById("kmIpucu"),
         document.getElementById("seviyeGosterge")
