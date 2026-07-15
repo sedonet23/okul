@@ -267,6 +267,7 @@ function sinavDetayAc(sinavId) {
     let ssEl = document.getElementById('soruSayisi');
     if (!ssEl) { ssEl = document.createElement('input'); ssEl.type='hidden'; ssEl.id='soruSayisi'; document.body.appendChild(ssEl); }
     ssEl.value = sinav.soruSayisi || 90;
+    _s('raporLgsEtiket', sinav.optikFormId === 'bursluluk' ? 'İOKBS (Bursluluk) Puanı' : 'LGS Puanı');
 
     sekmeAktiflestir('kagitlar');
     kagitlariRender();
@@ -334,7 +335,34 @@ function kagitlariRender() {
     if (sonuclar.length === 0) { listEl.innerHTML = ''; return; }
 
     const RENKLER = ['#1565C0','#2E7D32','#E65100','#6A1B9A','#00695C','#C62828'];
-    const formAd  = sinav?.optikFormAd || 'Net';
+    const formAd  = sinav?.optikFormAd || 'Puan';
+    const sinavTuru = sinav?.optikFormId; // 'lgs' | 'bursluluk' | 'ozel' | ...
+
+    // Puanı sınav türüne göre hesapla: LGS'de sabit formül, Bursluluk'ta
+    // resmî İOKBS (TASP) yöntemi — ikisi dışındaki (ör. "özel", az sorulu
+    // bir test) formlarda hiçbir puan formülü GEÇERLİ DEĞİL, bu yüzden
+    // puan gösterilmez (yalnızca D/Y/B/N görünür).
+    const puanMap = {}; // sonucId -> puan (number) | undefined
+    if (sinavTuru === 'lgs') {
+        sonuclar.forEach(r => {
+            const sonuc = window.LgsPuanHesapla?.sabitFormulPuanHesapla(r.puan?.dersDetay || []);
+            if (sonuc) puanMap[r.id] = sonuc.puan;
+        });
+    } else if (sinavTuru === 'bursluluk') {
+        const dersler = formDersleriniGetir(_aktifSinavId);
+        const rapor = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, {}, 'bursluluk');
+        (rapor?.ogrenciler || []).forEach(o => { puanMap[o.sonucId] = o.msp; });
+    }
+
+    // Puana göre büyükten küçüğe sırala (puanı olmayanlar — ör. özel form
+    // ya da henüz hesaplanamamış kayıtlar — listenin sonuna düşer).
+    liste = liste.slice().sort((a, b) => {
+        const pa = puanMap[a.id], pb = puanMap[b.id];
+        if (pa == null && pb == null) return 0;
+        if (pa == null) return 1;
+        if (pb == null) return -1;
+        return pb - pa;
+    });
 
     listEl.innerHTML = liste.map((r, i) => {
         const ogr   = r.ogrenci || {};
@@ -343,15 +371,32 @@ function kagitlariRender() {
         const harf2 = ad.split(' ')[1]?.[0]?.toUpperCase() || '';
         const renk  = RENKLER[i % RENKLER.length];
         const p     = r.puan || {};
-        const puan  = p.toplamNet != null ? p.toplamNet.toFixed(1) : '—';
-        const puanSinif = p.toplamNet >= 70 ? 'puan-yuksek' : p.toplamNet >= 40 ? 'puan-orta' : 'puan-dusuk';
+
+        const puan = puanMap[r.id];
+        const puanBadgeHtml = puan != null
+            ? (() => {
+                const puanSinif = puan >= 350 ? 'puan-yuksek' : puan >= 250 ? 'puan-orta' : 'puan-dusuk';
+                return `<span class="puan-badge ${puanSinif}">${_h(formAd)}: ${puan.toFixed(1)}</span>`;
+            })()
+            : '';
+
+        // D/Y/B/N — Net, LGS/İOKBS resmî kuralıyla: Doğru − Yanlış/3
+        const d = p.toplamD || 0, y = p.toplamY || 0, b = p.toplamB || 0;
+        const net = (d - y / 3).toFixed(2);
+
         return `<div class="kagit-kart" data-id="${r.id}">
             <div class="kagit-avatar" style="background:${renk};">${harf1}${harf2}</div>
             <div class="kagit-bilgi">
                 <span class="kagit-ad">${_h(ad)}</span>
                 <small class="kagit-alt">${_h(ogr.sinif||'')} · ${_h(ogr.ogrenciNo||'—')}</small>
+                <div class="kagit-dvb">
+                    <span class="kagit-dvb-d">D:${d}</span>
+                    <span class="kagit-dvb-y">Y:${y}</span>
+                    <span class="kagit-dvb-b">B:${b}</span>
+                    <span class="kagit-dvb-n">N:${net}</span>
+                </div>
             </div>
-            <span class="puan-badge ${puanSinif}">${formAd}: ${puan}</span>
+            ${puanBadgeHtml}
             <button class="menu-btn" data-id="${r.id}">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
             </button>
@@ -649,16 +694,97 @@ function _lgsHariciVeriyiHazirla() {
 }
 
 function lgsPuanRaporunuAcVeGoster() {
-    const dersler   = formDersleriniGetir(_aktifSinavId);
-    const sonuclar  = DB.sonuclariGetir(_aktifSinavId);
-    const harici    = _lgsHariciVeriyiHazirla();
-    const rapor     = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, harici);
-    const sabitListe = window.LgsPuanHesapla?.sinavRaporuSabitFormulHesapla(sonuclar) || [];
+    const sinav      = DB.sinaviBul(_aktifSinavId);
+    const sinavTuru  = sinav?.optikFormId === 'bursluluk' ? 'bursluluk' : 'lgs';
+    const dersler    = formDersleriniGetir(_aktifSinavId);
+    const sonuclar   = DB.sonuclariGetir(_aktifSinavId);
 
-    const bosEl    = document.getElementById('lgsBosAlan');
-    const listEl   = document.getElementById('lgsOgrenciListesi');
-    const kaynakEl = document.getElementById('lgsKaynakEtiketi');
-    if (!rapor || !listEl) return;
+    const bosEl      = document.getElementById('lgsBosAlan');
+    const listEl     = document.getElementById('lgsOgrenciListesi');
+    const kaynakEl   = document.getElementById('lgsKaynakEtiketi');
+    const ayarBtn    = document.getElementById('btnLgsAyarToggle');
+    const ayarPanel  = document.getElementById('lgsAyarPanel');
+    if (!listEl) return;
+
+    _s('lgsPuanBaslik', sinavTuru === 'bursluluk' ? 'İOKBS (Bursluluk) Puanı' : 'LGS Puanı');
+
+    if (sinavTuru === 'bursluluk') {
+
+        // ── Bursluluk (İOKBS): resmî yöntem, Türkiye ortalaması KAVRAMI
+        // yok — ortalama/std sapma/MinTASP/MaxTASP her zaman sınava giren
+        // öğrencilerin kendi verisinden hesaplanır (bkz. ODSGM İOKBS
+        // Kılavuzu Tablo-6 + Ham Puan/Standart Puan/TASP/PUAN formülleri).
+        // Bu yüzden "MEB Verilerini Gir" paneli burada anlamsız — gizli.
+        if (ayarBtn) ayarBtn.style.display = 'none';
+        if (ayarPanel) ayarPanel.style.display = 'none';
+
+        const rapor = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, {}, 'bursluluk');
+        if (!rapor) return;
+
+        _s('lgsOzetSayi', rapor.gecerliSayisi);
+        _s('lgsOzetOrtalama', rapor.gecerliSayisi ? rapor.sinavOrtalamaMsp.toFixed(1) : '—');
+        _s('lgsOzetOrtalamaEtiket', 'Sınav Ortalaması (İOKBS Puanı)');
+
+        if (kaynakEl) {
+            kaynakEl.textContent = 'İOKBS resmî yöntemiyle hesaplandı: Ham Puan = Doğru − Yanlış/3; ortalama, standart sapma ve TASP aralığı bu sınava giren öğrencilerin kendi verisinden alınır (bkz. ODSGM İOKBS Kılavuzu).';
+            kaynakEl.className = 'lgs-kaynak-etiketi';
+        }
+
+        if (!rapor.gecerliSayisi) {
+            bosEl.style.display = 'flex';
+            listEl.innerHTML = '';
+            ekranGit('lgsPuan');
+            return;
+        }
+        bosEl.style.display = 'none';
+
+        listEl.innerHTML = rapor.ogrenciler.map((o, i) => {
+            const ogr = o.ogrenci || {};
+            const detaySatirlari = o.dersPuanlari.map(d => `
+            <span>${_h(d.dersAdi)}</span>
+            <span>${d.net.toFixed(2)}</span>
+            <span>SP ${d.standartPuan.toFixed(1)}</span>
+            <span>×${d.katsayi} = ${d.agirlikliPuan.toFixed(1)}</span>
+        `).join('');
+            return `
+        <div class="lgs-ogr-satir" data-idx="${i}">
+            <div class="lgs-ogr-ust">
+                <span class="lgs-ogr-sira">${i + 1}</span>
+                <div class="lgs-ogr-ad">
+                    <strong>${_h(ogr.adSoyad || 'İsimsiz')}</strong>
+                    <small>${_h(ogr.sinif || '')}${ogr.sinif && ogr.ogrenciNo ? ' · ' : ''}${_h(ogr.ogrenciNo || '')}</small>
+                </div>
+                <span class="lgs-ogr-msp">${o.msp.toFixed(1)}</span>
+            </div>
+            <div class="lgs-ogr-detay">
+                <span class="lgs-detay-baslik">Ders</span>
+                <span class="lgs-detay-baslik">Net (HP)</span>
+                <span class="lgs-detay-baslik">Standart</span>
+                <span class="lgs-detay-baslik">Ağırlıklı</span>
+                ${detaySatirlari}
+            </div>
+        </div>`;
+        }).join('');
+
+        listEl.querySelectorAll('.lgs-ogr-satir').forEach(satir => {
+            satir.addEventListener('click', () => {
+                satir.querySelector('.lgs-ogr-detay')?.classList.toggle('acik');
+            });
+        });
+
+        ekranGit('lgsPuan');
+        return;
+    }
+
+    // ── LGS: sabit katsayılı tahmini puan formülü (ana puan) + resmî
+    // yöntemin (Türkiye ortalaması girilirse gerçek, girilmezse bu
+    // sınavdan tahmini) MSP'si ikincil bilgi olarak gösterilir.
+    if (ayarBtn) ayarBtn.style.display = '';
+
+    const harici      = _lgsHariciVeriyiHazirla();
+    const rapor       = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, harici, 'lgs');
+    const sabitListe  = window.LgsPuanHesapla?.sinavRaporuSabitFormulHesapla(sonuclar) || [];
+    if (!rapor) return;
 
     // Sabit formül puanına göre öğrenci -> puan eşlemesi (sonucId ile)
     const sabitPuanMap = {};
@@ -670,6 +796,7 @@ function lgsPuanRaporunuAcVeGoster() {
 
     _s('lgsOzetSayi', rapor.gecerliSayisi);
     _s('lgsOzetOrtalama', sabitListe.length ? sabitOrtalama.toFixed(1) : '—');
+    _s('lgsOzetOrtalamaEtiket', 'Sınav Ortalaması (Tahmini Puan)');
 
     if (kaynakEl) {
         kaynakEl.textContent = 'Sabit katsayılı tahmini puan formülü kullanıldı (Türkiye ortalaması gerektirmez — deneme sınavı için uygundur).';

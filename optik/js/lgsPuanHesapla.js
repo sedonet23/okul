@@ -42,19 +42,45 @@
         { anahtarlar: ['ingilizce', 'i̇ngilizce', 'yabancı dil', 'yabanci dil'], katsayi: 1 },
     ];
 
+    // ── Resmî MEB İOKBS (bursluluk sınavı) ders–katsayı eşlemesi ──
+    // Kaynak: ODSGM "İOKBS Başvuru ve Uygulama Kılavuzu" Tablo-6 —
+    // 5,6,7,8. sınıflar için 4 test, hepsi eşit (3) ağırlıklı.
+    const BURSLULUK_KATSAYI_TABLOSU = {
+        'türkçe': 3,
+        'türkçe/türk dili ve edebiyatı': 3,
+        'matematik': 3,
+        'fen bilimleri': 3,
+        'sosyal bilgiler': 3,
+        'sosyal bilgiler/sosyal bilimler': 3,
+    };
+    const BURSLULUK_ANAHTAR_KELIME_KATSAYI = [
+        { anahtarlar: ['türkçe', 'turkce'], katsayi: 3 },
+        { anahtarlar: ['matematik'], katsayi: 3 },
+        { anahtarlar: ['fen'], katsayi: 3 },
+        { anahtarlar: ['sosyal'], katsayi: 3 },
+    ];
+
     function normalizeDersAdi(dersAdi) {
         return (dersAdi || '').trim().toLocaleLowerCase('tr-TR');
     }
 
     /**
-     * Ders adına göre resmî MEB katsayısını döndürür.
-     * Birebir eşleşme bulunamazsa anahtar-kelime bazlı esnek eşleşmeye düşer;
-     * o da bulunamazsa varsayılan olarak 1 (yardımcı ders) döner.
+     * Ders adına ve sınav türüne göre resmî MEB katsayısını döndürür.
+     * Birebir eşleşme bulunamazsa anahtar-kelime bazlı esnek eşleşmeye düşer.
+     * - LGS'de hiç eşleşmeyen ders varsayılan olarak 1 (yardımcı ders) sayılır.
+     * - Bursluluk (İOKBS) sınavında TÜM testler eşit ağırlıklı (3) olduğu için
+     *   hiç eşleşmeyen ders de varsayılan olarak 3 sayılır.
      * @param {string} dersAdi
+     * @param {'lgs'|'bursluluk'} [sinavTuru='lgs']
      * @returns {number}
      */
-    function dersKatsayisi(dersAdi) {
+    function dersKatsayisi(dersAdi, sinavTuru) {
         const ad = normalizeDersAdi(dersAdi);
+        if (sinavTuru === 'bursluluk') {
+            if (ad in BURSLULUK_KATSAYI_TABLOSU) return BURSLULUK_KATSAYI_TABLOSU[ad];
+            const eslesenB = BURSLULUK_ANAHTAR_KELIME_KATSAYI.find(k => k.anahtarlar.some(a => ad.includes(a)));
+            return eslesenB ? eslesenB.katsayi : 3;
+        }
         if (ad in DERS_KATSAYI_TABLOSU) return DERS_KATSAYI_TABLOSU[ad];
         const eslesen = ANAHTAR_KELIME_KATSAYI.find(k => k.anahtarlar.some(a => ad.includes(a)));
         return eslesen ? eslesen.katsayi : 1;
@@ -239,6 +265,11 @@
      *   maxTasp?: number
      * }} [harici] - MEB tarafından açıklanan gerçek istatistikler. Verilmeyen alanlar
      *   sınavın kendi verisinden TAHMİNİ olarak hesaplanır ve öyle işaretlenir.
+     * @param {'lgs'|'bursluluk'} [sinavTuru='lgs'] - ders katsayı tablosunu seçer.
+     *   Bursluluk (İOKBS) sınavında Türkiye ortalaması KAVRAMI yoktur — ortalama/
+     *   std sapma/MinTASP/MaxTASP resmî yönteme göre ZATEN sınava giren
+     *   öğrencilerin kendi verisinden hesaplanır (bkz. ODSGM İOKBS Kılavuzu), bu
+     *   yüzden bursluluk için harici genelde boş {} geçilir.
      *
      * @returns {{
      *   gecerliSayisi: number,
@@ -249,8 +280,9 @@
      *   tamamiGercek: boolean  // hem ders istatistikleri hem MinTASP/MaxTASP harici verildiyse true
      * }}
      */
-    function sinavRaporuHesapla(sonuclar, dersler, harici) {
+    function sinavRaporuHesapla(sonuclar, dersler, harici, sinavTuru) {
         harici = harici || {};
+        sinavTuru = sinavTuru || 'lgs';
         const hariciDersIstatistik = harici.dersIstatistik || {};
 
         const gecerliSonuclar = (sonuclar || []).filter(s => s?.puan?.dersDetay?.length);
@@ -275,7 +307,7 @@
                     dersAdi,
                     ortalama: harici_.ortalama,
                     stdSapma: harici_.stdSapma,
-                    katsayi: dersKatsayisi(dersAdi),
+                    katsayi: dersKatsayisi(dersAdi, sinavTuru),
                     kaynak: 'gercek',
                 };
             }
@@ -286,7 +318,7 @@
                 dersAdi,
                 ortalama: parseFloat(ortalama.toFixed(3)),
                 stdSapma: parseFloat(stdSapma.toFixed(3)),
-                katsayi: dersKatsayisi(dersAdi),
+                katsayi: dersKatsayisi(dersAdi, sinavTuru),
                 kaynak: 'tahmini',
             };
         });
@@ -296,7 +328,7 @@
         // Öğrenci bazlı: Net -> SP -> ASP -> TASP
         const ogrenciler = gecerliSonuclar.map(sonuc => {
             const dersPuanlari = sonuc.puan.dersDetay.map(detay => {
-                const ist = istatistikMap[detay.dersAdi] || { ortalama: 0, stdSapma: 0, katsayi: dersKatsayisi(detay.dersAdi) };
+                const ist = istatistikMap[detay.dersAdi] || { ortalama: 0, stdSapma: 0, katsayi: dersKatsayisi(detay.dersAdi, sinavTuru) };
                 const net = detaydanNetHesapla(detay);
                 const standartPuan = standartPuanHesapla(net, ist.ortalama, ist.stdSapma);
                 const agirlikliPuan = agirlikliPuanHesapla(standartPuan, ist.katsayi);
