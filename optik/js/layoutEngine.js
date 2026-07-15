@@ -1,5 +1,54 @@
 const A4 = { width: 210, height: 297 };
 
+// Köşe karesi boyutu/payı — hem hizalamaIsaretleriEkle hem de
+// sayfaCercevesiHesapla aynı sabitleri kullanmalı (çerçeve çizgisi köşe
+// karelerinin TAM ORTASINDAN geçsin, görsel + algoritmik olarak "bağlı"
+// olsun diye). BURADA (dosyanın en başında) tanımlı olmalı — bu sabitler
+// modül yüklenirken hemen çalışan SABIT_SABLONLAR.lgs = lgsSablonuOlustur()
+// gibi kodlardan kullanılıyor; const hoist edilmediğinden daha aşağıda
+// tanımlanırlarsa "başlatılmadan erişim" hatası oluşuyordu.
+const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare
+const HIZALAMA_PAY = 4; // mm, sayfa/bölge kenarından köşe karesine mesafe
+
+/**
+ * Her mini-form için 4 köşe hizalama işareti (fiducial marker) koordinatı.
+ * Bunlar OMR okuma sırasında perspektif düzeltme için kritik referans noktalarıdır.
+ */
+function hizalamaIsaretleriEkle(bolge) {
+  const MARKER_BOYUT = HIZALAMA_MARKER_BOYUT;
+  // ÖNEMLİ: çoğu yazıcı/fotokopi kenara çok yakın alanı basamaz
+  // (yazdırılamayan kenar payı — özellikle SAYFANIN ALT kenarında, kağıt
+  // besleme mekanizması yüzünden diğer kenarlardan daha büyük olabilir).
+  // PAY çok küçükse (eski değer: 2mm) köşe kareleri bu basılamayan
+  // bölgeye düşüp kırpılabiliyor. 4mm, çoğu yazıcının garantili basılabilir
+  // alanının içinde kalırken köşe içeriğiyle (KENAR_PAY=8mm) çakışmıyor.
+  const PAY = HIZALAMA_PAY;
+  return [
+    { x: bolge.x + PAY, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sol-ust' },
+    { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sag-ust' },
+    { x: bolge.x + PAY, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sol-alt' },
+    { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sag-alt' },
+  ];
+}
+
+/**
+ * 4 köşe karesini birbirine bağlayan ince dış çerçeve çizgisinin
+ * koordinatlarını hesaplar — çizgi, köşe karelerinin TAM ORTASINDAN
+ * geçer (görsel olarak "kareler çizgiye bağlı" algısı verir, ve OMR
+ * tarafında kenar/çizgi tabanlı köşe tespitine sağlam bir referans
+ * sağlar — bkz. omrEngine.js kenarCizgisiIleKoseBul).
+ */
+function sayfaCercevesiHesapla(bolge) {
+  const yarim = HIZALAMA_MARKER_BOYUT / 2;
+  const kenar = HIZALAMA_PAY + yarim;
+  return {
+    x: bolge.x + kenar,
+    y: bolge.y + kenar,
+    width: bolge.width - 2 * kenar,
+    height: bolge.height - 2 * kenar,
+  };
+}
+
 // Sabit sınavlar için önceden hazırlanmış şablonlar buraya eklenecek.
 // (LGS / bursluluk gibi resmi formatları birebir MEB şablonlarına göre
 // siz onaylayınca dolduracağız — şimdilik dinamik motor üzerinde duruyoruz.)
@@ -751,48 +800,13 @@ SABIT_SABLONLAR.bursluluk = burslulukSablonuOlustur();
 /**
  * Her mini-form için 4 köşe hizalama işareti (fiducial marker) koordinatı.
  * Bunlar OMR okuma sırasında perspektif düzeltme için kritik referans noktalarıdır.
+ * (Sabitler ve hizalamaIsaretleriEkle/sayfaCercevesiHesapla fonksiyonları
+ * dosyanın EN BAŞINA taşındı — bkz. A4 sabitinin hemen altı. Sebep: bu
+ * fonksiyonlar SABIT_SABLONLAR.lgs = lgsSablonuOlustur() gibi modül
+ * yüklenirken hemen çalışan kodlardan çağrılıyor; const'lar function'lar
+ * gibi hoist edilmediğinden, dosyanın ortasında kalsalar "başlatılmadan
+ * erişim" hatası veriyordu.)
  */
-// Köşe karesi boyutu/payı — hem hizalamaIsaretleriEkle hem de
-// sayfaCercevesiHesapla aynı sabitleri kullanmalı (çerçeve çizgisi köşe
-// karelerinin TAM ORTASINDAN geçsin, görsel + algoritmik olarak "bağlı"
-// olsun diye).
-const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare
-const HIZALAMA_PAY = 4; // mm, sayfa/bölge kenarından köşe karesine mesafe
-
-function hizalamaIsaretleriEkle(bolge) {
-  const MARKER_BOYUT = HIZALAMA_MARKER_BOYUT;
-  // ÖNEMLİ: çoğu yazıcı/fotokopi kenara çok yakın alanı basamaz
-  // (yazdırılamayan kenar payı — özellikle SAYFANIN ALT kenarında, kağıt
-  // besleme mekanizması yüzünden diğer kenarlardan daha büyük olabilir).
-  // PAY çok küçükse (eski değer: 2mm) köşe kareleri bu basılamayan
-  // bölgeye düşüp kırpılabiliyor. 4mm, çoğu yazıcının garantili basılabilir
-  // alanının içinde kalırken köşe içeriğiyle (KENAR_PAY=8mm) çakışmıyor.
-  const PAY = HIZALAMA_PAY;
-  return [
-    { x: bolge.x + PAY, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sol-ust' },
-    { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sag-ust' },
-    { x: bolge.x + PAY, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sol-alt' },
-    { x: bolge.x + bolge.width - PAY - MARKER_BOYUT, y: bolge.y + bolge.height - PAY - MARKER_BOYUT, boyut: MARKER_BOYUT, konum: 'sag-alt' },
-  ];
-}
-
-/**
- * 4 köşe karesini birbirine bağlayan ince dış çerçeve çizgisinin
- * koordinatlarını hesaplar — çizgi, köşe karelerinin TAM ORTASINDAN
- * geçer (görsel olarak "kareler çizgiye bağlı" algısı verir, ve OMR
- * tarafında kenar/çizgi tabanlı köşe tespitine sağlam bir referans
- * sağlar — bkz. omrEngine.js kenarCizgisiIleKoseBul).
- */
-function sayfaCercevesiHesapla(bolge) {
-  const yarim = HIZALAMA_MARKER_BOYUT / 2;
-  const kenar = HIZALAMA_PAY + yarim;
-  return {
-    x: bolge.x + kenar,
-    y: bolge.y + kenar,
-    width: bolge.width - 2 * kenar,
-    height: bolge.height - 2 * kenar,
-  };
-}
 
 /**
  * Ana giriş noktası: bir sınav tanımından tam koordinat haritasını üretir.
