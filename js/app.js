@@ -2005,11 +2005,19 @@ function sekmeAc(tab){
    çift-basışla-çık mantığını uygulasın). */
 function geriTusuIsle(){
   // Optik Okuma tam ekran iframe overlay'i her şeyin ÜSTÜNDE açılıyor
-  // (z-index 99999) — bu yüzden ilk kontrol edilmesi gereken o. Not:
-  // iframe içindeki kendi alt ekranları (ör. kamera görünümü) için ayrı
-  // bir geri-adımı YOK; geri tuşu doğrudan tüm Optik aracını kapatır,
-  // kullanıcı iframe içindeki "✕" ile kendi alt ekranlarını kapatabilir.
+  // (z-index 99999) — bu yüzden ilk kontrol edilmesi gereken o. Önce
+  // iframe'in kendi iç durumunu (kamera/köşe seçimi/ayarlar/sheet/alt
+  // ekran) bir kademe geri almasını dene (bkz. optik/js/app.js
+  // optikGeriTusuIsle) — sadece iframe "kökteyim, geri alacak bir şey
+  // yok" derse (false döner) tüm Optik aracını kapat.
   if(typeof OptikSistemi !== 'undefined' && OptikSistemi.acikMi && OptikSistemi.acikMi()){
+    try {
+      var of = document.getElementById('optikFrame');
+      var ofWin = of && of.contentWindow;
+      if(ofWin && typeof ofWin.optikGeriTusuIsle === 'function' && ofWin.optikGeriTusuIsle()){
+        return 'handled'; // iframe kendi içinde bir adım geri gitti
+      }
+    } catch(e) { /* beklenmeyen durum — güvenli şekilde tüm aracı kapat */ }
     OptikSistemi.kapat();
     return 'handled';
   }
