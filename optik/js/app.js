@@ -1,5 +1,7 @@
 // js/app.js — Optik Okuma Ana Modülü
 
+import { baglaGaleriSecici } from './galeriSecici.js';
+
 // ════════════════════════════════════════════════════════════════
 // VERİ KATMANI (localStorage)
 // ════════════════════════════════════════════════════════════════
@@ -1353,10 +1355,8 @@ function baslat() {
     );
 
     // galeriSecici.js bağla (kamera için)
-    if (typeof window.baglaGaleriSecici === 'function') {
-        window.baglaGaleriSecici('galeriInput', 'canvas');
-        window.baglaGaleriSecici('galeriInputSheet', 'canvas');
-    }
+    baglaGaleriSecici('galeriInput', 'canvas');
+    baglaGaleriSecici('galeriInputSheet', 'canvas');
 
     // Kamera start/stop butonları
     import('./camera.js').then(mod => {
