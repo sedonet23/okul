@@ -12,24 +12,84 @@ const KOSE_SIRASI = ["solUst", "sagUst", "sagAlt", "solAlt"];
 /**
  * Sayfanın kenarlarına yakın, makul varsayılan başlangıç köşeleri üretir
  * (kullanıcı genelde sadece küçük bir düzeltme yapsın diye).
+ *
+ * @param {number} genislik - kaynağın piksel genişliği
+ * @param {number} yukseklik - kaynağın piksel yüksekliği
+ * @param {{ust: number, alt: number}} [disariBirakilanY] - üstte/altta, ekranda
+ *   GERÇEKTEN görünür kontrol elemanlarının (talimat etiketi, buton çubuğu)
+ *   kapladığı yükseklik, kaynak piksel biriminde. Verilmezse sabit %6 pay
+ *   kullanılır (eski davranış, ölçüm mümkün değilse yedek).
  */
-function varsayilanKoseler(genislik, yukseklik) {
+function varsayilanKoseler(genislik, yukseklik, disariBirakilanY = null) {
 
     const mx = genislik * 0.05;
-    // ÖNEMLİ: dikey kenar payı yatay olandan büyük tutuluyor — köşe seçim
-    // ekranının kendi kontrol çubuğu (Tamam/Sıfırla/Otomatik Dene, alt
-    // kenarda hep GÖRÜNÜR kalıyor) varsayılan alt tutamaçların TAM
-    // ÜSTÜNE denk gelip onları erişilemez (dokunulamaz) kılıyordu —
-    // kullanıcı köşeleri hiç sürükleyemiyordu. %4 yerine %10 pay, varsayılan
-    // tutamaçları bu kontrol çubuğunun üstünde, açıkça erişilebilir bırakır.
-    const my = yukseklik * 0.10;
+    const TAMPON = yukseklik * 0.015; // ölçülen sınırın hemen dibine yapışmasın diye küçük ek boşluk
+
+    // ÖNEMLİ: köşe seçim ekranının kendi kontrol çubuğu (Tamam/Sıfırla/
+    // Otomatik Dene) canvas'ın ÜSTÜNDE ayrı bir katmanda duruyor ve alt
+    // kenarda hep GÖRÜNÜR kalıyor. Varsayılan tutamaç bu çubuğun altına denk
+    // gelirse ilk dokunuş canvas'a değil düğmelere gider — tutamaç hiç
+    // sürüklenemez. Sabit bir yüzde (ör. %10) ekran/resim en-boy oranına göre
+    // yetersiz kalabildiği için, mümkünse gerçek ölçülen çubuk yüksekliği
+    // kullanılıyor; ölçülemezse %6'lık güvenli bir yedek pay uygulanıyor.
+    const ustPay = disariBirakilanY && disariBirakilanY.ust > 0
+        ? disariBirakilanY.ust + TAMPON
+        : yukseklik * 0.06;
+    const altPay = disariBirakilanY && disariBirakilanY.alt > 0
+        ? disariBirakilanY.alt + TAMPON
+        : yukseklik * 0.06;
+
+    // Payların ikisi birden görüntünün tamamını yutmasın diye üst sınır.
+    const ustPaySinirli = Math.min(ustPay, yukseklik * 0.35);
+    const altPaySinirli = Math.min(altPay, yukseklik * 0.35);
 
     return {
-        solUst: { x: mx, y: my },
-        sagUst: { x: genislik - mx, y: my },
-        sagAlt: { x: genislik - mx, y: yukseklik - my },
-        solAlt: { x: mx, y: yukseklik - my }
+        solUst: { x: mx, y: ustPaySinirli },
+        sagUst: { x: genislik - mx, y: ustPaySinirli },
+        sagAlt: { x: genislik - mx, y: yukseklik - altPaySinirli },
+        solAlt: { x: mx, y: yukseklik - altPaySinirli }
     };
+
+}
+
+/**
+ * Bir DOM elemanının, secimCanvas'ın GÖSTERİLEN (CSS) boyutuna göre
+ * kapladığı dikey alanı canvas'ın PİKSEL koordinat uzayına çevirir.
+ * Elemanın ekranda canvas'ın üst/alt kenarından ne kadar içeri taştığını
+ * hesaplar (ör. alt buton çubuğunun canvas alt kenarından yukarı ne kadar
+ * uzandığı).
+ *
+ * @returns {number} taşan yükseklik, canvas piksel biriminde (taşma yoksa 0)
+ */
+function altaTasanYukseklikPx(el, secimCanvas, canvasYukseklikPx) {
+
+    if (!el) return 0;
+
+    const canvasRect = secimCanvas.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (canvasRect.height <= 0) return 0;
+
+    // Elemanın üst kenarı, canvas'ın alt kenarından ne kadar yukarıda kaldı?
+    const tasmaCSS = Math.max(0, canvasRect.bottom - elRect.top);
+    const olcek = canvasYukseklikPx / canvasRect.height;
+
+    return tasmaCSS * olcek;
+
+}
+
+/** Aynı mantığın üst kenar için karşılığı (elemanın alt kenarı, canvas üst kenarının ne kadar altına taşıyor). */
+function ustteTasanYukseklikPx(el, secimCanvas, canvasYukseklikPx) {
+
+    if (!el) return 0;
+
+    const canvasRect = secimCanvas.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    if (canvasRect.height <= 0) return 0;
+
+    const tasmaCSS = Math.max(0, elRect.bottom - canvasRect.top);
+    const olcek = canvasYukseklikPx / canvasRect.height;
+
+    return tasmaCSS * olcek;
 
 }
 
@@ -61,8 +121,19 @@ export function koseleriSectir(kaynak, genislik, yukseklik, secimCanvas, talimat
         secimCanvas.width = genislik;
         secimCanvas.height = yukseklik;
 
+        // Alt buton çubuğu (Tamam/Sıfırla/Otomatik Dene) tamamBtn'in ebeveyni;
+        // canvas'ın gösterildiği gerçek boyuta göre ne kadar alanı kapladığını
+        // ölçüp varsayılan tutamaçların bu bölgenin DIŞINDA (üstünde) kalmasını
+        // sağlıyoruz — sabit yüzdelik pay farklı en-boy oranlarında yetersiz
+        // kalabiliyordu.
+        const altButonCubugu = tamamBtn ? tamamBtn.parentElement : null;
+        const disariBirakilanY = {
+            ust: ustteTasanYukseklikPx(talimatEl, secimCanvas, yukseklik),
+            alt: altaTasanYukseklikPx(altButonCubugu, secimCanvas, yukseklik)
+        };
+
         const ctx = secimCanvas.getContext("2d");
-        let noktalar = varsayilanKoseler(genislik, yukseklik);
+        let noktalar = varsayilanKoseler(genislik, yukseklik, disariBirakilanY);
 
         const TUTAMAC_YARICAP = Math.max(24, genislik * 0.018);
         const CIZGI_KALINLIK = Math.max(2, genislik * 0.0018);
@@ -259,7 +330,7 @@ export function koseleriSectir(kaynak, genislik, yukseklik, secimCanvas, talimat
         };
 
         sifirlaBtn.onclick = () => {
-            noktalar = varsayilanKoseler(genislik, yukseklik);
+            noktalar = varsayilanKoseler(genislik, yukseklik, disariBirakilanY);
             yenidenCiz();
         };
 
