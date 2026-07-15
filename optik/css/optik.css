@@ -386,7 +386,8 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 .ogr-soru-satiri:last-child { border-bottom: none; }
 
 .ogr-resim-alani { padding: 12px; }
-.ogr-resim-alani img { width: 100%; height: auto; border-radius: 12px; }
+.ogr-resim-alani img,
+.ogr-resim-alani canvas { width: 100%; height: auto; border-radius: 12px; display: block; }
 
 .ogr-alt-bar {
     display: flex; justify-content: space-around; align-items: center;
