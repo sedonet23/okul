@@ -104,24 +104,30 @@ function formKoduDogrula(sonuc, sinavTuru) {
  */
 export async function formuOkuVeGoster(sourceCanvas) {
 
+    console.log('[OMR] formuOkuVeGoster çağrıldı, canvas:', sourceCanvas?.id, sourceCanvas?.width, 'x', sourceCanvas?.height);
+
     if (typeof window.jsQR === "undefined") {
         showStatus("jsQR yüklenemedi.");
+        console.error('[OMR] jsQR yok!');
         return null;
     }
 
     if (typeof window.LayoutEngine === "undefined" || typeof window.OmrOkuyucu === "undefined") {
         showStatus("OMR motoru yüklenemedi (layoutEngine.js / omrEngine.js).");
+        console.error('[OMR] LayoutEngine veya OmrOkuyucu yok!', { LayoutEngine: !!window.LayoutEngine, OmrOkuyucu: !!window.OmrOkuyucu });
         return null;
     }
 
     showStatus("Form okunuyor...");
 
     const { form, sinavTuru } = testFormunuOlustur();
+    console.log('[OMR] sinavTuru:', sinavTuru, '| form:', form?.sinavTuru);
 
     let sonuc;
 
     try {
         sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form);
+        console.log('[OMR] sonuc: basarili=', sonuc?.basarili, 'uyarilar=', sonuc?.uyarilar);
         formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOku hatası:", err);
