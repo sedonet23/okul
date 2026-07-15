@@ -2112,6 +2112,8 @@ window.OmrOkuyucu = (function () {
     noktayiDonustur,
     tumSorulariTopla,
     VARSAYILAN_PPMM,
+    // canlı kamera önizlemesinde köşe yakalama göstergesi (camera.js) için:
+    sayfaKoseleriniAra,
   };
 })();
 
