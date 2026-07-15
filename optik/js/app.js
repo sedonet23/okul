@@ -1359,7 +1359,17 @@ async function bosFormOlustur() {
             adSoyad: '', ogrenciNo: '', sinif: '',
             sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
         });
-        doc.save(sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+        const dosyaAdi = sinav.ad.replace(/\s+/g, '_') + '_bos.pdf';
+        if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
+            window.DisaAktar.dosyaKaydet(
+                doc.output('datauristring').split(',')[1],
+                dosyaAdi,
+                'application/pdf',
+                () => doc.save(dosyaAdi)
+            );
+        } else {
+            doc.save(dosyaAdi);
+        }
         durumEl.textContent = '✅ PDF indirildi.';
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
@@ -1386,7 +1396,17 @@ async function ogrencilerIcinFormOlustur() {
         if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
         durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
         const doc = await topluFormPdfOlustur(layout, ogrList);
-        doc.save(sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+        const dosyaAdi = sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf';
+        if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
+            window.DisaAktar.dosyaKaydet(
+                doc.output('datauristring').split(',')[1],
+                dosyaAdi,
+                'application/pdf',
+                () => doc.save(dosyaAdi)
+            );
+        } else {
+            doc.save(dosyaAdi);
+        }
         durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }

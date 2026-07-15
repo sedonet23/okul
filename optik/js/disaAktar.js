@@ -401,6 +401,6 @@ window.DisaAktar = (function () {
         });
     }
 
-    return { excelIndir, pdfRaporuIndir, cevapAnahtariniIndir };
+    return { excelIndir, pdfRaporuIndir, cevapAnahtariniIndir, dosyaKaydet: _dosyaKaydet };
 
 })();
