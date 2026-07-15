@@ -391,11 +391,8 @@ function ogrDetayAc(sonucId) {
     document.getElementById('ogrDetayNo').value      = ogr.ogrenciNo || '';
     document.getElementById('ogrDetaySinif').value   = ogr.sinif || '';
 
-    // Resim
-    const resimAl = document.getElementById('ogrDetayResimAlani');
-    resimAl.innerHTML = sonuc.kagitGoruntusu
-        ? `<img src="${sonuc.kagitGoruntusu}" alt="Taranan kağıt">`
-        : '<div style="padding:40px;text-align:center;color:var(--text-faint);">Görüntü yok</div>';
+    // Resim (doğru/yanlış baloncuk renklendirmeli)
+    ogrDetayResimCiz(sonuc);
 
     // Ders listesi
     _ogrDetayDersler = formDersleriniGetir(_aktifSinavId);
@@ -411,6 +408,87 @@ function ogrDetayAc(sonucId) {
     document.getElementById('irResim').classList.remove('aktif');
 
     ekranGit('ogrDetay');
+}
+
+/**
+ * "Resim" sekmesinde taranan kağıt görüntüsünün ÜZERİNE, öğrencinin
+ * işaretlediği/doğru cevabın hangi baloncuk olduğunu gösteren yarı
+ * saydam renkli daireler çizer:
+ *   - Yeşil: işaretlenen şık doğru
+ *   - Kırmızı: işaretlenen şık yanlış
+ *   - Sarı: yanlış (veya boş) cevaplı sorularda doğru şıkkın kendisi
+ * "İçerik" sekmesindeki renklendirmeyle aynı mantığı kullanır.
+ *
+ * Baloncuk piksel koordinatları (sonuc.baloncukNoktalari) sadece bu
+ * güncellemeden SONRA taranan kağıtlarda mevcuttur — eski kayıtlarda
+ * yoksa düz görüntü gösterilir.
+ * @param {object} sonuc
+ */
+function ogrDetayResimCiz(sonuc) {
+    const resimAl = document.getElementById('ogrDetayResimAlani');
+    if (!resimAl) return;
+
+    if (!sonuc.kagitGoruntusu) {
+        resimAl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-faint);">Görüntü yok</div>';
+        return;
+    }
+
+    if (!sonuc.baloncukNoktalari || !sonuc.baloncukNoktalari.length) {
+        // Bu güncellemeden ÖNCE taranmış eski bir kayıt — baloncuk
+        // koordinatı yok, düz görüntü göster.
+        resimAl.innerHTML = `<img src="${sonuc.kagitGoruntusu}" alt="Taranan kağıt">`;
+        return;
+    }
+
+    const anahtar = DB.anahtariGetir(_aktifSinavId);
+    const dogruMapTum = {}; // "dersAdi|soruNo" -> doğru harf
+    (anahtar.dersler || []).forEach(d => {
+        (d.anahtarlar || []).forEach(a => { dogruMapTum[d.dersAdi + '|' + a.soruNo] = a.dogru; });
+    });
+
+    const cevaplar = sonuc.cevaplar || {};
+    const kagitGoruntusu = sonuc.kagitGoruntusu;
+    const baloncukNoktalari = sonuc.baloncukNoktalari;
+
+    const img = new Image();
+    img.onload = () => {
+        // Ekran arada başka bir öğrenciye geçmiş olabilir — geç gelen
+        // yükleme eski görüntüyü üzerine çizmesin.
+        if (sonuc.id !== _aktifSonucId) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        baloncukNoktalari.forEach(soru => {
+            const dogruHarf = dogruMapTum[soru.ders + '|' + soru.soruNo];
+            if (!dogruHarf) return; // bu soru için cevap anahtarı girilmemiş
+            const isaretli = (cevaplar[soru.ders] || {})[soru.soruNo] || null;
+
+            soru.sikler.forEach(sik => {
+                let renk = null;
+                if (isaretli && sik.harf === isaretli) {
+                    renk = (isaretli === dogruHarf) ? 'rgba(76,175,80,0.55)' : 'rgba(244,67,54,0.55)';
+                } else if (sik.harf === dogruHarf && isaretli !== dogruHarf) {
+                    renk = 'rgba(255,193,7,0.6)'; // doğru cevap işareti (sarı)
+                }
+                if (!renk) return;
+                ctx.beginPath();
+                ctx.arc(sik.x, sik.y, sik.r, 0, Math.PI * 2);
+                ctx.fillStyle = renk;
+                ctx.fill();
+            });
+        });
+
+        resimAl.innerHTML = '';
+        resimAl.appendChild(canvas);
+    };
+    img.onerror = () => {
+        resimAl.innerHTML = `<img src="${kagitGoruntusu}" alt="Taranan kağıt">`;
+    };
+    img.src = kagitGoruntusu;
 }
 
 function ogrDetayIzgaraCiz(sonuc) {
@@ -485,6 +563,7 @@ function ogrDetayIzgaraCiz(sonuc) {
                 son.puan = puanHesapla(son.cevaplar, DB.anahtariGetir(_aktifSinavId), _ogrDetayDersler);
                 DB.sonucKaydet(_aktifSinavId, son);
                 ogrDetayIzgaraCiz(son);
+                ogrDetayResimCiz(son);
                 ogrDetayIstatistikGuncelle(son);
             });
             grup.appendChild(btn);
@@ -909,10 +988,36 @@ function _omrSonucuisle(raw) {
         ogrenci:       kimlik,
         cevaplar:      cevaplarNesne,
         kagitGoruntusu:raw.kagitGoruntusu || null,
+        baloncukNoktalari: raw.baloncukNoktalari || null,
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
     };
     sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
+
+    // Aynı öğrencinin (öğrenci numarasıyla) bu sınav için daha önce
+    // kaydedilmiş bir formu var mı? Varsa sessizce ikinci bir satır daha
+    // eklemek yerine kullanıcıya SOR — "Kağıtlar" listesinde aynı
+    // öğrenci için iki kayıt birden görünmesin (bkz. kullanıcı geri
+    // bildirimi: aynı formu tekrar okutunca yeni kayıt oluşuyordu).
+    const noStr = (kimlik.ogrenciNo || '').toString().trim();
+    const mevcut = noStr
+        ? DB.sonuclariGetir(_aktifSinavId).find(s => (s.ogrenci?.ogrenciNo || '').toString().trim() === noStr)
+        : null;
+
+    if (mevcut) {
+        sheetOnay(
+            `${mevcut.ogrenci?.adSoyad || 'Bu öğrencinin'} zaten kayıtlı bir optik formu var`,
+            'Bu numaraya (' + noStr + ') ait bir kayıt zaten mevcut. Yeni taramayla önceki kayıt güncellensin mi? Vazgeçerseniz bu tarama kaydedilmez, önceki kayıt aynen kalır.',
+            () => {
+                sonuc.id = mevcut.id; // aynı id ile kaydet = DB.sonucKaydet üzerine yazar
+                DB.sonucKaydet(_aktifSinavId, sonuc);
+                kagitlariRender();
+            },
+            'Güncelle'
+        );
+        return;
+    }
+
     DB.sonucKaydet(_aktifSinavId, sonuc);
     kagitlariRender();
 }
@@ -1149,9 +1254,11 @@ async function ogrencilerIcinFormOlustur() {
 function sheetAc(id)   { const el = document.getElementById(id); if (el) el.hidden = false; }
 function sheetKapat(id){ const el = document.getElementById(id); if (el) el.hidden = true; }
 
-function sheetOnay(baslik, metin, onayFn) {
+function sheetOnay(baslik, metin, onayFn, onaylaEtiket) {
     _s('sheetOnayBaslik', baslik);
     _s('sheetOnayMetin', metin);
+    const onaylaBtn = document.getElementById('sheetOnayOnayla');
+    if (onaylaBtn) onaylaBtn.textContent = onaylaEtiket || 'Sil';
     document.getElementById('sheetOnayOnayla').onclick = () => { sheetKapat('sheetOnay'); onayFn(); };
     sheetAc('sheetOnay');
 }

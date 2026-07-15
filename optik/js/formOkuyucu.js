@@ -18,27 +18,58 @@ import { showStatus } from "./utils.js";
  * tıklayınca görüntüle + gerekirse elle düzelt" akışında kullanılmak üzere
  * saklanabilmesi — ama tam çözünürlükte onlarca/yüzlerce kağıt saklamak
  * localStorage kotasını (~5-10MB) hızla doldurur, bu yüzden küçültülüyor.
+ *
+ * Döndürdüğü "olcek" değeri, aynı küçültmenin baloncuk koordinatlarına da
+ * (bkz. _baloncukNoktalariniOlcekle) uygulanabilmesi için — böylece
+ * "Resim" sekmesinde küçültülmüş görüntünün ÜZERİNE doğru piksel
+ * konumunda renkli daire çizilebiliyor.
  * @param {HTMLCanvasElement} canvas
  * @param {number} maxGenislik
  * @param {number} kalite - 0..1 arası JPEG kalitesi
- * @returns {string|null} dataURL ya da (hata olursa) null
+ * @returns {{dataUrl: string|null, olcek: number}}
  */
-function _kucukGoruntuUret(canvas, maxGenislik = 900, kalite = 0.55) {
+function _kucukGoruntuVeOlcekUret(canvas, maxGenislik = 900, kalite = 0.55) {
     try {
         let kaynak = canvas;
+        let olcek = 1;
         if (canvas.width > maxGenislik) {
-            const oran = maxGenislik / canvas.width;
+            olcek = maxGenislik / canvas.width;
             const kucukCanvas = document.createElement("canvas");
             kucukCanvas.width = maxGenislik;
-            kucukCanvas.height = Math.round(canvas.height * oran);
+            kucukCanvas.height = Math.round(canvas.height * olcek);
             kucukCanvas.getContext("2d").drawImage(canvas, 0, 0, kucukCanvas.width, kucukCanvas.height);
             kaynak = kucukCanvas;
         }
-        return kaynak.toDataURL("image/jpeg", kalite);
+        return { dataUrl: kaynak.toDataURL("image/jpeg", kalite), olcek };
     } catch (err) {
         console.error("Kağıt görüntüsü sıkıştırılamadı (kayıt görüntüsüz devam edecek):", err);
-        return null;
+        return { dataUrl: null, olcek: 1 };
     }
+}
+
+/**
+ * omrEngine.js'in her BALONCUK için ürettiği tam piksel örnekleme
+ * noktalarını (sonuc.hataAyiklama.ornekNoktalari — tam çözünürlüklü
+ * duzCanvas'a göre), kaydedilen (küçültülmüş) kağıt görüntüsünün
+ * ölçeğine indirger. Kaydedilen sonuç, "Resim" sekmesinde her baloncuğun
+ * üstüne yeşil/kırmızı/sarı renkli daire çizmek için kullanılır (bkz.
+ * app.js ogrDetayResimCiz()).
+ * @param {Array|null} ornekNoktalari
+ * @param {number} olcek
+ * @returns {Array|null}
+ */
+function _baloncukNoktalariniOlcekle(ornekNoktalari, olcek) {
+    if (!ornekNoktalari || !ornekNoktalari.length) return null;
+    return ornekNoktalari.map((soru) => ({
+        ders: soru.ders,
+        soruNo: soru.soruNo,
+        sikler: soru.sikler.map((s) => ({
+            harf: s.harf,
+            x: Math.round(s.px * olcek),
+            y: Math.round(s.py * olcek),
+            r: Math.max(4, Math.round(s.pr * olcek)),
+        })),
+    }));
 }
 
 /**
@@ -207,7 +238,11 @@ export async function formuOkuToplu(sourceCanvas) {
         // yapılmadığı için doğrudan duzeltilmisCanvas'tan üretiliyor).
         const duzCanvas = sonuc.hataAyiklama && sonuc.hataAyiklama.duzeltilmisCanvas;
         if (duzCanvas) {
-            sonuc.kagitGoruntusu = _kucukGoruntuUret(duzCanvas);
+            const { dataUrl, olcek } = _kucukGoruntuVeOlcekUret(duzCanvas);
+            sonuc.kagitGoruntusu = dataUrl;
+            sonuc.baloncukNoktalari = _baloncukNoktalariniOlcekle(
+                sonuc.hataAyiklama && sonuc.hataAyiklama.ornekNoktalari, olcek
+            );
         }
         window.dispatchEvent(new CustomEvent("omrSonucHazir", { detail: sonuc }));
     }
@@ -284,7 +319,11 @@ function sonucuGoster(sonuc) {
     // görüntüsünü sıkıştırıp sonuca ekle. TopluTarama.ekle() bunu saklar,
     // "sonuca tıkla → kağıdı gör" akışında kullanılır.
     if (duzCanvas) {
-        sonuc.kagitGoruntusu = _kucukGoruntuUret(duzCanvas);
+        const { dataUrl, olcek } = _kucukGoruntuVeOlcekUret(duzCanvas);
+        sonuc.kagitGoruntusu = dataUrl;
+        sonuc.baloncukNoktalari = _baloncukNoktalariniOlcekle(
+            sonuc.hataAyiklama && sonuc.hataAyiklama.ornekNoktalari, olcek
+        );
     }
 
     if (duzCanvas && resultCanvas) {

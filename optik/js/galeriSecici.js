@@ -127,11 +127,6 @@ export function baglaGaleriSecici(inputId, canvasId) {
 
         const dosyalar = input.files;
 
-        // DEBUG
-        const dbgEl = document.getElementById('sonucKutusu') || document.getElementById('statusText');
-        function dbg(m) { if (dbgEl) { dbgEl.style.display='block'; dbgEl.textContent = (dbgEl.textContent?dbgEl.textContent+'\n':'')+m; } }
-        dbg('📂 galeriSecici tetiklendi: ' + (dosyalar?.length || 0) + ' dosya | input=' + inputId);
-
         if (!dosyalar || !dosyalar.length) {
             return;
         }
@@ -151,20 +146,50 @@ export function baglaGaleriSecici(inputId, canvasId) {
 
                 const img = await dosyayiResmeCevir(dosya);
 
-                const koseler = await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari);
+                // ÖNEMLİ: köşe seçim arayüzü (#koseSecimAlani) DOM'da
+                // #kameraOverlay'in İÇİNDE yaşıyor (bkz. index.html). "+" >
+                // "Galeri" akışında (galeriInputSheet) kamera hiç açılmamış
+                // olabilir — bu durumda #kameraOverlay hâlâ `hidden`
+                // durumdadır ve koseSecimAlani'yı "display:block" yapmak
+                // onu GÖRÜNÜR KILMAZ, çünkü üst elemanı gizli. Sonuç:
+                // kullanıcı hiçbir şey görmeden "takılı" kalıyordu — ta ki
+                // Kamera'yı açıp aynı (zaten çizilmiş) köşe seçim ekranını
+                // ortaya çıkarana kadar. Bunu düzeltmek için: köşe seçimine
+                // başlamadan önce overlay'i (kamerayı BAŞLATMADAN, sadece
+                // DOM'da görünür kılarak) geçici açıyoruz; biz açtıysak,
+                // işlem bitince (veya hata olursa) tekrar gizliyoruz.
+                const kameraOverlay = document.getElementById("kameraOverlay");
+                const overlayBizActi = !!(kameraOverlay && kameraOverlay.hidden);
+                if (overlayBizActi) {
+                    kameraOverlay.hidden = false;
+                }
 
-                // Okuma için TEMİZ görüntüyü kullan — köşe seçim canvas'ında
-                // kullanıcının sürüklediği yeşil tutamaçlar/çizgiler çizili,
-                // onları piksel verisine karıştırmamak için ayrı bir canvas'a
-                // orijinal görseli yeniden çiziyoruz.
-                canvas.width = img.naturalWidth;
-                canvas.height = img.naturalHeight;
-                canvas.getContext("2d").drawImage(img, 0, 0);
+                try {
 
-                if (koseler) {
-                    await formuOkuElleKoseliVeGoster(canvas, koseler);
-                } else {
-                    await formuOkuVeGoster(canvas);
+                    const koseler = await koseSecimAkisi(img, img.naturalWidth, img.naturalHeight, koseElemanlari);
+
+                    // Okuma için TEMİZ görüntüyü kullan — köşe seçim canvas'ında
+                    // kullanıcının sürüklediği yeşil tutamaçlar/çizgiler çizili,
+                    // onları piksel verisine karıştırmamak için ayrı bir canvas'a
+                    // orijinal görseli yeniden çiziyoruz.
+                    canvas.width = img.naturalWidth;
+                    canvas.height = img.naturalHeight;
+                    canvas.getContext("2d").drawImage(img, 0, 0);
+
+                    if (koseler) {
+                        await formuOkuElleKoseliVeGoster(canvas, koseler);
+                    } else {
+                        await formuOkuVeGoster(canvas);
+                    }
+
+                } finally {
+                    // Normal akışta "omrOkumaTamamlandi" olayı zaten
+                    // kameraKapat()'ı tetikleyip overlay'i gizler; ama bir
+                    // hata/erken çıkış olursa (biz açtıysak) burada da
+                    // güvenceye alıyoruz ki overlay açık takılı kalmasın.
+                    if (overlayBizActi && kameraOverlay) {
+                        kameraOverlay.hidden = true;
+                    }
                 }
 
             }
