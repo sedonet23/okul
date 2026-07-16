@@ -358,18 +358,16 @@ function yeniSinavKaydet() {
     let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : (yEtki === 0 ? null : 3);
 
     if (_ysSablonSecilen.id === 'ozel') {
-        soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10);
-        if (!soruSayisi || soruSayisi < 1) { alert('Özel sınav için geçerli bir soru sayısı girin!'); return; }
+        soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10) || 20;
         sikSayisi = parseInt(document.getElementById('ysOzelSikSayisi')?.value, 10) || 4;
 
-        // Girilen soru sayısının GERÇEKTEN bir sayfa düzenine sığıp sığmadığını
-        // burada, kaydetmeden ÖNCE kontrol et — sığmıyorsa sınav hiç
-        // oluşturulmasın, kullanıcı daha sonra "Optik Form Oluştur" ekranında
-        // anlaşılması güç bir PDF hatasıyla karşılaşmasın.
+        // Soru sayısı artık sabit, önceden test edilmiş seçeneklerden geliyor
+        // (bkz. index.html ysOzelSoruSayisi) — bu kontrol yalnızca bir
+        // güvenlik ağı, normal koşulda hiç tetiklenmemesi beklenir.
         try {
             window.LayoutEngine?.sayfaDuzeniOner(soruSayisi, sikSayisi);
         } catch (e) {
-            alert(`${soruSayisi} soru bu şık sayısıyla tek sayfaya sığmıyor. Şu an bu ayarlarla en fazla desteklenen soru sayısını kontrol edip daha düşük bir değer girin (girdiğiniz sayıyı bir daha kontrol edin — yanlışlıkla fazladan rakam girilmiş olabilir).`);
+            alert(`${soruSayisi} soru / ${sikSayisi} şık bu düzende desteklenmiyor. Farklı bir şık sayısı deneyin.`);
             return;
         }
     }

@@ -204,14 +204,24 @@ function formIcinIzgaraHesapla(bolge, soruSayisi, sikSayisi, headerYukseklik) {
  * Böylece 6'lı düzende bile aynı bilgi alanları bulunur, sadece küçülmüş olur.
  */
 function miniHeaderOlustur(bolge, baslikMetni) {
-  const KENAR_PAY = Math.max(1.5, bolge.width * 0.018);
-  const baslikYukseklik = Math.max(3, bolge.height * 0.035);
+  // KENAR_PAY, sayfa köşe işaretini/çerçeve çizgisini (bkz. HIZALAMA_PAY +
+  // HIZALAMA_MARKER_BOYUT, sayfanın en başındaki sabitler) KESİNLİKLE
+  // GEÇMEMELİ — eskiden salt bölge genişliğinin bir yüzdesiydi ve küçük
+  // mini-formlarda (ör. 2/4'lü düzen) bu köşe karesinden DAHA KÜÇÜK
+  // çıkabiliyordu, bu da "Ad Soyad/Kitapçık" içeriğinin köşe karesiyle/
+  // çerçeve çizgisiyle üst üste binmesine (görsel bozulmaya) yol açıyordu.
+  const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 9mm
+  const KENAR_PAY = Math.max(KOSE_GUVENLI_PAY, bolge.width * 0.018);
+  // Dikey oranlar da eskisine göre biraz daha SIKI (kompakt) — soru
+  // ızgarasına daha fazla yer kalsın, başlık alanı gereğinden şişkin
+  // durmasın diye üst sınır da eklendi.
+  const baslikYukseklik = Math.min(7, Math.max(3, bolge.height * 0.03));
 
   const genislik = bolge.width - KENAR_PAY * 2;
 
-  const adSoyadYukseklik = Math.max(4, bolge.height * 0.045);
-  const satirBosluk = Math.max(0.8, bolge.height * 0.006);
-  const bilgiSatiriYukseklik = Math.max(3.5, bolge.height * 0.038);
+  const adSoyadYukseklik = Math.min(7, Math.max(4, bolge.height * 0.038));
+  const satirBosluk = Math.min(2, Math.max(0.8, bolge.height * 0.005));
+  const bilgiSatiriYukseklik = Math.min(6, Math.max(3.5, bolge.height * 0.032));
 
   const adSoyadY = bolge.y + baslikYukseklik + satirBosluk;
   const bilgiSatiriY = adSoyadY + adSoyadYukseklik + satirBosluk;
