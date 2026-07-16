@@ -1914,6 +1914,7 @@ const TEMBEL_MODUL_TABLOSU = {
       bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
       renderBransListesiYonetim();
     }, hataGoster);
+    if(typeof renderOptikAyarlari === 'function') renderOptikAyarlari();
   },
 };
 const _TEMBEL_BASLATILANLAR = new Set();
