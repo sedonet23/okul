@@ -286,6 +286,7 @@ function yeniSinavAc() {
     const ozelSoru = document.getElementById('ysOzelSoruSayisi');
     if (ozelSoru) ozelSoru.value = '';
     _ogrenciSeciminiRender();
+    _ogrenciSecimOzetiGuncelle();
     ekranGit('yeniSinav');
 }
 
@@ -344,6 +345,22 @@ function _seciliOgrIdleri() {
     return [...kap.querySelectorAll('.ogr-cb:checked')].map(cb => cb.dataset.ogr);
 }
 
+/** "Öğrenciler" özet düğmesinin metnini seçili öğrenci/sınıf sayısına göre günceller. */
+function _ogrenciSecimOzetiGuncelle() {
+    const ozelEl = document.getElementById('ysOgrenciSecOzet');
+    if (!ozelEl) return;
+    const kap = document.getElementById('ysOgrenciSecimAlani');
+    const seciliCb = kap ? [...kap.querySelectorAll('.ogr-cb:checked')] : [];
+    if (!seciliCb.length) {
+        ozelEl.textContent = 'Öğrenci seçin...';
+        ozelEl.style.color = 'var(--text-faint)';
+        return;
+    }
+    const siniflar = new Set(seciliCb.map(cb => cb.dataset.sinif));
+    ozelEl.textContent = `${seciliCb.length} öğrenci` + (siniflar.size > 1 ? ` (${siniflar.size} sınıf)` : '');
+    ozelEl.style.color = 'var(--text)';
+}
+
 function yeniSinavKaydet() {
     const ad = document.getElementById('ysSinavAd').value.trim();
     if (!ad) { alert('Sınav adı gerekli!'); return; }
@@ -352,10 +369,16 @@ function yeniSinavKaydet() {
     let soruSayisi = _ysSablonSecilen.soruSayisi;
     let sikSayisi  = _ysSablonSecilen.sikSayisi;
 
-    // Yanlış cevap etkisi artık sınav türünden BAĞIMSIZ, her zaman ekrandaki
-    // seçiciden okunuyor (varsayılan/seçili değer 3 — LGS/Bursluluk resmî kuralı).
-    const yEtki = parseInt(document.getElementById('ysYanlisEtkisi')?.value, 10);
-    let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : (yEtki === 0 ? null : 3);
+    // Yanlış cevap etkisi artık bu ekranda SORULMUYOR — okul çapında tek bir
+    // admin ayarı (bkz. ana uygulama js/optik-ayarlari.js). Optik ayrı bir
+    // iframe olsa da AYNI origin'de çalıştığı için bu localStorage anahtarını
+    // doğrudan okuyabiliyor (Firestore'a optik tarafından hiç dokunulmuyor).
+    let yEtki;
+    try {
+        const ham = localStorage.getItem('optikYanlisKatsayisi');
+        yEtki = ham !== null && ham !== '' ? parseInt(ham, 10) : 0;
+    } catch (e) { yEtki = 0; }
+    let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : null;
 
     if (_ysSablonSecilen.id === 'ozel') {
         soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10) || 20;
@@ -2061,6 +2084,13 @@ function baslat() {
     // ── Ekran 2: Yeni Sınav ──
     document.getElementById('btnYeniSinavKapat').addEventListener('click', () => ekranGit('sinavlar'));
     document.getElementById('btnYeniSinavKaydet').addEventListener('click', yeniSinavKaydet);
+    document.getElementById('ysOgrenciSecBtn').addEventListener('click', () => {
+        sheetAc('sheetOgrenciSecimi');
+    });
+    document.getElementById('btnOgrenciSecTamam').addEventListener('click', () => {
+        sheetKapat('sheetOgrenciSecimi');
+        _ogrenciSecimOzetiGuncelle();
+    });
     document.getElementById('ysOptikFormSec').addEventListener('click', () => {
         optikFormSheetAc(sablon => {
             _ysSablonSecilen = sablon;
