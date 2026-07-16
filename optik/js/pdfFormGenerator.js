@@ -402,20 +402,31 @@ async function formPdfOlustur(layout, ogrenci = {}) {
 }
 
 /**
- * Bir sınıftaki TÜM öğrenciler için tek bir PDF üretir (her öğrenci kendi
- * sayfasında/sayfalarında). Dinamik "özel test" + çoklu-form-per-A4 durumunda
- * her öğrenci hâlâ ayrı bir A4 alır (yani 6'lı düzen "6 farklı öğrenci aynı
- * kağıtta" değil, "aynı öğrencinin kağıdı 6 kopya" anlamına gelir demektir —
- * bu varsayımı ders/sınav akışınıza göre gözden geçirmeniz gerekebilir).
+ * Bir sınıftaki TÜM öğrenciler için tek bir PDF üretir.
+ *
+ * ÖNEMLİ: sayfa düzeni 1'den fazla mini-form içeriyorsa (2'li/4'lü/6'lı),
+ * her sayfadaki farklı mini-form slotları FARKLI öğrencilerle doldurulur
+ * (aynı öğrencinin kağıdı N kopya değil, N farklı öğrenci aynı A4'te —
+ * kağıttan tasarruf + kesilip öğrencilere dağıtılabilir kağıtlar).
+ * Sayfa düzeni 1 ise (LGS/Bursluluk gibi sabit tam-sayfa şablonlar dahil)
+ * her öğrenci kendi ayrı sayfasını alır, eski davranışla birebir aynıdır.
  */
 async function topluFormPdfOlustur(layout, ogrenciListesi) {
   const doc = new jsPDF({ unit: 'mm', format: [layout.sayfaBoyutu.width, layout.sayfaBoyutu.height] });
   fontlariKaydet(doc);
 
-  for (let i = 0; i < ogrenciListesi.length; i++) {
-    if (i > 0) doc.addPage([layout.sayfaBoyutu.width, layout.sayfaBoyutu.height]);
-    const ogrenci = ogrenciListesi[i];
-    for (const form of layout.formlar) {
+  const slotSayisi = layout.formlar.length; // bir A4'e sığan mini-form (=öğrenci) sayısı
+  let ilkSayfa = true;
+
+  for (let i = 0; i < ogrenciListesi.length; i += slotSayisi) {
+    if (!ilkSayfa) doc.addPage([layout.sayfaBoyutu.width, layout.sayfaBoyutu.height]);
+    ilkSayfa = false;
+
+    const sayfadakiOgrenciler = ogrenciListesi.slice(i, i + slotSayisi);
+
+    for (let slot = 0; slot < sayfadakiOgrenciler.length; slot++) {
+      const form = layout.formlar[slot];
+      const ogrenci = sayfadakiOgrenciler[slot];
       hizalamaIsaretleriCiz(doc, form);
       await headerCiz(doc, form, ogrenci, layout.sinavTuru);
       if (form.bolumler) {

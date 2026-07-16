@@ -1700,75 +1700,155 @@ async function optikOlusturAc() {
     ekranGit('optikOlustur');
 }
 
-/** layoutHesapla() için doğru parametreleri üretir — Özel sınavlarda kendi soru/şık sayısını da ekler. */
-function _layoutParamlariHazirla(sinav) {
+/** layoutHesapla() için doğru parametreleri üretir — Özel sınavlarda kendi soru/şık sayısını, seçilen yön/sayfa düzenini de ekler. */
+function _layoutParamlariHazirla(sinav, secimler = {}) {
+    const yon = secimler.yon || 'dikey';
+    const sayfaDuzeni = secimler.sayfaDuzeni || 'otomatik';
     if (sinav?.optikFormId === 'ozel') {
-        return { sinavTuru: 'ozel', soruSayisi: sinav.soruSayisi || 20, sikSayisi: sinav.sikSayisi || 4, sayfaDuzeni: 'otomatik' };
+        return { sinavTuru: 'ozel', soruSayisi: sinav.soruSayisi || 20, sikSayisi: sinav.sikSayisi || 4, sayfaDuzeni, yon };
     }
+    // LGS/Bursluluk gibi sabit şablonlar her zaman dikey tam sayfadır; yön/düzen seçimi burada anlamsız.
     return { sinavTuru: sinav?.optikFormId };
 }
 
-async function bosFormOlustur() {
-    const sinav   = DB.sinaviBul(_aktifSinavId);
-    const durumEl = document.getElementById('optikOlusturDurum');
-    if (!sinav) return;
-    durumEl.textContent = 'Oluşturuluyor...';
-    try {
-        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav));
-        const { formPdfOlustur } = await import('./pdfFormGenerator.js');
-        const doc = await formPdfOlustur(layout, {
-            adSoyad: '', ogrenciNo: '', sinif: '',
-            sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
+/** Sınav sabit bir MEB şablonu mu (LGS/Bursluluk) kullanıyor — bu durumda yön/sayfa düzeni SEÇİLEMEZ. */
+function _sinavSabitSablonMu(sinav) {
+    return !!sinav?.optikFormId && sinav.optikFormId !== 'ozel';
+}
+
+function _pdfKaydet(doc, dosyaAdi) {
+    if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
+        window.DisaAktar.dosyaKaydet(
+            doc.output('datauristring').split(',')[1],
+            dosyaAdi,
+            'application/pdf',
+            () => doc.save(dosyaAdi)
+        );
+    } else {
+        doc.save(dosyaAdi);
+    }
+}
+
+async function _yzOgrenciListesiGetir(sinav) {
+    const kaynak = veriKaynagi();
+    if (!kaynak) return null;
+    const ogrList = [];
+    kaynak.siniflarGetir().forEach(s => {
+        kaynak.ogrencilerGetir(s.id).forEach(o => {
+            if (sinav.ogrenciIdleri.includes(o.id)) {
+                ogrList.push({ adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinif: s.ad, sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: o.id, sinavId: sinav.optikFormId });
+            }
         });
-        const dosyaAdi = sinav.ad.replace(/\s+/g, '_') + '_bos.pdf';
-        if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
-            window.DisaAktar.dosyaKaydet(
-                doc.output('datauristring').split(',')[1],
-                dosyaAdi,
-                'application/pdf',
-                () => doc.save(dosyaAdi)
-            );
+    });
+    return ogrList;
+}
+
+// ── Yazdırma Seçenekleri sheet (yön / sayfa düzeni / önizleme) ──
+let _yzMod = null; // 'bos' | 'ogrenciler'
+let _yzSecimleri = { yon: 'dikey', sayfaDuzeni: 'otomatik' };
+
+function yazdirmaSecenekleriAc(mod) {
+    const sinav = DB.sinaviBul(_aktifSinavId);
+    if (!sinav) return;
+    if (mod === 'ogrenciler' && !sinav.ogrenciIdleri?.length) { alert('Bu sınava öğrenci eklenmemiş.'); return; }
+
+    _yzMod = mod;
+    _yzSecimleri = { yon: 'dikey', sayfaDuzeni: 'otomatik' };
+
+    document.getElementById('yzOnizlemeAlan').hidden = true;
+    document.getElementById('yzOnizlemeIframe').src = 'about:blank';
+    document.getElementById('yzOnizlemeDurum').textContent = '';
+
+    const sabitMi = _sinavSabitSablonMu(sinav);
+    document.getElementById('yzSabitSablonNotu').hidden = !sabitMi;
+    document.getElementById('yzCokluBilgiNotu').hidden = sabitMi || mod !== 'ogrenciler';
+
+    ['yzYonSegment', 'yzDuzenSegment'].forEach(id => {
+        document.getElementById(id).querySelectorAll('button').forEach(b => { b.disabled = sabitMi; });
+    });
+    document.getElementById('yzYonSegment').querySelectorAll('button').forEach(b => b.classList.toggle('yz-aktif', b.dataset.yon === 'dikey'));
+    document.getElementById('yzDuzenSegment').querySelectorAll('button').forEach(b => b.classList.toggle('yz-aktif', b.dataset.duzen === 'otomatik'));
+
+    sheetAc('sheetYazdirmaSecenekleri');
+}
+
+function _yzSegmentBagla(containerId, datasetAdi, secimAnahtari) {
+    document.getElementById(containerId).querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            document.getElementById(containerId).querySelectorAll('button').forEach(b => b.classList.remove('yz-aktif'));
+            btn.classList.add('yz-aktif');
+            _yzSecimleri[secimAnahtari] = btn.dataset[datasetAdi];
+            document.getElementById('yzOnizlemeAlan').hidden = true; // seçenek değişti, eski önizleme artık geçersiz
+        });
+    });
+}
+
+/** Önizleme: gerçek indirmeyi tetiklemeden, seçilen yön/düzenle NASIL görüneceğini gösterir. */
+async function yzOnizleOlustur() {
+    const sinav = DB.sinaviBul(_aktifSinavId);
+    const durumEl = document.getElementById('yzOnizlemeDurum');
+    if (!sinav) return;
+    durumEl.textContent = 'Önizleme hazırlanıyor...';
+    try {
+        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav, _yzSecimleri));
+        const { formPdfOlustur, topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
+        let doc, sayfaBilgi;
+
+        if (_yzMod === 'bos') {
+            doc = await formPdfOlustur(layout, {
+                adSoyad: 'ÖRNEK ÖĞRENCİ', ogrenciNo: '1', sinif: '—',
+                sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
+            });
+            sayfaBilgi = '1 sayfa (boş form)';
         } else {
-            doc.save(dosyaAdi);
+            const ogrList = await _yzOgrenciListesiGetir(sinav);
+            if (!ogrList || !ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
+            // Hızlı olması için önizlemede sadece ilk sayfayı dolduracak kadar öğrenci kullanılır;
+            // gerçek "Oluştur ve İndir"de TÜM öğrenciler işlenir.
+            const slotSayisi = layout.formlar.length;
+            const ornekListe = ogrList.slice(0, slotSayisi);
+            doc = await topluFormPdfOlustur(layout, ornekListe);
+            const toplamSayfa = Math.ceil(ogrList.length / slotSayisi);
+            sayfaBilgi = slotSayisi > 1
+                ? `Örnek sayfa (${ornekListe.length}/${slotSayisi} form dolu, her form ayrı öğrenci) — toplam ${ogrList.length} öğrenci için ${toplamSayfa} sayfa üretilecek`
+                : `Örnek sayfa — toplam ${ogrList.length} öğrenci için ${ogrList.length} sayfa üretilecek`;
         }
-        durumEl.textContent = '✅ PDF indirildi.';
+
+        document.getElementById('yzOnizlemeIframe').src = doc.output('bloburl');
+        document.getElementById('yzOnizlemeSayfaBilgi').textContent = sayfaBilgi;
+        document.getElementById('yzOnizlemeAlan').hidden = false;
+        durumEl.textContent = '';
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
-async function ogrencilerIcinFormOlustur() {
-    const sinav   = DB.sinaviBul(_aktifSinavId);
+/** Seçilen yön/sayfa düzeniyle GERÇEK PDF'i üretir ve indirir. */
+async function yzOnaylaVeIndir() {
+    const sinav = DB.sinaviBul(_aktifSinavId);
     const durumEl = document.getElementById('optikOlusturDurum');
-    if (!sinav || !sinav.ogrenciIdleri?.length) { alert('Bu sınava öğrenci eklenmemiş.'); return; }
+    if (!sinav) return;
+    sheetKapat('sheetYazdirmaSecenekleri');
     durumEl.textContent = 'Oluşturuluyor...';
     try {
-        const kaynak = veriKaynagi();
-        if (!kaynak) { alert('Uygulama içinden açılması gerekiyor.'); return; }
-        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav));
-        const { topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
-        // Seçilen öğrencilerin bilgilerini topla
-        const ogrList = [];
-        kaynak.siniflarGetir().forEach(s => {
-            kaynak.ogrencilerGetir(s.id).forEach(o => {
-                if (sinav.ogrenciIdleri.includes(o.id)) {
-                    ogrList.push({ adSoyad: o.adSoyad, ogrenciNo: o.ogrenciNo, sinif: s.ad, sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: o.id, sinavId: sinav.optikFormId });
-                }
+        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav, _yzSecimleri));
+        if (_yzMod === 'bos') {
+            const { formPdfOlustur } = await import('./pdfFormGenerator.js');
+            const doc = await formPdfOlustur(layout, {
+                adSoyad: '', ogrenciNo: '', sinif: '',
+                sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
             });
-        });
-        if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
-        durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
-        const doc = await topluFormPdfOlustur(layout, ogrList);
-        const dosyaAdi = sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf';
-        if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
-            window.DisaAktar.dosyaKaydet(
-                doc.output('datauristring').split(',')[1],
-                dosyaAdi,
-                'application/pdf',
-                () => doc.save(dosyaAdi)
-            );
+            _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+            durumEl.textContent = '✅ PDF indirildi.';
         } else {
-            doc.save(dosyaAdi);
+            const ogrList = await _yzOgrenciListesiGetir(sinav);
+            if (!ogrList) { alert('Uygulama içinden açılması gerekiyor.'); durumEl.textContent = ''; return; }
+            if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
+            durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
+            const { topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
+            const doc = await topluFormPdfOlustur(layout, ogrList);
+            _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+            durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
         }
-        durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 
@@ -1985,8 +2065,12 @@ function baslat() {
 
     // ── Ekran 5: Optik Oluştur ──
     document.getElementById('btnOptikOlusturGeri').addEventListener('click', () => ekranGit('sinavDetay'));
-    document.getElementById('btnBosForm').addEventListener('click', bosFormOlustur);
-    document.getElementById('btnOgrencilerIcinForm').addEventListener('click', ogrencilerIcinFormOlustur);
+    document.getElementById('btnBosForm').addEventListener('click', () => yazdirmaSecenekleriAc('bos'));
+    document.getElementById('btnOgrencilerIcinForm').addEventListener('click', () => yazdirmaSecenekleriAc('ogrenciler'));
+    document.getElementById('btnYzOnizle').addEventListener('click', yzOnizleOlustur);
+    document.getElementById('btnYzOnayla').addEventListener('click', yzOnaylaVeIndir);
+    _yzSegmentBagla('yzYonSegment', 'yon', 'yon');
+    _yzSegmentBagla('yzDuzenSegment', 'duzen', 'sayfaDuzeni');
 
     // ── Ekran 6: Manuel Kağıt ──
     document.getElementById('btnManuelKapat').addEventListener('click', () => ekranGit('sinavDetay'));

@@ -74,11 +74,12 @@ function formKoduHarfiGetir(sinavTuru) {
 }
 
 /**
- * A4 sayfasını istenen forma-sayısına göre alt bölgelere ayırır.
+ * Sayfayı (A4 dikey ya da yatay) istenen forma-sayısına göre alt bölgelere ayırır.
  * @param {1|2|4|6} formsPerA4
+ * @param {{width:number,height:number}} [sayfaBoyutu] - varsayılan A4 dikey; yatay için {width:297,height:210} verin.
  * @returns {Array<{x:number,y:number,width:number,height:number}>}
  */
-function sayfayiBol(formsPerA4) {
+function sayfayiBol(formsPerA4, sayfaBoyutu = A4) {
   const bolgeler = [];
   let cols, rows;
 
@@ -92,8 +93,8 @@ function sayfayiBol(formsPerA4) {
   }
 
   const kesimBosluk = 4; // mm, kesim çizgisi için pay
-  const bolgeWidth = (A4.width - kesimBosluk * (cols + 1)) / cols;
-  const bolgeHeight = (A4.height - kesimBosluk * (rows + 1)) / rows;
+  const bolgeWidth = (sayfaBoyutu.width - kesimBosluk * (cols + 1)) / cols;
+  const bolgeHeight = (sayfaBoyutu.height - kesimBosluk * (rows + 1)) / rows;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -833,10 +834,10 @@ SABIT_SABLONLAR.bursluluk = burslulukSablonuOlustur();
  * 6'lıdan başlayıp sığan en büyük "form/A4" değerini döndürür (kağıttan
  * tasarruf için mümkün olduğunca çok öğrenciyi tek sayfaya sığdırmaya çalışır).
  */
-function sayfaDuzeniOner(soruSayisi, sikSayisi = 4) {
+function sayfaDuzeniOner(soruSayisi, sikSayisi = 4, sayfaBoyutu = A4) {
   for (const aday of [6, 4, 2, 1]) {
     try {
-      const bolgeler = sayfayiBol(aday);
+      const bolgeler = sayfayiBol(aday, sayfaBoyutu);
       const headerYukseklik = miniHeaderOlustur(bolgeler[0], '').toplamYukseklik;
       formIcinIzgaraHesapla(bolgeler[0], soruSayisi, sikSayisi, headerYukseklik);
       return aday; // hata fırlatmadıysa sığmış demektir
@@ -847,13 +848,15 @@ function sayfaDuzeniOner(soruSayisi, sikSayisi = 4) {
   throw new Error(`${soruSayisi} soru / ${sikSayisi} şık, hiçbir sayfa düzenine (1/2/4/6) sığmıyor.`);
 }
 
-function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'otomatik' }) {
+function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'otomatik', yon = 'dikey' }) {
   if (SABIT_SABLONLAR[sinavTuru]) {
-    return SABIT_SABLONLAR[sinavTuru]; // sabit şablon varsa direkt onu döndür
+    return SABIT_SABLONLAR[sinavTuru]; // sabit şablon varsa direkt onu döndür (her zaman dikey A4)
   }
 
-  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi) : sayfaDuzeni;
-  const bolgeler = sayfayiBol(gercekSayfaDuzeni);
+  const sayfaBoyutu = yon === 'yatay' ? { width: A4.height, height: A4.width } : { width: A4.width, height: A4.height };
+
+  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi, sayfaBoyutu) : sayfaDuzeni;
+  const bolgeler = sayfayiBol(gercekSayfaDuzeni, sayfaBoyutu);
   const baslikMetni = 'CEVAP KAĞIDI';
 
   const formlar = bolgeler.map((bolge, index) => {
@@ -877,7 +880,8 @@ function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'ot
     sikSayisi,
     sayfaDuzeni: gercekSayfaDuzeni,
     sayfaDuzeniOtomatikSecildi: sayfaDuzeni === 'otomatik',
-    sayfaBoyutu: A4,
+    yon,
+    sayfaBoyutu,
     formlar, // her biri sayfadaki bir mini-formu temsil eder
   };
 }
