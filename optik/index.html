@@ -96,7 +96,7 @@
       <label class="form-etiket">Özel Sınav Ayarları</label>
       <div class="form-pill">
         <span class="form-ikon">🔢</span>
-        <input type="number" id="ysOzelSoruSayisi" class="form-input" placeholder="Soru sayısı (örn. 20)" min="1" max="200">
+        <input type="number" id="ysOzelSoruSayisi" class="form-input" placeholder="Soru sayısı (örn. 20)" min="1" max="100" autocomplete="off" inputmode="numeric">
       </div>
       <div class="form-pill" style="margin-top:8px;">
         <span class="form-ikon">🔤</span>
@@ -107,6 +107,7 @@
           <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
         </select>
       </div>
+      <small class="form-yardim">Soru sayısı tek sayfaya sığmalı (4 şıkta en fazla ~96 soru). Fazlası girilirse kaydetme sırasında uyarılırsınız.</small>
     </div>
 
     <!-- 5. Yanlış Cevap Etkisi — sınav türünden BAĞIMSIZ, her sınav ekleme
