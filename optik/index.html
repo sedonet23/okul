@@ -91,12 +91,22 @@
     </div>
 
     <!-- 4. Özel Sınav Ayarları (soru/şık sayısı) — yalnızca "Özel Sınav" seçilince
-         görünür, çünkü LGS/Bursluluk'ta bu sayılar resmî şablonla SABİTTİR. -->
+         görünür, çünkü LGS/Bursluluk'ta bu sayılar resmî şablonla SABİTTİR.
+         Soru sayısı artık SERBEST METİN DEĞİL, önceden test edilmiş sabit
+         seçeneklerden biri — böylece düzen her zaman sağlam/kompakt kalır
+         (eskiden herhangi bir sayı girilebiliyordu, bu da bazı sayılarda
+         başlık/köşe ile çakışan bozuk sayfalara yol açabiliyordu). -->
     <div class="form-blok" id="ysOzelAyarBlok" hidden>
       <label class="form-etiket">Özel Sınav Ayarları</label>
       <div class="form-pill">
         <span class="form-ikon">🔢</span>
-        <input type="number" id="ysOzelSoruSayisi" class="form-input" placeholder="Soru sayısı (örn. 20)" min="1" max="100" autocomplete="off" inputmode="numeric">
+        <select id="ysOzelSoruSayisi" class="form-input">
+          <option value="15">15 Soru</option>
+          <option value="20" selected>20 Soru</option>
+          <option value="25">25 Soru</option>
+          <option value="30">30 Soru</option>
+          <option value="40">40 Soru</option>
+        </select>
       </div>
       <div class="form-pill" style="margin-top:8px;">
         <span class="form-ikon">🔤</span>
@@ -107,7 +117,7 @@
           <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
         </select>
       </div>
-      <small class="form-yardim">Soru sayısı tek sayfaya sığmalı (4 şıkta en fazla ~96 soru). Fazlası girilirse kaydetme sırasında uyarılırsınız.</small>
+      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor.</small>
     </div>
 
     <!-- 5. Yanlış Cevap Etkisi — sınav türünden BAĞIMSIZ, her sınav ekleme
