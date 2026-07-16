@@ -3,682 +3,1601 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Optik Okuma</title>
-<script>try{if(localStorage.getItem('oyTema')==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}</script>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/optik.css">
-<script src="js/jsqr.min.js"></script>
-<script src="js/layoutEngine.js"></script>
-<script src="js/omrEngine.js"></script>
-<script src="js/koseSecici.js"></script>
-<script src="js/camera.js"></script>
-<script src="js/cevapAnahtari.js"></script>
-<script type="module">
-    import { baglaGaleriSecici } from './js/galeriSecici.js';
-    window.baglaGaleriSecici = baglaGaleriSecici;
-</script>
-<script src="js/lgsPuanHesapla.js"></script>
-<script src="js/disaAktar.js"></script>
+<title>Koruk İlk-Ortaokulu Yönetim Paneli</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="theme-color" content="#053827">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/tasima-takip.css">
+  <link rel="stylesheet" href="css/servis-denetim.css">
+  <link rel="stylesheet" href="css/dilekce.css">
+  <link rel="stylesheet" href="css/tema-modern-acik.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script>
+  (function(){
+    var kayitliTema = localStorage.getItem('oyTema');
+    // Varsayılan: açık tema
+    if(kayitliTema === 'dark'){
+      document.documentElement.setAttribute('data-theme','dark');
+    }
+    // YENİ: kayıtlı renk paketi (tema paketi) — varsayılan 'teal'
+    var kayitliRenk = localStorage.getItem('oyRenkPaketi');
+    document.documentElement.setAttribute('data-accent', kayitliRenk || 'teal');
+    // YENİ: kayıtlı görünüm paketi ('klasik' veya 'modern') — varsayılan 'klasik'.
+    // Sayfa boyanmadan ÖNCE uygulanır ki geçişte kısa bir "yanlış tema" titremesi olmasın.
+    var kayitliGorunum = localStorage.getItem('oyGorunum');
+    if(kayitliGorunum === 'modern'){
+      document.documentElement.setAttribute('data-skin','modern');
+    }
+  })();
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('./service-worker.js').catch(function(err){
+        console.warn('Service worker kaydedilemedi:', err);
+      });
+    });
+  }
+</script>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════
-     EKRAN 1 — SINAVLAR LİSTESİ
-═══════════════════════════════════════════ -->
-<div id="ekranSinavlar" class="ekran aktif">
-  <header class="o-header">
-    <h1 class="o-baslik">Sınavlar</h1>
-    <div class="o-header-saglar">
-      <button class="o-ikon-btn" id="btnSinavlarMenu">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
-      </button>
-    </div>
-  </header>
-  <div class="o-icerik" id="sinavListesiKap">
-    <div class="bos-alan" id="sinavBosAlan">
-      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <p>Henüz sınav oluşturulmadı</p>
-      <small>+ Yeni Sınav ile başlayın</small>
-    </div>
-    <div id="sinavListesi" class="kart-listesi"></div>
-  </div>
-  <button class="fab fab-etiket" id="fabYeniSinav">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Yeni Sınav
-  </button>
-</div>
-
-
-<!-- ═══════════════════════════════════════════
-     EKRAN 2 — YENİ SINAV
-═══════════════════════════════════════════ -->
-<div id="ekranYeniSinav" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnYeniSinavKapat">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-    <h1 class="o-baslik" style="color:#fff;">Yeni Sınav</h1>
-    <button class="o-kaydet-btn" id="btnYeniSinavKaydet">Kaydet</button>
-  </header>
-  <div class="o-icerik o-form-icerik">
-
-    <!-- 1. Sınav Adı -->
-    <div class="form-blok">
-      <label class="form-etiket">Sınav Adı *</label>
-      <div class="form-pill">
-        <span class="form-ikon">✏️</span>
-        <input type="text" id="ysSinavAd" class="form-input" placeholder="Örn: LGS Deneme 1" autocomplete="off">
-      </div>
-    </div>
-
-    <!-- 2. Öğrenci Seçimi -->
-    <div class="form-blok">
-      <label class="form-etiket">Öğrenciler</label>
-      <div id="ysOgrenciSecimAlani" class="ogr-secim-alani">
-        <p class="ogr-secim-bilgi">Uygulama içinden açıldığında sınıf listesi burada görünür.</p>
-      </div>
-    </div>
-
-    <!-- 3. Optik Form -->
-    <div class="form-blok">
-      <label class="form-etiket">Optik Form *</label>
-      <button class="form-secici-btn" id="ysOptikFormSec">
-        <span class="form-ikon">📋</span>
-        <span id="ysOptikFormAdi" class="form-secici-metin">Form seçin...</span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-
-    <!-- 4. Özel Sınav Ayarları (soru/şık sayısı) — yalnızca "Özel Sınav" seçilince
-         görünür, çünkü LGS/Bursluluk'ta bu sayılar resmî şablonla SABİTTİR.
-         Soru sayısı artık SERBEST METİN DEĞİL, önceden test edilmiş sabit
-         seçeneklerden biri — böylece düzen her zaman sağlam/kompakt kalır
-         (eskiden herhangi bir sayı girilebiliyordu, bu da bazı sayılarda
-         başlık/köşe ile çakışan bozuk sayfalara yol açabiliyordu). -->
-    <div class="form-blok" id="ysOzelAyarBlok" hidden>
-      <label class="form-etiket">Özel Sınav Ayarları</label>
-      <div class="form-pill">
-        <span class="form-ikon">🔢</span>
-        <select id="ysOzelSoruSayisi" class="form-input">
-          <option value="15">15 Soru</option>
-          <option value="20" selected>20 Soru</option>
-          <option value="25">25 Soru</option>
-          <option value="30">30 Soru</option>
-          <option value="40">40 Soru</option>
-        </select>
-      </div>
-      <div class="form-pill" style="margin-top:8px;">
-        <span class="form-ikon">🔤</span>
-        <select id="ysOzelSikSayisi" class="form-input">
-          <option value="4" selected>4 şık (A-D)</option>
-          <option value="5">5 şık (A-E)</option>
-          <option value="3">3 şık (A-C)</option>
-          <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
-        </select>
-      </div>
-      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor.</small>
-    </div>
-
-    <!-- 5. Yanlış Cevap Etkisi — sınav türünden BAĞIMSIZ, her sınav ekleme
-         akışında görünür. LGS/Bursluluk'ta varsayılan resmî kural (3 yanlış
-         1 doğru götürür) seçili gelir ama istenirse değiştirilebilir. -->
-    <div class="form-blok">
-      <label class="form-etiket">Yanlış Cevap Etkisi</label>
-      <div class="form-pill">
-        <select id="ysYanlisEtkisi" class="form-input">
-          <option value="3" selected>3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
-          <option value="4">4 yanlış 1 doğruyu götürür</option>
-          <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
-        </select>
-      </div>
-      <small class="form-yardim">Net = Doğru − (Yanlış ÷ seçilen sayı). Resmî LGS/Bursluluk formülü 3'tür; farklı bir deneme kuralı kullanıyorsan burada değiştirebilirsin.</small>
-    </div>
-
+<div id="configWarning" class="config-warning">
+  <div class="config-box">
+    <h2>Firebase Bağlantısı Gerekli</h2>
+    <p><code>js/firebase-init.js</code> dosyasındaki <strong>firebaseConfig</strong> ve <strong>VAPID_KEY</strong> değerlerini kendi Firebase projenizin bilgileriyle doldurmanız gerekiyor. Adım adım kurulum için depodaki <strong>README.md</strong> dosyasına bakın.</p>
   </div>
 </div>
 
+<!-- AŞAMA 1: Google ile giriş ekranı ve admin onayı bekleme ekranı (bkz. js/auth.js, firestore.rules) -->
+<div id="girisEkrani" class="config-warning">
+  <div class="config-box" style="text-align:center;">
+    <img src="assets/icon-192.png" alt="Logo" style="width:64px;height:64px;border-radius:16px;margin-bottom:14px;">
+    <h2>Koruk İlk-Ortaokulu Yönetim Paneli</h2>
+    <p>Devam etmek için kullanıcı adı ve şifrenizle giriş yapın.</p>
+    <form onsubmit="girisFormGonder(event)" style="margin-top:16px;display:flex;flex-direction:column;gap:10px;text-align:left;">
+      <div class="form-group" style="margin:0;">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="girisKullaniciAdi" autocomplete="username" autocapitalize="none" style="width:100%;" required>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label>Şifre</label>
+        <input type="password" id="girisSifre" autocomplete="current-password" style="width:100%;" required>
+      </div>
+      <div id="girisHataMetni" style="display:none;color:#c0392b;font-size:12.5px;"></div>
+      <button type="submit" id="girisBtn" class="btn btn-amber" style="margin-top:6px;">Giriş Yap</button>
+    </form>
+    <p style="margin-top:14px;font-size:12px;color:var(--ink-muted);">Kullanıcı adınızı unuttuysanız veya şifrenizi sıfırlatmanız gerekiyorsa okul yöneticinizle iletişime geçin.</p>
+  </div>
+</div>
 
-<!-- ═══════════════════════════════════════════
-     EKRAN 3 — SINAV DETAY
-═══════════════════════════════════════════ -->
-<div id="ekranSinavDetay" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnSinavDetayGeri">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <h1 class="o-baslik o-baslik-kucuk" id="sinavDetayBaslik" style="color:#fff;">Sınav</h1>
-    <button class="o-kaydet-btn" id="btnOptikOlustur">Optik Oluştur</button>
-  </header>
+<div id="onayBekleniyorEkrani" class="config-warning">
+  <div class="config-box" style="text-align:center;">
+    <h2>Hesap Onayı Bekleniyor</h2>
+    <p id="onayBekleniyorMetin">Hesabınız oluşturuldu, ancak yönetici onayı bekleniyor. Onaylandığında uygulamayı tekrar açtığınızda erişim sağlanacak.</p>
+    <button onclick="cikisYap()" style="margin-top:14px;padding:10px 18px;border-radius:10px;border:1px solid var(--border);background:none;cursor:pointer;font-weight:600;">Farklı hesapla dene</button>
+  </div>
+</div>
 
-  <nav class="sekme-bar" id="sekmeBar">
-    <button class="sekme aktif" data-sekme="kagitlar">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Kağıtlar
-    </button>
-    <button class="sekme" data-sekme="anahtar">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
-      Anahtar
-    </button>
-    <button class="sekme" data-sekme="raporlar">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      Raporlar
-    </button>
-  </nav>
+<div class="app" id="app">
 
-  <div class="sekme-icerik">
-
-    <!-- KAĞITLAR -->
-    <section class="sekme-panel aktif" id="panelKagitlar">
-      <div class="kl-arama" style="display:flex; align-items:center; gap:8px;">
-        <div class="arama-kutu" style="flex:1;">
-          <svg class="arama-ikon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="arama-input" id="kagitArama" placeholder="Öğrenci, numara veya sınıf ...">
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <button class="hamburger-btn" id="sidebarHamburger" title="Menüyü daralt/genişlet" aria-label="Menüyü daralt/genişlet"><span></span><span></span><span></span></button>
+      <div id="sidebarHesap" style="display:none;align-items:center;gap:8px;flex:1;min-width:0;">
+        <div onclick="profilVeyaSecimAc()" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:pointer;" title="Profilimi Aç">
+          <img id="hesapAvatar" src="assets/icon-192.png" alt="" style="width:34px;height:34px;border-radius:50%;flex-shrink:0;object-fit:cover;">
+          <div style="flex:1;min-width:0;">
+            <div id="hesapAd" style="font-weight:700;font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+            <div id="hesapEmail" style="font-size:10.5px;color:var(--ink-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+          </div>
         </div>
-        <button type="button" class="kl-yenile-btn" id="btnPuanYenidenHesapla" title="Puanları Yeniden Hesapla">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </button>
+        <button id="hesapCikisBtn" title="Hesaptan çıkış yap" aria-label="Hesaptan çıkış yap" style="background:none;border:1px solid var(--border);border-radius:8px;padding:5px 8px;cursor:pointer;font-size:12px;flex-shrink:0;display:flex;align-items:center;gap:4px;color:var(--ink-muted);"><svg viewBox="0 0 100 100" width="15" height="15" style="display:block;flex-shrink:0;"><circle cx="50" cy="50" r="50" fill="#FF6459"/><path d="M62 30a24 24 0 1 0 0 40" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M38 50h24M52 38l12 12-12 12" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
-      <div class="kl-filtreler chip-scroll" id="kagitSinifFiltre"></div>
-      <div id="kagitListesi" class="kart-listesi"></div>
-      <div class="bos-alan" id="kagitBosAlan">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity=".25"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <p>Henüz tarama yapılmadı</p>
-        <small>📷 veya + ile kağıt ekleyin</small>
+      <button class="theme-toggle in-sidebar" id="temaDugmesi" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
+    </div>
+    <nav class="nav">
+      <button class="nav-tab active" data-tab="panel"><i class="nt-ico ni-panel" data-lucide="layout-dashboard"></i><span class="nt-label">Ana Sayfa</span></button>
+      <button class="nav-tab" data-tab="arama"><i class="nt-ico" data-lucide="search"></i><span class="nt-label">Arama</span></button>
+      <button class="nav-tab nav-sub-tab" data-tab="ogretmenler"><i class="nt-ico ni-ogretmen" data-lucide="user-round"></i><span class="nt-label">Öğretmenler</span></button>
+     
+      
+      <input type="checkbox" id="kisilerCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="kisilerCheck">
+        <i class="nt-ico ni-ogretmen" data-lucide="users"></i><span class="nt-label">Sınıf ve Öğrenci İşlemleri</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="kisilerMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="siniflar"><i class="nt-ico ni-sinif" data-lucide="school"></i><span class="nt-label">Sınıflar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogrenciler"><i class="nt-ico" data-lucide="graduation-cap"></i><span class="nt-label">Öğrenciler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="yaziliSinavlar"><i class="nt-ico ni-sinav" data-lucide="clipboard-check"></i><span class="nt-label">Yazılı Sınavlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="denemeSinavlari"><i class="nt-ico" data-lucide="flask-conical"></i><span class="nt-label">Deneme Sınavları</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="ogretmenListe" onclick="ogretmenListeSekmesiAc()"><i class="nt-ico" data-lucide="list-checks"></i><span class="nt-label">Öğrenci Listesi Oluşturcu</span></button>
       </div>
-      <!-- OMR işlem canvas (gizli) -->
-      <div id="omrDurum" class="omr-durum" style="display:none;">
-        <span id="statusText">İşleniyor...</span>
-        <canvas id="resultCanvas" style="display:none;"></canvas>
-        <div id="hataKutusu" style="display:none;color:var(--tehlike);padding:8px;font-size:12px;"></div>
+
+      
+      <input type="checkbox" id="programCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="programCheck">
+        <i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders ve Nöbet Programı</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="programMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="nobet"><i class="nt-ico ni-nobet" data-lucide="shield-check"></i><span class="nt-label">Nöbet Programı</span></button>
       </div>
-      <!-- Çift FAB: kamera + ekle -->
-      <div class="fab-kume" id="kagitFabKume">
-        <button class="fab fab-kamera" id="fabKamera" title="Kağıt Tara">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+
+      <input type="checkbox" id="iletisimCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="iletisimCheck">
+        <i class="nt-ico" data-lucide="message-circle"></i><span class="nt-label">İletişim</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="iletisimMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="mesajlasma"><i class="nt-ico" data-lucide="message-circle"></i><span class="nt-label">Mesajlar</span><span id="mesajRozeti" class="badge badge-red" style="display:none;margin-left:auto;border-radius:999px;">0</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="haberler"><i class="nt-ico" data-lucide="newspaper"></i><span class="nt-label">Haberler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="duyurular"><i class="nt-ico" data-lucide="megaphone"></i><span class="nt-label">Duyurular</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="anket"><i class="nt-ico" data-lucide="bar-chart-3"></i><span class="nt-label">Anketler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="takvim"><i class="nt-ico ni-takvim" data-lucide="calendar-days"></i><span class="nt-label">Takvim</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="notlar"><i class="nt-ico ni-notlar" data-lucide="notebook-pen"></i><span class="nt-label">Notlar</span></button>
+      </div>
+
+      <input type="checkbox" id="belgelerCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="belgelerCheck">
+        <i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Belgeler</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="belgelerMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="evrak"><i class="nt-ico ni-evrak" data-lucide="clipboard-list"></i><span class="nt-label">Evrak Takibi</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="dokumanlar"><i class="nt-ico ni-dokumanlar" data-lucide="folder"></i><span class="nt-label">Dökümanlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="mevzuat"><i class="nt-ico" data-lucide="scale"></i><span class="nt-label">Mevzuat</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="personel"><i class="nt-ico ni-ogretmen" data-lucide="briefcase"></i><span class="nt-label">Personel İşleri</span></button>
+      </div>
+
+      <input type="checkbox" id="ulasimCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="ulasimCheck">
+        <i class="nt-ico ni-tasima" data-lucide="bus"></i><span class="nt-label">Ulaşım</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="ulasimMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="tasima"><i class="nt-ico ni-tasima" data-lucide="bus"></i><span class="nt-label">Taşıma</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="harita" onclick="haritaSekmesiAc()"><i class="nt-ico ni-harita" data-lucide="map"></i><span class="nt-label">Harita</span></button>
+      </div>
+
+
+      <!-- Açılır menü: Çizelgeler (saf CSS ile çalışır, JS'e bağımlı değildir) -->
+      <input type="checkbox" id="cizelgelerCheck" class="nav-group-check" hidden>
+      <label class="nav-group-toggle" for="cizelgelerCheck">
+        <i class="nt-ico ni-diger" data-lucide="layout-grid"></i><span class="nt-label">Çizelgeler</span><span class="toggle-arrow">▶</span>
+      </label>
+      <div class="nav-group" id="cizelgelerMenu">
+        <button class="nav-tab nav-sub-tab" data-tab="sosyalKulupler"><i class="nt-ico ni-kulupler" data-lucide="party-popper"></i><span class="nt-label">Sosyal Kulüpler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="belirliGunler"><i class="nt-ico ni-bgw" data-lucide="star"></i><span class="nt-label">Belirli Gün &amp; Haftalar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="zumre"><i class="nt-ico ni-zumre" data-lucide="users-round"></i><span class="nt-label">Zümre</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="sok"><i class="nt-ico ni-sok" data-lucide="ruler"></i><span class="nt-label">ŞÖK</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="bepPlani"><i class="nt-ico ni-bep" data-lucide="book-marked"></i><span class="nt-label">Yıllık / BEP Planı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="rehberlik"><i class="nt-ico ni-rehber" data-lucide="compass"></i><span class="nt-label">Rehberlik</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><i class="nt-ico ni-maarif" data-lucide="bar-chart-3"></i><span class="nt-label">Maarif Model Raporlar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><i class="nt-ico ni-digrevr" data-lucide="folder-open"></i><span class="nt-label">Diğer Evraklar</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><i class="nt-ico ni-aylik" data-lucide="refresh-cw"></i><span class="nt-label">Aylık İşler</span></button>
+      </div>
+      
+      <button class="nav-tab" data-tab="okulBilgileri"><i class="nt-ico ni-okul" data-lucide="building-2"></i><span class="nt-label">Okul Bilgileri</span></button>
+      <button class="nav-tab" data-tab="veri"><i class="nt-ico ni-veri" data-lucide="database"></i><span class="nt-label">Veri</span></button>
+      <button class="nav-tab" data-tab="ayarlar"><i class="nt-ico ni-ayarlar" data-lucide="settings"></i><span class="nt-label">Ayarlar</span></button>
+      <button class="nav-tab" data-tab="kullaniciYonetimi" style="display:none;"><i class="nt-ico" data-lucide="crown"></i><span class="nt-label">Kullanıcı Yönetimi</span></button>
+      <button class="nav-tab" data-tab="istatistikler" style="display:none;" onclick="renderIstatistikler()"><i class="nt-ico" data-lucide="trending-up"></i><span class="nt-label">Kullanıcı İstatistikleri</span></button>
+    </nav>
+    <button class="nav-cikis-btn" id="cikisBtn" title="Uygulamadan çık"><span class="nt-ico"><svg viewBox="0 0 100 100" width="20" height="20" style="display:block;"><circle cx="50" cy="50" r="50" fill="#FF6459"/><path d="M62 30a24 24 0 1 0 0 40" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M38 50h24M52 38l12 12-12 12" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nt-label">Çıkış</span></button>
+    </aside>
+
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+    <div class="topbar">
+      <button class="hamburger-btn" id="topbarHamburger" title="Menüyü aç" aria-label="Menüyü aç"><span></span><span></span><span></span></button>
+      <div class="topbar-brand" onclick="sekmeAc('panel')" style="cursor:pointer;" title="Ana sayfaya dön">
+        <img class="topbar-logo" src="assets/icon-192.png" alt="Koruk İlk-Ortaokulu logosu">
+        <div class="topbar-title">Koruk İlk-Ortaokulu</div>
+      </div>
+      <div id="topbarHava" style="display:none;align-items:center;gap:6px;font-size:14px;font-weight:600;margin-right:2px;white-space:nowrap;"></div>
+      <!-- YENİ: Bildirim zili — artık sekmeye gitmiyor, altına küçük bir bildirim
+           listesi açıyor (bekleyen hatırlatıcılar + okunmamış duyurular) -->
+      <button class="topbar-bell" id="temaDugmesiTopbar" title="Açık/Koyu tema" aria-label="Açık/Koyu tema">🌙</button>
+      <div style="position:relative;">
+        <button class="topbar-bell" onclick="bildirimZiliAcKapat(event)" title="Bildirimler" aria-label="Bildirimler">
+          <i data-lucide="bell" style="width:18px;height:18px;"></i><span id="topbarBellBadge" class="topbar-bell-badge" style="display:none;"></span>
         </button>
-        <button class="fab fab-ekle" id="fabKagitEkle" title="Galeri / Manuel">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
+        <div id="bildirimZiliPaneli" class="card" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:300px;max-width:85vw;max-height:360px;overflow-y:auto;z-index:500;box-shadow:0 10px 28px rgba(0,0,0,.22);padding:0;"></div>
+      </div>
+      <button class="topbar-avatar" id="topbarAvatar" onclick="if(typeof AltNav!=='undefined') AltNav.profilAc(); else profilVeyaSecimAc();" title="Profilim"><i data-lucide="user-round" style="width:18px;height:18px;"></i></button>
+    </div>
+
+    <main class="content">
+
+    <section id="tab-panel" class="tab-panel active dash-modern">
+      <div class="page-header"><div><div class="page-title">🏠 Genel Bakış</div></div></div>
+
+      <!-- 1. HERO KARTI: Karşılama + tarih + zil sayacı + hava özeti (birleşik, tıklanınca detay açılır) -->
+      <div class="card dash-hero">
+        <div class="dash-hero-top">
+          <div class="dash-hero-greet">
+            <div class="dash-hero-hi" id="heroSelamla">Günaydın... 👋</div>
+            <div class="page-sub" id="panelTarih"></div>
+          </div>
+        </div>
+        <!-- Zil + Hava: renderZilSayaci hero-bell'i, topbarRenderEt ise hero-hava-satir'ı dolduruyor. Tıklayınca hava detay sayfası açılıyor. -->
+        <div class="dash-hero-bell" id="zilWidget" onclick="sekmeAc('dersProgrami')" style="cursor:pointer;"></div>
+        <div class="dash-hero-hava-satir" id="heroHavaSatir" onclick="havaDurumuDetayAc()" style="display:none; cursor:pointer;"></div>
+      </div>
+
+      <!-- Bugün İzinli/Raporlu Öğretmenler -->
+      <div class="card" id="bugunIzinliKart" data-kart-id="bugunIzinli" data-yetki-modul="ogretmenler" style="display:none;">
+        <h3 class="dash-h3-row">🏥 Bugün İzinli Öğretmenler</h3>
+        <div id="bugunIzinliListesi"></div>
+      </div>
+
+      <!-- Haberler kayan bandı -->
+      <div class="haber-ticker" id="haberTicker" data-kart-id="haberTicker" data-yetki-modul="haberler" style="display:none;"></div>
+
+      <!-- YENİ: Duyuru Panosu — Haberler modülünden BAĞIMSIZ, kendi yetkisi
+           ve okundu-takip sistemi olan ayrı modül (bkz. js/duyurular.js). -->
+      <div class="card" id="duyuruPanosuKart" data-kart-id="duyuruPanosu" data-yetki-modul="duyurular" style="display:none;">
+        <h3 class="dash-h3-row">📢 Duyuru Panosu <span class="dash-tumu-link" onclick="sekmeAc('duyurular')">Tümü ›</span></h3>
+        <div id="duyuruPanosuIcerik"></div>
+      </div>
+
+      <!-- Hava durumu hero kartında gösterildiğinden buradaki kart gizlendi -->
+      <div id="havaDurumuKartWrap" style="display:none!important;">
+        <div id="havaDurumuKart"><div id="havaDurumuYukleniyor"></div></div>
+      </div>
+
+      <!-- 3. İstatistik kartları (Personel / Öğrenci / Servis / Bekleyen Evrak) — dashStats id'si ile JS'ten geliyor, her kart kendi gorebilir() kontrolüyle üretiliyor -->
+      <div data-kart-id="istatistikSeridi">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:0 2px 6px;">
+          <span style="font-size:12px;font-weight:700;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.4px;">İstatistikler</span>
+          <button class="btn btn-ghost btn-sm" onclick="dashboardAltDuzenModalAc('istatistikSeridi')" title="Düzenle">✏️</button>
+        </div>
+        <div class="dash-stat-strip" id="dashStats"></div>
+      </div>
+
+      <!-- YENİ: Hızlı Bakış — ikincil özet rozetleri (Sınıf, Kadın/Erkek, Açık Görev, Hatırlatıcı) — chip'ler kendi gorebilir() kontrolüyle üretiliyor -->
+      <div class="card dash-hizlibakis-card" data-kart-id="hizliBakis">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">👁️ Hızlı Bakış <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); dashboardAltDuzenModalAc('hizliBakis')" title="Düzenle">✏️</button></h3>
+        <div class="dash-hizlibakis" id="dashHizliBakis"></div>
+      </div>
+
+      <!-- Haberler karuseli — son 5 haber, otomatik kayan kart -->
+      <div class="card dash-card-clickable" id="haberKaruselKart" data-kart-id="haberKarusel" data-yetki-modul="haberler" style="display:none;">
+        <h3 class="dash-h3-row">📰 Son Haberler <span class="dash-tumu-link" onclick="event.stopPropagation(); sekmeAc('haberler')">Tümü ›</span></h3>
+        <div class="karusel-viewport">
+          <div class="karusel-track" id="haberKarusel"></div>
+        </div>
+        <div class="karusel-noktalar" id="haberKaruselNoktalar"></div>
+      </div>
+
+      <!-- YENİ: Okul sitemizden (korukortaokulu.meb.k12.tr) Haber+Duyuru RSS'i,
+           görselli, yatay kaydırmalı şerit — genel Haberler karuselinden AYRI. -->
+      <div class="card" id="okulSitesiKart" data-kart-id="okulSitesiKart" data-yetki-modul="haberler" style="display:none;">
+        <h3 class="dash-h3-row">🏫 Okul Sitemizden <span class="dash-tumu-link" onclick="sekmeAc('haberler')">Tümü ›</span></h3>
+        <div id="okulSitesiSerit" style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:4px;margin-top:6px;"></div>
+      </div>
+
+      <!-- 4. Hızlı İşlemler — 2x4 grid, M3 tarzı renkli ikon rozetleri, gerçek sekmelere bağlı -->
+      <div class="card" data-kart-id="hizliIslemler">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">⚡ Hızlı İşlemler <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); dashboardAltDuzenModalAc('hizliIslemler')" title="Düzenle">✏️</button></h3>
+        <div class="qa-grid" id="hizliIslemlerGrid"></div>
+      </div>
+
+      <!-- 5. Günün Nöbetçileri -->
+      <div class="card dash-card-clickable tatil-gizle" data-kart-id="gununNobetcileri" data-yetki-modul="nobet" onclick="sekmeAc('nobet')"><h3 class="dash-h3-row">🛡️ Günün Nöbetçileri <span class="dash-tumu-link">Tümü ›</span></h3><div id="dashBugunNobet"></div></div>
+
+      <!-- YENİ: Öğretmene özel — sadece hesabına bağlı bir öğretmen kaydı olan
+           kullanıcıya gösterilir (bkz. js/app.js renderOgretmenOzelKartlar). -->
+      <div class="dash-cols" id="ogretmenOzelKartlar" data-kart-id="ogretmenOzel" style="display:none;">
+        <div class="card dash-card-clickable" data-yetki-modul="dersProgrami" onclick="sekmeAc('dersNobetProgramim')">
+          <h3 class="dash-h3-row">📚 Bugünkü Derslerim <span class="dash-tumu-link">Tümü ›</span></h3>
+          <div id="ogretmenBugunDersleri"></div>
+        </div>
+        <div class="card dash-card-clickable" data-yetki-modul="nobet" onclick="sekmeAc('dersNobetProgramim')" id="ogretmenNobetKarti">
+          <h3 class="dash-h3-row">🛡️ Bu Haftaki Nöbetim <span class="dash-tumu-link">Tümü ›</span></h3>
+          <div id="ogretmenHaftaNobeti"></div>
+        </div>
+      </div>
+
+      <!-- YENİ (widget): Sınavlarım -->
+      <div class="card dash-card-clickable" data-kart-id="sinavlarim" data-yetki-modul="sinavIslemleri" onclick="sekmeAc('yaziliSinavlar')" style="display:none;">
+        <h3 class="dash-h3-row">📝 Sınavlarım <span class="dash-tumu-link">Tümü ›</span></h3>
+        <div id="dashSinavlarim"></div>
+      </div>
+
+      <!-- YENİ (widget): Okunmamış Mesajlarım -->
+      <div class="card dash-card-clickable" data-kart-id="mesajlarim" data-yetki-modul="mesajlasma" onclick="sekmeAc('mesajlasma')" style="display:none;">
+        <h3 class="dash-h3-row">💬 Mesajlarım <span class="dash-tumu-link">Tümü ›</span></h3>
+        <div id="dashMesajlarim"></div>
+      </div>
+
+      <!-- YENİ (widget): Son Eklenen Dökümanlar -->
+      <div class="card dash-card-clickable" data-kart-id="sonDokumanlar" data-yetki-modul="dokumanlar" onclick="sekmeAc('dokumanlar')" style="display:none;">
+        <h3 class="dash-h3-row">📁 Son Eklenen Dökümanlar <span class="dash-tumu-link">Tümü ›</span></h3>
+        <div id="dashSonDokumanlar"></div>
+      </div>
+
+      <!-- YENİ (widget): Bekleyen Evrak Listesi -->
+      <div class="card dash-card-clickable" data-kart-id="bekleyenEvrak" data-yetki-modul="evrak" onclick="sekmeAc('evrak')" style="display:none;">
+        <h3 class="dash-h3-row">📄 Bekleyen Evrak <span class="dash-tumu-link">Tümü ›</span></h3>
+        <div id="dashBekleyenEvrak"></div>
+      </div>
+
+      <div class="card dash-card-clickable tatil-gizle" data-kart-id="suankiDers" data-yetki-modul="dersProgrami" onclick="sekmeAc('dersProgrami')"><h3>📚 Şu Anki Ders Saatinde</h3><div id="dashSuankiDers"></div></div>
+      <div class="card dash-card-clickable tatil-gizle" data-kart-id="bugununProgrami" data-yetki-modul="dersProgrami" onclick="sekmeAc('dersProgrami')"><h3>🗓️ Bugünün Ders Programı</h3><div id="dashBugunDersler"></div></div>
+
+      <div class="card dash-card-clickable tatil-gizle" data-kart-id="haftaninNobetcileri" data-yetki-modul="nobet" onclick="sekmeAc('nobet')"><h3>👮 Bu Haftanın Nöbetçileri</h3><div id="nobetHaftaKutu"></div></div>
+      <div class="card dash-card-clickable" data-kart-id="etkinlikGorev" data-yetki-modul="takvim" onclick="sekmeAc('takvim')"><h3 class="dash-h3-row">⏰ Yaklaşan Etkinlikler &amp; Görevler <span class="dash-tumu-link">Tümü ›</span></h3><div id="dashHatirlaticilar"></div></div>
+
+      <div class="card dash-card-clickable" data-kart-id="belirliGunler" data-yetki-modul="belirliGunler" onclick="sekmeAc('belirliGunler')"><h3>🎉 Yaklaşan Belirli Gün Ve Haftalar</h3><div id="dashYaklasanEtkinlikler"></div></div>
+      <div class="card dash-card-clickable" data-kart-id="miniTakvim" data-yetki-modul="takvim" onclick="sekmeAc('takvim')">
+        <h3>📅 Bu Ay</h3>
+        <div id="dashMiniTakvim"></div>
+      </div>
+
+      <!-- YENİ: Ajanda anasayfada — yaklaşan etkinlikler, görevler ve hatırlatıcılar -->
+      <div class="card dash-card-clickable" data-kart-id="ajanda" data-yetki-modul="takvim" onclick="sekmeAc('takvim')">
+        <h3 class="dash-h3-row">🗓️ Ajanda <span class="dash-tumu-link">Tümü ›</span></h3>
+        <div id="dashAjanda"></div>
+      </div>
+
+      <!-- Not Alma -->
+      <div class="card dash-card-clickable" data-kart-id="notDefteri" data-yetki-modul="notlar" onclick="sekmeAc('notlar')">
+        <h3 style="display:flex;align-items:center;justify-content:space-between;">📝 Not Defteri <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); notlarModalAc()" style="margin-left:auto;">➕ Yeni Not</button></h3>
+        <div id="dashNotlar"></div>
       </div>
     </section>
 
-    <!-- ANAHTAR -->
-    <section class="sekme-panel" id="panelAnahtar">
-      <div class="anahtar-toolbar">
-        <select id="anahDersSecici" class="anahtar-ders-sec"></select>
-        <div class="anahtar-butonlar">
-          <label class="tb-btn" for="anahtarExcelInput" title="Excel'den içe aktar (.xlsx)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <input type="file" id="anahtarExcelInput" accept=".xlsx,.xls" hidden>
-          </label>
-          <button class="tb-btn" id="btnAnahtarDisaAktar" title="Dışa aktar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </button>
-          <button class="tb-btn" id="btnMiniAnahtar" title="Mini cevap anahtarı PDF">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </button>
-          <button class="tb-btn tb-btn-tehlike" id="btnAnahtarTemizle" title="Tümünü sil">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          </button>
+    <section id="tab-ogretmenler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Öğretmenler</div><div class="page-sub">Okuldaki öğretmenlerin bilgileri</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogretmenExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <input type="file" id="ogretmenExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogretmenExceliIceAktar(this.files[0]); this.value='';">
+          <button class="btn btn-amber" onclick="ogretmenModalAc()">+ Yeni Öğretmen</button>
         </div>
       </div>
-      <div id="anahSoruListesi" class="anahtar-soru-listesi"></div>
-    </section>
-
-    <!-- RAPORLAR -->
-    <section class="sekme-panel" id="panelRaporlar">
-      <div class="rapor-govde">
-        <div class="rapor-grup-baslik">GENEL RAPORLAR</div>
-        <div class="rapor-kart">
-          <button class="rapor-satir" data-rapor="basit"><div class="rapor-ikon" style="background:#E3F2FD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E88E5" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><span>Basit</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="rapor-satir" data-rapor="detayli"><div class="rapor-ikon" style="background:#F3E5F5;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8E24AA" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><span>Detaylı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="rapor-satir" data-rapor="lgs"><div class="rapor-ikon" style="background:#FCE4EC;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D81B60" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1.5 7L12 17.5 5.5 21 7 14 2 9l7-1z"/></svg></div><span id="raporLgsEtiket">LGS Puanı</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="rapor-satir son" data-rapor="excel"><div class="rapor-ikon" style="background:#E8F5E9;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#43A047" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div><span>Excel İndir</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-        </div>
-        <div class="rapor-grup-baslik">DİĞER</div>
-        <div class="rapor-kart">
-          <button class="rapor-satir" data-rapor="girmeyenler"><div class="rapor-ikon" style="background:#E8EAF6;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3949AB" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="23" y1="11" x2="17" y2="11"/></svg></div><span>Sınava Girmeyenler</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
-          <button class="rapor-satir son" data-rapor="basarili"><div class="rapor-ikon" style="background:#FFF8E1;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F9A825" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div><span>Başarılı Öğrenciler</span><svg class="rapor-ok" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+      <div class="card">
+        <input type="text" id="ogretmenArama" placeholder="Ada veya branşa göre ara..." oninput="renderOgretmenler()" style="margin-bottom:16px;max-width:320px;">
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr><th>Ad Soyad</th><th>Ünvan</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
+            <tbody id="ogretmenlerTablo"></tbody>
+          </table>
         </div>
       </div>
     </section>
 
-  </div><!-- .sekme-icerik -->
-</div><!-- #ekranSinavDetay -->
-
-
-<!-- ═══════════════════════════════════════════
-     EKRAN 4 — ÖĞRENCİ / KAĞIT DETAY
-═══════════════════════════════════════════ -->
-<div id="ekranOgrDetay" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnOgrDetayGeri">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <h1 class="o-baslik o-baslik-kucuk" id="ogrDetayAd" style="color:#fff;">Öğrenci</h1>
-    <button class="o-kaydet-btn" id="btnOgrDetayKaydet">Kaydet</button>
-  </header>
-
-  <div class="ir-sekmeler">
-    <button class="ir-sekme aktif" data-ir="icerik">İçerik</button>
-    <button class="ir-sekme" data-ir="resim">Resim</button>
-  </div>
-
-  <div class="ogr-stats-bar">
-    <span class="ogr-stats-net">Toplam Net: <strong id="ogrDetayNet">0.0</strong></span>
-    <span class="ogr-stats-puan" id="ogrDetayFormPuan">—</span>
-  </div>
-
-  <div class="ir-panel aktif" id="irIcerik">
-    <!-- Öğrenci bilgi inputları -->
-    <div class="ogr-bilgi-grid">
-      <div class="pill-wrap">
-        <label class="pill-label">Numara</label>
-        <div class="pill-satir">
-          <input type="text" id="ogrDetayNo" class="pill-input">
-          <button class="pill-sil" data-h="ogrDetayNo">×</button>
+    <section id="tab-siniflar" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Sınıflar</div><div class="page-sub" id="siniflarOzet"></div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput').click()">📥 Öğrenci Listesi Excel</button>
+          <input type="file" id="ogrenciExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulSiniflarInput').click()">📋 e-Okul Sınıf Listesi</button>
+          <input type="file" id="eOkulSiniflarInput" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0]); this.value='';">
+          <button class="btn btn-amber" onclick="sinifModalAc()">+ Yeni Sınıf</button>
         </div>
       </div>
-      <div class="pill-wrap">
-        <label class="pill-label">Sınıf</label>
-        <div class="pill-satir">
-          <input type="text" id="ogrDetaySinif" class="pill-input">
-          <button class="pill-sil" data-h="ogrDetaySinif">×</button>
+      <div class="card">
+        <input type="text" id="sinifArama" placeholder="Sınıf adına göre ara..." oninput="renderSiniflar()" style="margin-bottom:16px;max-width:320px;">
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead><tr><th>Sınıf</th><th>Seviye</th><th>Sınıf Öğretmeni</th><th>Öğrenci</th><th>Kız</th><th>Erkek</th><th>Derslik</th><th></th></tr></thead>
+            <tbody id="siniflarTablo"></tbody>
+          </table>
         </div>
       </div>
-      <div class="pill-wrap pill-tam">
-        <label class="pill-label">Ad Soyad</label>
-        <div class="pill-satir">
-          <input type="text" id="ogrDetayAdSoyad" class="pill-input">
-          <button class="pill-sil" data-h="ogrDetayAdSoyad">×</button>
+    </section>
+
+    </section>
+
+    <!-- YENİ: Öğrenciler Sekmesi — veliler[] (oy_veliler koleksiyonu) dizisinden beslenir -->
+    <section id="tab-ogrenciler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">👨‍🎓 Öğrenciler</div><div class="page-sub" id="ogrencilerOzet"></div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="okulaBaslamaYasiHesaplaModalAc()">🎂 Kayıt Yaşı Hesapla</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ogrenciExcelInput2').click()">📥 Excel İçe Aktar</button>
+          <input type="file" id="ogrenciExcelInput2" accept=".xlsx,.xls" style="display:none;" onchange="ogrenciVeliExceliIceAktar(this.files[0], null); this.value='';">
         </div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="ogrenci-filtre-satiri">
+          <input type="text" id="ogrenciArama" placeholder="🔍  Öğrenci, veli, sınıf adı ara…" oninput="renderOgrenciler()" style="flex:1;">
+          <select id="ogrenciSinifFiltre" onchange="renderOgrenciler()">
+            <option value="">Tüm Sınıflar</option>
+          </select>
+          <select id="ogrenciCinsiyetFiltre" onchange="renderOgrenciler()">
+            <option value="">Tüm</option>
+            <option value="Kız">Kız</option>
+            <option value="Erkek">Erkek</option>
+          </select>
+        </div>
+      </div>
+      <div id="ogrencilerListe"></div>
+    </section>
+
+    <section id="tab-dersProgrami" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Ders Programı</div><div class="page-sub">Bir hücreye tıklayarak ders ekleyin/düzenleyin</div></div>
+        <div class="page-header-actions">
+          <select id="dersSinifSecimi" onchange="sinifDegisti(this.value)" style="width:auto;"></select>
+          <button class="btn btn-ghost btn-sm" onclick="yeniSinifEkleDers()">+ Yeni Sınıf</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('dersExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <input type="file" id="dersExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="raporDersProgrami()">🖨️ Ders Programı</button>
+          <button class="btn btn-ghost btn-sm" onclick="raporDersProgramiCarsafModalAc()">📊 Çarşaf Rapor</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><table class="schedule-grid sch" id="dersGridTablo"></table></div>
+    </section>
+
+    <section id="tab-nobet" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Nöbet Programı</div><div class="page-sub">Tarih bazlı aylık nöbet çizelgesi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="nobetYeriEkle()">+ Yeni Nöbet Yeri</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('nobetExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <input type="file" id="nobetExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
+          <button class="btn btn-ghost btn-sm" onclick="raporNobetListesi()">🖨️ Nöbet Listesi</button>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <button class="btn btn-amber" style="width:100%;font-size:15px;padding:12px;" onclick="nobetOtomatikDagitimModalAc()">🔄 Otomatik Nöbet Dağıtımı</button>
+      </div>
+
+      <div class="dash-cols" style="margin-bottom:18px;">
+        <div class="card"><h3>Bugünün Nöbetçileri</h3><div id="nobetBugunKutu"></div></div>
+        <div class="card">
+          <h3>Resmi Tatiller</h3>
+          <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="nobetTatilEkle()">+ Tatil Ekle</button>
+          <div id="nobetTatilListesi"></div>
+        </div>
+      </div>
+
+      <div class="card cizelge-wrap">
+        <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px;">
+          <button class="btn btn-ghost btn-sm" onclick="nobetAyDegistir(-1)">‹ Önceki Ay</button>
+          <div class="page-title" id="nobetAyBasligi" style="font-size:16px;min-width:160px;text-align:center;"></div>
+          <button class="btn btn-ghost btn-sm" onclick="nobetAyDegistir(1)">Sonraki Ay ›</button>
+        </div>
+        <table class="schedule-grid sch" id="nobetGridTablo"></table>
+      </div>
+    </section>
+
+
+    <section id="tab-takvim" class="tab-panel">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📅 Takvim</div>
+          <div class="page-sub" id="takvimAyBasligi"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(-1)">◀ Önceki</button>
+          <button class="btn btn-ghost btn-sm" onclick="takvimBugunGit()">Bugün</button>
+          <button class="btn btn-ghost btn-sm" onclick="takvimAyDegistir(1)">Sonraki ▶</button>
+          <button class="btn btn-amber" onclick="takvimYeniEkleAc()">+ Ekle</button>
+        </div>
+      </div>
+      <div class="card takvim-kart">
+        <div class="takvim-grid" id="takvimGrid"></div>
+      </div>
+      <!-- Ajanda takvim sayfasında da kalıyor -->
+      <div class="card" style="margin-top:0;">
+        <h3>📋 Ajanda — Yaklaşan 30 Gün</h3>
+        <div id="takvimAjanda"></div>
+      </div>
+      <!-- YENİ: Yıllık görünüm takvim sayfasına taşındı -->
+      <div class="card" style="margin-top:0;">
+        <h3>🗓️ Yıllık Görünüm</h3>
+        <div id="dashYillikGorunum"></div>
+      </div>
+    </section>
+
+    <section id="tab-evrak" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Evrak Takibi</div><div class="page-sub">Resmi yazı, dilekçe ve tutanakların durumu</div></div>
+        <button class="btn btn-amber" onclick="evrakModalAc()">+ Yeni Evrak</button>
+      </div>
+      <div class="card">
+        <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="evrakFiltreSec('tumu')">Tümü</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Beklemede" onclick="evrakFiltreSec('Beklemede')">Beklemede</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="İşlemde" onclick="evrakFiltreSec('İşlemde')">İşlemde</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Tamamlandı" onclick="evrakFiltreSec('Tamamlandı')">Tamamlandı</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="Arşivlendi" onclick="evrakFiltreSec('Arşivlendi')">Arşivlendi</button>
+        </div>
+        <div id="evrakListesi"></div>
+      </div>
+    </section>
+
+    <section id="tab-haberler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📰 Haberler &amp; Duyurular</div><div class="page-sub">MEB, Resmî Gazete ve eklediğiniz kaynaklardan otomatik haber akışı</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-amber" onclick="haberModalAc(null)">➕ Yeni Duyuru</button>
+        </div>
+      </div>
+
+      <div class="haber-altsekmeler">
+        <button class="haber-altsekme-btn active" data-g="liste" onclick="haberAltGorunumSec('liste')">📰 Haberler</button>
+        <button class="haber-altsekme-btn" data-g="kaynaklar" onclick="haberAltGorunumSec('kaynaklar')">🔗 Kaynak Yönetimi</button>
+        <button class="haber-altsekme-btn" data-g="bildirimler" onclick="haberAltGorunumSec('bildirimler')">🔔 Bildirim Ayarları</button>
+      </div>
+
+      <div class="haber-altgorunum" data-g="liste">
+        <div class="card">
+          <div id="haberFiltreler" style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;"></div>
+          <div id="haberlerListesi"></div>
+        </div>
+      </div>
+
+      <div class="haber-altgorunum" data-g="kaynaklar" style="display:none;">
+        <div class="page-header">
+          <div><div class="page-sub">RSS/Atom bağlantısı ekleyin — gece çalışan otomatik tarama bu kaynaklardan yeni haberleri çeker.</div></div>
+          <button class="btn btn-ghost" onclick="haberKaynagiModalAc(null)">➕ Yeni Kaynak</button>
+        </div>
+        <div class="card"><div id="haberKaynaklariListesi"></div></div>
+      </div>
+
+      <div class="haber-altgorunum" data-g="bildirimler" style="display:none;">
+        <div class="card">
+          <h3>🔔 Hangi kategorilerden bildirim almak istersiniz?</h3>
+          <div class="page-sub" style="margin-bottom:12px;">Hiçbiri seçili değilse (veya push izni ilk kez açılıyorsa) tüm kategorilerden bildirim alırsınız.</div>
+          <div id="haberKategoriTercihleriKutu"></div>
+          <button class="btn btn-amber" style="margin-top:14px;" onclick="haberKategoriTercihleriKaydet()">Kaydet</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DUYURULAR (Haberler'den bağımsız) -->
+    <section id="tab-duyurular" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📢 Duyurular</div><div class="page-sub">Yönetimin okul geneline duyuruları</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost" onclick="duyuruArsivModalAc()">📦 Arşiv</button>
+          <button class="btn btn-amber" onclick="duyuruModalAc()">+ Yeni Duyuru</button>
+        </div>
+      </div>
+      <div id="duyurularListesi"></div>
+    </section>
+
+    <section id="tab-anket" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📊 Anketler</div><div class="page-sub">Okul geneline anket oluşturun, sonuçları görün</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" id="anketYeniBtn" style="display:none;" onclick="anketOlusturModalAc()">+ Yeni Anket</button></div>
+      </div>
+      <div id="anketListesi"></div>
+    </section>
+
+    <section id="tab-notlar" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Notlar</div><div class="page-sub">Genel amaçlı kısa notlarınız</div></div>
+        <button class="btn btn-amber" onclick="notlarModalAc()">+ Yeni Not</button>
+      </div>
+      <div class="notes-grid" id="notlarGrid"></div>
+    </section>
+
+    <section id="tab-mevzuat" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">⚖️ Mevzuat Asistanı</div><div class="page-sub">Mevzuat metinlerini ekle, cihazında sakla, soru sor — hiçbir veri Firestore'a gitmez</div></div>
+        <div class="page-header-actions" style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('mvTopluDosya').click()">📥 Toplu İçe Aktar</button>
+          <input type="file" id="mvTopluDosya" accept="application/json" style="display:none;" onchange="mevzuatTopluIceAktar(this.files[0])">
+          <button class="btn btn-amber" onclick="mevzuatEkleModalAc()">➕ Yeni Mevzuat Ekle</button>
+        </div>
+      </div>
+
+      <div class="haber-altsekmeler">
+        <button class="mevzuat-altsekme-btn haber-altsekme-btn active" data-g="kaynaklar" onclick="mevzuatAltGorunumSec('kaynaklar')">📚 Eklenen Mevzuatlar</button>
+        <button class="mevzuat-altsekme-btn haber-altsekme-btn" data-g="sohbet" onclick="mevzuatAltGorunumSec('sohbet')">💬 Soru Sor</button>
+      </div>
+
+      <div class="mevzuat-altgorunum" data-g="kaynaklar">
+        <div class="card"><div id="mevzuatKayitlariListesi"></div></div>
+      </div>
+
+      <div class="mevzuat-altgorunum" data-g="sohbet" style="display:none;">
+        <div class="card" style="display:flex;flex-direction:column;height:60vh;">
+          <div id="mevzuatMesajlar" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <textarea id="mevzuatInput" rows="2" placeholder="Örn: Yıllık izin kaç gündür?" style="flex:1;resize:none;" onkeydown="mevzuatInputEnter(event)"></textarea>
+            <button class="btn btn-amber" onclick="mevzuatSoruGonder()">Sor</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+
+
+    <section id="tab-ogretmenListe" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📋 Öğrenci Listesi Oluştur</div><div class="page-sub">Sınıfınızı seçin, istediğiniz sütunlarla kendi listenizi oluşturun</div></div>
+      </div>
+      <div id="olIcerik"></div>
+    </section>
+
+    <section id="tab-tasima" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Taşıma</div><div class="page-sub">Servis araçları, şoför ve güzergah bilgileri</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporServisOturmaPlan()">🖨️ Oturma Planı Raporu</button>
+          <button class="btn btn-amber" onclick="servisModalAc()">+ Yeni Servis</button>
+        </div>
+      </div>
+
+      <!-- Alt sekmeler -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm filtre-btn active" data-tasima-sekme="servisler" onclick="tasimaAltSekmeSec('servisler')">🚌 Servis Listesi</button>
+        <button class="btn btn-ghost btn-sm filtre-btn" data-tasima-sekme="oturma" onclick="tasimaAltSekmeSec('oturma')">💺 Oturma Planları</button>
+      </div>
+
+      <!-- Servis listesi bölümü -->
+      <div id="tasima-bolum-servisler">
+        <div class="card">
+          <div style="margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm filtre-btn active" data-f="tumu" onclick="servisFiltreSec('tumu')">Tümü</button>
+            <button class="btn btn-ghost btn-sm filtre-btn" data-f="Aktif" onclick="servisFiltreSec('Aktif')">Aktif</button>
+            <button class="btn btn-ghost btn-sm filtre-btn" data-f="Pasif" onclick="servisFiltreSec('Pasif')">Pasif</button>
+          </div>
+          <div id="servislerListesi"></div>
+        </div>
+      </div>
+
+      <!-- Oturma planları bölümü -->
+      <div id="tasima-bolum-oturma" style="display:none;">
+        <div class="card">
+          <p style="font-size:13px;color:#6b7280;margin-bottom:14px;">Bir servise tıklayarak oturma planını düzenleyin.</p>
+          <div id="oturmaServislerListesi"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PERSONEL İŞLERİ -->
+    <section id="tab-personel" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Personel İşleri</div><div class="page-sub">Sürekli işçi, hizmetli ve diğer personel kayıtları &amp; dilekçe sistemi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-amber" onclick="personelModalAc()">+ Yeni Personel</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <input id="personelArama" placeholder="🔍 Ad, TC veya görev ile ara..." oninput="personelAramaGuncelle()" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+      </div>
+      <div class="card">
+        <div id="personelListesi"></div>
+      </div>
+    </section>
+
+    <!-- SINAV İŞLEMLERİ -->
+    <section id="tab-dokumanlar" class="tab-panel">
+      <div class="panel-header">
+        <h2>📁 Dökümanlar</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="dokumanKategoriFiltre" class="form-control" style="width:180px;" onchange="renderDokumanlar()">
+            <option value="">Tüm Kategoriler</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="dokumanYukleModalAc()">+ Döküman Yükle</button>
+        </div>
+      </div>
+      <div id="dokumanlarListesi" class="evrak-liste"></div>
+    </section>
+
+        <section id="tab-harita" class="tab-panel">
+      <div class="panel-header">
+        <h2>🗺️ Güzergah Haritası</h2>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;padding:0 0 12px;">
+
+        <!-- Arama + Servis seçimi -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;">
+          <div style="flex:1;min-width:200px;position:relative;">
+            <input id="haritaAramaInput" placeholder="🔍 Yer adı ara (örn: Koruk Köyü)..."
+              oninput="haritaAramaYap()"
+              style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+            <div id="haritaAramaSonuc"
+              style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);
+              border:1px solid var(--border);border-radius:8px;z-index:1000;max-height:220px;overflow-y:auto;
+              box-shadow:0 4px 16px rgba(0,0,0,0.12);margin-top:2px;"></div>
+          </div>
+          <select id="haritaServisSec"
+            onchange="haritaServisSecildiRender(this.value)"
+            style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;min-width:180px;">
+            <option value="">— Servis seçin —</option>
+          </select>
+        </div>
+
+        <!-- Bilgi satırı -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;gap:16px;background:var(--bg-card);padding:8px 14px;border-radius:8px;border:1px solid var(--border);">
+            <span style="font-size:12px;color:var(--ink-muted);">Nokta: <strong id="haritaNoktaSayisi">0</strong></span>
+            <span style="font-size:12px;color:var(--ink-muted);">Mesafe: <strong id="haritaMesafe">—</strong></span>
+          </div>
+          <div id="haritaServisBilgi" style="flex:1;"></div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm" onclick="haritaTemizle()">🗑 Temizle</button>
+            <button id="haritaKaydetBtn" class="btn btn-primary btn-sm" onclick="haritaKaydet()" disabled>💾 Servise Kaydet</button>
+          </div>
+        </div>
+
+        <!-- Harita -->
+        <div style="position:relative;">
+          <div id="haritaKonteyner"
+            style="width:100%;height:60vh;min-height:340px;border-radius:12px;overflow:hidden;border:1px solid var(--border);"></div>
+          <!-- Tam ekran butonu -->
+          <button onclick="haritaTamEkran()" id="haritaTamEkranBtn"
+            style="position:absolute;bottom:10px;right:10px;z-index:1000;background:#fff;border:2px solid rgba(0,0,0,0.2);
+            border-radius:6px;padding:5px 9px;font-size:16px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.15);
+            line-height:1;" title="Tam Ekran">⛶</button>
+        </div>
+
+        <p style="font-size:12px;color:var(--ink-muted);margin:0;">
+          💡 Tıkla → güzergah noktası · Sağ tık → favoriye ekle · Arama sonucundaki ⭐ → favoriye ekle
+        </p>
+
+        <!-- Favori Panel -->
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+          <div style="padding:10px 14px;font-size:12px;font-weight:700;color:var(--ink-muted);
+            text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);">
+            ⭐ Favoriler
+          </div>
+          <div id="haritaFavoriListe"></div>
+        </div>
+      </div>
+    </section>
+
+        <section id="tab-yaziliSinavlar" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Yazılı Sınavlar</div><div class="page-sub">Yazılı sınav tarihleri</div></div>
+      </div>
+
+      <div id="sinavYaziliBolum">
+        <div class="card">
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;">
+            <button class="btn btn-ghost btn-sm" onclick="sinavRaporModalAc()">🖨️ Rapor</button>
+            <button class="btn btn-amber" onclick="sinavModalAc()">+ Yazılı Ekle</button>
+          </div>
+          <div id="sinavlarListesi"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DENEME SINAVLARI (eskiden Sınav İşlemleri'nde toggle ile birlikteydi) -->
+    <section id="tab-denemeSinavlari" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Deneme Sınavları</div><div class="page-sub">Deneme sınavı planlaması</div></div>
+      </div>
+
+      <div id="sinavDenemeBolum">
+        <div class="card">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button class="btn btn-amber" onclick="denemeModalAc()">+ Deneme Sınavı Ekle</button>
+          </div>
+          <div id="denemeSinavlariListesi"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOSYAL KULÜPLER -->
+    <section id="tab-sosyalKulupler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Sosyal Kulüpler</div><div class="page-sub">Teslim edilmesi gereken evrakları işaretleyin</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('sosyalKulupler')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="sosyalKulupModalAc()">+ Yeni Kulüp</button>
+        </div>
+      </div>
+      <div id="sosyalKuluplerListesi" style="display:none; margin-bottom:20px;"></div>
+      <div class="card cizelge-wrap"><div id="sosyalKuluplerTablo"></div></div>
+    </section>
+
+    <!-- BELİRLİ GÜN VE HAFTALAR -->
+    <section id="tab-belirliGunler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Belirli Gün ve Haftalar</div><div class="page-sub">Görev dağılım çizelgesi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('belirliGunler')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="belirliGunModalAc()">+ Yeni Etkinlik</button>
+        </div>
+      </div>
+      <div class="card" id="belirliGunlerTablo"></div>
+    </section>
+
+    <!-- ZÜMRE -->
+    <section id="tab-zumre" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Zümre Toplantıları</div><div class="page-sub">Zümre toplantı takip çizelgesi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('zumre')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('zumre')">+ Yeni Zümre</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><div id="zumreTablo"></div></div>
+    </section>
+
+    <!-- ŞÖK -->
+    <section id="tab-sok" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">ŞÖK – Şube Öğretmenler Kurulu</div><div class="page-sub">Şube öğretmenler kurulu toplantı takip çizelgesi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('sok')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('sok')">+ Kayıt Ekle</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><div id="sokTablo"></div></div>
+    </section>
+
+    <!-- YILLIK / BEP PLANI -->
+    <section id="tab-bepPlani" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Yıllık / BEP Planları</div><div class="page-sub">Öğretmen ve sınıf bazlı yıllık plan ve BEP takibi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('bepPlani')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('bepPlani')">+ Kayıt Ekle</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><div id="bepTablo"></div></div>
+    </section>
+
+    <!-- REHBERLİK -->
+    <section id="tab-rehberlik" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Rehberlik</div><div class="page-sub">Sınıf danışmanı ve aylık rehberlik takibi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('rehberlik')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('rehberlik')">+ Kayıt Ekle</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><div id="rehberlikTablo"></div></div>
+    </section>
+
+    <!-- MAARİF MODEL AYLIK RAPORLAR -->
+    <section id="tab-maarifRapor" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Maarif Model Aylık Raporlar</div><div class="page-sub">Ders ve sınıf bazlı aylık rapor takibi</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="raporCizelge('maarifRapor')">🖨️ Rapor</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="cizelgeSatirModalAc('maarifRapor')">+ Kayıt Ekle</button>
+        </div>
+      </div>
+      <div class="card cizelge-wrap"><div id="maarifTablo"></div></div>
+    </section>
+
+    <!-- DİĞER EVRAKLAR -->
+    <section id="tab-digerEvrak" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Diğer Evraklar</div><div class="page-sub">Veli toplantı tutanakları ve diğer belgeler — teslim alınca tikleyin</div></div>
+        <div class="page-header-actions">
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('cizelgeExcelInput').click()">⇪ Excel'den İçe Aktar</button>
+          <button class="btn btn-amber" onclick="digerEvrakModalAc()">+ Yeni Evrak</button>
+        </div>
+      </div>
+      <div class="card" id="digerEvrakTablo"></div>
+    </section>
+
+    <!-- PERİYODİK İŞLER -->
+    <section id="tab-periyodikIsler" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Periyodik İşler</div><div class="page-sub">Okul taşıma, ek ders, puantaj, İŞKUR gibi her ay tekrarlayan işler</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" onclick="periyodikModalAc()">+ Yeni İş</button></div>
+      </div>
+      <div class="card" style="margin-bottom:18px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0;">Aylık Şablon</h3>
+            <p style="color:var(--ink-muted);font-size:13px;margin:4px 0 0;" id="periyodikSablonOzet"></p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm" onclick="periyodikSablonModalAc()">Şablonu Düzenle</button>
+            <button class="btn btn-primary btn-sm" onclick="periyodikAyOlustur()">Bu Ayın Görevlerini Oluştur</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="periyodikIslerListesi"></div>
+    </section>
+
+    <!-- DERS VE NÖBET PROGRAMIM (öğretmene özel) -->
+    <section id="tab-dersNobetProgramim" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Ders ve Nöbet Programım</div><div class="page-sub">Haftalık ders programınız ve nöbet atamalarınız</div></div>
+      </div>
+      <div id="dnpIcerik"></div>
+    </section>
+
+    <!-- MESAJLAR -->
+    <section id="tab-mesajlasma" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Mesajlar</div><div class="page-sub">Okul içi mesajlaşma</div></div>
+        <div class="page-header-actions"><button class="btn btn-amber" onclick="yeniKonusmaModalAc()">+ Yeni Mesaj</button></div>
+      </div>
+      <div id="mesajKonusmaListesi"></div>
+    </section>
+
+    <!-- OKUL BİLGİLERİ -->
+    <section id="tab-okulBilgileri" class="tab-panel">
+      <div class="page-header"><div><div class="page-title">Okul Bilgileri</div><div class="page-sub">Okul adı, müdür ve müdür yardımcıları</div></div></div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Temel Bilgiler</h3>
+        <div class="form-group"><label>Okul Adı (Birleşik — evrak başlıklarında "ikisi birlikte" gerektiğinde kullanılır)</label><input id="f_okulAdi" placeholder="örn: KORUK İLK - ORTAOKULU"></div>
+        <div class="form-group"><label>Okul Müdürü</label><select id="f_okulMudur"></select></div>
+        <div class="form-row">
+          <div class="form-group"><label>İl</label><input id="f_okulIl" placeholder="örn: Elazığ" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn:  Merkez" style="text-transform:uppercase;"></div>
+        </div>
+        <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Elazığ İl Millî Eğitim Müdürlüğü"></div>
+      </div>
+
+      <!-- YENİ: İki okul bir arada (Koruk İlkokulu + Koruk Ortaokulu) — evrak
+           başlıklarında bazen sadece biri, bazen ikisi birden gerekiyor. -->
+      <div class="card" style="margin-bottom:18px;">
+        <h3>İlkokul / Ortaokul Ayrı Bilgileri</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İki okul aynı binada bir arada olduğu için, evrak/çizelge oluştururken bazen sadece İlkokul, bazen sadece Ortaokul, bazen de yukarıdaki birleşik ad kullanılır.</p>
+        <div class="form-row">
+          <div class="form-group"><label>İlkokul Adı</label><input id="f_okulIlkokulAdi" placeholder="örn: KORUK İLKOKULU"></div>
+          <div class="form-group"><label>İlkokul Kurum Kodu</label><input id="f_okulIlkokulKurumKodu" placeholder="örn: 719060"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Ortaokul Adı</label><input id="f_okulOrtaokulAdi" placeholder="örn: KORUK ORTAOKULU"></div>
+          <div class="form-group"><label>Ortaokul Kurum Kodu</label><input id="f_okulOrtaokulKurumKodu" placeholder="örn: 719089"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Müdür Yardımcıları</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+          Bu liste, Öğretmenler sekmesinde ünvanı "Müdür Yardımcısı" olan kayıtlardan otomatik oluşur.
+        </p>
+        <div id="muduYardimcilariListesi"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="muduYardimcisiEkle()">+ Yeni Müdür Yardımcısı</button>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="okulBilgileriKaydet()">Kaydet</button>
+        <button class="btn btn-ghost" onclick="renderOkulBilgileriSayfasi()">Vazgeç</button>
+      </div>
+    </section>
+
+    </section>
+
+    <!-- YENİ: Global Arama Sekmesi — gelişmiş filtreler, servis bazlı öğrenci, temizle butonu -->
+    <section id="tab-arama" class="tab-panel">
+      <div class="page-header"><div><div class="page-title">🔍 Arama</div><div class="page-sub">Tüm kayıtlarda ara</div></div></div>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+          <input type="text" id="globalAramaInput" placeholder="Öğretmen, öğrenci, servis adı, evrak…" oninput="globalAramaYap()" style="font-size:15px;padding:12px 14px;flex:1;">
+          <button onclick="globalAramaTemizle()" style="background:var(--nm-bg);border:1px solid var(--border);border-radius:10px;padding:10px 14px;cursor:pointer;font-size:16px;color:var(--ink-muted);" title="Temizle">✕</button>
+        </div>
+        <!-- Kategori filtreleri -->
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="aramaKategoriButonlar">
+          <button class="btn btn-ghost btn-sm arama-kat aktif" data-kat="hepsi" onclick="aramaKatSec(this)">Tümü</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogretmen" onclick="aramaKatSec(this)">👩‍🏫 Öğretmen</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="ogrenci" onclick="aramaKatSec(this)">👨‍🎓 Öğrenci</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="personel" onclick="aramaKatSec(this)">🧑‍💼 Personel</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="servis" onclick="aramaKatSec(this)">🚌 Servis</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="evrak" onclick="aramaKatSec(this)">📄 Evrak</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="not" onclick="aramaKatSec(this)">📝 Not</button>
+          <button class="btn btn-ghost btn-sm arama-kat" data-kat="cizelge" onclick="aramaKatSec(this)">🗂️ Çizelge</button>
+        </div>
+        <!-- Gelişmiş filtreler -->
+        <details id="gelistirmisFiltreler" style="margin-top:4px;">
+          <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--brand);padding:6px 0;">⚙️ Gelişmiş Filtreler</summary>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:4px;">Servis(ler) — öğrencileri listele</div>
+              <div id="aramaServisSecenekleri" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink-muted);margin-bottom:4px;">Sınıf(lar)</div>
+              <div id="aramaSinifSecenekleri" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <select id="aramaCinsiyetFiltre" onchange="globalAramaYap()" style="flex:1;">
+                <option value="">Tüm Cinsiyetler</option>
+                <option value="kiz">🚺 Kız</option>
+                <option value="erkek">🚹 Erkek</option>
+              </select>
+            </div>
+            <button onclick="gelismisFiltreSifirla()" class="btn btn-ghost btn-sm" style="align-self:flex-start;">🔄 Filtreleri Sıfırla</button>
+          </div>
+        </details>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+        <button onclick="globalAramaYazdir()" class="btn btn-ghost btn-sm" title="Arama sonuçlarını yazdır">🖨️ Yazdır</button>
+      </div>
+      <div id="globalAramaSonuclar"><p class="empty-state" style="margin-top:32px;">Aramak için yazmaya başlayın veya filtre seçin…</p></div>
+    </section>
+
+    <section id="tab-veri" class="tab-panel">
+  <div class="page-header"><div><div class="page-title">📊 Veri</div><div class="page-sub">Tüm verileri Excel ile toplu olarak içe aktarın</div></div>
+  <button class="btn btn-ghost btn-sm" onclick="tumSablonlariIndir()">📦 Tüm Şablonları İndir</button></div>
+
+  <!-- PERSONEL -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Personel</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>👨‍🏫 Öğretmenler</h3>
+    <p class="detay-row-muted">Ad, soyad, branş, telefon vb. sütunları içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('ogretmenler')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriOgretmenInput" accept=".xlsx,.xls" style="display:none;" onchange="ogretmenExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgretmenInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- SINIF & ÖĞRENCİ -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Sınıf &amp; Öğrenci</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🏫 Sınıflar</h3>
+    <p class="detay-row-muted">Sınıf Adı, Seviye, Şube, Derslik, Sınıf Öğretmeni sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('siniflar')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriSinifExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="siniflarExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriSinifExcelInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🧑‍🎓 Öğrenciler / Veliler</h3>
+    <p class="detay-row-muted">Önce hangi sınıfa yükleneceğini seçin, ardından o sınıfın Excel listesini yükleyin.</p>
+    <div class="form-group"><select id="veriSinifSecimi"><option value="">Sınıf seçiniz…</option></select></div>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('ogrenciler')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriOgrenciExcelYukle(this)">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriOgrenciInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>📋 e-Okul Sınıf Listesi</h3>
+    <p class="detay-row-muted">e-Okul'dan indirdiğin "Sınıf Listesi" raporunun Excel çıktısı (tek dosyada birden çok sınıf olabilir — S.No, Öğrenci No, Adı, Soyadı, Cinsiyeti sütunları). Sınıf adı dosyada olmadığından, her blok için sınıfı yüklerken kendin seçeceksin.</p>
+    <input type="file" id="veriEOkulInput" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriEOkulInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- DERS & MÜFREDAT -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Ders &amp; Müfredat</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🗓️ Ders Programı</h3>
+    <p class="detay-row-muted">Sınıf, gün, ders saati, ders adı, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('dersProgrami')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriDersInput" accept=".xlsx,.xls" style="display:none;" onchange="dersProgramiExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>📚 Dersler</h3>
+    <p class="detay-row-muted">Ders Adı ve Kısaltma sütunları (Kısaltma: çarşaf ders programı raporunda kullanılır, örn: MAT, TÜR, FEN). Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('dersler')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriDersListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="dersListesiExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersListesiInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🎓 Branşlar</h3>
+    <p class="detay-row-muted">Tek sütun: Branş adı (örn: Sınıf Öğretmenliği, Matematik, Türkçe…). Öğretmen kayıtlarında branş alanında açılır listeden seçilebilir.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('branslar')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriBransListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="bransListesiExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriBransListesiInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- NÖBET -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Nöbet</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🛡️ Nöbet Programı</h3>
+    <p class="detay-row-muted">Tarih/gün, nöbet yeri, öğretmen sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('nobetProgrami')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriNobetInput" accept=".xlsx,.xls" style="display:none;" onchange="nobetExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriNobetInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- SINAV -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Sınav</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>✏️ Yazılı Sınavlar</h3>
+    <p class="detay-row-muted">Sınıf, Ders, Tarih, Dönem, Yazılı Sırası, Tür, Senaryo No, Yayınevi sütunlarını içeren Excel dosyası.</p>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('yaziliSinavlar')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriYaziliSinavInput" accept=".xlsx,.xls" style="display:none;" onchange="yaziliSinavExceliIceAktar(this.files[0]); this.value='';">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriYaziliSinavInput').click()">📥 Excel Yükle</button>
+  </div>
+
+  <!-- TAŞIMA -->
+  <div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--ink-muted);letter-spacing:.5px;text-transform:uppercase;padding:0 2px;">Taşıma</div>
+  <div class="card" style="margin-bottom:14px;">
+    <h3>🚌 Servis Öğrencileri</h3>
+    <p class="detay-row-muted">Önce hangi servise yükleneceğini seçin, ardından o servisin öğrenci listesini yükleyin.</p>
+    <div class="form-group"><select id="veriServisSecimi"><option value="">Servis seçiniz…</option></select></div>
+    <button class="btn btn-ghost btn-sm" onclick="sablonIndir('servisOgrencileri')" style="margin-right:6px;">📋 Şablon İndir</button>
+    <input type="file" id="veriServisOgrenciInput" accept=".xlsx,.xls" style="display:none;" onchange="veriServisOgrenciExcelYukle(this)">
+    <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriServisOgrenciInput').click()">📥 Excel Yükle</button>
+  </div>
+</section>
+
+<section id="tab-ayarlar" class="tab-panel">
+      <div class="page-header"><div><div class="page-title">Ayarlar</div><div class="page-sub">Bildirimler, tema, içe/dışa aktarma</div></div></div>
+
+      <!-- YENİ: Anasayfa Düzenleme -->
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🔑 Şifremi Değiştir</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <label>Mevcut Şifre</label>
+          <input type="password" id="fSpMevcutSifre" autocomplete="current-password">
+          <label>Yeni Şifre <span style="font-weight:400;color:var(--ink-muted);font-size:12px;">(en az 6 karakter)</span></label>
+          <input type="password" id="fSpYeniSifre" autocomplete="new-password">
+          <label>Yeni Şifre (Tekrar)</label>
+          <input type="password" id="fSpYeniSifreTekrar" autocomplete="new-password">
+          <button class="btn btn-amber" style="margin-top:12px;" onclick="sifremiDegistirTikla()">Şifremi Değiştir</button>
+        </div>
+      </div>
+
+      <!-- YENİ: Anasayfa Düzenleme -->
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🏠 Anasayfa Düzeni</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content open">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+            Anasayfada hangi kartların, hangi sırada görüneceğini seçin. Bu tercih sadece bu cihazda geçerlidir.
+          </p>
+          <button class="btn btn-amber" onclick="dashboardOzellestirModalAc()">⚙️ Anasayfa Kartlarını Düzenle</button>
+        </div>
+      </div>
+
+      <!-- YENİ: Tema paketi seçimi -->
+      <div class="accordion-item" style="margin-bottom:18px;">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🎨 Tema</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content open">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;font-weight:700;">
+            Görünüm Stili
+          </p>
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+            "Modern Açık", Genel Bakış sayfasındaki temiz/beyaz tasarımı tüm uygulamaya (menü, kartlar, tablolar, formlar) yayar. "Klasik" mevcut görünümü korur. Bu tercih sadece bu cihazda geçerlidir.
+          </p>
+          <div class="renk-paketi-grid gorunum-grid" style="margin-bottom:18px;">
+            <button class="renk-paketi-secenek gorunum-secenek" data-gorunum="klasik" onclick="gorunumUygula('klasik')" title="Klasik">🌗 Klasik</button>
+            <button class="renk-paketi-secenek gorunum-secenek" data-gorunum="modern" onclick="gorunumUygula('modern')" title="Modern Açık">🪟 Modern Açık</button>
+          </div>
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;font-weight:700;">
+            Vurgu Rengi
+          </p>
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:12px;">
+            Bir vurgu rengi seçin. Açık/koyu mod seçimi ayrı çalışır (üst bardaki 🌙/☀️ düğmesi).
+          </p>
+          <div class="renk-paketi-grid">
+            <button class="renk-paketi-secenek" data-paket="yesil" onclick="renkUygula('yesil')" title="Yeşil"><span class="renk-paketi-nokta" style="background:#16A34A;"></span>Yeşil</button>
+            <button class="renk-paketi-secenek" data-paket="mavi" onclick="renkUygula('mavi')" title="Mavi"><span class="renk-paketi-nokta" style="background:#2563EB;"></span>Mavi</button>
+            <button class="renk-paketi-secenek" data-paket="teal" onclick="renkUygula('teal')" title="Teal (Varsayılan)"><span class="renk-paketi-nokta" style="background:#0A7A7A;"></span>Teal</button>
+            <button class="renk-paketi-secenek" data-paket="mor" onclick="renkUygula('mor')" title="Mor"><span class="renk-paketi-nokta" style="background:#7C3AED;"></span>Mor</button>
+            <button class="renk-paketi-secenek" data-paket="turuncu" onclick="renkUygula('turuncu')" title="Turuncu"><span class="renk-paketi-nokta" style="background:#EA580C;"></span>Turuncu</button>
+            <button class="renk-paketi-secenek" data-paket="kirmizi" onclick="renkUygula('kirmizi')" title="Kırmızı"><span class="renk-paketi-nokta" style="background:#DC2626;"></span>Kırmızı</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Ders Saatleri</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            
+          </p>
+          <div id="dersSaatleriForm"></div>
+        </div>
+      </div>
+
+
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>📚 Ders Listesi</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.
+          </p>
+          <button class="btn btn-amber btn-sm" onclick="dersListesiEkle()" style="margin-bottom:10px;">➕ Ders Ekle</button>
+          <div id="dersListesiYonetim"></div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🎓 Branş Listesi</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Öğretmen Branşı alanında açılır listeden seçilebilir.
+          </p>
+          <button class="btn btn-amber btn-sm" onclick="bransListesiEkle()" style="margin-bottom:10px;">➕ Branş Ekle</button>
+          <div id="bransListesiYonetim"></div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>📝 Optik Sınav Değerlendirme</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Optik Okuma modülünde yeni bir sınav eklenirken kullanılacak varsayılan yanlış cevap katsayısı. Net = Doğru − (Yanlış ÷ katsayı). Bu, okul çapında ortak bir varsayılandır.
+          </p>
+          <div class="form-group">
+            <label>Yanlış Cevap Etkisi</label>
+            <select id="optikYanlisKatsayisiSecim">
+              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
+              <option value="3">3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
+              <option value="4">4 yanlış 1 doğruyu götürür</option>
+            </select>
+          </div>
+          <button class="btn btn-amber btn-sm" style="margin-top:10px;" onclick="optikKatsayiKaydetTikla()">Kaydet</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Uygulama Güncellemesi</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Yeni bir sürüm çıkıp çıkmadığını buradan kontrol edebilirsiniz.</p>
+        <button class="btn btn-primary" onclick="guncellemeKontrolEt(true)">🔄 Güncellemeleri Kontrol Et</button>
+        <p id="oyKuruluSurumMetni" style="color:var(--ink-muted);font-size:12px;margin-top:8px;"></p>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Push Bildirimleri</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Bu cihazda tarayıcı bildirimi almak için açın. Bildirimlerin gerçek zamanlı tetiklenmesi, her 15 dakikada bir çalışan kontrol betiğine bağlıdır.</p>
+        <button class="btn btn-primary" id="bildirimAcBtn">Bildirimleri Aç</button>
+        <div class="push-status"><span class="push-dot" id="pushDot"></span><span id="pushMetin">Durum kontrol ediliyor...</span></div>
+      </div>
+
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Verileri Dışa Aktar</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Tüm modüllerdeki verileriniz tek bir JSON dosyasına kaydedilir.</p>
+        <button class="btn btn-primary" onclick="tumVerileriYedekle()">JSON Olarak İndir</button>
+      </div>
+      <div class="card">
+        <h3>Yedekten Geri Yükle</h3>
+        <p style="color:var(--ink-muted);font-size:13px;">Yedekteki kayıtlar eklenir/güncellenir; yedekte olmayan mevcut kayıtlar silinmez.</p>
+        <input type="file" id="yedekDosya" accept="application/json" onchange="yedektenGeriYukle(this.files[0])">
+      </div>
+    </section>
+
+    <!-- AŞAMA 2: Kullanıcı Yönetimi (rol tabanlı yetkilendirme) — bkz. js/kullanici-yonetimi.js -->
+    <section id="tab-kullaniciYonetimi" class="tab-panel">
+      <style>
+        .rol-grup-baslik{font-weight:800;font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink-muted);margin:16px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+        .rol-satir{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+        .rol-satir-ad{font-size:13.5px;font-weight:600;flex:1;min-width:140px;}
+        .rol-satir-secim{display:flex;gap:6px;flex-wrap:wrap;}
+        .rol-radio{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;white-space:nowrap;}
+        .rol-radio input{margin:0;}
+      </style>
+      <div class="page-header">
+        <div><div class="page-title">👑 Kullanıcı Yönetimi</div><div class="page-sub">Roller tanımlayın, kullanıcıları onaylayıp rol atayın</div></div>
+      </div>
+
+      <!-- Alt sekmeler -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm filtre-btn active" data-ky-sekme="roller" onclick="kullaniciYonetimiAltSekmeSec('roller')">🗂️ Roller</button>
+        <button class="btn btn-ghost btn-sm filtre-btn" data-ky-sekme="kullanicilar" onclick="kullaniciYonetimiAltSekmeSec('kullanicilar')">👥 Kullanıcılar</button>
+      </div>
+
+      <!-- Roller bölümü -->
+      <div id="ky-bolum-roller">
+        <button class="btn btn-amber btn-sm" style="margin-bottom:12px;" onclick="rolFormAc('yeni')">+ Yeni Rol</button>
+        <div id="rolListesi"></div>
+        <div id="rolFormAlani"></div>
+      </div>
+
+      <!-- Kullanıcılar bölümü -->
+      <div id="ky-bolum-kullanicilar" style="display:none;">
+        <button class="btn btn-amber" style="margin-bottom:14px;" onclick="yeniKullaniciModalAc()">➕ Yeni Kullanıcı Oluştur</button>
+        <div id="kullaniciYonetimListesi"></div>
+      </div>
+    </section>
+
+    <!-- YENİ: Kullanıcı İstatistikleri (v11.0) — bkz. js/istatistikler.js -->
+    <section id="tab-istatistikler" class="tab-panel">
+      <style>
+        .ist-tablo{width:100%;border-collapse:collapse;font-size:13px;}
+        .ist-tablo th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--ink-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.02em;white-space:nowrap;}
+        .ist-tablo td{padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+        .ist-tablo tr:hover td{background:var(--bg-hover,rgba(0,0,0,.02));}
+        .ist-kart-ozet{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+        .ist-kart{flex:1;min-width:130px;background:var(--card-bg,#fff);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+        .ist-kart-deger{font-size:20px;font-weight:800;}
+        .ist-kart-etiket{font-size:11.5px;color:var(--ink-muted);margin-top:2px;}
+      </style>
+      <div class="page-header">
+        <div><div class="page-title">📈 Kullanıcı İstatistikleri</div><div class="page-sub">Giriş, dosya/not ekleme, sayfa ziyareti ve süre verileri</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="renderIstatistikler()">🔄 Yenile</button>
+      </div>
+      <div id="istatistikOzetKartlari" class="ist-kart-ozet"></div>
+      <div style="overflow-x:auto;">
+        <table class="ist-tablo">
+          <thead>
+            <tr>
+              <th>Kullanıcı</th>
+              <th>Giriş Sayısı</th>
+              <th>Son Giriş</th>
+              <th>Dosya Yükleme</th>
+              <th>Not Ekleme</th>
+              <th>Toplam Süre</th>
+              <th>En Çok Ziyaret Edilen Sayfa</th>
+            </tr>
+          </thead>
+          <tbody id="istatistikTabloGovde">
+            <tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:20px;">Yükleniyor…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    </main>
+
+
+    <!-- YENİ: Mobil alt navigasyon — yalnızca görünüm; sekmeAc() mevcut fonksiyonu çağırır -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="bn-item active" data-tab="panel" onclick="AltNav.kapat(); sekmeAc('panel'); window.scrollTo({top:0,behavior:'smooth'}); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="home"></i><span class="bn-label">Ana Sayfa</span></button>
+      <button class="bn-item" id="bnProfilim" onclick="AltNav.profilAc();"><i class="bn-ico" data-lucide="user"></i><span class="bn-label">Profilim</span></button>
+      <button class="bn-item bn-plus" id="bnMenuBtn" onclick="AltNav.menuTikla();" title="Menü"><span class="bn-plus-ico" id="bnMenuIkon"><i data-lucide="layout-grid"></i></span></button>
+      <button class="bn-item" data-tab="arama" onclick="AltNav.kapat(); sekmeAc('arama'); bottomNavAktifYap(this);"><i class="bn-ico" data-lucide="search"></i><span class="bn-label">Arama</span></button>
+      <button class="bn-item" onclick="AltNav.hizliNotAc();"><i class="bn-ico" data-lucide="notebook-pen"></i><span class="bn-label">Hızlı Not</span></button>
+    </nav>
+
+    <!-- YENİ GEZİNME SİSTEMİ (v1) — bkz. js/alt-navigasyon.js -->
+    <div id="altNavKatmanlar"></div>
+
+    <!-- YENİ: Hızlı Ekle Modalı (+ butonu) — dışarı tıklayınca kapanır -->
+    <div id="hizliEkleModal" onclick="if(event.target===this)hizliEkleModalKapat()" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,.5);align-items:flex-end;">
+      <div style="background:var(--bg-card);border-radius:20px 20px 0 0;width:100%;padding:20px;">
+        <h3 style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;display:flex;align-items:center;gap:8px;"><i data-lucide="circle-plus" style="width:19px;height:19px;"></i> Ne eklemek istersiniz?</h3>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button onclick="hizliEkleModalKapat(); notlarModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <i data-lucide="notebook-pen" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Not
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('takvim'); setTimeout(hatirlaticiModalAc,200);" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <i data-lucide="calendar-days" style="width:22px;height:22px;color:var(--brand);"></i> Takvim Etkinliği
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('gorevler'); gorevModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <i data-lucide="square-check-big" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Görev
+          </button>
+          <button onclick="hizliEkleModalKapat(); sekmeAc('evrak'); evrakModalAc();" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;border:1px solid var(--border);background:var(--nm-bg);cursor:pointer;font-size:15px;font-weight:600;color:var(--ink);">
+            <i data-lucide="file-text" style="width:22px;height:22px;color:var(--brand);"></i> Yeni Evrak
+          </button>
+        </div>
+        <button onclick="hizliEkleModalKapat()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:none;color:var(--ink-muted);font-size:14px;cursor:pointer;">İptal</button>
       </div>
     </div>
-    <!-- Ders özet + soru ızgarası -->
-    <div class="ogr-ders-toolbar">
-      <select id="ogrDetayDers" class="ogr-ders-sec"></select>
-      <div class="ders-dvb" id="ogrDetayDersDvb"></div>
-    </div>
-    <div id="ogrDetaySorular" class="ogr-soru-izgarasi"></div>
-  </div>
+    <script>
+      function hizliEkleModalAc(){ document.getElementById('hizliEkleModal').style.display='flex'; document.body.classList.add('modal-open'); }
+      function hizliEkleModalKapat(){ document.getElementById('hizliEkleModal').style.display='none'; document.body.classList.remove('modal-open'); }
+      function bottomNavAktifYap(el){ document.querySelectorAll('.bn-item').forEach(b=>b.classList.remove('active')); el.classList.add('active'); }
+    </script>
 
-  <div class="ir-panel" id="irResim">
-    <div id="ogrDetayResimAlani" class="ogr-resim-alani"></div>
-  </div>
-
-  <div class="ogr-alt-bar">
-    <span><span class="renk-d">D</span>: <strong id="ogrAltD">0</strong></span>
-    <span><span class="renk-y">Y</span>: <strong id="ogrAltY">0</strong></span>
-    <span>B: <strong id="ogrAltB">0</strong></span>
-    <span><span class="renk-n">N</span>: <strong id="ogrAltN">0.0</strong></span>
   </div>
 </div>
 
+<!-- YENİ: Kullanıcı Seçim Modalı — topbar avatarına tıklayınca açılır -->
+      <!-- YENİ: Yeni mesaj baloncuğu — bkz. js/mesajlasma.js mesajBaloncuguGoster() -->
+      <div id="mesajBaloncugu" class="mesaj-baloncuk" style="display:none;" onclick="mesajBaloncuguTiklandi()">
+        <div class="mesaj-baloncuk-avatar" id="mesajBaloncukAvatar">💬</div>
+        <div class="mesaj-baloncuk-icerik">
+          <div class="mesaj-baloncuk-baslik" id="mesajBaloncukBaslik"></div>
+          <div class="mesaj-baloncuk-metin" id="mesajBaloncukMetin"></div>
+        </div>
+        <button class="mesaj-baloncuk-kapat" onclick="event.stopPropagation(); mesajBaloncuguKapat();">✕</button>
+      </div>
 
-<!-- ═══════════════════════════════════════════
-     EKRAN 5 — OPTİK FORM OLUŞTUR
-═══════════════════════════════════════════ -->
-<div id="ekranOptikOlustur" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnOptikOlusturGeri">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <h1 class="o-baslik" style="color:#fff;">Optik Form Oluştur</h1>
-  </header>
-  <div class="o-icerik" style="padding:20px;display:flex;flex-direction:column;gap:14px;">
-    <button class="buyuk-aksiyon-btn" id="btnBosForm">
-      <div class="bab-ikon">📄</div>
+<div class="detay-overlay" id="detayOverlay">
+  <div class="detay-panel">
+    <div class="detay-head">
+      <div class="detay-avatar" id="detayAvatar" style="display:none;"></div>
       <div>
-        <strong>Boş Form</strong>
-        <small>Doldurulmamış tek sayfa PDF</small>
+        <div class="detay-baslik" id="detayBaslik"></div>
+        <div class="detay-alt" id="detayAltBaslik"></div>
       </div>
-    </button>
-    <button class="buyuk-aksiyon-btn" id="btnOgrencilerIcinForm">
-      <div class="bab-ikon">👥</div>
-      <div>
-        <strong>Seçilen Öğrenciler İçin Oluştur</strong>
-        <small>Her öğrenci için ayrı sayfa</small>
+      <div class="detay-head-actions">
+        <button class="btn btn-ghost btn-sm" id="detayMesajArkaplanBtn" style="display:none;" onclick="mesajArkaplanPaneliAc()" title="Sohbet Arka Planı"><i data-lucide="palette" style="width:15px;height:15px;"></i></button>
+        <button class="btn btn-ghost btn-sm" id="detayRaporBtn" style="background:var(--brand);color:#fff;display:inline-flex;align-items:center;gap:6px;"><i data-lucide="printer" style="width:15px;height:15px;"></i> Rapor</button>
+        <button class="btn btn-ghost btn-sm" id="detayDuzenleBtn" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="pencil-line" style="width:15px;height:15px;"></i> Düzenle</button>
+        <button class="btn btn-ghost btn-sm" onclick="detayPanelKapat()" style="display:inline-flex;align-items:center;gap:6px;"><i data-lucide="x" style="width:15px;height:15px;"></i> Kapat</button>
       </div>
-    </button>
-    <div id="optikOlusturDurum" class="durum-mesaj"></div>
+    </div>
+    <div class="detay-body" id="detayBody"></div>
   </div>
 </div>
 
-
-<!-- ═══════════════════════════════════════════
-     EKRAN 6 — MANUEL KAĞIT GİRİŞİ
-═══════════════════════════════════════════ -->
-<div id="ekranManuelKagit" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnManuelKapat">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
-    <h1 class="o-baslik" style="color:#fff;">Yeni Kağıt</h1>
-    <button class="o-kaydet-btn" id="btnManuelKaydet">Kaydet</button>
-  </header>
-
-  <div class="ogr-stats-bar">
-    <span>Toplam Net: <strong id="manuelNet">0.0</strong></span>
-    <span id="manuelFormAdi" class="ogr-stats-puan">—</span>
-  </div>
-
-  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-    <!-- Öğrenci seçimi -->
-    <div class="manuel-ogr-grid">
-      <div class="pill-wrap">
-        <label class="pill-label">Numara</label>
-        <div class="pill-satir">
-          <input type="text" id="manuelNo" class="pill-input">
-          <button class="pill-sil" data-h="manuelNo">×</button>
-        </div>
-      </div>
-      <div class="pill-wrap">
-        <label class="pill-label">Sınıf</label>
-        <div class="pill-satir">
-          <input type="text" id="manuelSinif" class="pill-input">
-          <button class="pill-sil" data-h="manuelSinif">×</button>
-        </div>
-      </div>
-      <div class="pill-wrap pill-tam">
-        <label class="pill-label">Ad Soyad</label>
-        <div class="pill-satir">
-          <input type="text" id="manuelAdSoyad" class="pill-input">
-          <button class="pill-sil" data-h="manuelAdSoyad">×</button>
-        </div>
-      </div>
-    </div>
-    <!-- Sınıftan öğrenci seç -->
-    <div class="manuel-siniftan-sec-wrap" id="manuelSiniftanSecWrap" style="display:none;">
-      <button type="button" class="manuel-siniftan-sec-btn" id="btnManuelSiniftanSec">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        <span id="btnManuelSiniftanSecMetin">Sınıftan Öğrenci Seç</span>
-      </button>
-      <div class="ogr-secim-alani manuel-ogr-secim-alani" id="manuelSinifListesi" style="display:none;"></div>
-    </div>
-    <!-- Ders + Kitapçık -->
-    <div class="manuel-ders-satiri">
-      <div class="floating-select-wrap">
-        <label class="floating-label">Ders</label>
-        <select id="manuelDers" class="floating-select"></select>
-      </div>
-      <div class="floating-select-wrap">
-        <label class="floating-label">Kitapçık</label>
-        <select id="manuelKitapcik" class="floating-select">
-          <option value="">—</option>
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-          <option value="D">D</option>
-        </select>
-      </div>
-    </div>
-    <!-- Soru ızgarası -->
-    <div id="manuelSorular" class="ogr-soru-izgarasi"></div>
-  </div>
-
-  <div class="ogr-alt-bar">
-    <span><span class="renk-d">D</span>: <strong id="manuelD">0</strong></span>
-    <span><span class="renk-y">Y</span>: <strong id="manuelY">0</strong></span>
-    <span>B: <strong id="manuelB">0</strong></span>
-    <span><span class="renk-n">N</span>: <strong id="manuelN">0.0</strong></span>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════
-     EKRAN 7 — LGS PUANI RAPORU
-═══════════════════════════════════════════ -->
-<div id="ekranLgsPuan" class="ekran">
-  <header class="o-header o-header-renk">
-    <button class="o-geri-btn" id="btnLgsPuanGeri">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <h1 class="o-baslik" style="color:#fff;" id="lgsPuanBaslik">LGS Puanı</h1>
-  </header>
-
-  <div class="o-icerik" style="padding:16px;">
-    <div class="lgs-bilgi-notu" id="lgsBilgiNotu">
-      Net = Doğru − Yanlış/3 kuralıyla hesaplanır. Standart puan, ortalama ve standart
-      sapma kullanılarak bulunur. <strong>MEB'in açıkladığı gerçek Türkiye ortalaması/
-      standart sapma/MinTASP/MaxTASP değerlerini aşağıdan girebilirsin</strong> — girilmeyen
-      değerler bu sınavın kendi verisinden <em>tahmini</em> olarak hesaplanır.
-    </div>
-
-    <button type="button" class="lgs-ayar-btn" id="btnLgsAyarToggle">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      MEB Verilerini Gir / Düzenle
-    </button>
-    <div id="lgsAyarPanel" class="lgs-ayar-panel" style="display:none;"></div>
-
-    <div class="lgs-ozet-kart">
-      <div>
-        <small id="lgsOzetOrtalamaEtiket">Sınav Ortalaması (Tahmini Puan)</small>
-        <strong id="lgsOzetOrtalama">—</strong>
-      </div>
-      <div>
-        <small>Değerlendirilen Öğrenci</small>
-        <strong id="lgsOzetSayi">0</strong>
-      </div>
-    </div>
-
-    <div id="lgsKaynakEtiketi" class="lgs-kaynak-etiketi"></div>
-
-    <div id="lgsBosAlan" class="bos-alan" style="display:none;">
-      <p>Henüz puanlanmış sonuç yok. Önce cevap anahtarını girip kağıtları okutun.</p>
-    </div>
-
-    <div id="lgsOgrenciListesi" class="lgs-ogrenci-listesi"></div>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════
-     KAMERA OVERLAY
-═══════════════════════════════════════════ -->
-<div id="kameraOverlay" class="overlay" hidden>
-  <div class="km-ust-bar">
-    <button class="o-geri-btn" id="kameraKapatBtn" style="color:#fff;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-    </button>
-    <span class="kamera-baslik" id="kameraFormAdi">LGS</span>
-    <div style="display:flex;gap:4px;">
-      <button class="kamera-ikon-btn" id="kameraTorchBtn" title="Kamera flaşı" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></button>
-      <button class="kamera-ikon-btn" id="kameraMenuBtn" title="Tarama Ayarları"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg></button>
-    </div>
-  </div>
-
-  <video id="video" autoplay playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;pointer-events:none;"></video>
-  <canvas id="canvas" hidden></canvas>
-  <canvas id="koseTespitOverlay" style="position:absolute;inset:0;width:100%;height:100%;z-index:2;pointer-events:none;"></canvas>
-
-  <!-- Canlı tarama: otomatik kaydedilen sonucu birkaç saniye gösteren kart -->
-  <div id="canliSonucKart" class="km-sonuc-kart" hidden>
-    <div class="ksk-satir"><span>Ad</span><b id="kskAd">—</b></div>
-    <div class="ksk-satir"><span>Numara</span><b id="kskNumara">—</b></div>
-    <div class="ksk-satir"><span>Sınıf</span><b id="kskSinif">—</b></div>
-    <div class="ksk-satir"><span>Puan</span><b id="kskPuan">—</b></div>
-    <div class="ksk-satir"><span>Net</span><b id="kskNet">—</b></div>
-    <div class="ksk-btnlar">
-      <button id="kskSil" class="ksk-btn ksk-btn-sil">Sil</button>
-      <button id="kskDuzenle" class="ksk-btn ksk-btn-duzenle">Düzenle</button>
-    </div>
-  </div>
-
-  <!-- Ayarlar sheet: canlı tarama aç/kapat + hassasiyet ayarları -->
-  <div id="kameraAyarSheet" class="km-ayar-sheet" hidden>
-    <div class="km-ayar-baslik">Tarama Ayarları<button id="kameraAyarKapat" class="ksk-btn">✕</button></div>
-    <label class="km-ayar-satir">
-      <span>Canlı Tarama Modu</span>
-      <input type="checkbox" id="canliModSwitch">
-    </label>
-    <p class="km-ayar-aciklama">Açıkken kamera kapanmaz; her kağıt otomatik okunup kaydedilir, sıradaki kağıda geçebilirsiniz.</p>
-    <hr class="km-ayar-ayrac">
-    <label class="km-ayar-satir">
-      <span>Köşe Hassasiyeti</span>
-      <input type="range" id="hsYuzdelik" min="10" max="50" step="1">
-    </label>
-    <label class="km-ayar-satir">
-      <span>Minimum Doluluk</span>
-      <input type="range" id="hsDoluluk" min="20" max="70" step="1">
-    </label>
-    <label class="km-ayar-satir">
-      <span>Analiz Hızı</span>
-      <input type="range" id="hsHiz" min="200" max="800" step="50">
-    </label>
-    <button id="hsSifirla" class="ksk-btn" style="width:100%;margin-top:8px;">Varsayılana Sıfırla</button>
-  </div>
-
-  <!-- Seviye göstergesi -->
-  <div id="seviyeGosterge" class="seviye-gosterge">
-    <div id="seviyeHalka" class="seviye-halka">
-      <div id="seviyeNokta" class="seviye-nokta"></div>
-      <div class="seviye-merkez"></div>
-    </div>
-    <span id="seviyeMesaj" class="seviye-mesaj">Düzleştirin</span>
-  </div>
-
-  <!-- Köşe seçim -->
-  <div id="koseSecimAlani" style="display:none;position:absolute;inset:0;z-index:8;touch-action:none;overscroll-behavior:none;">
-    <button id="koseIptal" aria-label="Vazgeç, farklı resim seç" style="position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:12px;z-index:13;width:40px;height:40px;border-radius:20px;border:none;background:rgba(0,0,0,.55);color:#fff;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>
-    <p id="koseTalimat" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;white-space:nowrap;z-index:12;"></p>
-    <canvas id="koseSecimCanvas" style="position:absolute;inset:0;width:100%;height:100%;touch-action:none;"></canvas>
-    <div style="position:absolute;bottom:0;left:0;right:0;z-index:12;display:flex;gap:8px;padding:16px 16px calc(28px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,rgba(0,0,0,.6),transparent);">
-      <button id="koseTamam" class="kose-btn kose-tamam">✅ Tamam</button>
-      <button id="koseSifirla" class="kose-btn">↺ Sıfırla</button>
-      <button id="koseVazgec" class="kose-btn">🤖 Otomatik Dene</button>
-    </div>
-  </div>
-
-  <!-- İpucu bant -->
-  <div class="km-ipucu" id="kmIpucu">
-    <span style="color:rgba(255,255,255,.8);font-size:12px;font-weight:600;">Kağıtlar</span>
-    <div class="km-ipucu-bant">Kamerayı Optik Forma Tutun</div>
-    <span style="color:rgba(255,255,255,.8);font-size:12px;font-weight:600;" id="kmFormAdi">LGS</span>
-  </div>
-
-  <!-- Alt bar -->
-  <div class="km-alt-bar">
-    <label class="km-aksiyon-btn" for="galeriInput">
-      <div class="km-aksiyon-ikon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
-      <span>Galeri</span>
-      <input type="file" id="galeriInput" accept="image/*" multiple hidden>
-    </label>
-    <button id="capture" class="km-shutter"><span class="km-shutter-ic"></span></button>
-    <span style="min-width:80px;"></span>
-  </div>
-
-  <button id="start" hidden></button>
-  <button id="stop" hidden></button>
-</div>
-
-
-<!-- ═══════════════════════════════════════════
-     BOTTOM SHEETS
-═══════════════════════════════════════════ -->
-<!-- Kağıt Ekle Sheet -->
-<div id="sheetKagitEkle" class="bs-overlay" hidden>
-  <div class="bs-panel">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik">Kağıt Ekle</h3>
-    <div class="bs-grid-2">
-      <button class="bs-btn" id="bsGaleri">
-        <div class="bs-ikon" style="background:#E1BEE7;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8E24AA" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </div>
-        <span>Galeri</span>
-        <input type="file" id="galeriInputSheet" accept="image/*" multiple hidden>
-      </button>
-      <button class="bs-btn" id="bsManuel">
-        <div class="bs-ikon" style="background:#B2EBF2;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00838F" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </div>
-        <span>Manuel</span>
-      </button>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="modalSilBtn" style="display:none;margin-right:auto;">Sil</button>
+      <button class="btn btn-ghost" onclick="modalKapat()">Vazgeç</button>
+      <button class="btn btn-primary" id="modalKaydetBtn">Kaydet</button>
     </div>
   </div>
 </div>
 
-<!-- Optik Form Seçici Sheet -->
-<div id="sheetOptikForm" class="bs-overlay" hidden>
-  <div class="bs-panel">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik">Optik Form Seçin</h3>
-    <div id="optikFormSeciciListesi" class="bs-liste"></div>
+<div class="toast" id="toast"></div>
+
+<!-- YENİ: Uzun süren işlemler (yedek geri yükleme vb.) için kalıcı ilerleme
+     göstergesi — toast 3 saniyede kaybolduğu için uzun işlemlerde yetersiz
+     kalıyordu. Bu overlay işlem bitene kadar (veya hata/tamamlanana kadar
+     kullanıcı kapatana dek) ekranda kalır. -->
+<div id="ilerlemeOverlay" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg-card);border-radius:16px;max-width:360px;width:100%;padding:26px 22px;text-align:center;">
+    <div id="ilerlemeSpinner" style="width:36px;height:36px;border:3px solid var(--border-soft);border-top-color:var(--brand);border-radius:50%;margin:0 auto 16px;animation:ilerlemeDon .8s linear infinite;"></div>
+    <div id="ilerlemeIkon" style="display:none;font-size:34px;margin-bottom:12px;"></div>
+    <p id="ilerlemeMetin" style="font-size:14px;color:var(--ink);line-height:1.5;margin:0;"></p>
+    <button id="ilerlemeKapatBtn" class="btn btn-ghost" style="display:none;margin-top:16px;" onclick="ilerlemeGizle()">Kapat</button>
   </div>
 </div>
 
-<!-- Silme onay sheet -->
-<div id="sheetOnay" class="bs-overlay" hidden>
-  <div class="bs-panel">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik" id="sheetOnayBaslik">Emin misiniz?</h3>
-    <p class="bs-metin" id="sheetOnayMetin"></p>
-    <div class="bs-grid-2">
-      <button class="bs-btn-iptal" id="sheetOnayIptal">Vazgeç</button>
-      <button class="bs-btn-tehlike" id="sheetOnayOnayla">Sil</button>
-    </div>
-  </div>
-</div>
-
-<!-- Puan Referans Ayarları (global — sınav TÜRÜNE göre, tek seferlik) -->
-<div id="sheetPuanReferans" class="bs-overlay" hidden>
-  <div class="bs-panel bs-panel-uzun">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik">Puan Referans Ayarları</h3>
-    <p class="bs-metin">Burada girdiğin ortalama/standart sapma/TASP aralığı, o türdeki TÜM sınavlarda (yeni oluşturduklarında dahil) otomatik kullanılır — her deneme için tekrar girmene gerek kalmaz.</p>
-    <div class="lgs-ayar-bolum">
-      <h4 class="lgs-ayar-bolum-baslik">LGS</h4>
-      <div id="prLgsAlan"></div>
-      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrLgsKaydet">LGS Referanslarını Kaydet</button>
-    </div>
-    <div class="lgs-ayar-bolum">
-      <h4 class="lgs-ayar-bolum-baslik">Bursluluk (İOKBS)</h4>
-      <div id="prBurslulukAlan"></div>
-      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrBurslulukKaydet">Bursluluk Referanslarını Kaydet</button>
-    </div>
-    <button type="button" class="bs-btn-iptal" id="btnPuanReferansKapat" style="width:100%;margin-top:10px;">Kapat</button>
-  </div>
-</div>
-
-<!-- Yazdırma Seçenekleri + Önizleme Sheet -->
-<div id="sheetYazdirmaSecenekleri" class="bs-overlay" hidden>
-  <div class="bs-panel bs-panel-uzun">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik">Yazdırma Seçenekleri</h3>
-
-    <div class="yz-bolum">
-      <span class="yz-etiket">Yön</span>
-      <div class="yz-segment" id="yzYonSegment">
-        <button type="button" class="yz-segment-btn yz-aktif" data-yon="dikey">Dikey</button>
-        <button type="button" class="yz-segment-btn" data-yon="yatay">Yatay</button>
-      </div>
-    </div>
-
-    <div class="yz-bolum">
-      <span class="yz-etiket">Sayfa Düzeni</span>
-      <div class="yz-segment yz-segment-5" id="yzDuzenSegment">
-        <button type="button" class="yz-segment-btn yz-aktif" data-duzen="otomatik">Otomatik</button>
-        <button type="button" class="yz-segment-btn" data-duzen="1">Tek Form</button>
-        <button type="button" class="yz-segment-btn" data-duzen="2">2'li</button>
-        <button type="button" class="yz-segment-btn" data-duzen="4">4'lü</button>
-        <button type="button" class="yz-segment-btn" data-duzen="6">6'lı</button>
-      </div>
-      <small class="yz-not" id="yzSabitSablonNotu" hidden>Bu sınav türü (LGS/Bursluluk) sabit tam sayfa şablon kullanır; yön ve sayfa düzeni değiştirilemez.</small>
-      <small class="yz-not" id="yzCokluBilgiNotu">2'li/4'lü/6'lı düzende her form farklı bir öğrenciye ait olur (aynı öğrenci tekrarlanmaz) — kağıt kesilip öğrencilere dağıtılabilir.</small>
-    </div>
-
-    <div id="yzOnizlemeDurum" class="durum-mesaj"></div>
-
-    <div class="bs-grid-2" style="margin-top:14px;">
-      <button type="button" class="bs-btn-iptal" id="btnYzOnizle">👁️ Önizle</button>
-      <button type="button" class="lgs-ayar-kaydet-btn" id="btnYzOnayla" style="margin:0;">✅ Oluştur ve İndir</button>
+<!-- YENİ: Native confirm() bazı Android WebView'lerde, kullanıcı dokunuşundan
+     belli bir süre sonra (uzun bir async işlem sonrası) sessizce
+     engellenebiliyor (popup engelleme güvenliği). Bu yüzden onay gereken
+     kritik akışlarda (örn. yedek geri yükleme) bunun yerine kullanılan
+     kendi modalımız — bkz. uygulamaOnayAl() fonksiyonu. -->
+<div id="ozelOnayModal" onclick="if(event.target===this) window._ozelOnaySonucVer(false)" style="display:none;position:fixed;inset:0;z-index:9900;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg-card);border-radius:16px;max-width:400px;width:100%;padding:22px;">
+    <p id="ozelOnayMesaj" style="font-size:14px;color:var(--ink);line-height:1.5;margin-bottom:20px;"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="window._ozelOnaySonucVer(false)">Vazgeç</button>
+      <button class="btn btn-primary" onclick="window._ozelOnaySonucVer(true)">Devam Et</button>
     </div>
   </div>
 </div>
 
+<script src="js/firebase-init.js"></script>
+<script src="js/core/services/istatistik.service.js"></script>
+<!-- YENİ: Core katmanı (pragmatik mimari — bkz. docs/Pragmatik-Mimari-Tasarimi.md) -->
+<script src="js/core/utils.js"></script>
+<script src="js/core/store.js"></script>
+<script src="js/core/event-bus.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/kullanici-yonetimi.js"></script>
+<script src="js/core/repositories/kullanici-yonetimi.repository.js"></script>
+<script src="js/core/services/kullanici-yonetimi.service.js"></script>
+<script src="js/core/repositories/nobet.repository.js"></script>
+<script src="js/core/services/nobet.service.js"></script>
+<script src="js/core/repositories/siniflar.repository.js"></script>
+<script src="js/core/services/siniflar.service.js"></script>
+<script src="js/core/repositories/takvim.repository.js"></script>
+<script src="js/core/services/takvim.service.js"></script>
+<script src="js/core/repositories/personel.repository.js"></script>
+<script src="js/core/services/personel.service.js"></script>
+<script src="js/core/repositories/tasima.repository.js"></script>
+<script src="js/core/services/tasima.service.js"></script>
+<script src="js/core/repositories/servis-oturma.repository.js"></script>
+<script src="js/core/services/servis-oturma.service.js"></script>
+<script src="js/core/servis-yerlesim-sema.js"></script>
+<script src="js/core/repositories/notlar.repository.js"></script>
+<script src="js/core/services/notlar.service.js"></script>
+<script src="js/core/repositories/sinavlar.repository.js"></script>
+<script src="js/core/services/sinavlar.service.js"></script>
+<script src="js/core/repositories/ogretmen-izin.repository.js"></script>
+<script src="js/core/services/ogretmen-izin.service.js"></script>
+<script src="js/core/repositories/ders-saatleri.repository.js"></script>
+<script src="js/core/services/ders-saatleri.service.js"></script>
+<script src="js/core/repositories/dokumanlar.repository.js"></script>
+<script src="js/core/services/dokumanlar.service.js"></script>
+<script src="js/core/repositories/harita.repository.js"></script>
+<script src="js/core/services/harita.service.js"></script>
+<script src="js/core/repositories/cizelgeler.repository.js"></script>
+<script src="js/core/services/cizelgeler.service.js"></script>
+<script src="js/core/repositories/push.repository.js"></script>
+<script src="js/core/services/push.service.js"></script>
+<script src="js/core/repositories/haberler.repository.js"></script>
+<script src="js/core/services/haberler.service.js"></script>
+<script src="js/core/repositories/periyodik.repository.js"></script>
+<script src="js/core/services/periyodik.service.js"></script>
+<script src="js/core/repositories/mesajlasma.repository.js"></script>
+<script src="js/core/services/mesajlasma.service.js"></script>
+<script src="js/core/repositories/duyurular.repository.js"></script>
+<script src="js/core/services/duyurular.service.js"></script>
+<script src="js/core/repositories/anket.repository.js"></script>
+<script src="js/core/services/anket.service.js"></script>
+<script src="js/push.js"></script>
+<script src="js/cizelgeler.js"></script>
+<script src="js/mesajlasma.js"></script>
+<script src="js/duyurular.js"></script>
+<script src="js/anket.js"></script>
+<script src="js/dashboard-ozellestirme.js"></script>
+<script src="js/excel-import.js"></script>
+<script src="js/kriter-dagitim.js"></script>
+<script src="js/proje-degerlendirme.js"></script>
+<script src="js/optik-ayarlari.js"></script>
+<script src="js/nobet.js"></script>
+<script src="js/periyodik.js"></script>
+<script src="js/ogretmen-detay.js"></script>
+<script src="js/ogretmen-izin.js"></script>
+<script src="js/ders-saatleri.js"></script>
+<script src="js/siniflar.js"></script>
+<script src="js/tasima.js"></script>
+<script src="js/haberler.js"></script>
+<script src="js/mevzuat-asistan.js"></script>
+<script src="js/dokumanlar.js"></script>
+<script src="js/dokuman-okuyucu.js"></script>
+<script src="js/harita.js"></script>
+<script src="js/servis-oturma.js"></script>
+<script src="js/tasima-takip.js"></script>
+<script src="js/servis-denetim.js"></script>
+<script src="js/core/zengin-editor.js"></script>
+<script src="js/personel.js"></script>
+<script src="js/dilekce.js"></script>
+<script src="js/maas-degisiklik.js"></script>
+<script src="js/teblig-tebellug.js"></script>
+<script src="js/puantaj.js"></script>
+<script src="js/optik-entegrasyon.js"></script>
+<script src="js/raporlama.js"></script>
+<script src="js/sinavlar.js"></script>
+<script src="js/notlar.js"></script>
+<script src="js/ogretmen-liste-olusturucu.js"></script>
+<script src="js/istatistikler.js"></script>
+<script src="js/takvim.js"></script>
+<script src="js/app.js"></script>
+<script src="js/ogrenciler-arama.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/sistem-bar.js"></script>
+<script src="js/hava-durumu.js"></script>
+<script src="js/widget-bridge.js"></script>
+<script src="js/alt-navigasyon.js"></script>
 
-<script type="module" src="js/app.js"></script>
+<!-- ============================================================
+     YENİ — FAZ 2: LUCIDE İKON SİSTEMİ
+     ------------------------------------------------------------
+     Bu blok hiçbir mevcut JS dosyasını / fonksiyonunu değiştirmez.
+     Sadece <i data-lucide="..."></i> ile işaretlenmiş elemanları
+     gerçek SVG ikonlara çeviren KÜTÜPHANEYİ ve bunu her DOM
+     değişikliğinde (sekme geçişi, dinamik render vb.) otomatik
+     tekrar çalıştıran küçük bir "köprü" script'i ekler. Böylece
+     ileride başka modüllerde data-lucide eklendikçe otomatik
+     olarak ikona dönüşür — ayrıca bir şey yapmaya gerek kalmaz.
+     ============================================================ -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  (function(){
+    function ikonlariCiz(){
+      if(window.lucide && typeof lucide.createIcons === 'function'){
+        try{ lucide.createIcons(); }catch(e){ /* sessiz geç, uygulamayı bozma */ }
+      }
+    }
+    document.addEventListener('DOMContentLoaded', ikonlariCiz);
+    if(document.readyState === 'complete' || document.readyState === 'interactive'){ ikonlariCiz(); }
+
+    // Başka JS dosyalarının (örn. kullanici-yonetimi.js) bir ikonu
+    // dinamik olarak değiştirmesi gerektiğinde (ör. rol'e göre farklı
+    // simge) çağırabilmesi için global bir yenileme fonksiyonu.
+    window.ikonYenile = ikonlariCiz;
+
+    // Sekme geçişleri / dinamik render sonrası yeni data-lucide elemanları
+    // VE var olan bir ikonun data-lucide değeri değişmesi otomatik olarak
+    // yeniden çizilsin diye DOM'u izliyoruz (debounce'lu, hafif).
+    var zamanlayici = null;
+    var izleyici = new MutationObserver(function(){
+      clearTimeout(zamanlayici);
+      zamanlayici = setTimeout(ikonlariCiz, 120);
+    });
+    document.addEventListener('DOMContentLoaded', function(){
+      var app = document.getElementById('app') || document.body;
+      izleyici.observe(app, { childList:true, subtree:true, attributes:true, attributeFilter:['data-lucide'] });
+    });
+  })();
+</script>
 </body>
 </html>
