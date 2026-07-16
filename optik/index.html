@@ -641,6 +641,50 @@
   </div>
 </div>
 
+<!-- Yazdırma Seçenekleri + Önizleme Sheet -->
+<div id="sheetYazdirmaSecenekleri" class="bs-overlay" hidden>
+  <div class="bs-panel bs-panel-uzun">
+    <div class="bs-tutac"></div>
+    <h3 class="bs-baslik">Yazdırma Seçenekleri</h3>
+
+    <div class="yz-bolum">
+      <span class="yz-etiket">Yön</span>
+      <div class="yz-segment" id="yzYonSegment">
+        <button type="button" class="yz-segment-btn yz-aktif" data-yon="dikey">Dikey</button>
+        <button type="button" class="yz-segment-btn" data-yon="yatay">Yatay</button>
+      </div>
+    </div>
+
+    <div class="yz-bolum">
+      <span class="yz-etiket">Sayfa Düzeni</span>
+      <div class="yz-segment yz-segment-5" id="yzDuzenSegment">
+        <button type="button" class="yz-segment-btn yz-aktif" data-duzen="otomatik">Otomatik</button>
+        <button type="button" class="yz-segment-btn" data-duzen="1">Tek Form</button>
+        <button type="button" class="yz-segment-btn" data-duzen="2">2'li</button>
+        <button type="button" class="yz-segment-btn" data-duzen="4">4'lü</button>
+        <button type="button" class="yz-segment-btn" data-duzen="6">6'lı</button>
+      </div>
+      <small class="yz-not" id="yzSabitSablonNotu" hidden>Bu sınav türü (LGS/Bursluluk) sabit tam sayfa şablon kullanır; yön ve sayfa düzeni değiştirilemez.</small>
+      <small class="yz-not" id="yzCokluBilgiNotu">2'li/4'lü/6'lı düzende her form farklı bir öğrenciye ait olur (aynı öğrenci tekrarlanmaz) — kağıt kesilip öğrencilere dağıtılabilir.</small>
+    </div>
+
+    <div class="yz-onizleme-alan" id="yzOnizlemeAlan" hidden>
+      <div class="yz-onizleme-baslik">
+        <span>Önizleme</span>
+        <span id="yzOnizlemeSayfaBilgi" class="yz-onizleme-sayfa-bilgi"></span>
+      </div>
+      <iframe id="yzOnizlemeIframe" class="yz-onizleme-iframe"></iframe>
+    </div>
+    <div id="yzOnizlemeDurum" class="durum-mesaj"></div>
+
+    <div class="bs-grid-2" style="margin-top:14px;">
+      <button type="button" class="bs-btn-iptal" id="btnYzOnizle">👁️ Önizle</button>
+      <button type="button" class="lgs-ayar-kaydet-btn" id="btnYzOnayla" style="margin:0;">✅ Oluştur ve İndir</button>
+    </div>
+  </div>
+</div>
+
+
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
