@@ -1221,34 +1221,11 @@ function _kaydetButonuOnayGoster(btn, eskiMetin) {
     setTimeout(() => { btn.textContent = eskiMetin; }, 1400);
 }
 
-/**
- * Sınav listesi ekranındaki ⋮ menüsünden açılan global "Puan Referans
- * Ayarları" sheet'i — LGS ve Bursluluk için ayrı ayrı, sınav TÜRÜNE göre
- * (tek seferlik, tüm sınavlarda geçerli) referans veri girişi sağlar.
- */
-function puanReferansSheetAc() {
-    const sheet = document.getElementById('sheetPuanReferans');
-    if (!sheet) return;
-
-    const bolumRender = (sinavTuru, alanId) => {
-        const alan = document.getElementById(alanId);
-        if (alan) alan.innerHTML = _puanReferansIcerikHtml(sinavTuru);
-    };
-    bolumRender('lgs', 'prLgsAlan');
-    bolumRender('bursluluk', 'prBurslulukAlan');
-
-    document.getElementById('btnPrLgsKaydet').onclick = (e) => {
-        _puanReferansKaydet(document.getElementById('prLgsAlan'), 'lgs');
-        _kaydetButonuOnayGoster(e.currentTarget, 'LGS Referanslarını Kaydet');
-    };
-    document.getElementById('btnPrBurslulukKaydet').onclick = (e) => {
-        _puanReferansKaydet(document.getElementById('prBurslulukAlan'), 'bursluluk');
-        _kaydetButonuOnayGoster(e.currentTarget, 'Bursluluk Referanslarını Kaydet');
-    };
-    document.getElementById('btnPuanReferansKapat').onclick = () => sheetKapat('sheetPuanReferans');
-
-    sheetAc('sheetPuanReferans');
-}
+/* Not: eskiden buradaki puanReferansSheetAc() fonksiyonu Sınavlar
+   ekranındaki ⋮ menüsünden açılan global "Puan Referans Ayarları"
+   sheet'ini yönetiyordu — o ayar artık ana uygulamanın admin'e özel
+   Ayarlar sekmesinde (bkz. js/optik-ayarlari.js), sheet ve ⋮ menü
+   butonu index.html'den kaldırıldı, bu yüzden fonksiyon da kaldırıldı. */
 
 function _lgsAyarPaneliniRender() {
     const panel = document.getElementById('lgsAyarPanel');
@@ -2204,7 +2181,6 @@ function baslat() {
     document.getElementById('sheetKagitEkle').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetKagitEkle'); });
     document.getElementById('sheetOptikForm').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetOptikForm'); });
     document.getElementById('sheetOnay').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetOnay'); });
-    document.getElementById('sheetPuanReferans').addEventListener('click', e => { if (e.target === e.currentTarget) sheetKapat('sheetPuanReferans'); });
     document.getElementById('sheetOnayIptal').addEventListener('click', () => sheetKapat('sheetOnay'));
     document.getElementById('bsGaleri').addEventListener('click', () => {
         sheetKapat('sheetKagitEkle');
