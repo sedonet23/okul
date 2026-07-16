@@ -1755,8 +1755,6 @@ function yazdirmaSecenekleriAc(mod) {
     _yzMod = mod;
     _yzSecimleri = { yon: 'dikey', sayfaDuzeni: 'otomatik' };
 
-    document.getElementById('yzOnizlemeAlan').hidden = true;
-    document.getElementById('yzOnizlemeIframe').src = 'about:blank';
     document.getElementById('yzOnizlemeDurum').textContent = '';
 
     const sabitMi = _sinavSabitSablonMu(sinav);
@@ -1785,12 +1783,75 @@ function _yzSegmentBagla(containerId, datasetAdi, secimAnahtari) {
             // 'otomatik' / 'dikey' / 'yatay' gibi metin değerler olduğu gibi kalır.
             if (/^\d+$/.test(deger)) deger = Number(deger);
             _yzSecimleri[secimAnahtari] = deger;
-            document.getElementById('yzOnizlemeAlan').hidden = true; // seçenek değişti, eski önizleme artık geçersiz
+            // seçenek değişti — önizleme artık ayrı bir pencerede olduğu için burada gizlenecek bir şey yok
         });
     });
 }
 
-/** Önizleme: gerçek indirmeyi tetiklemeden, seçilen yön/düzenle NASIL görüneceğini gösterir. */
+/* ====================================================================
+   OPTİK FORM ÖNİZLEME/YAZDIRMA PENCERESİ
+   Android'in çıplak WebView bileşeninde <iframe src="blob:...">  ile PDF
+   göstermek ÇALIŞMIYOR (PDF görüntüleyici eklentisi yok) — WebView bunu
+   render edemeyip bir indirme/"Aç" akışına düşüyor, önizleme boş kalıyor.
+
+   Çözüm: formu jsPDF ile değil canvasFormGenerator.js ile (AYNI çizim
+   fonksiyonlarını kullanarak, bkz. pdfFormGenerator.js export notu) bir
+   <canvas>'a çizip PNG'ye çeviriyoruz, sonra bu görselleri uygulamanın
+   geri kalanında zaten kullanılan "HTML + Yazdır/PDF İndir + Kapat" kalıbına
+   (bkz. js/app.js uygulamaHtmlYazdir) sarıp açıyoruz. Bu hem önizlemeyi
+   gerçekten görünür kılıyor hem de Android'de gerçek sistem yazdırma
+   diyaloğunu (PrintPlugin → PrintManager, "PDF olarak kaydet" dahil)
+   devreye sokuyor.
+   ==================================================================== */
+/**
+ * optik modülü, isim çakışmalarını önlemek için ana uygulamadan KASITLI
+ * OLARAK ayrı bir iframe'de çalışır (bkz. js/optik-entegrasyon.js) — bu
+ * yüzden ana uygulamanın uygulamaHtmlYazdir() yardımcı fonksiyonu bu
+ * sayfanın kendi `window`'unda değil, `window.parent`'ta bulunur. Optik
+ * bir gün bağımsız (iframe olmadan) açılırsa diye basit bir yedek de var.
+ */
+function _uygulamaHtmlYazdirCagir(rawHtml, isAdi, yon) {
+    try {
+        if (window.parent && window.parent !== window && typeof window.parent.uygulamaHtmlYazdir === 'function') {
+            window.parent.uygulamaHtmlYazdir(rawHtml, isAdi, yon);
+            return;
+        }
+    } catch (e) { /* çapraz pencere erişimi engellenmiş olabilir — aşağıdaki yedeğe düş */ }
+    try {
+        const blob = new Blob([rawHtml], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const win = window.open(url, '_blank');
+        if (!win) throw new Error('popup_blocked');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e2) {
+        alert('Önizleme penceresi açılamadı: ' + (e2 && e2.message));
+    }
+}
+
+function _optikOnizlePenceresiAc(sayfalar, baslik, sayfaBilgi) {
+    const yatayMi = sayfalar[0] && sayfalar[0].genislikMM > sayfalar[0].yukseklikMM;
+    const sayfaHtml = sayfalar.map((s, i) =>
+        `<img class="oy-sayfa" src="${s.dataUrl}" style="width:${s.genislikMM}mm;height:${s.yukseklikMM}mm;" alt="Sayfa ${i + 1}">`
+    ).join('\n');
+
+    const rawHtml = `<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>${_h(baslik)}</title><style>
+      body{margin:0;background:#e5e7eb;font-family:Manrope,Arial,sans-serif;}
+      .oy-bilgi{padding:10px 14px;font-size:12.5px;color:#374151;background:#f3f2ff;text-align:center;}
+      .oy-sayfa{display:block;margin:14px auto;box-shadow:0 2px 10px rgba(0,0,0,.25);background:#fff;}
+      @media print{
+        body{background:#fff;}
+        .oy-bilgi{display:none;}
+        .oy-sayfa{margin:0;box-shadow:none;page-break-after:always;}
+      }
+    </style></head><body>
+    <div class="oy-bilgi">${_h(sayfaBilgi)}</div>
+    ${sayfaHtml}
+    </body></html>`;
+
+    _uygulamaHtmlYazdirCagir(rawHtml, baslik.replace(/\s+/g, '_'), yatayMi ? 'yatay' : 'dikey');
+}
+
+/** Önizleme: gerçek indirmeyi tetiklemeden, seçilen yön/düzenle NASIL görüneceğini bir yazdırma penceresinde gösterir. */
 async function yzOnizleOlustur() {
     const sinav = DB.sinaviBul(_aktifSinavId);
     const durumEl = document.getElementById('yzOnizlemeDurum');
@@ -1798,15 +1859,16 @@ async function yzOnizleOlustur() {
     durumEl.textContent = 'Önizleme hazırlanıyor...';
     try {
         const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav, _yzSecimleri));
-        const { formPdfOlustur, topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
-        let doc, sayfaBilgi;
+        const { bosFormGorseliOlustur, ogrenciFormGorselleriOlustur } = await import('./canvasFormGenerator.js');
+        let sayfalar, sayfaBilgi;
 
         if (_yzMod === 'bos') {
-            doc = await formPdfOlustur(layout, {
+            const gorsel = await bosFormGorseliOlustur(layout, {
                 adSoyad: 'ÖRNEK ÖĞRENCİ', ogrenciNo: '1', sinif: '—',
                 sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
             });
-            sayfaBilgi = '1 sayfa (boş form)';
+            sayfalar = [gorsel];
+            sayfaBilgi = '1 sayfa (boş form) — önizleme';
         } else {
             const ogrList = await _yzOgrenciListesiGetir(sinav);
             if (!ogrList || !ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
@@ -1814,17 +1876,15 @@ async function yzOnizleOlustur() {
             // gerçek "Oluştur ve İndir"de TÜM öğrenciler işlenir.
             const slotSayisi = layout.formlar.length;
             const ornekListe = ogrList.slice(0, slotSayisi);
-            doc = await topluFormPdfOlustur(layout, ornekListe);
+            sayfalar = await ogrenciFormGorselleriOlustur(layout, ornekListe);
             const toplamSayfa = Math.ceil(ogrList.length / slotSayisi);
             sayfaBilgi = slotSayisi > 1
                 ? `Örnek sayfa (${ornekListe.length}/${slotSayisi} form dolu, her form ayrı öğrenci) — toplam ${ogrList.length} öğrenci için ${toplamSayfa} sayfa üretilecek`
                 : `Örnek sayfa — toplam ${ogrList.length} öğrenci için ${ogrList.length} sayfa üretilecek`;
         }
 
-        document.getElementById('yzOnizlemeIframe').src = doc.output('bloburl');
-        document.getElementById('yzOnizlemeSayfaBilgi').textContent = sayfaBilgi;
-        document.getElementById('yzOnizlemeAlan').hidden = false;
         durumEl.textContent = '';
+        _optikOnizlePenceresiAc(sayfalar, 'Optik Form Önizleme', sayfaBilgi);
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
 }
 

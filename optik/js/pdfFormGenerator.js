@@ -447,4 +447,19 @@ async function topluFormPdfOlustur(layout, ogrenciListesi) {
   return doc;
 }
 
-export { formPdfOlustur, topluFormPdfOlustur };
+// Not: hizalamaIsaretleriCiz/headerCiz/bolumlerCiz/izgaraCiz `doc` parametresini
+// yalnızca sabit bir küçük arayüz (setFont/setFontSize/setDrawColor/setFillColor/
+// setTextColor/setLineWidth/setLineDashPattern/rect/circle/text) üzerinden
+// kullanıyor — bu yüzden gerçek bir jsPDF nesnesi yerine aynı arayüzü uygulayan
+// başka bir "doc" (örn. canvasFormAdapter.js) ile de çağrılabilirler. Ekran
+// önizlemesi/yazdırma önizlemesi bunları canvasFormGenerator.js üzerinden
+// tekrar kullanır — çizim mantığı TEK yerde kalır, PDF ile önizleme asla
+// birbirinden sapmaz.
+export {
+  formPdfOlustur,
+  topluFormPdfOlustur,
+  hizalamaIsaretleriCiz,
+  headerCiz,
+  bolumlerCiz,
+  izgaraCiz,
+};
