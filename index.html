@@ -1229,6 +1229,26 @@
         </div>
       </div>
 
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>📝 Optik Sınav Değerlendirme</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Optik Okuma modülünde yeni bir sınav eklenirken kullanılacak varsayılan yanlış cevap katsayısı. Net = Doğru − (Yanlış ÷ katsayı). Bu, okul çapında ortak bir varsayılandır.
+          </p>
+          <div class="form-group">
+            <label>Yanlış Cevap Etkisi</label>
+            <select id="optikYanlisKatsayisiSecim">
+              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
+              <option value="3">3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
+              <option value="4">4 yanlış 1 doğruyu götürür</option>
+            </select>
+          </div>
+          <button class="btn btn-amber btn-sm" style="margin-top:10px;" onclick="optikKatsayiKaydetTikla()">Kaydet</button>
+        </div>
+      </div>
+
       <div class="card" style="margin-bottom:18px;">
         <h3>Uygulama Güncellemesi</h3>
         <p style="color:var(--ink-muted);font-size:13px;">Yeni bir sürüm çıkıp çıkmadığını buradan kontrol edebilirsiniz.</p>
@@ -1501,6 +1521,7 @@
 <script src="js/excel-import.js"></script>
 <script src="js/kriter-dagitim.js"></script>
 <script src="js/proje-degerlendirme.js"></script>
+<script src="js/optik-ayarlari.js"></script>
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
 <script src="js/ogretmen-detay.js"></script>
