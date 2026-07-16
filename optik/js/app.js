@@ -1911,6 +1911,21 @@ async function yzOnizleOlustur() {
 }
 
 /** Seçilen yön/sayfa düzeniyle GERÇEK PDF'i üretir ve indirir. */
+/** Bir promise'i sınırlı sürede bekler; süre dolarsa HANGİ adımda takıldığını
+ *  belirten net bir hatayla reddeder — böylece "Oluşturuluyor..." ekranda
+ *  süresiz asılı kalamaz (bkz. kullanıcı bildirimi: dakikalarca takılı kalma). */
+function _zamanAsimliBekle(promise, ms, asamaAdi) {
+    return new Promise((resolve, reject) => {
+        const zamanlayici = setTimeout(() => {
+            reject(new Error(`${asamaAdi} ${Math.round(ms / 1000)} saniyede tamamlanmadı (zaman aşımı) — cihaz/depolama izni onayı beklemiş olabilir.`));
+        }, ms);
+        promise.then(
+            (deger) => { clearTimeout(zamanlayici); resolve(deger); },
+            (hata) => { clearTimeout(zamanlayici); reject(hata); }
+        );
+    });
+}
+
 async function yzOnaylaVeIndir() {
     const sinav = DB.sinaviBul(_aktifSinavId);
     const durumEl = document.getElementById('optikOlusturDurum');
@@ -1921,11 +1936,11 @@ async function yzOnaylaVeIndir() {
         const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav, _yzSecimleri));
         if (_yzMod === 'bos') {
             const { formPdfOlustur } = await import('./pdfFormGenerator.js');
-            const doc = await formPdfOlustur(layout, {
+            const doc = await _zamanAsimliBekle(formPdfOlustur(layout, {
                 adSoyad: '', ogrenciNo: '', sinif: '',
                 sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
-            });
-            await _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+            }), 30000, 'PDF oluşturma');
+            await _zamanAsimliBekle(_pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf'), 20000, 'Dosya kaydetme');
             durumEl.textContent = '✅ PDF indirildi.';
         } else {
             const ogrList = await _yzOgrenciListesiGetir(sinav);
@@ -1933,8 +1948,9 @@ async function yzOnaylaVeIndir() {
             if (!ogrList.length) { alert('Öğrenci bilgisi bulunamadı.'); durumEl.textContent = ''; return; }
             durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
             const { topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
-            const doc = await topluFormPdfOlustur(layout, ogrList);
-            await _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+            const doc = await _zamanAsimliBekle(topluFormPdfOlustur(layout, ogrList), 60000, 'PDF oluşturma');
+            durumEl.textContent = `Kaydediliyor... (${ogrList.length} öğrenci)`;
+            await _zamanAsimliBekle(_pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf'), 20000, 'Dosya kaydetme');
             durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
         }
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
