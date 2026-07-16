@@ -1231,30 +1231,18 @@
 
       <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
         <div class="accordion-header" onclick="toggleAccordion(this)">
-          <span>📝 LGS / Bursluluk Sınav Katsayıları</span><span class="arrow">▼</span>
+          <span>📊 Optik Puan Referans Ayarları</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content">
           <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-            Optik Okuma modülünde LGS ve Bursluluk sınavları için kullanılan resmî yanlış cevap katsayısı. Net = Doğru − (Yanlış ÷ katsayı). Özel sınavların kendi katsayısı bu ayarlarla ilgisizdir, sınav eklenirken ayrıca sorulur.
+            Optik Okuma modülünün LGS/İOKBS puan hesaplamasında kullandığı Türkiye ortalaması, standart sapma ve MinTASP/MaxTASP referans verileri. Burada girilen değerler o türdeki TÜM sınavlarda (yeni oluşturulanlar dahil) otomatik kullanılır.
           </p>
-          <div class="form-group">
-            <label>LGS Sınavı</label>
-            <select id="optikLgsKatsayisiSecim">
-              <option value="3">3 yanlış 1 doğruyu götürür (resmî)</option>
-              <option value="4">4 yanlış 1 doğruyu götürür</option>
-              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
-            </select>
-            <button class="btn btn-amber btn-sm" style="margin-top:8px;" onclick="optikKatsayiKaydetTikla('lgs')">Kaydet</button>
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-sm filtre-btn active" data-opr-sekme="lgs" onclick="optikPuanReferansSekmeSec('lgs')">LGS</button>
+            <button class="btn btn-ghost btn-sm filtre-btn" data-opr-sekme="bursluluk" onclick="optikPuanReferansSekmeSec('bursluluk')">Bursluluk</button>
           </div>
-          <div class="form-group" style="margin-top:16px;">
-            <label>Bursluluk Sınavı</label>
-            <select id="optikBurslulukKatsayisiSecim">
-              <option value="3">3 yanlış 1 doğruyu götürür (resmî)</option>
-              <option value="4">4 yanlış 1 doğruyu götürür</option>
-              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
-            </select>
-            <button class="btn btn-amber btn-sm" style="margin-top:8px;" onclick="optikKatsayiKaydetTikla('bursluluk')">Kaydet</button>
-          </div>
+          <div id="optikPuanReferansLgsAlan"></div>
+          <div id="optikPuanReferansBurslulukAlan" style="display:none;"></div>
         </div>
       </div>
 
@@ -1530,6 +1518,8 @@
 <script src="js/excel-import.js"></script>
 <script src="js/kriter-dagitim.js"></script>
 <script src="js/proje-degerlendirme.js"></script>
+<script src="optik/js/layoutEngine.js"></script>
+<script src="optik/js/lgsPuanHesapla.js"></script>
 <script src="js/optik-ayarlari.js"></script>
 <script src="js/nobet.js"></script>
 <script src="js/periyodik.js"></script>
