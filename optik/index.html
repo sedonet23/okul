@@ -576,6 +576,26 @@
   </div>
 </div>
 
+<!-- Puan Referans Ayarları (global — sınav TÜRÜNE göre, tek seferlik) -->
+<div id="sheetPuanReferans" class="bs-overlay" hidden>
+  <div class="bs-panel bs-panel-uzun">
+    <div class="bs-tutac"></div>
+    <h3 class="bs-baslik">Puan Referans Ayarları</h3>
+    <p class="bs-metin">Burada girdiğin ortalama/standart sapma/TASP aralığı, o türdeki TÜM sınavlarda (yeni oluşturduklarında dahil) otomatik kullanılır — her deneme için tekrar girmene gerek kalmaz.</p>
+    <div class="lgs-ayar-bolum">
+      <h4 class="lgs-ayar-bolum-baslik">LGS</h4>
+      <div id="prLgsAlan"></div>
+      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrLgsKaydet">LGS Referanslarını Kaydet</button>
+    </div>
+    <div class="lgs-ayar-bolum">
+      <h4 class="lgs-ayar-bolum-baslik">Bursluluk (İOKBS)</h4>
+      <div id="prBurslulukAlan"></div>
+      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrBurslulukKaydet">Bursluluk Referanslarını Kaydet</button>
+    </div>
+    <button type="button" class="bs-btn-iptal" id="btnPuanReferansKapat" style="width:100%;margin-top:10px;">Kapat</button>
+  </div>
+</div>
+
 <script type="module" src="js/app.js"></script>
 </body>
 </html>
