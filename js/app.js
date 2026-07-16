@@ -447,6 +447,31 @@ function uygulamaDosyaKaydet(base64Veri, dosyaAdi, mimeTuru, paylas){
 window.uygulamaDosyaKaydet = uygulamaDosyaKaydet;
 
 /* ====================================================================
+   OPTİK MODÜLÜ İÇİN postMessage TABANLI DOSYA KAYDETME KÖPRÜSÜ
+   Optik ayrı bir iframe'de izole çalışıyor (bkz. js/optik-entegrasyon.js).
+   İlk denemede optik doğrudan `window.parent.Capacitor.Plugins.SavePlugin
+   .kaydet(...)` çağırıyordu — bu, GERÇEK CİHAZDA hiçbir zaman ne çözülüyor
+   ne reddediliyor, sessizce sonsuza dek asılı kalıyordu (izin diyaloğu bile
+   çıkmadan). Cross-frame'den bir metodu "koparıp" çağırmak yerine, standart
+   ve güvenilir postMessage protokolüne geçildi: optik bir istek mesajı
+   gönderir, BURADA (üst pencerenin KENDİ context'inde, ki native köprüye
+   erişimin zaten çalıştığı yer) gerçek kaydetme yapılır ve sonuç mesajla
+   iframe'e geri bildirilir. */
+window.addEventListener('message', function (event) {
+  const veri = event.data;
+  if (!veri || veri.__optikDosyaKaydetIstek !== true) return;
+  const { id, base64, dosyaAdi, mimeTuru } = veri;
+  Promise.resolve()
+    .then(() => uygulamaDosyaKaydet(base64, dosyaAdi, mimeTuru))
+    .then(() => {
+      if (event.source) event.source.postMessage({ __optikDosyaKaydetYanit: true, id, basarili: true }, '*');
+    })
+    .catch(err => {
+      if (event.source) event.source.postMessage({ __optikDosyaKaydetYanit: true, id, basarili: false, hata: (err && err.message) || String(err) }, '*');
+    });
+});
+
+/* ====================================================================
    OKULA BAŞLAMA YAŞI HESAPLAMA
    5/1/1961 tarihli ve 222 sayılı İlköğretim ve Eğitim Kanunu (madde 3) ve
    Millî Eğitim Bakanlığı Okul Öncesi Eğitim ve İlköğretim Kurumları
