@@ -361,6 +361,17 @@ function yeniSinavKaydet() {
         soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10);
         if (!soruSayisi || soruSayisi < 1) { alert('Özel sınav için geçerli bir soru sayısı girin!'); return; }
         sikSayisi = parseInt(document.getElementById('ysOzelSikSayisi')?.value, 10) || 4;
+
+        // Girilen soru sayısının GERÇEKTEN bir sayfa düzenine sığıp sığmadığını
+        // burada, kaydetmeden ÖNCE kontrol et — sığmıyorsa sınav hiç
+        // oluşturulmasın, kullanıcı daha sonra "Optik Form Oluştur" ekranında
+        // anlaşılması güç bir PDF hatasıyla karşılaşmasın.
+        try {
+            window.LayoutEngine?.sayfaDuzeniOner(soruSayisi, sikSayisi);
+        } catch (e) {
+            alert(`${soruSayisi} soru bu şık sayısıyla tek sayfaya sığmıyor. Şu an bu ayarlarla en fazla desteklenen soru sayısını kontrol edip daha düşük bir değer girin (girdiğiniz sayıyı bir daha kontrol edin — yanlışlıkla fazladan rakam girilmiş olabilir).`);
+            return;
+        }
     }
 
     const sinav = {
