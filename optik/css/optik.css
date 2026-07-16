@@ -634,7 +634,8 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
     background: var(--bg); border-radius: 24px 24px 0 0; width: 100%;
     padding: 12px 20px calc(28px + env(safe-area-inset-bottom, 0px));
     animation: bsKay .28s cubic-bezier(.32,1.2,.4,1);
-    max-height: 82vh; overflow-y: auto; box-sizing: border-box;
+    max-height: 80vh; max-height: 80dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
 }
 @keyframes bsKay { from { transform: translateY(80px); } to { transform: translateY(0); } }
 
