@@ -1231,21 +1231,30 @@
 
       <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
         <div class="accordion-header" onclick="toggleAccordion(this)">
-          <span>📝 Optik Sınav Değerlendirme</span><span class="arrow">▼</span>
+          <span>📝 LGS / Bursluluk Sınav Katsayıları</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content">
           <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
-            Optik Okuma modülünde yeni bir sınav eklenirken kullanılacak varsayılan yanlış cevap katsayısı. Net = Doğru − (Yanlış ÷ katsayı). Bu, okul çapında ortak bir varsayılandır.
+            Optik Okuma modülünde LGS ve Bursluluk sınavları için kullanılan resmî yanlış cevap katsayısı. Net = Doğru − (Yanlış ÷ katsayı). Özel sınavların kendi katsayısı bu ayarlarla ilgisizdir, sınav eklenirken ayrıca sorulur.
           </p>
           <div class="form-group">
-            <label>Yanlış Cevap Etkisi</label>
-            <select id="optikYanlisKatsayisiSecim">
-              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
-              <option value="3">3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
+            <label>LGS Sınavı</label>
+            <select id="optikLgsKatsayisiSecim">
+              <option value="3">3 yanlış 1 doğruyu götürür (resmî)</option>
               <option value="4">4 yanlış 1 doğruyu götürür</option>
+              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
             </select>
+            <button class="btn btn-amber btn-sm" style="margin-top:8px;" onclick="optikKatsayiKaydetTikla('lgs')">Kaydet</button>
           </div>
-          <button class="btn btn-amber btn-sm" style="margin-top:10px;" onclick="optikKatsayiKaydetTikla()">Kaydet</button>
+          <div class="form-group" style="margin-top:16px;">
+            <label>Bursluluk Sınavı</label>
+            <select id="optikBurslulukKatsayisiSecim">
+              <option value="3">3 yanlış 1 doğruyu götürür (resmî)</option>
+              <option value="4">4 yanlış 1 doğruyu götürür</option>
+              <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
+            </select>
+            <button class="btn btn-amber btn-sm" style="margin-top:8px;" onclick="optikKatsayiKaydetTikla('bursluluk')">Kaydet</button>
+          </div>
         </div>
       </div>
 
