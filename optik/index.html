@@ -90,6 +90,40 @@
       </button>
     </div>
 
+    <!-- 4. Özel Sınav Ayarları (soru/şık sayısı) — yalnızca "Özel Sınav" seçilince
+         görünür, çünkü LGS/Bursluluk'ta bu sayılar resmî şablonla SABİTTİR. -->
+    <div class="form-blok" id="ysOzelAyarBlok" hidden>
+      <label class="form-etiket">Özel Sınav Ayarları</label>
+      <div class="form-pill">
+        <span class="form-ikon">🔢</span>
+        <input type="number" id="ysOzelSoruSayisi" class="form-input" placeholder="Soru sayısı (örn. 20)" min="1" max="200">
+      </div>
+      <div class="form-pill" style="margin-top:8px;">
+        <span class="form-ikon">🔤</span>
+        <select id="ysOzelSikSayisi" class="form-input">
+          <option value="4" selected>4 şık (A-D)</option>
+          <option value="5">5 şık (A-E)</option>
+          <option value="3">3 şık (A-C)</option>
+          <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 5. Yanlış Cevap Etkisi — sınav türünden BAĞIMSIZ, her sınav ekleme
+         akışında görünür. LGS/Bursluluk'ta varsayılan resmî kural (3 yanlış
+         1 doğru götürür) seçili gelir ama istenirse değiştirilebilir. -->
+    <div class="form-blok">
+      <label class="form-etiket">Yanlış Cevap Etkisi</label>
+      <div class="form-pill">
+        <select id="ysYanlisEtkisi" class="form-input">
+          <option value="3" selected>3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
+          <option value="4">4 yanlış 1 doğruyu götürür</option>
+          <option value="0">Etkisiz (yanlış, puan kaybettirmez)</option>
+        </select>
+      </div>
+      <small class="form-yardim">Net = Doğru − (Yanlış ÷ seçilen sayı). Resmî LGS/Bursluluk formülü 3'tür; farklı bir deneme kuralı kullanıyorsan burada değiştirebilirsin.</small>
+    </div>
+
   </div>
 </div>
 
