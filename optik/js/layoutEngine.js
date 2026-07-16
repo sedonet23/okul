@@ -855,7 +855,7 @@ function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'ot
 
   const sayfaBoyutu = yon === 'yatay' ? { width: A4.height, height: A4.width } : { width: A4.width, height: A4.height };
 
-  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi, sayfaBoyutu) : sayfaDuzeni;
+  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi, sayfaBoyutu) : Number(sayfaDuzeni);
   const bolgeler = sayfayiBol(gercekSayfaDuzeni, sayfaBoyutu);
   const baslikMetni = 'CEVAP KAĞIDI';
 

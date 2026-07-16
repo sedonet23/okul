@@ -1778,7 +1778,13 @@ function _yzSegmentBagla(containerId, datasetAdi, secimAnahtari) {
             if (btn.disabled) return;
             document.getElementById(containerId).querySelectorAll('button').forEach(b => b.classList.remove('yz-aktif'));
             btn.classList.add('yz-aktif');
-            _yzSecimleri[secimAnahtari] = btn.dataset[datasetAdi];
+            let deger = btn.dataset[datasetAdi];
+            // "1"/"2"/"4"/"6" gibi salt sayısal değerleri (data-duzen) Number'a çevir —
+            // layoutEngine.js'teki switch(formsPerA4){case 4: ...} sıkı (===) tip
+            // karşılaştırması yapıyor, string "4" sayısal 4'e EŞİT SAYILMAZ.
+            // 'otomatik' / 'dikey' / 'yatay' gibi metin değerler olduğu gibi kalır.
+            if (/^\d+$/.test(deger)) deger = Number(deger);
+            _yzSecimleri[secimAnahtari] = deger;
             document.getElementById('yzOnizlemeAlan').hidden = true; // seçenek değişti, eski önizleme artık geçersiz
         });
     });
