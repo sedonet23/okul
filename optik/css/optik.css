@@ -818,3 +818,10 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 }
 .lgs-ders-rozet.gercek { background: #E8F5E9; color: #2e7d32; }
 .lgs-ders-rozet.tahmini { background: #FFF3E0; color: #ef6c00; }
+.lgs-ayar-not { display: block; font-size: 10.5px; color: var(--text-faint); text-align: center; margin-top: 6px; line-height: 1.4; }
+
+/* Global "Puan Referans Ayarları" sheet (bkz. btnSinavlarMenu) */
+.bs-panel-uzun { max-height: 82vh; overflow-y: auto; }
+.lgs-ayar-bolum { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.lgs-ayar-bolum:first-of-type { margin-top: 12px; padding-top: 0; border-top: none; }
+.lgs-ayar-bolum-baslik { margin: 0 0 8px; font-size: 14px; font-weight: 800; color: var(--text); }
