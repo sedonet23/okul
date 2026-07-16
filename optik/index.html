@@ -125,7 +125,15 @@
           <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
         </select>
       </div>
-      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor.</small>
+      <div class="form-pill" style="margin-top:8px;">
+        <span class="form-ikon">➖</span>
+        <select id="ysYanlisEtkisi" class="form-input">
+          <option value="0" selected>Etkisiz (yanlış, puan kaybettirmez)</option>
+          <option value="3">3 yanlış 1 doğruyu götürür</option>
+          <option value="4">4 yanlış 1 doğruyu götürür</option>
+        </select>
+      </div>
+      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor. LGS ve Bursluluk sınavlarının katsayısı resmî olduğu için Ayarlar'dan admin tarafından belirlenir, burada sorulmaz.</small>
     </div>
 
   </div>
