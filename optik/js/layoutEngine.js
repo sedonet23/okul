@@ -191,9 +191,11 @@ function formIcinIzgaraHesapla(bolge, soruSayisi, sikSayisi, headerYukseklik) {
       soruNo: q + 1,
       // Soru numarası, eskiden blokX'te (bloğun sol dış kenarında) basılıyordu
       // — bu da rakamın baloncuklardan görsel olarak kopuk, sayfanın soluna
-      // yapışık durmasına yol açıyordu. Artık dersSutunuHesapla ile aynı
-      // mantıkla, kendisine ayrılan soruNoGenisligi sütununun ORTASINDA.
-      etiketX: blokX + soruNoGenisligi * 0.5,
+      // yapışık durmasına yol açıyordu. Sonra soruNoGenisligi sütununun TAM
+      // ORTASINA alınmıştı — bu da (soruNoGenisligi geniş olduğunda) sayı ile
+      // ilk baloncuk arasında gözle görülür bir boşluk bırakıyordu (gözlemlenen
+      // hata). Artık sütunun SAĞINA, ilk baloncuğa yakın hizalanıyor.
+      etiketX: blokX + soruNoGenisligi - 1.5,
       etiketY: satirY + baloncukCap * 0.8,
       sikler,
     });
@@ -237,7 +239,10 @@ function miniHeaderOlustur(bolge, baslikMetni) {
   const satirBosluk = Math.min(2, Math.max(0.8, bolge.height * 0.005));
   const bilgiSatiriYukseklik = Math.min(6, Math.max(3.5, bolge.height * 0.032));
 
-  const adSoyadY = bolge.y + baslikYukseklik + satirBosluk;
+  // ÖNEMLİ: adSoyadY (ve dolayısıyla tüm alttaki alanlar), baslikAlani gibi
+  // bolge.y'den değil bolge.y + KENAR_PAY'den başlamalı — aksi halde üstteki
+  // baslikAlani ile aynı köşe/çerçeve çakışması burada da oluşuyordu.
+  const adSoyadY = bolge.y + KENAR_PAY + baslikYukseklik + satirBosluk;
   const bilgiSatiriY = adSoyadY + adSoyadYukseklik + satirBosluk;
 
   const kutuBosluk = Math.max(0.8, genislik * 0.02);
@@ -266,7 +271,11 @@ function miniHeaderOlustur(bolge, baslikMetni) {
   const toplamYukseklik = (kimlikY + kimlikYukseklik) - bolge.y + satirBosluk;
 
   return {
-    baslikAlani: { x: bolge.x + KENAR_PAY, y: bolge.y, width: genislik, height: baslikYukseklik },
+    // y: bolge.y + KENAR_PAY (bolge.y DEĞİL) — köşe karesi/çerçeve çizgisi
+    // bolge.y+HIZALAMA_PAY..+HIZALAMA_PAY+MARKER_BOYUT aralığında (bkz. sayfa
+    // başındaki sabitler); başlık kutusu buradan başlarsa üst üste biniyordu
+    // (gözlemlenen hata — x için zaten KENAR_PAY uygulanıyordu, y unutulmuştu).
+    baslikAlani: { x: bolge.x + KENAR_PAY, y: bolge.y + KENAR_PAY, width: genislik, height: baslikYukseklik },
     adSoyadAlani: { x: bolge.x + KENAR_PAY, y: adSoyadY, width: genislik, height: adSoyadYukseklik },
     bilgiSatiri: {
       ogrenciNoAlani: { x: bolge.x + KENAR_PAY, y: bilgiSatiriY, width: kutuGenislik, height: bilgiSatiriYukseklik },
@@ -336,8 +345,10 @@ function dersSutunuHesapla({
     }
     sorular.push({
       soruNo: q + 1,
-      // Soru numarası artık kenardan belirgin şekilde içeride ve ortalanabilir bir alanda
-      etiketX: x + soruNoGenisligi * 0.5,
+      // formIcinIzgaraHesapla'daki aynı düzeltme: sayı, soruNoGenisligi
+      // sütununun ortasında değil, ilk baloncuğa yakın SAĞINDA — aradaki
+      // görsel boşluğu azaltmak için (bkz. formIcinIzgaraHesapla notu).
+      etiketX: x + soruNoGenisligi - 1.5,
       etiketY: satirY + baloncukCap * 0.8,
       sikler,
     });
