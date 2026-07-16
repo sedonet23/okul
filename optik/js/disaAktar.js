@@ -17,51 +17,79 @@ window.DisaAktar = (function () {
     // tıklama tekniğiyle çalışır — Android'in çıplak WebView bileşeni bu
     // blob-indirme davranışını DESTEKLEMİYOR. Optik ayrı bir IFRAME
     // içinde çalıştığından `window.Capacitor` kendi penceresinde hiç
-    // bulunmaz (Capacitor köprü script'i sadece ana index.html'e
-    // ekleniyor) — bu yüzden `window.parent.Capacitor` da kontrol edilir.
+    // bulunmaz (Capacitor köprü script'i sadece ana index.html'e ekleniyor).
     //
-    // ÖNEMLİ: önceki sürüm native SavePlugin çağrısı BAŞARISIZ olursa
-    // sessizce tarayıcı yöntemine (<a download>) düşüyordu — o yöntem
-    // Android'de gerçekte hiçbir şey indirmiyor ama JS tarafında hata
-    // FIRLATMIYOR, bu yüzden kod "başarılı" sanıp kullanıcıya "✅
-    // indirildi" gösteriyordu (dosya diskte yokken). Artık native bir
-    // Capacitor tespit edilirse SavePlugin ZORUNLU yol: başarısız olursa
-    // gerçek hata olduğu gibi yukarı fırlatılır, sessizce maskelenmez.
-    // Tarayıcı yöntemi SADECE native Capacitor hiç bulunamadığında
-    // (bağımsız masaüstü/tarayıcı testi) kullanılır.
+    // ÖNEMLİ (geçmiş): Önceki sürüm, iframe içinden DOĞRUDAN
+    // `window.parent.Capacitor.Plugins.SavePlugin.kaydet(...)` çağırmayı
+    // deniyordu. GERÇEK CİHAZDA bu çağrı ne çözülüyor ne reddediliyor —
+    // hiçbir izin diyaloğu bile çıkmadan sonsuza dek asılı kalıyordu
+    // (bkz. kullanıcı bildirimi + eklenen zaman aşımı sayesinde görülen
+    // "20 saniyede tamamlanmadı" hatası). Cross-frame'den bir metodu
+    // "koparıp" çağırmak güvenilir değil. Bunun yerine standart
+    // `postMessage` protokolü kullanılıyor: üst pencereye bir istek
+    // gönderilir, kaydetme üst pencerenin KENDİ context'inde yapılır
+    // (bkz. js/app.js'teki 'message' dinleyicisi) ve sonuç geri bildirilir.
+    function _postMessageIleKaydet(base64, dosyaAdi, mimeTuru, zamanAsimiMs) {
+        return new Promise((resolve, reject) => {
+            const ustPencere = (window.parent && window.parent !== window) ? window.parent : null;
+            if (!ustPencere) { reject(new Error('Üst pencereye erişilemedi (optik bağımsız mı açıldı?)')); return; }
+
+            const id = 'optikKaydet_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+            let tamamlandi = false;
+
+            const zamanlayici = setTimeout(() => {
+                if (tamamlandi) return;
+                tamamlandi = true;
+                window.removeEventListener('message', dinleyici);
+                reject(new Error('Ana uygulamadan yanıt gelmedi (postMessage zaman aşımı).'));
+            }, zamanAsimiMs);
+
+            function dinleyici(event) {
+                const veri = event.data;
+                if (!veri || veri.__optikDosyaKaydetYanit !== true || veri.id !== id) return;
+                if (tamamlandi) return;
+                tamamlandi = true;
+                clearTimeout(zamanlayici);
+                window.removeEventListener('message', dinleyici);
+                if (veri.basarili) resolve(true);
+                else reject(new Error(veri.hata || 'Ana uygulama dosyayı kaydedemedi.'));
+            }
+            window.addEventListener('message', dinleyici);
+
+            ustPencere.postMessage({ __optikDosyaKaydetIstek: true, id, base64, dosyaAdi, mimeTuru }, '*');
+        });
+    }
+
     function _nativeCapacitorBul() {
-        const adaylar = [window, (window.parent && window.parent !== window) ? window.parent : null];
-        for (const pencere of adaylar) {
-            try {
-                const c = pencere && pencere.Capacitor;
-                if (c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.SavePlugin) {
-                    return c;
-                }
-            } catch (e) { /* çapraz pencere erişimi engellenmiş olabilir — sıradaki adaya geç */ }
-        }
+        try {
+            const c = window.Capacitor;
+            if (c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.SavePlugin) return c;
+        } catch (e) { /* yoksay */ }
         return null;
     }
 
     async function _dosyaKaydet(base64, dosyaAdi, mimeTuru, eskiYontem) {
-        const capacitor = _nativeCapacitorBul();
+        const icindeIframeMi = window.parent && window.parent !== window;
 
+        if (icindeIframeMi) {
+            // Normal çalışma şekli: optik-entegrasyon.js iframe'i içinde.
+            return _postMessageIleKaydet(base64, dosyaAdi, mimeTuru, 15000);
+        }
+
+        // Bağımsız (iframe'siz) çalışıyorsa — ör. geliştirme/test sırasında
+        // optik/index.html doğrudan açıldıysa — kendi native köprüsünü dene,
+        // yoksa tarayıcı yöntemine düş.
+        const capacitor = _nativeCapacitorBul();
         if (capacitor) {
-            // Native platform tespit edildi — SavePlugin ZORUNLU yol. Hata
-            // olursa MASKELENMEDEN yukarı fırlatılır (bkz. yukarıdaki not).
             const sonuc = await capacitor.Plugins.SavePlugin.kaydet({ base64, dosyaAdi, mimeTuru, paylas: false });
             console.log("[DisaAktar] Dosya SavePlugin ile kaydedildi:", dosyaAdi, sonuc);
             return true;
         }
-
-        // Native Capacitor bulunamadı — muhtemelen bağımsız masaüstü/tarayıcı
-        // testi (APK içinde DEĞİL). Tarayıcı indirme yöntemi burada güvenle
-        // kullanılabilir.
         if (typeof eskiYontem === "function") {
             eskiYontem();
             console.log("[DisaAktar] Native Capacitor bulunamadı, tarayıcı yöntemi kullanıldı:", dosyaAdi);
             return true;
         }
-
         throw new Error("Dosya kaydedilemedi: ne native köprü ne de tarayıcı yöntemi kullanılabildi.");
     }
 
