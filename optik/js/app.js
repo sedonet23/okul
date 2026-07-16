@@ -1716,17 +1716,16 @@ function _sinavSabitSablonMu(sinav) {
     return !!sinav?.optikFormId && sinav.optikFormId !== 'ozel';
 }
 
-function _pdfKaydet(doc, dosyaAdi) {
+async function _pdfKaydet(doc, dosyaAdi) {
     if (window.DisaAktar && typeof window.DisaAktar.dosyaKaydet === 'function') {
-        window.DisaAktar.dosyaKaydet(
+        return window.DisaAktar.dosyaKaydet(
             doc.output('datauristring').split(',')[1],
             dosyaAdi,
             'application/pdf',
             () => doc.save(dosyaAdi)
         );
-    } else {
-        doc.save(dosyaAdi);
     }
+    doc.save(dosyaAdi);
 }
 
 async function _yzOgrenciListesiGetir(sinav) {
@@ -1903,7 +1902,7 @@ async function yzOnaylaVeIndir() {
                 adSoyad: '', ogrenciNo: '', sinif: '',
                 sinavAdi: sinav.ad, kitapcikTuru: '', ogrenciId: '', sinavId: sinav.optikFormId
             });
-            _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
+            await _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_bos.pdf');
             durumEl.textContent = '✅ PDF indirildi.';
         } else {
             const ogrList = await _yzOgrenciListesiGetir(sinav);
@@ -1912,7 +1911,7 @@ async function yzOnaylaVeIndir() {
             durumEl.textContent = `Oluşturuluyor... (${ogrList.length} öğrenci)`;
             const { topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
             const doc = await topluFormPdfOlustur(layout, ogrList);
-            _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
+            await _pdfKaydet(doc, sinav.ad.replace(/\s+/g, '_') + '_ogrenciler.pdf');
             durumEl.textContent = `✅ ${ogrList.length} öğrenci için PDF indirildi.`;
         }
     } catch (e) { durumEl.textContent = '❌ Hata: ' + e.message; }
