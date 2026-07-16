@@ -60,6 +60,7 @@ const DB = {
 const SABLONLAR = [
     { id: 'lgs',       ad: 'LGS',              soruSayisi: 90, sikSayisi: 4 },
     { id: 'bursluluk', ad: 'Bursluluk Sınavı', soruSayisi: 80, sikSayisi: 4 },
+    { id: 'ozel',      ad: 'Özel Sınav',       soruSayisi: null, sikSayisi: 4 },
 ];
 
 function sablonBul(id) { return SABLONLAR.find(s => s.id === id) || null; }
@@ -91,7 +92,25 @@ function _formTuruDersleriniGetir(sinavTuru) {
 function formDersleriniGetir(sinavId) {
     const sinav  = DB.sinaviBul(sinavId);
     const formId = sinav?.optikFormId || 'lgs';
+    if (formId === 'ozel') return _ozelSinavDersleriGetir(sinav);
     return _formTuruDersleriniGetir(formId);
+}
+
+/** Özel sınavlar için ders listesi, sınavın KENDİ soru/şık sayısına göre üretilir (sabit şablon değil). */
+function _ozelSinavDersleriGetir(sinav) {
+    try {
+        const layout = window.LayoutEngine.layoutHesapla({
+            sinavTuru: 'ozel',
+            soruSayisi: sinav?.soruSayisi || 20,
+            sikSayisi: sinav?.sikSayisi || 4,
+            sayfaDuzeni: 'otomatik',
+        });
+        const form = layout.formlar[0];
+        if (form.izgara) {
+            return [{ dersAdi: 'Genel', soruSayisi: form.izgara.sorular.length, sikSayisi: form.izgara.sorular[0]?.sikler.length || 4 }];
+        }
+    } catch (e) { console.warn('Özel sınav ders listesi alınamadı', e); }
+    return [{ dersAdi: 'Genel', soruSayisi: sinav?.soruSayisi || 20, sikSayisi: sinav?.sikSayisi || 4 }];
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -107,6 +126,20 @@ function veriKaynagi() {
 // ════════════════════════════════════════════════════════════════
 let _aktifSinavId = null;
 let _aktifSonucId = null;
+
+/**
+ * Aktif sınavın türünü/soru-şık sayısını diğer (modül olmayan) betiklere
+ * (bkz. formOkuyucu.js testFormunuOlustur) açar — okuma sırasında hangi
+ * form düzeninin (LGS/Bursluluk/Özel) bekleneceğini belirlemek için.
+ */
+window.OptikAktifSinavTuru = function () {
+    const sinav = DB.sinaviBul(_aktifSinavId);
+    if (!sinav) return { sinavTuru: 'lgs' };
+    if (sinav.optikFormId === 'ozel') {
+        return { sinavTuru: 'ozel', soruSayisi: sinav.soruSayisi || 20, sikSayisi: sinav.sikSayisi || 4 };
+    }
+    return { sinavTuru: sinav.optikFormId || 'lgs' };
+};
 
 const Ekranlar = {
     sinavlar:     document.getElementById('ekranSinavlar'),
@@ -248,6 +281,10 @@ function yeniSinavAc() {
     document.getElementById('ysSinavAd').value = '';
     document.getElementById('ysOptikFormAdi').textContent = 'Form seçin...';
     document.getElementById('ysOptikFormAdi').style.color = 'var(--text-faint)';
+    const ozelBlok = document.getElementById('ysOzelAyarBlok');
+    if (ozelBlok) ozelBlok.hidden = true;
+    const ozelSoru = document.getElementById('ysOzelSoruSayisi');
+    if (ozelSoru) ozelSoru.value = '';
     _ogrenciSeciminiRender();
     ekranGit('yeniSinav');
 }
@@ -312,13 +349,28 @@ function yeniSinavKaydet() {
     if (!ad) { alert('Sınav adı gerekli!'); return; }
     if (!_ysSablonSecilen) { alert('Optik form seçin!'); return; }
 
+    let soruSayisi = _ysSablonSecilen.soruSayisi;
+    let sikSayisi  = _ysSablonSecilen.sikSayisi;
+
+    // Yanlış cevap etkisi artık sınav türünden BAĞIMSIZ, her zaman ekrandaki
+    // seçiciden okunuyor (varsayılan/seçili değer 3 — LGS/Bursluluk resmî kuralı).
+    const yEtki = parseInt(document.getElementById('ysYanlisEtkisi')?.value, 10);
+    let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : (yEtki === 0 ? null : 3);
+
+    if (_ysSablonSecilen.id === 'ozel') {
+        soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10);
+        if (!soruSayisi || soruSayisi < 1) { alert('Özel sınav için geçerli bir soru sayısı girin!'); return; }
+        sikSayisi = parseInt(document.getElementById('ysOzelSikSayisi')?.value, 10) || 4;
+    }
+
     const sinav = {
         id:           'sinav_' + Date.now(),
         ad,
         optikFormId:  _ysSablonSecilen.id,
         optikFormAd:  _ysSablonSecilen.ad,
-        soruSayisi:   _ysSablonSecilen.soruSayisi,
-        sikSayisi:    _ysSablonSecilen.sikSayisi,
+        soruSayisi,
+        sikSayisi,
+        yanlisKatsayisi,
         ogrenciIdleri: _seciliOgrIdleri(),
         olusturma:    new Date().toISOString(),
     };
@@ -464,9 +516,10 @@ function kagitlariRender() {
             })()
             : '';
 
-        // D/Y/B/N — Net, LGS/İOKBS resmî kuralıyla: Doğru − Yanlış/3
+        // D/Y/B/N — net, puanHesapla() tarafından sınavın kendi yanlış cevap
+        // katsayısıyla (bkz. _sinavYanlisKatsayisi) zaten hesaplanmış hâliyle.
         const d = p.toplamD || 0, y = p.toplamY || 0, b = p.toplamB || 0;
-        const net = (d - y / 3).toFixed(2);
+        const net = (p.toplamNet != null ? p.toplamNet : (d - y / 3)).toFixed(2);
 
         return `<div class="kagit-kart" data-id="${r.id}">
             <div class="kagit-avatar" style="background:${renk};">${harf1}${harf2}</div>
@@ -774,7 +827,7 @@ function ogrDetayIzgaraCiz(sonuc) {
                 if (!son.cevaplar[dersAdi]) son.cevaplar[dersAdi] = {};
                 const zaten = son.cevaplar[dersAdi][soruNo] === harf;
                 son.cevaplar[dersAdi][soruNo] = zaten ? null : harf;
-                son.puan = puanHesapla(son.cevaplar, DB.anahtariGetir(_aktifSinavId), _ogrDetayDersler);
+                son.puan = puanHesapla(son.cevaplar, DB.anahtariGetir(_aktifSinavId), _ogrDetayDersler, _sinavYanlisKatsayisi(_aktifSinavId));
                 DB.sonucKaydet(_aktifSinavId, son);
                 ogrDetayIzgaraCiz(son);
                 ogrDetayResimCiz(son);
@@ -826,7 +879,15 @@ function _ogrDetayNoIleAra() {
 // ════════════════════════════════════════════════════════════════
 // PUAN HESAPLAMA
 // ════════════════════════════════════════════════════════════════
-function puanHesapla(cevaplar, anahtar, dersler) {
+/**
+ * @param {number|null} yanlisKatsayisi - kaç yanlış 1 doğruyu götürür (varsayılan 3 —
+ *        LGS/Bursluluk resmî kuralı). null/0 verilirse yanlış hiç puan kaybettirmez.
+ *        DÜZELTME: burada eskiden sabit y/4 kullanılıyordu, bu LGS/Bursluluk'ın resmî
+ *        y/3 kuralıyla ÇELİŞİYORDU (kart rozetindeki net ile öğrenci detayındaki net
+ *        farklı çıkıyordu) — artık tek doğru kaynak burası, varsayılan 3'e düzeltildi.
+ */
+function puanHesapla(cevaplar, anahtar, dersler, yanlisKatsayisi = 3) {
+    const cezaHesapla = (y) => (yanlisKatsayisi ? y / yanlisKatsayisi : 0);
     let topD = 0, topY = 0, topB = 0;
     const dersDetay = [];
     dersler.forEach(ders => {
@@ -841,12 +902,19 @@ function puanHesapla(cevaplar, anahtar, dersler) {
             const dg  = dogruMap[n] || null;
             if (!isr) b++; else if (dg && isr === dg) d++; else y++;
         }
-        const net = d - y / 4;
+        const net = d - cezaHesapla(y);
         topD += d; topY += y; topB += b;
         dersDetay.push({ dersAdi, d, y, b, net: parseFloat(net.toFixed(2)) });
     });
-    const toplamNet = topD - topY / 4;
+    const toplamNet = topD - cezaHesapla(topY);
     return { toplamD: topD, toplamY: topY, toplamB: topB, toplamNet: parseFloat(toplamNet.toFixed(2)), dersDetay };
+}
+
+/** Bir sınav kaydından, o sınavda kullanılacak yanlış cevap katsayısını okur (kayıtta yoksa 3 — LGS/Bursluluk resmî kuralı varsayılan olarak kullanılır). */
+function _sinavYanlisKatsayisi(sinavId) {
+    const sinav = DB.sinaviBul(sinavId);
+    if (!sinav) return 3;
+    return sinav.yanlisKatsayisi ?? 3;
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1262,8 +1330,9 @@ function _anahtarCevapKaydet(dersAdi, soruNo, dogru) {
 function _tumSonuclariYenidenHesapla() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
     const dersler = formDersleriniGetir(_aktifSinavId);
+    const yanlisKatsayisi = _sinavYanlisKatsayisi(_aktifSinavId);
     DB.sonuclariGetir(_aktifSinavId).forEach(sonuc => {
-        sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
+        sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler, yanlisKatsayisi);
         DB.sonucKaydet(_aktifSinavId, sonuc);
     });
     if (_aktifSekme === 'kagitlar') kagitlariRender();
@@ -1388,7 +1457,7 @@ function _omrSonucuisle(raw) {
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
     };
-    sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
+    sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler, _sinavYanlisKatsayisi(_aktifSinavId));
 
     // Aynı öğrencinin (öğrenci numarasıyla) bu sınav için daha önce
     // kaydedilmiş bir formu var mı? Varsa sessizce ikinci bir satır daha
@@ -1585,7 +1654,7 @@ function manuelIzgaraCiz() {
 
 function _manuelIstatistikGuncelle() {
     const anahtar = DB.anahtariGetir(_aktifSinavId);
-    const p = puanHesapla(_manuelCevaplar, anahtar, _manuelDersler);
+    const p = puanHesapla(_manuelCevaplar, anahtar, _manuelDersler, _sinavYanlisKatsayisi(_aktifSinavId));
     _s('manuelD', p.toplamD); _s('manuelY', p.toplamY); _s('manuelB', p.toplamB);
     _s('manuelN', p.toplamNet?.toFixed(2) ?? '0.0');
     _s('manuelNet', p.toplamNet?.toFixed(2) ?? '0.0');
@@ -1608,7 +1677,7 @@ function manuelKaydet() {
         elleGirildi: true,
         tarih:       new Date().toLocaleDateString('tr-TR'),
     };
-    sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler);
+    sonuc.puan = puanHesapla(sonuc.cevaplar, anahtar, dersler, _sinavYanlisKatsayisi(_aktifSinavId));
     DB.sonucKaydet(_aktifSinavId, sonuc);
     kagitlariRender();
     ekranGit('sinavDetay');
@@ -1622,13 +1691,21 @@ async function optikOlusturAc() {
     ekranGit('optikOlustur');
 }
 
+/** layoutHesapla() için doğru parametreleri üretir — Özel sınavlarda kendi soru/şık sayısını da ekler. */
+function _layoutParamlariHazirla(sinav) {
+    if (sinav?.optikFormId === 'ozel') {
+        return { sinavTuru: 'ozel', soruSayisi: sinav.soruSayisi || 20, sikSayisi: sinav.sikSayisi || 4, sayfaDuzeni: 'otomatik' };
+    }
+    return { sinavTuru: sinav?.optikFormId };
+}
+
 async function bosFormOlustur() {
     const sinav   = DB.sinaviBul(_aktifSinavId);
     const durumEl = document.getElementById('optikOlusturDurum');
     if (!sinav) return;
     durumEl.textContent = 'Oluşturuluyor...';
     try {
-        const layout = window.LayoutEngine.layoutHesapla({ sinavTuru: sinav.optikFormId });
+        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav));
         const { formPdfOlustur } = await import('./pdfFormGenerator.js');
         const doc = await formPdfOlustur(layout, {
             adSoyad: '', ogrenciNo: '', sinif: '',
@@ -1657,7 +1734,7 @@ async function ogrencilerIcinFormOlustur() {
     try {
         const kaynak = veriKaynagi();
         if (!kaynak) { alert('Uygulama içinden açılması gerekiyor.'); return; }
-        const layout = window.LayoutEngine.layoutHesapla({ sinavTuru: sinav.optikFormId });
+        const layout = window.LayoutEngine.layoutHesapla(_layoutParamlariHazirla(sinav));
         const { topluFormPdfOlustur } = await import('./pdfFormGenerator.js');
         // Seçilen öğrencilerin bilgilerini topla
         const ogrList = [];
@@ -1711,7 +1788,7 @@ function optikFormSheetAc(onSecim) {
                 </div>
                 <div class="bs-liste-bilgi">
                     <strong>${_h(s.ad)}</strong>
-                    <small>${s.soruSayisi} Soru</small>
+                    <small>${s.soruSayisi ? s.soruSayisi + ' Soru' : 'Soru sayısını kendin belirle'}</small>
                 </div>
             </button>`).join('');
         liste.querySelectorAll('.bs-liste-satir').forEach(btn => {
@@ -1834,8 +1911,10 @@ function baslat() {
         optikFormSheetAc(sablon => {
             _ysSablonSecilen = sablon;
             const metEl = document.getElementById('ysOptikFormAdi');
-            metEl.textContent = `${sablon.ad} (${sablon.soruSayisi} Soru)`;
+            metEl.textContent = sablon.soruSayisi ? `${sablon.ad} (${sablon.soruSayisi} Soru)` : sablon.ad;
             metEl.style.color = 'var(--text)';
+            const ozelBlok = document.getElementById('ysOzelAyarBlok');
+            if (ozelBlok) ozelBlok.hidden = sablon.id !== 'ozel';
         });
     });
 
