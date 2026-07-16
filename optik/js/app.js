@@ -371,29 +371,10 @@ function yeniSinavKaydet() {
     let soruSayisi = _ysSablonSecilen.soruSayisi;
     let sikSayisi  = _ysSablonSecilen.sikSayisi;
 
-    // Yanlış cevap katsayısı sınav türüne göre İKİ farklı kaynaktan gelir:
-    //   - LGS / Bursluluk: resmî, okul çapında admin ayarı (bkz. ana uygulama
-    //     js/optik-ayarlari.js) — bu ekranda hiç sorulmaz. Optik ayrı bir
-    //     iframe olsa da AYNI origin'de çalıştığı için bu localStorage
-    //     anahtarlarını doğrudan okuyabiliyor (Firestore'a dokunmadan).
-    //   - Özel Sınav: resmî bir formülü olmadığından yukarıdaki #ysYanlisEtkisi
-    //     seçiciden okunur (varsayılan: Etkisiz).
-    function _lsKatsayiOku(anahtar, varsayilan) {
-        try {
-            const ham = localStorage.getItem(anahtar);
-            return ham !== null && ham !== '' ? parseInt(ham, 10) : varsayilan;
-        } catch (e) { return varsayilan; }
-    }
-    let yEtki;
-    if (_ysSablonSecilen.id === 'lgs') {
-        yEtki = _lsKatsayiOku('optikLgsKatsayisi', 3);
-    } else if (_ysSablonSecilen.id === 'bursluluk') {
-        yEtki = _lsKatsayiOku('optikBurslulukKatsayisi', 3);
-    } else {
-        yEtki = parseInt(document.getElementById('ysYanlisEtkisi')?.value, 10);
-        if (!Number.isFinite(yEtki)) yEtki = 0;
-    }
-    let yanlisKatsayisi = yEtki > 0 ? yEtki : null;
+    // Yanlış cevap etkisi sınav türünden BAĞIMSIZ, her zaman ekrandaki
+    // seçiciden okunuyor (varsayılan/seçili değer 0 — Etkisiz).
+    const yEtki = parseInt(document.getElementById('ysYanlisEtkisi')?.value, 10);
+    let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : null;
 
     if (_ysSablonSecilen.id === 'ozel') {
         soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10) || 20;
@@ -1179,7 +1160,7 @@ function lgsPuanRaporunuAcVeGoster() {
 /**
  * Bir sınav türü için ders satırları + genel (MinTASP/MaxTASP) satırının
  * HTML'ini üretir — hem rapor ekranındaki panelde hem de global
- * "Puan Referans Ayarları" sheet'inde (bkz. btnSinavlarMenu) ORTAK
+ * hem rapor ekranındaki inline panelde (bkz. _lgsAyarPaneliniRender) ORTAK
  * kullanılır, tek bir yerden değiştirilebilsin diye.
  */
 function _puanReferansIcerikHtml(sinavTuru) {
@@ -2110,7 +2091,6 @@ function baslat() {
     // ── Ekran 1: Sınavlar ──
     sinavlariRender();
     document.getElementById('fabYeniSinav').addEventListener('click', yeniSinavAc);
-    document.getElementById('btnSinavlarMenu').addEventListener('click', puanReferansSheetAc);
 
     // ── Ekran 2: Yeni Sınav ──
     document.getElementById('btnYeniSinavKapat').addEventListener('click', () => ekranGit('sinavlar'));
