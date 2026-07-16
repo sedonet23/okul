@@ -15,70 +15,55 @@ window.DisaAktar = (function () {
     // ----------------------------------------------------------------
     // XLSX.writeFile / jsPDF doc.save(), gizli bir <a download> linkine
     // tıklama tekniğiyle çalışır — Android'in çıplak WebView bileşeni bu
-    // blob-indirme davranışını DESTEKLEMİYOR, üstelik Optik ayrı bir
-    // IFRAME içinde çalıştığından ana uygulamanın native köprüsüne de
-    // (SavePlugin) doğrudan erişemez. Bu yüzden window.parent üzerinden
-    // erişilebilen ortak kaydetme yardımcısı (uygulamaDosyaKaydet) tercih
-    // edilir; bulunamazsa (bağımsız test/masaüstü) eski yönteme (verilen
-    // `eskiYontem` callback'i) geri düşülür.
+    // blob-indirme davranışını DESTEKLEMİYOR. Optik ayrı bir IFRAME
+    // içinde çalıştığından `window.Capacitor` kendi penceresinde hiç
+    // bulunmaz (Capacitor köprü script'i sadece ana index.html'e
+    // ekleniyor) — bu yüzden `window.parent.Capacitor` da kontrol edilir.
+    //
+    // ÖNEMLİ: önceki sürüm native SavePlugin çağrısı BAŞARISIZ olursa
+    // sessizce tarayıcı yöntemine (<a download>) düşüyordu — o yöntem
+    // Android'de gerçekte hiçbir şey indirmiyor ama JS tarafında hata
+    // FIRLATMIYOR, bu yüzden kod "başarılı" sanıp kullanıcıya "✅
+    // indirildi" gösteriyordu (dosya diskte yokken). Artık native bir
+    // Capacitor tespit edilirse SavePlugin ZORUNLU yol: başarısız olursa
+    // gerçek hata olduğu gibi yukarı fırlatılır, sessizce maskelenmez.
+    // Tarayıcı yöntemi SADECE native Capacitor hiç bulunamadığında
+    // (bağımsız masaüstü/tarayıcı testi) kullanılır.
+    function _nativeCapacitorBul() {
+        const adaylar = [window, (window.parent && window.parent !== window) ? window.parent : null];
+        for (const pencere of adaylar) {
+            try {
+                const c = pencere && pencere.Capacitor;
+                if (c && c.isNativePlatform && c.isNativePlatform() && c.Plugins && c.Plugins.SavePlugin) {
+                    return c;
+                }
+            } catch (e) { /* çapraz pencere erişimi engellenmiş olabilir — sıradaki adaya geç */ }
+        }
+        return null;
+    }
+
     async function _dosyaKaydet(base64, dosyaAdi, mimeTuru, eskiYontem) {
+        const capacitor = _nativeCapacitorBul();
 
-    // Önce Capacitor SavePlugin'i dene
-    try {
-        if (
-            window.Capacitor &&
-            window.Capacitor.Plugins &&
-            window.Capacitor.Plugins.SavePlugin &&
-            typeof window.Capacitor.Plugins.SavePlugin.kaydet === "function"
-        ) {
-
-            await window.Capacitor.Plugins.SavePlugin.kaydet({
-                base64: base64,
-                dosyaAdi: dosyaAdi,
-                mimeTuru: mimeTuru
-            });
-
-            console.log("[DisaAktar] Dosya SavePlugin ile kaydedildi:", dosyaAdi);
+        if (capacitor) {
+            // Native platform tespit edildi — SavePlugin ZORUNLU yol. Hata
+            // olursa MASKELENMEDEN yukarı fırlatılır (bkz. yukarıdaki not).
+            const sonuc = await capacitor.Plugins.SavePlugin.kaydet({ base64, dosyaAdi, mimeTuru, paylas: false });
+            console.log("[DisaAktar] Dosya SavePlugin ile kaydedildi:", dosyaAdi, sonuc);
             return true;
         }
-    } catch (e) {
-        console.error("[DisaAktar] SavePlugin hatası:", e);
-    }
 
-    // Eski köprü (uygulamaDosyaKaydet) varsa onu kullan
-    try {
-        const ustPencere =
-            (window.parent && window.parent !== window)
-                ? window.parent
-                : window;
-
-        if (typeof ustPencere.uygulamaDosyaKaydet === "function") {
-            await ustPencere.uygulamaDosyaKaydet(
-                base64,
-                dosyaAdi,
-                mimeTuru
-            );
-
-            console.log("[DisaAktar] Eski köprü ile kaydedildi:", dosyaAdi);
-            return true;
-        }
-    } catch (e) {
-        console.warn("[DisaAktar] Eski köprü kullanılamadı:", e);
-    }
-
-    // Son çare: Tarayıcı yöntemi
-    try {
+        // Native Capacitor bulunamadı — muhtemelen bağımsız masaüstü/tarayıcı
+        // testi (APK içinde DEĞİL). Tarayıcı indirme yöntemi burada güvenle
+        // kullanılabilir.
         if (typeof eskiYontem === "function") {
             eskiYontem();
-            console.log("[DisaAktar] Tarayıcı yöntemi kullanıldı:", dosyaAdi);
+            console.log("[DisaAktar] Native Capacitor bulunamadı, tarayıcı yöntemi kullanıldı:", dosyaAdi);
             return true;
         }
-    } catch (e) {
-        console.error("[DisaAktar] Tarayıcı yöntemi başarısız:", e);
-    }
 
-    throw new Error("Dosya kaydedilemedi.");
-}
+        throw new Error("Dosya kaydedilemedi: ne native köprü ne de tarayıcı yöntemi kullanılabildi.");
+    }
 
     // ----------------------------------------------------------------
     // EXCEL dışa aktarma (SheetJS)
