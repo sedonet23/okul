@@ -409,6 +409,7 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
 ═══════════════════════════════════════════════════════════════ */
 .form-blok { display: flex; flex-direction: column; gap: 6px; }
 .form-etiket { font-size: 12px; font-weight: 700; color: var(--text-faint); margin-left: 4px; }
+.form-yardim { display: block; font-size: 11px; color: var(--text-faint); line-height: 1.5; margin: 8px 4px 0; }
 .form-pill {
     display: flex; align-items: center; gap: 10px;
     border: 1.5px solid var(--border); border-radius: 999px; padding: 0 16px; min-height: 52px;
@@ -633,6 +634,7 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
     background: var(--bg); border-radius: 24px 24px 0 0; width: 100%;
     padding: 12px 20px calc(28px + env(safe-area-inset-bottom, 0px));
     animation: bsKay .28s cubic-bezier(.32,1.2,.4,1);
+    max-height: 82vh; overflow-y: auto; box-sizing: border-box;
 }
 @keyframes bsKay { from { transform: translateY(80px); } to { transform: translateY(0); } }
 
