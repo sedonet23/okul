@@ -30,11 +30,6 @@
 <div id="ekranSinavlar" class="ekran aktif">
   <header class="o-header">
     <h1 class="o-baslik">Sınavlar</h1>
-    <div class="o-header-saglar">
-      <button class="o-ikon-btn" id="btnSinavlarMenu">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>
-      </button>
-    </div>
   </header>
   <div class="o-icerik" id="sinavListesiKap">
     <div class="bos-alan" id="sinavBosAlan">
@@ -125,15 +120,22 @@
           <option value="2">2 şık (A-B, Doğru/Yanlış)</option>
         </select>
       </div>
-      <div class="form-pill" style="margin-top:8px;">
-        <span class="form-ikon">➖</span>
+      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor.</small>
+    </div>
+
+    <!-- 5. Yanlış Cevap Etkisi — sınav türünden BAĞIMSIZ, her sınav ekleme
+         akışında görünür. Varsayılan Etkisiz'dir; LGS/Bursluluk resmî kuralı
+         (3 yanlış 1 doğruyu götürür) isteniyorsa buradan seçilebilir. -->
+    <div class="form-blok">
+      <label class="form-etiket">Yanlış Cevap Etkisi</label>
+      <div class="form-pill">
         <select id="ysYanlisEtkisi" class="form-input">
           <option value="0" selected>Etkisiz (yanlış, puan kaybettirmez)</option>
-          <option value="3">3 yanlış 1 doğruyu götürür</option>
+          <option value="3">3 yanlış 1 doğruyu götürür (LGS/Bursluluk usulü)</option>
           <option value="4">4 yanlış 1 doğruyu götürür</option>
         </select>
       </div>
-      <small class="form-yardim">Sayfa düzeninin bozulmaması için soru sayısı sabit seçeneklerden seçiliyor. LGS ve Bursluluk sınavlarının katsayısı resmî olduğu için Ayarlar'dan admin tarafından belirlenir, burada sorulmaz.</small>
+      <small class="form-yardim">Net = Doğru − (Yanlış ÷ seçilen sayı).</small>
     </div>
 
   </div>
@@ -631,26 +633,6 @@
       <button class="bs-btn-iptal" id="sheetOnayIptal">Vazgeç</button>
       <button class="bs-btn-tehlike" id="sheetOnayOnayla">Sil</button>
     </div>
-  </div>
-</div>
-
-<!-- Puan Referans Ayarları (global — sınav TÜRÜNE göre, tek seferlik) -->
-<div id="sheetPuanReferans" class="bs-overlay" hidden>
-  <div class="bs-panel bs-panel-uzun">
-    <div class="bs-tutac"></div>
-    <h3 class="bs-baslik">Puan Referans Ayarları</h3>
-    <p class="bs-metin">Burada girdiğin ortalama/standart sapma/TASP aralığı, o türdeki TÜM sınavlarda (yeni oluşturduklarında dahil) otomatik kullanılır — her deneme için tekrar girmene gerek kalmaz.</p>
-    <div class="lgs-ayar-bolum">
-      <h4 class="lgs-ayar-bolum-baslik">LGS</h4>
-      <div id="prLgsAlan"></div>
-      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrLgsKaydet">LGS Referanslarını Kaydet</button>
-    </div>
-    <div class="lgs-ayar-bolum">
-      <h4 class="lgs-ayar-bolum-baslik">Bursluluk (İOKBS)</h4>
-      <div id="prBurslulukAlan"></div>
-      <button type="button" class="lgs-ayar-kaydet-btn" id="btnPrBurslulukKaydet">Bursluluk Referanslarını Kaydet</button>
-    </div>
-    <button type="button" class="bs-btn-iptal" id="btnPuanReferansKapat" style="width:100%;margin-top:10px;">Kapat</button>
   </div>
 </div>
 
