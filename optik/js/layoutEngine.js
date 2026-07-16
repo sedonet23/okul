@@ -10,6 +10,16 @@ const A4 = { width: 210, height: 297 };
 const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare
 const HIZALAMA_PAY = 4; // mm, sayfa/bölge kenarından köşe karesine mesafe
 
+// Köşe karesinin (HIZALAMA_PAY..HIZALAMA_PAY+HIZALAMA_MARKER_BOYUT aralığı,
+// yani burada 4-8mm) içeriğe (başlık kutusu, çerçeve çizgisi) DEĞMEMESİ için
+// gereken minimum kenar payı. miniHeaderOlustur bunu zaten KOSE_GUVENLI_PAY
+// adıyla hesaplıyordu; standartHeaderOlustur (LGS/bursluluk sabit şablonları)
+// ise sabit 8mm kullanıyordu — köşe karesinin sağ/alt kenarıyla TAM aynı
+// noktada bittiği için başlık kutusu ile köşe karesi/çerçeve çizgisi görsel
+// olarak iç içe giriyordu (gözlemlenen hata). Artık HER İKİ header
+// üretici de bu ortak, güvenli payı kullanıyor.
+const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 9mm
+
 /**
  * Her mini-form için 4 köşe hizalama işareti (fiducial marker) koordinatı.
  * Bunlar OMR okuma sırasında perspektif düzeltme için kritik referans noktalarıdır.
@@ -179,7 +189,11 @@ function formIcinIzgaraHesapla(bolge, soruSayisi, sikSayisi, headerYukseklik) {
 
     sorular.push({
       soruNo: q + 1,
-      etiketX: blokX,
+      // Soru numarası, eskiden blokX'te (bloğun sol dış kenarında) basılıyordu
+      // — bu da rakamın baloncuklardan görsel olarak kopuk, sayfanın soluna
+      // yapışık durmasına yol açıyordu. Artık dersSutunuHesapla ile aynı
+      // mantıkla, kendisine ayrılan soruNoGenisligi sütununun ORTASINDA.
+      etiketX: blokX + soruNoGenisligi * 0.5,
       etiketY: satirY + baloncukCap * 0.8,
       sikler,
     });
@@ -211,7 +225,6 @@ function miniHeaderOlustur(bolge, baslikMetni) {
   // mini-formlarda (ör. 2/4'lü düzen) bu köşe karesinden DAHA KÜÇÜK
   // çıkabiliyordu, bu da "Ad Soyad/Kitapçık" içeriğinin köşe karesiyle/
   // çerçeve çizgisiyle üst üste binmesine (görsel bozulmaya) yol açıyordu.
-  const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 9mm
   const KENAR_PAY = Math.max(KOSE_GUVENLI_PAY, bolge.width * 0.018);
   // Dikey oranlar da eskisine göre biraz daha SIKI (kompakt) — soru
   // ızgarasına daha fazla yer kalsın, başlık alanı gereğinden şişkin
@@ -638,7 +651,13 @@ const SOL_BLOK_BOSLUK = 4;
  * Kimlik doğrulama sadece QR ile yapılır — manuel baloncuk kimlik alanı YOK.
  */
 function lgsSablonuOlustur() {
-  const KENAR_PAY = 8;
+  // ÖNEMLİ: bu değer eskiden sabit 8mm'ydi — köşe hizalama karesi
+  // HIZALAMA_PAY(4mm)..HIZALAMA_PAY+HIZALAMA_MARKER_BOYUT(8mm) aralığında
+  // bittiği için, başlık kutusu (KENAR_PAY'den başlıyor) tam o noktadan
+  // başlıyor ve köşe karesiyle/çerçeve çizgisiyle görsel olarak iç içe
+  // giriyordu (gözlemlenen hata). KOSE_GUVENLI_PAY (9mm) kullanılarak en az
+  // 1mm boşluk garanti ediliyor — bkz. sayfanın başındaki sabit tanımı.
+  const KENAR_PAY = KOSE_GUVENLI_PAY;
   const HEADER_YUKSEKLIK = HEADER_TOPLAM_YUKSEKLIK;
   const baloncukCap = 2.75; // 6 sütun + sol Kitapçık/Numara bloğu yan yana sığması için ayarlandı, güvenli pay bırakılarak
   const sutunGenisligi = 8 + 4 * (baloncukCap * 1.45); // soruNoGenisligi(8) + 4 şık
@@ -725,7 +744,9 @@ SABIT_SABLONLAR.lgs = lgsSablonuOlustur();
  * (Sözel/Sayısal gibi bir gruplama YOK — grup başlığı banner'ı gizli).
  */
 function burslulukSablonuOlustur() {
-  const KENAR_PAY = 8;
+  // bkz. lgsSablonuOlustur'daki KENAR_PAY notu — aynı köşe-karesi/başlık
+  // çakışması burada da geçerliydi, aynı sabitle düzeltiliyor.
+  const KENAR_PAY = KOSE_GUVENLI_PAY;
   const HEADER_YUKSEKLIK = HEADER_TOPLAM_YUKSEKLIK;
   const baloncukCap = 4.5; // sadece 4 sütun oldugu icin daha rahat/buyuk baloncuk kullanabiliyoruz
   const sutunGenisligi = 9 + 4 * (baloncukCap * 1.6); // soruNoGenisligi(9) + 4 şık
@@ -855,7 +876,7 @@ function layoutHesapla({ sinavTuru, soruSayisi, sikSayisi = 4, sayfaDuzeni = 'ot
 
   const sayfaBoyutu = yon === 'yatay' ? { width: A4.height, height: A4.width } : { width: A4.width, height: A4.height };
 
-  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi, sayfaBoyutu) : Number(sayfaDuzeni);
+  const gercekSayfaDuzeni = sayfaDuzeni === 'otomatik' ? sayfaDuzeniOner(soruSayisi, sikSayisi, sayfaBoyutu) : sayfaDuzeni;
   const bolgeler = sayfayiBol(gercekSayfaDuzeni, sayfaBoyutu);
   const baslikMetni = 'CEVAP KAĞIDI';
 
