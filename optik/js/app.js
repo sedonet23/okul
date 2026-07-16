@@ -285,6 +285,8 @@ function yeniSinavAc() {
     if (ozelBlok) ozelBlok.hidden = true;
     const ozelSoru = document.getElementById('ysOzelSoruSayisi');
     if (ozelSoru) ozelSoru.value = '';
+    const ozelYanlis = document.getElementById('ysYanlisEtkisi');
+    if (ozelYanlis) ozelYanlis.value = '0';
     _ogrenciSeciminiRender();
     _ogrenciSecimOzetiGuncelle();
     ekranGit('yeniSinav');
@@ -369,16 +371,29 @@ function yeniSinavKaydet() {
     let soruSayisi = _ysSablonSecilen.soruSayisi;
     let sikSayisi  = _ysSablonSecilen.sikSayisi;
 
-    // Yanlış cevap etkisi artık bu ekranda SORULMUYOR — okul çapında tek bir
-    // admin ayarı (bkz. ana uygulama js/optik-ayarlari.js). Optik ayrı bir
-    // iframe olsa da AYNI origin'de çalıştığı için bu localStorage anahtarını
-    // doğrudan okuyabiliyor (Firestore'a optik tarafından hiç dokunulmuyor).
+    // Yanlış cevap katsayısı sınav türüne göre İKİ farklı kaynaktan gelir:
+    //   - LGS / Bursluluk: resmî, okul çapında admin ayarı (bkz. ana uygulama
+    //     js/optik-ayarlari.js) — bu ekranda hiç sorulmaz. Optik ayrı bir
+    //     iframe olsa da AYNI origin'de çalıştığı için bu localStorage
+    //     anahtarlarını doğrudan okuyabiliyor (Firestore'a dokunmadan).
+    //   - Özel Sınav: resmî bir formülü olmadığından yukarıdaki #ysYanlisEtkisi
+    //     seçiciden okunur (varsayılan: Etkisiz).
+    function _lsKatsayiOku(anahtar, varsayilan) {
+        try {
+            const ham = localStorage.getItem(anahtar);
+            return ham !== null && ham !== '' ? parseInt(ham, 10) : varsayilan;
+        } catch (e) { return varsayilan; }
+    }
     let yEtki;
-    try {
-        const ham = localStorage.getItem('optikYanlisKatsayisi');
-        yEtki = ham !== null && ham !== '' ? parseInt(ham, 10) : 0;
-    } catch (e) { yEtki = 0; }
-    let yanlisKatsayisi = Number.isFinite(yEtki) && yEtki > 0 ? yEtki : null;
+    if (_ysSablonSecilen.id === 'lgs') {
+        yEtki = _lsKatsayiOku('optikLgsKatsayisi', 3);
+    } else if (_ysSablonSecilen.id === 'bursluluk') {
+        yEtki = _lsKatsayiOku('optikBurslulukKatsayisi', 3);
+    } else {
+        yEtki = parseInt(document.getElementById('ysYanlisEtkisi')?.value, 10);
+        if (!Number.isFinite(yEtki)) yEtki = 0;
+    }
+    let yanlisKatsayisi = yEtki > 0 ? yEtki : null;
 
     if (_ysSablonSecilen.id === 'ozel') {
         soruSayisi = parseInt(document.getElementById('ysOzelSoruSayisi')?.value, 10) || 20;
