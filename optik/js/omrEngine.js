@@ -1812,6 +1812,7 @@ window.OmrOkuyucu = (function () {
     const disariBirakilanIsaretler = [];
     let artiklarMM = [];
     let H = null;
+    let secilenYontem = null; // YENİ (teşhis): hangi dönüşüm yöntemi seçildi
 
     if (dortKoseDeBulundu) {
       artiklarMM = hassasKaynak.map((_, i) => {
@@ -1865,13 +1866,20 @@ window.OmrOkuyucu = (function () {
         enKotuIndex !== -1 && Number.isFinite(enKotuDeger) && Number.isFinite(ikinciKotuDeger) &&
         enKotuDeger > ikinciKotuDeger * 1.8 && (enKotuDeger - ikinciKotuDeger) > 8;
 
+      // YENİ (teşhis): hangi dalın seçildiğini ve sağlık kontrolünün ne
+      // döndürdüğünü açıkça kaydediyoruz — daha önce bu bilgi hiçbir yerde
+      // görünmüyordu, "tam homografi mi afin mi kullanıldı" kör bir kutuydu.
+      const saglikliMi = konveksVeSaglikliMiOto(hassasHedef);
+
       if (belirginTekKotuKose) {
         const kalanKaynak = hassasKaynak.filter((_, j) => j !== enKotuIndex);
         const kalanHedef = hassasHedef.filter((_, j) => j !== enKotuIndex);
         try { H = afinHesapla(kalanKaynak, kalanHedef); } catch (e) { H = null; }
         disariBirakilanIsaretler.push(bulunanKonumlar[enKotuIndex]);
-      } else if (konveksVeSaglikliMiOto(hassasHedef)) {
+        secilenYontem = 'afin (belirgin tek kötü köşe dışlandı: ' + bulunanKonumlar[enKotuIndex] + ')';
+      } else if (saglikliMi) {
         try { H = homografiHesapla(hassasKaynak, hassasHedef); } catch (e) { H = null; }
+        secilenYontem = 'tam homografi (4 köşe sağlıklı)';
       } else if (enKotuIndex !== -1 && Number.isFinite(enKotuDeger)) {
         // Dörtgen dejenere görünüyor ama tek bir belirgin kötü köşe de yok
         // — yine de en kötüyü dışlayıp afin dene, hiç okumamaktan iyidir.
@@ -1879,9 +1887,11 @@ window.OmrOkuyucu = (function () {
         const kalanHedef = hassasHedef.filter((_, j) => j !== enKotuIndex);
         try { H = afinHesapla(kalanKaynak, kalanHedef); } catch (e) { H = null; }
         disariBirakilanIsaretler.push(bulunanKonumlar[enKotuIndex]);
+        secilenYontem = 'afin (dörtgen sağlıksız/konveks değil, en kötü köşe [' + bulunanKonumlar[enKotuIndex] + '] dışlandı)';
       }
     } else if (ucKoseBulundu) {
       try { H = afinHesapla(hassasKaynak, hassasHedef); } catch (e) { H = null; }
+      secilenYontem = 'afin (sadece 3 köşe bulundu)';
     }
 
     const koseBulunduMu = !!H;
@@ -1896,6 +1906,12 @@ window.OmrOkuyucu = (function () {
       koseArtiklariMM: dortKoseDeBulundu
         ? bulunanKonumlar.map((konum, i) => ({ konum, artikMM: artiklarMM[i] }))
         : [],
+      // YENİ (teşhis alanları):
+      secilenYontem,
+      bulunanPikselNoktalari: hassasHedef.length
+        ? bulunanKonumlar.map((konum, i) => konum + '=(' + hassasHedef[i].x.toFixed(0) + ',' + hassasHedef[i].y.toFixed(0) + ')').join(', ')
+        : null,
+      pikselPerMM,
     };
   }
 
@@ -1905,7 +1921,7 @@ window.OmrOkuyucu = (function () {
 
     const { imageData: fotoImageData } = kaynaktanImageDataAl(kaynak);
 
-    const { H, bulunamayanIsaretler, disariBirakilanIsaretler, hizalamaKanonikNoktalari, hamBulunanKanonikNoktalari, koseArtiklariMM } =
+    const { H, bulunamayanIsaretler, disariBirakilanIsaretler, hizalamaKanonikNoktalari, hamBulunanKanonikNoktalari, koseArtiklariMM, secilenYontem, bulunanPikselNoktalari, pikselPerMM } =
       formuOtomatikDuzlestir(fotoImageData, form, ppmm);
 
     if (!H) {
@@ -1929,6 +1945,16 @@ window.OmrOkuyucu = (function () {
         'Köşe tutarlılık artıkları: ' +
         koseArtiklariMM.map((k) => k.konum + '=' + (Number.isFinite(k.artikMM) ? k.artikMM.toFixed(1) + 'mm' : '∞')).join(', ')
       );
+    }
+
+    // YENİ (teşhis): hangi dönüşüm yöntemi seçildi ve köşelerin fotoğraftaki
+    // HAM piksel konumları — "tam homografi mi afin mi kullanıldı" artık
+    // görünür, kör kutu değil.
+    if (secilenYontem) {
+      uyarilar.push('Seçilen dönüşüm: ' + secilenYontem);
+    }
+    if (bulunanPikselNoktalari) {
+      uyarilar.push('Köşe piksel konumları (foto): ' + bulunanPikselNoktalari + ' | ölçek≈' + pikselPerMM.toFixed(2) + 'px/mm');
     }
 
     if (disariBirakilanIsaretler && disariBirakilanIsaretler.length) {
