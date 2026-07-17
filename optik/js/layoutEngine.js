@@ -1,24 +1,52 @@
 const A4 = { width: 210, height: 297 };
 
-// Köşe karesi boyutu/payı — hem hizalamaIsaretleriEkle hem de
-// sayfaCercevesiHesapla aynı sabitleri kullanmalı (çerçeve çizgisi köşe
-// karelerinin TAM ORTASINDAN geçsin, görsel + algoritmik olarak "bağlı"
-// olsun diye). BURADA (dosyanın en başında) tanımlı olmalı — bu sabitler
-// modül yüklenirken hemen çalışan SABIT_SABLONLAR.lgs = lgsSablonuOlustur()
-// gibi kodlardan kullanılıyor; const hoist edilmediğinden daha aşağıda
-// tanımlanırlarsa "başlatılmadan erişim" hatası oluşuyordu.
-const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare
-const HIZALAMA_PAY = 4; // mm, sayfa/bölge kenarından köşe karesine mesafe
+// Köşe karesi boyutu/payı. BURADA (dosyanın en başında) tanımlı olmalı —
+// bu sabitler modül yüklenirken hemen çalışan SABIT_SABLONLAR.lgs =
+// lgsSablonuOlustur() gibi kodlardan kullanılıyor; const hoist
+// edilmediğinden daha aşağıda tanımlanırlarsa "başlatılmadan erişim"
+// hatası oluşuyordu.
+//
+// ÖNEMLİ (v2 — çizgi/kare KARIŞMASI hatası düzeltildi): eskiden çerçeve
+// çizgisi, köşe karesinin TAM ORTASINDAN geçiyordu ("görsel olarak bağlı"
+// görünsün, çizgi tabanlı tespite iyi bir referans versin diye). SORUN:
+// bu, omrEngine.js'in HEM çizgi tabanlı (kenarCizgisiIleKoseBul) HEM blob
+// tabanlı (enBuyukKareBlobuBul) köşe tespitini bozuyordu — kare, sütun/satır
+// taramasında çizginin kendisiyle KARIŞIYOR (bir kısım tarama karenin üst
+// kenarını, geri kalanı çizginin ORTA noktasını "en koyu piksel" seçip aynı
+// doğruya oturmayan iki farklı y/x üretiyor — RMSE her zaman eşiği aşıyordu),
+// ve flood-fill kareyi çizgiye FİZİKSEL OLARAK BAĞLADIĞI için blob artık
+// izole/kompakt bir kare değil, ince bir "artı/çizgi" şekli oluyor (doluluk
+// filtresini geçemiyor). Gerçek fotoğraflarla ve testplus.top örneğiyle
+// doğrulandı: çözüm, çizgiyi kareden TAMAMEN AYRI (aralarında net bir boşluk
+// olacak şekilde) çizmek — çizgi sayfa kenarına YAKIN (baskı-güvenli sabit
+// mesafede) kalıyor, kare ise çizginin İÇİNDE (ondan daha uzakta, sayfanın iç
+// tarafında) duruyor. Böylece hiçbir tarama sütunu/satırı ikisini aynı anda
+// görmüyor.
+const HIZALAMA_MARKER_BOYUT = 4; // mm, dolu kare boyutu
 
-// Köşe karesinin (HIZALAMA_PAY..HIZALAMA_PAY+HIZALAMA_MARKER_BOYUT aralığı,
-// yani burada 4-8mm) içeriğe (başlık kutusu, çerçeve çizgisi) DEĞMEMESİ için
-// gereken minimum kenar payı. miniHeaderOlustur bunu zaten KOSE_GUVENLI_PAY
-// adıyla hesaplıyordu; standartHeaderOlustur (LGS/bursluluk sabit şablonları)
-// ise sabit 8mm kullanıyordu — köşe karesinin sağ/alt kenarıyla TAM aynı
-// noktada bittiği için başlık kutusu ile köşe karesi/çerçeve çizgisi görsel
-// olarak iç içe giriyordu (gözlemlenen hata). Artık HER İKİ header
-// üretici de bu ortak, güvenli payı kullanıyor.
-const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 9mm
+// Çerçeve çizgisinin sayfa/bölge kenarından mesafesi — bu, yazdırılabilir
+// alan güvenli payı olarak SABİT kalmalı (çoğu yazıcı/fotokopi kenara çok
+// yakını basamaz; 4mm çoğu yazıcının garantili basılabilir alanının içinde).
+const CERCEVE_PAY = 4; // mm
+
+// Çerçeve çizgisi ile kare arasında bırakılan boşluk — ikisinin flood-fill/
+// tarama sırasında ASLA birbirine değmemesi/karışmaması için. Kare, bu kadar
+// çerçevenin İÇİNDE (sayfanın iç tarafına doğru) duruyor.
+const KARE_CERCEVE_BOSLUK = 3; // mm
+
+// Köşe karesinin sayfa/bölge kenarından mesafesi — artık çerçeveden sonra,
+// ondan bağımsız.
+const HIZALAMA_PAY = CERCEVE_PAY + KARE_CERCEVE_BOSLUK; // = 7mm
+
+// Köşe karesinin (HIZALAMA_PAY..HIZALAMA_PAY+HIZALAMA_MARKER_BOYUT aralığı)
+// içeriğe (başlık kutusu) DEĞMEMESİ için gereken minimum kenar payı.
+// miniHeaderOlustur bunu zaten KOSE_GUVENLI_PAY adıyla hesaplıyordu;
+// standartHeaderOlustur (LGS/bursluluk sabit şablonları) ise sabit 8mm
+// kullanıyordu — köşe karesinin sağ/alt kenarıyla TAM aynı noktada bittiği
+// için başlık kutusu ile köşe karesi/çerçeve çizgisi görsel olarak iç içe
+// giriyordu (gözlemlenen hata). Artık HER İKİ header üretici de bu ortak,
+// güvenli payı kullanıyor.
+const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 12mm
 
 /**
  * Her mini-form için 4 köşe hizalama işareti (fiducial marker) koordinatı.
@@ -26,12 +54,6 @@ const KOSE_GUVENLI_PAY = HIZALAMA_PAY + HIZALAMA_MARKER_BOYUT + 1; // = 9mm
  */
 function hizalamaIsaretleriEkle(bolge) {
   const MARKER_BOYUT = HIZALAMA_MARKER_BOYUT;
-  // ÖNEMLİ: çoğu yazıcı/fotokopi kenara çok yakın alanı basamaz
-  // (yazdırılamayan kenar payı — özellikle SAYFANIN ALT kenarında, kağıt
-  // besleme mekanizması yüzünden diğer kenarlardan daha büyük olabilir).
-  // PAY çok küçükse (eski değer: 2mm) köşe kareleri bu basılamayan
-  // bölgeye düşüp kırpılabiliyor. 4mm, çoğu yazıcının garantili basılabilir
-  // alanının içinde kalırken köşe içeriğiyle (KENAR_PAY=8mm) çakışmıyor.
   const PAY = HIZALAMA_PAY;
   return [
     { x: bolge.x + PAY, y: bolge.y + PAY, boyut: MARKER_BOYUT, konum: 'sol-ust' },
@@ -42,15 +64,16 @@ function hizalamaIsaretleriEkle(bolge) {
 }
 
 /**
- * 4 köşe karesini birbirine bağlayan ince dış çerçeve çizgisinin
- * koordinatlarını hesaplar — çizgi, köşe karelerinin TAM ORTASINDAN
- * geçer (görsel olarak "kareler çizgiye bağlı" algısı verir, ve OMR
- * tarafında kenar/çizgi tabanlı köşe tespitine sağlam bir referans
- * sağlar — bkz. omrEngine.js kenarCizgisiIleKoseBul).
+ * Köşe karelerini SARAN (ama onlara DEĞMEYEN) dış çerçeve çizgisinin
+ * koordinatlarını hesaplar — çizgi sayfa kenarına yakın, baskı-güvenli sabit
+ * bir mesafede (CERCEVE_PAY) durur; kareler bunun net bir boşlukla (bkz.
+ * KARE_CERCEVE_BOSLUK) İÇİNDE kalır (testplus.top örneğindeki gibi: dıştaki
+ * kareler ve onları saran dörtgen birbirinden ayrık). Bu sayede omrEngine.js
+ * tarafında hem çizgi tabanlı (kenarCizgisiIleKoseBul) hem blob tabanlı
+ * (enBuyukKareBlobuBul) köşe tespiti birbirini bozmadan çalışabiliyor.
  */
 function sayfaCercevesiHesapla(bolge) {
-  const yarim = HIZALAMA_MARKER_BOYUT / 2;
-  const kenar = HIZALAMA_PAY + yarim;
+  const kenar = CERCEVE_PAY;
   return {
     x: bolge.x + kenar,
     y: bolge.y + kenar,
