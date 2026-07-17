@@ -82,6 +82,7 @@ window.OmrOkuyucu = (function () {
   // tarafından uyarılara eklenir.
   let _sonHTestSonucu = null;
   let _sonHKatsayilari = null;
+  let _sonKoyulukOzeti = null;
 
   // ---------------------------------------------------------------------
   // 1) Genel yardımcılar: görüntü <-> ImageData
@@ -1697,6 +1698,17 @@ window.OmrOkuyucu = (function () {
       });
     }
 
+    // YENİ (teşhis): tüm soruların en koyu şık oranı (guven) dağılımını
+    // özetle — "hepsi boş" çıktığında bunun sebebi (a) koordinatlar boş
+    // kağıda düşüyor (guven hep ~0'a yakın) mu, yoksa (b) eşik çok mu
+    // sıkı (guven KARANLIK_ESIK'e yakın ama altında) ayırt etmek için.
+    const tumOranlar = cevaplar.map((c) => c.guven);
+    const enDusukOran = Math.min(...tumOranlar);
+    const enYuksekOran = Math.max(...tumOranlar);
+    const ortalamaOran = tumOranlar.reduce((a, b) => a + b, 0) / (tumOranlar.length || 1);
+    _sonKoyulukOzeti = 'guven aralığı: min=' + enDusukOran.toFixed(3) + ' maks=' + enYuksekOran.toFixed(3) +
+      ' ort=' + ortalamaOran.toFixed(3) + ' (eşik=' + KARANLIK_ESIK.toFixed(2) + ')';
+
     return { cevaplar, ornekNoktalari };
   }
 
@@ -2173,6 +2185,9 @@ window.OmrOkuyucu = (function () {
     if (belirsizSayisi > 0) {
       uyarilar.push(belirsizSayisi + ' soruda belirsiz/boş/çoklu işaret tespit edildi.');
     }
+    if (_sonKoyulukOzeti) {
+      uyarilar.push('Koyuluk özeti: ' + _sonKoyulukOzeti);
+    }
 
     return {
       basarili: true,
@@ -2298,6 +2313,9 @@ window.OmrOkuyucu = (function () {
     const belirsizSayisi = cevaplar.filter((c) => c.uyari).length;
     if (belirsizSayisi > 0) {
       uyarilar.push(belirsizSayisi + ' soruda belirsiz/boş/çoklu işaret tespit edildi.');
+    }
+    if (_sonKoyulukOzeti) {
+      uyarilar.push("Koyuluk özeti: " + _sonKoyulukOzeti);
     }
 
     return {
