@@ -78,6 +78,11 @@ window.OmrOkuyucu = (function () {
   // Bunun altındaysa "belirsiz/çoklu işaret" olarak işaretlenir.
   const AYIRT_EDICI_FARK = 0.10;
 
+  // YENİ (teşhis): duzCanvasUret'in H matrisi testinin sonucu — formuOku
+  // tarafından uyarılara eklenir.
+  let _sonHTestSonucu = null;
+  let _sonHKatsayilari = null;
+
   // ---------------------------------------------------------------------
   // 1) Genel yardımcılar: görüntü <-> ImageData
   // ---------------------------------------------------------------------
@@ -1190,6 +1195,25 @@ window.OmrOkuyucu = (function () {
     const cGenislik = Math.max(1, Math.round(form.bolge.width * ppmm));
     const cYukseklik = Math.max(1, Math.round(form.bolge.height * ppmm));
 
+    // YENİ (teşhis): H'nin kanonik tuvalin 4 köşesini GERÇEKTEN doğru
+    // fotoğraf konumuna gönderip göndermediğini doğrudan test ediyoruz.
+    // Matematiksel olarak bu, hassasKaynak/hassasHedef'e TAM UYMALI
+    // (H onlardan kuruldu) — uymuyorsa bu, homografiHesapla/gaussEleme
+    // içinde SAYISAL bir hesap hatasının kesin kanıtıdır.
+    const testKoseleri = [
+      { ad: 'sol-ust(0,0)', x: 0, y: 0 },
+      { ad: 'sag-ust(gen,0)', x: cGenislik, y: 0 },
+      { ad: 'sol-alt(0,yuk)', x: 0, y: cYukseklik },
+      { ad: 'sag-alt(gen,yuk)', x: cGenislik, y: cYukseklik },
+    ];
+    const hTestSonucu = testKoseleri.map((k) => {
+      const p = noktayiDonustur(H, k.x, k.y);
+      return k.ad + '->foto(' + p.x.toFixed(0) + ',' + p.y.toFixed(0) + ')';
+    }).join(', ');
+    console.log('[OMR TEŞHİS] H köşe testi:', hTestSonucu, '| H katsayıları:', H.map(v => v.toFixed(4)).join(','));
+    _sonHTestSonucu = hTestSonucu;
+    _sonHKatsayilari = H.map(v => Number(v.toFixed(4)));
+
     const canvas = document.createElement('canvas');
     canvas.width = cGenislik;
     canvas.height = cYukseklik;
@@ -1974,6 +1998,8 @@ window.OmrOkuyucu = (function () {
       uyarilar.push('Köşe piksel konumları (foto): ' + bulunanPikselNoktalari + ' | ölçek≈' + pikselPerMM.toFixed(2) + 'px/mm');
     }
 
+    // (H matrisi kontrolü duzCanvasUret çağrıldıktan SONRA aşağıda eklenecek)
+
     if (disariBirakilanIsaretler && disariBirakilanIsaretler.length) {
       uyarilar.push(
         'Sayfanın 4 köşesi de bulundu ama biri (' + disariBirakilanIsaretler[0] + ') ' +
@@ -2104,6 +2130,9 @@ window.OmrOkuyucu = (function () {
     }
 
     const { canvas: duzCanvas, imageData: cImageData } = duzCanvasUret(fotoImageData, H, form, ppmm);
+    if (_sonHTestSonucu) {
+      uyarilar.push('H köşe testi: ' + _sonHTestSonucu);
+    }
 
     // Fotoğrafın kendi ışık koşuluna göre siyah/beyaz noktalarını kalibre et
     // (bkz. kontrastNormalizeEt açıklaması) — bu adım olmadan çoğu baloncuk
@@ -2210,6 +2239,9 @@ window.OmrOkuyucu = (function () {
     const H = homografiElleKoselerdenHesapla(form, koseler, ppmm);
 
     const { canvas: duzCanvas, imageData: cImageData } = duzCanvasUret(fotoImageData, H, form, ppmm);
+    if (_sonHTestSonucu) {
+      uyarilar.push('H köşe testi: ' + _sonHTestSonucu);
+    }
 
     kontrastNormalizeEt(cImageData);
     duzCanvas.getContext('2d').putImageData(cImageData, 0, 0);
