@@ -1400,7 +1400,20 @@ window.OmrOkuyucu = (function () {
    * yapıp en yüksek karanlık oranını veren konumu kullanıyoruz — bir nevi
    * "en yakın koyu noktaya yapış" (snap-to-nearest-dark-blob) mantığı.
    */
-  function baloncukKaranlikOraniYerelArama(cImageData, cx, cy, r, aramaOrani = 0.35, adimOrani = 0.15) {
+  /**
+   * YENİ (kök neden düzeltmesi — bkz. PyImageSearch/açık kaynak OMR
+   * projelerinin standart yöntemi: "baloncuğun OLMASI GEREKEN yerine
+   * güvenme, GERÇEKTE nerede olduğunu bul"): eski arama penceresi
+   * (aramaOrani=0.35, yani sadece ±0.35×yarıçap) mm-projeksiyonunun
+   * neredeyse piksel-hassasiyetinde doğru olduğunu VARSAYIYORDU — ki bu
+   * varsayım (gerçek fotoğraflarda ölçülen homografi hatalarına göre)
+   * çoğu zaman geçersiz. Komşu baloncuğa (yatay aralık = 1.8×yarıçap)
+   * karışma riski olmadan GÜVENLE arayabileceğimiz azami yarıçap ~1.8r'dir
+   * — bu yüzden pencere 0.35r'den 1.3r'ye çıkarıldı (komşuya değmeden
+   * kalan en geniş güvenli alan). Böylece baloncuk, ızgara varsayımından
+   * onlarca piksel kaymış olsa bile gerçekten bulunabiliyor.
+   */
+  function baloncukKaranlikOraniYerelArama(cImageData, cx, cy, r, aramaOrani = 1.3, adimOrani = 0.12) {
     const aramaMesafesi = r * aramaOrani;
     const adim = Math.max(1, r * adimOrani);
 
@@ -1494,8 +1507,12 @@ window.OmrOkuyucu = (function () {
     // doğru arama, o komşu öğeyi yanlışlıkla "koyu baloncuk" sanabiliyor
     // (gözlemlenen "çoklu" hatası). Bunu önlemek için ilk soruda sadece
     // aşağı, son soruda sadece yukarı doğru aranır.
-    const yarim = satirAraligiPx * 0.4;
-    const adim = Math.max(1, satirAraligiPx * 0.06);
+    // YENİ: 0.4 -> 0.47 (güvenli sınır olan 0.5'e daha yakın — bkz. genelDuzeltme
+    // artık çoğu durumda bulunamıyor/atlanıyor, bu adımın TEK BAŞINA satırı
+    // doğru yere kilitlemesi gerekiyor, eskisi gibi "zaten yaklaşık doğru"
+    // varsayımına güvenemiyor).
+    const yarim = satirAraligiPx * 0.47;
+    const adim = Math.max(1, satirAraligiPx * 0.04);
     const dyBaslangic = ilkSoruMu ? 0 : -yarim;
     const dyBitis = sonSoruMu ? 0 : yarim;
 
