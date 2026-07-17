@@ -1,6 +1,15 @@
 import { formuOkuVeGoster, formuOkuElleKoseliVeGoster } from "./formOkuyucu.js";
 import { koseSeciciElemanlariniAl, koseSecimAkisi, KOSE_SECIM_IPTAL } from "./koseSecici.js";
 import { ayarlariGetir } from "./hassasiyetAyarlari.js";
+// YENİ: canlı önizleme köşe/çerçeve tespiti artık OpenCV.js (Canny +
+// findContours) tabanlı sayfaTespitCV.js üzerinden yapılıyor — eski
+// window.OmrOkuyucu.sayfaKoseleriniAra (blob+çizgi ikili yöntemi) SADECE
+// gerçek okuma anındaki hassas hizalama-işareti tespiti için kullanılmaya
+// devam ediyor (bkz. omrEngine.js: formuOtomatikDuzlestir). İkisi FARKLI
+// hedefleri buluyor (sayfa çerçevesi vs. küçük hizalama kareleri), o
+// yüzden burada değiştirilen SADECE canlı gösterge/otomatik-tetikleme
+// döngüsü — okuma hassasiyeti bu değişiklikten etkilenmez.
+import { sayfaKoseleriniAraCV, cvHazirBekle, cvHazirMi } from "./sayfaTespitCV.js";
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
@@ -11,13 +20,15 @@ let stream = null;
 // ────────────────────────────────────────────────────────────────
 // CANLI KÖŞE YAKALAMA GÖSTERGESİ + CANLI TARAMA MODU
 // ────────────────────────────────────────────────────────────────
-// Kamera önizlemesi (video) üzerine, sayfanın 4 köşesindeki hizalama
-// karelerinin o an fotoğrafta YAKALANIP yakalanmadığını gösteren canlı
-// bir gösterge çizer: bulunduysa YEŞİL, bulunamadıysa (o köşe bölgesinin
-// yaklaşık beklenen konumunda) KIRMIZI daire+artı işareti; 4 köşe ayrıca
-// bir dörtgen ÇİZGİSİYLE birbirine bağlanır (sayfanın genel hizasını
-// göstermek için). Gerçek yakalama/okuma mantığıyla AYNI fonksiyonu
-// (OmrOkuyucu.sayfaKoseleriniAra) kullanır.
+// Kamera önizlemesi (video) üzerine, sayfanın ÇERÇEVESİNİN o an fotoğrafta
+// YAKALANIP yakalanmadığını gösteren canlı bir gösterge çizer: bulunduysa
+// YEŞİL, bulunamadıysa (o köşe bölgesinin yaklaşık beklenen konumunda)
+// KIRMIZI daire+artı işareti; 4 köşe ayrıca bir dörtgen ÇİZGİSİYLE
+// birbirine bağlanır (sayfanın genel hizasını göstermek için).
+// sayfaTespitCV.js (OpenCV.js, Canny+findContours) kullanır — bu, gerçek
+// okuma anında hizalama işaretlerini bulan omrEngine.js:sayfaKoseleriniAra
+// ile AYNI fonksiyon DEĞİLDİR (bkz. yukarıdaki import notu); sadece "sayfa
+// kabaca hizalı mı" sorusuna hızlı cevap vermek için var.
 //
 // CANLI TARAMA MODU açıkken (bkz. canliTaramaBaslat/Durdur): 4 köşe art
 // arda birkaç kare boyunca STABİL (neredeyse aynı yerde) bulunursa tam
@@ -28,7 +39,13 @@ const _koseTespitAnalizCanvas = document.createElement("canvas");
 let _koseTespitTimer = null;
 let _koseTespitCalisiyor = false; // örtüşen (üst üste binen) çalıştırmaları engelle
 
-const KOSE_TESPIT_ANALIZ_GENISLIK = 360; // analiz hızı için düşürülmüş çözünürlük (önceki 480'den hızlandırıldı)
+const KOSE_TESPIT_ANALIZ_GENISLIK = 480; // YENİ: 360'ta ince (0.35mm) çerçeve çizgisi neredeyse yok oluyordu (~0.6px) — CV kontur tespiti için 480'e çıkarıldı (~0.8px, hâlâ ince ama Canny+dilate ile yakalanabilir düzeyde). Kalıcı çözüm form tarafında çizgiyi kalınlaştırmak (bkz. pdfFormGenerator.js notu).
+
+// Bir önceki turda CV ile bulunan çerçeve köşeleri — sayfaKoseleriniAraCV'ye
+// TAKİP (tracking) ipucu olarak geçiriliyor; her turda sıfırdan tam kare
+// aramak yerine bu noktanın etrafında dar bir ROI'de arar (çok daha hızlı).
+// Yeni bir başarılı tespitte güncellenir, kamera durdurulduğunda sıfırlanır.
+let _sonBulunanCerceveKoseleri = null;
 
 // ---- Canlı tarama modu durumu ----
 let _canliModAktif = false;
@@ -60,6 +77,7 @@ function _koseTespitDurdur() {
         _koseTespitTimer = null;
     }
     _koseTespitTemizle();
+    _sonBulunanCerceveKoseleri = null; // eski oturumun takip noktası yeni oturuma sızmasın
 }
 
 /** İki köşe kümesinin (analiz çözünürlüğünde) birbirine yeterince yakın olup olmadığını kontrol eder. */
@@ -90,7 +108,7 @@ function _koseTespitCalistir() {
 
     if (_koseTespitCalisiyor || _canliIsleniyor) return; // önceki tur / tam okuma hâlâ sürüyor, atla
     if (!video.videoWidth || !video.videoHeight) return;
-    if (typeof window.OmrOkuyucu === "undefined" || typeof window.OmrOkuyucu.sayfaKoseleriniAra !== "function") return;
+    if (!cvHazirMi()) return; // OpenCV.js WASM henüz yüklenmediyse bu turu atla
 
     const overlay = document.getElementById("koseTespitOverlay");
     if (!overlay) return;
@@ -117,7 +135,16 @@ function _koseTespitCalistir() {
         }
 
         const hassasiyet = { yuzdelik: ayarlar.yuzdelik, minDoluluk: ayarlar.minDoluluk };
-        const koseler = window.OmrOkuyucu.sayfaKoseleriniAra(imageData, hassasiyet);
+        const koseler = sayfaKoseleriniAraCV(imageData, hassasiyet, _sonBulunanCerceveKoseleri);
+        // Başarılı tespitte takip noktasını güncelle (sonraki tur bu noktanın
+        // etrafında dar ROI'de arasın); bulunamazsa ELDEKİ son bilinen noktayı
+        // KORU — sayfaKoseleriniAraCV zaten ROI'de bulamazsa otomatik tam kare
+        // aramasına düşüyor, burada erken sıfırlamak sadece gereksiz tam-kare
+        // aramasını hızlandırmaz, tam tersine bir sonraki turun da takipsiz
+        // (daha yavaş) başlamasına yol açar.
+        if (_tumKoselerVarMi(koseler)) {
+            _sonBulunanCerceveKoseleri = koseler;
+        }
 
         // Analiz çözünürlüğünden GERÇEK (native) video çözünürlüğüne geri ölçekle
         const geriOlcek = video.videoWidth / aGenislik;
@@ -347,6 +374,11 @@ export async function startCamera() {
 
         console.log("Kamera başlatıldı.");
 
+        // OpenCV.js WASM modülü henüz yüklenmediyse (uygulama yeni açıldıysa
+        // birkaç yüz ms sürebilir) burada bekleniyor — kamera görüntüsü zaten
+        // akmaya başladı, kullanıcı bekleme farkını hissetmez, sadece köşe
+        // göstergesi cv hazır olana kadar bir an gecikmeli başlar.
+        await cvHazirBekle();
         _koseTespitBaslat();
 
     } catch (err) {
@@ -444,6 +476,7 @@ export async function switchCamera(facing = "environment") {
 
         await video.play();
 
+        await cvHazirBekle();
         _koseTespitBaslat();
 
     } catch (err) {

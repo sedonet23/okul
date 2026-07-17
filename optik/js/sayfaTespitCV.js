@@ -110,11 +110,12 @@ function _konturAra(gri, roiOfsX, roiOfsY, tamAlan) {
   let enIyiAlan = -1;
 
   try {
-    cv.Canny(gri, kenarlar, 50, 150);
-    // Çerçeve çizgisi kağıt kıvrımı/gölge/parlamayla küçük noktalardan
-    // kesintiye uğrayabilir — hafif dilate ile bu boşlukları kapatıp
-    // konturun KAPALI (closed) çıkmasını sağlıyoruz.
-    cv.dilate(kenarlar, kenarlar, dilateKernel, new cv.Point(-1, -1), 1);
+    // YENİ: eşikler (50,150)->(30,100) düşürüldü — ince/düşük kontrastlı
+    // çerçeve çizgisi eski eşiklerde Canny'den hiç geçemiyordu. Dilate
+    // iterasyonu 1->2 çıkarıldı — çizgi tek pikselin altına düştüğü
+    // noktalarda kopukluğu kapatmak için.
+    cv.Canny(gri, kenarlar, 30, 100);
+    cv.dilate(kenarlar, kenarlar, dilateKernel, new cv.Point(-1, -1), 2);
 
     cv.findContours(kenarlar, konturlar, hiyerarsi, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
 
@@ -180,7 +181,10 @@ export function sayfaKoseleriniAraCV(imageData, hassasiyet, sonBilinenKoseler) {
 
   try {
     cv.cvtColor(src, gri, cv.COLOR_RGBA2GRAY);
-    cv.GaussianBlur(gri, gri, new cv.Size(5, 5), 0);
+    // YENİ: (5,5) yerine (3,3) — sayfa çerçevesi zaten ince (0.35mm baskı,
+    // ~0.8px analiz çözünürlüğünde); (5,5) blur bunu neredeyse tamamen
+    // eritiyordu. (3,3) hâlâ gürültüyü azaltır ama ince çizgiyi silmez.
+    cv.GaussianBlur(gri, gri, new cv.Size(3, 3), 0);
 
     const tamAlan = imageData.width * imageData.height;
 
