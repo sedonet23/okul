@@ -280,6 +280,12 @@
     <span class="ogr-stats-puan" id="ogrDetayFormPuan">—</span>
   </div>
 
+  <!-- YENİ: omrEngine.js'in ürettiği (köşe tutarlılık artıkları, dışlanan
+       köşe vb.) teşhis uyarıları — önceden hiçbir yerde gösterilmiyordu,
+       sadece browser console'a gidiyordu (telefonda erişilemez). Uyarı
+       yoksa gizli kalır. -->
+  <div id="ogrDetayUyarilar" style="display:none;margin:8px 12px;padding:8px 10px;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.4);border-radius:8px;font-size:11px;line-height:1.5;color:var(--text,#eee);white-space:pre-wrap;font-family:monospace;"></div>
+
   <div class="ir-panel aktif" id="irIcerik">
     <!-- Öğrenci bilgi inputları -->
     <div class="ogr-bilgi-grid">
