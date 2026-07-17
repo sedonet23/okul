@@ -200,11 +200,19 @@ window.OmrOkuyucu = (function () {
     // Dejenere durum (tamamen düz renk vb.) - normalize etmeye değmez.
     if (beyazNokta - siyahNokta < 10) return;
 
+    // YENİ: doğrusal gerdirmeden SONRA hafif bir gama düzeltmesi (<1)
+    // uygulanıyor — orta tonları (gerçek işaretli baloncukların genelde
+    // düştüğü, tam siyah olmayan gri aralık) daha da karartır, siyah-beyaz
+    // benzeri bir kontrast artışı sağlar. Kullanıcı gözlemi: en koyu bulunan
+    // işaret bile eşiğe (0.28) çok yakın ama altında kalıyordu (0.246) —
+    // bu, doğrusal gerdirmenin tek başına yetersiz kaldığının kanıtı.
+    const GAMA = 1.8; // >1 = orta tonları karart (kontrastı artır) — <1 yanlış yönde parlatırdı, düzeltildi
     const aralik = beyazNokta - siyahNokta;
     for (let i = 0; i < data.length; i += 4) {
       for (let kanal = 0; kanal < 3; kanal++) {
         const v = data[i + kanal];
-        data[i + kanal] = Math.max(0, Math.min(255, Math.round(((v - siyahNokta) / aralik) * 255)));
+        const gerilmis = Math.max(0, Math.min(255, ((v - siyahNokta) / aralik) * 255));
+        data[i + kanal] = Math.round(255 * Math.pow(gerilmis / 255, GAMA));
       }
     }
   }
