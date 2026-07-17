@@ -604,6 +604,19 @@ function ogrDetayAc(sonucId) {
     // Resim (doğru/yanlış baloncuk renklendirmeli)
     ogrDetayResimCiz(sonuc);
 
+    // YENİ: teşhis uyarılarını göster (varsa) — köşe tutarlılık artıkları,
+    // dışlanan köşe uyarısı vb. Eski kayıtlarda (bu güncellemeden önce
+    // taranmış) sonuc.uyarilar alanı yok, o durumda kutu gizli kalır.
+    const uyariKutusu = document.getElementById('ogrDetayUyarilar');
+    if (uyariKutusu) {
+        if (Array.isArray(sonuc.uyarilar) && sonuc.uyarilar.length) {
+            uyariKutusu.textContent = sonuc.uyarilar.join('\n');
+            uyariKutusu.style.display = 'block';
+        } else {
+            uyariKutusu.style.display = 'none';
+        }
+    }
+
     // Ders listesi
     _ogrDetayDersler = formDersleriniGetir(_aktifSinavId);
     const dersSecici = document.getElementById('ogrDetayDers');
@@ -1459,6 +1472,11 @@ function _omrSonucuisle(raw) {
         cevaplar:      cevaplarNesne,
         kagitGoruntusu:raw.kagitGoruntusu || null,
         baloncukNoktalari: raw.baloncukNoktalari || null,
+        // YENİ: omrEngine.js'in ürettiği teşhis uyarıları (köşe tutarlılık
+        // artıkları, dışlanan köşe vb.) — önceden hiç yakalanmıyordu, sadece
+        // browser console'a gidip kayboluyordu. Kağıt Detayı ekranında
+        // gösterilecek (bkz. ogrDetayAc).
+        uyarilar:      Array.isArray(raw.uyarilar) ? raw.uyarilar : [],
         elleGirildi:   false,
         tarih:         new Date().toLocaleDateString('tr-TR'),
     };
