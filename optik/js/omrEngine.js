@@ -688,32 +688,96 @@ window.OmrOkuyucu = (function () {
   }
 
   /**
+   * YENİ: Fotoğrafta kağıdın KABA dış sınırını (bounding box) kestirir —
+   * ortadan her 4 yöne doğru tarayıp arka plandan (koyu/masaya ait) sayfaya
+   * (sürekli parlak/beyaz) geçişi arar. Kesin bir kontur değil, sadece
+   * "sayfa muhtemelen burada başlıyor" tahmini — köşe arama pencerelerini
+   * fotoğrafın kendi köşeleri yerine buna göre konumlandırmak için yeterli.
+   */
+  function sayfaSiniriniKestir(imageData) {
+    const { width, height, data } = imageData;
+    const PARLAKLIK_ESIK = 140; // bu ve üzeri "sayfa/beyaz" sayılır
+    const ARDISIK_GEREKEN = Math.max(8, Math.round(Math.min(width, height) * 0.02)); // gürültüyle karışmasın diye art arda bu kadar parlak piksel gerekir
+
+    function parlakMi(x, y) {
+      return grilikDegeri(data, (y * width + x) * 4) >= PARLAKLIK_ESIK;
+    }
+
+    // Sol kenar: orta yükseklikte soldan sağa tara.
+    const cy = Math.floor(height / 2);
+    let sol = 0, art = 0;
+    for (let x = 0; x < width; x++) {
+      if (parlakMi(x, cy)) { art++; if (art >= ARDISIK_GEREKEN) { sol = x - ARDISIK_GEREKEN + 1; break; } }
+      else art = 0;
+    }
+    let sag = width - 1; art = 0;
+    for (let x = width - 1; x >= 0; x--) {
+      if (parlakMi(x, cy)) { art++; if (art >= ARDISIK_GEREKEN) { sag = x + ARDISIK_GEREKEN - 1; break; } }
+      else art = 0;
+    }
+    const cx = Math.floor(width / 2);
+    let ust = 0; art = 0;
+    for (let y = 0; y < height; y++) {
+      if (parlakMi(cx, y)) { art++; if (art >= ARDISIK_GEREKEN) { ust = y - ARDISIK_GEREKEN + 1; break; } }
+      else art = 0;
+    }
+    let alt = height - 1; art = 0;
+    for (let y = height - 1; y >= 0; y--) {
+      if (parlakMi(cx, y)) { art++; if (art >= ARDISIK_GEREKEN) { alt = y + ARDISIK_GEREKEN - 1; break; } }
+      else art = 0;
+    }
+
+    // Sağlık kontrolü: sınır dejenere çıktıysa (çok küçük/ters) fotoğrafın
+    // tamamına geri düş — eski davranış (kağıt kadrajı dolduruyor varsayımı).
+    if (sag - sol < width * 0.3 || alt - ust < height * 0.3) {
+      return { sol: 0, ust: 0, sag: width, alt: height };
+    }
+    return { sol, ust, sag, alt };
+  }
+
+  /**
    * Sayfanın 4 köşesindeki hizalama karelerini QR'ye/kaba tahmine HİÇ
    * ihtiyaç duymadan, doğrudan fotoğrafın kendi 4 köşe bölgesinde arar.
-   * Varsayım: kullanıcı kağıdı fotoğraf çerçevesine dikey (portre) ve
-   * kabaca dolduracak şekilde çekiyor — bu, elle köşe seçiminde zaten
-   * istenen çekim şekliyle aynı.
+   * YENİ: arama pencereleri artık fotoğrafın HAM köşelerine değil, önce
+   * sayfaSiniriniKestir() ile kabaca bulunan SAYFA sınırına göre
+   * konumlandırılıyor — "kağıt kadrajı tam dolduruyor" varsayımı, kenarlarda
+   * boşluk bırakılarak (önerilen/doğru) çekilen fotoğraflarda köşe arama
+   * pencerelerinin gerçek köşeye hiç ulaşmamasına yol açıyordu (gözlemlenen:
+   * bir köşe onlarca mm yanlış konumda bulunuyordu).
    */
   function sayfaKoseleriniAra(imageData, hassasiyet) {
     const { width, height } = imageData;
-    const ORAN = 0.4; // her köşe arama penceresi, kısa kenarın bu kadarı
+    const sinir = sayfaSiniriniKestir(imageData);
+    const sGenislik = sinir.sag - sinir.sol;
+    const sYukseklik = sinir.alt - sinir.ust;
+    const ORAN = 0.4; // her köşe arama penceresi, sayfa sınırının bu kadarı
 
-    const pencereX = width * ORAN;
-    const pencereY = height * ORAN;
+    const pencereX = sGenislik * ORAN;
+    const pencereY = sYukseklik * ORAN;
 
     function koseBul(x0, y0, x1, y1, disKoseX, disKoseY, ustMu, solMu) {
       // 1) Önce çizgi tabanlı yöntemi dene (çerçeveli formlarda çok daha
       //    kararlı) — başarısız olursa (eski/çizgisiz form, ya da düz
       //    çizgi bulunamadı) eski blob yöntemine düş.
       const cizgiSonuc = kenarCizgisiIleKoseBul(imageData, x0, y0, x1, y1, ustMu, solMu);
-      if (cizgiSonuc) return cizgiSonuc;
+      if (cizgiSonuc) {
+        const DAR_PENCERE = Math.max(20, (x1 - x0) * 0.15);
+        const inceSonuc = enBuyukKareBlobuBul(
+          imageData,
+          cizgiSonuc.x - DAR_PENCERE, cizgiSonuc.y - DAR_PENCERE,
+          cizgiSonuc.x + DAR_PENCERE, cizgiSonuc.y + DAR_PENCERE,
+          disKoseX, disKoseY, hassasiyet
+        );
+        if (inceSonuc) return inceSonuc;
+        return cizgiSonuc;
+      }
       return enBuyukKareBlobuBul(imageData, x0, y0, x1, y1, disKoseX, disKoseY, hassasiyet);
     }
 
-    const solUst = koseBul(0, 0, pencereX, pencereY, 0, 0, true, true);
-    const sagUst = koseBul(width - pencereX, 0, width, pencereY, width, 0, true, false);
-    const solAlt = koseBul(0, height - pencereY, pencereX, height, 0, height, false, true);
-    const sagAlt = koseBul(width - pencereX, height - pencereY, width, height, width, height, false, false);
+    const solUst = koseBul(sinir.sol, sinir.ust, sinir.sol + pencereX, sinir.ust + pencereY, sinir.sol, sinir.ust, true, true);
+    const sagUst = koseBul(sinir.sag - pencereX, sinir.ust, sinir.sag, sinir.ust + pencereY, sinir.sag, sinir.ust, true, false);
+    const solAlt = koseBul(sinir.sol, sinir.alt - pencereY, sinir.sol + pencereX, sinir.alt, sinir.sol, sinir.alt, false, true);
+    const sagAlt = koseBul(sinir.sag - pencereX, sinir.alt - pencereY, sinir.sag, sinir.alt, sinir.sag, sinir.alt, false, false);
 
     return { solUst, sagUst, solAlt, sagAlt };
   }
