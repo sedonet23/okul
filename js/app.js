@@ -1628,6 +1628,28 @@ async function yedekVerisiOlustur(){
   try{ mevzuat = typeof mevzuatTumVeriyiOku === 'function' ? await mevzuatTumVeriyiOku() : undefined; }
   catch(e){ console.warn('Mevzuat verisi yedeğe eklenemedi:', e.message); }
 
+  // YENİ: Optik Okuma modülü (sınav tanımları, taranan kağıt sonuçları,
+  // cevap anahtarları, puan referansları) Firestore'da DEĞİL, localStorage'da
+  // tutuluyor (bkz. optik/js/app.js: DB._oku/_yaz, anahtar önekleri 'oy_op_').
+  // Aynı origin altında (sadece farklı bir yol) çalıştığı için bu sayfadan
+  // doğrudan erişilebiliyor — ayrı bir iframe mesajlaşmasına gerek yok.
+  // Önek eşleşmesiyle TÜM oy_op_ anahtarlarını (bugün var olanlar + ileride
+  // eklenecek yeni anahtar türleri) otomatik yakalıyoruz, tek tek isim
+  // saymak yerine — böylece optik/js/app.js'e yeni bir veri türü eklendiğinde
+  // burada unutulmaz.
+  const optikVerileri = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const anahtar = localStorage.key(i);
+      if (anahtar && anahtar.startsWith('oy_op_')) {
+        try { optikVerileri[anahtar] = JSON.parse(localStorage.getItem(anahtar)); }
+        catch (e) { console.warn('Optik veri okunamadı, atlandı:', anahtar, e.message); }
+      }
+    }
+  } catch (e) {
+    console.warn('Optik okuma verileri yedeğe eklenemedi:', e.message);
+  }
+
   return {
     tarih: new Date().toISOString(), ogretmenler, dersProgrami, hatirlaticilar, gorevler, evrakTakibi, notlar,
     nobetYerleri, nobetAtamalari, nobetciAmirleri, resmiTatiller, periyodikIsler,
@@ -1643,7 +1665,8 @@ async function yedekVerisiOlustur(){
     digerEvrak: typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [],
     sinavlar, denemeSinavlari,
     personel: typeof personelListesi !== 'undefined' ? personelListesi : [],
-    mevzuat: mevzuat || undefined
+    mevzuat: mevzuat || undefined,
+    optikVerileri
   };
 }
 async function tumVerileriYedekle(){
@@ -1870,6 +1893,44 @@ async function yedektenGeriYukle(file){
       ilerlemeGuncelle('Mevzuat verileri geri yükleniyor…');
       try{ await mevzuatYedektenYukle(data.mevzuat); }
       catch(e){ console.warn('Mevzuat geri yüklenemedi:', e.message); }
+    }
+    // YENİ: Optik Okuma verilerini (sınavlar, taranan kağıt sonuçları,
+    // cevap anahtarları, puan referansları) localStorage'a geri yükle.
+    // Firestore'daki gibi 'id' alanına göre BİRLEŞTİRME yapıyoruz (yedekteki
+    // kayıt varsa üzerine yazar, sadece YEREL'de olan bir kayıt yedekte
+    // yoksa SİLİNMEZ) — 'oy_op_sonuc_*' ve 'oy_op_sinavlar' gibi anahtarlar
+    // id'li kayıt DİZİLERİ tutuyor; 'oy_op_anahtar_*'/'oy_op_puanref_*' gibi
+    // tekil ayar nesneleri ise doğrudan (alan bazlı birleştirilerek) yazılır.
+    let optikKayitSayisi = 0;
+    if(data.optikVerileri && typeof data.optikVerileri === 'object'){
+      ilerlemeGuncelle('Optik okuma verileri geri yükleniyor…');
+      for(const [anahtar, yedekDeger] of Object.entries(data.optikVerileri)){
+        if(yedekDeger === undefined) continue;
+        try{
+          if(Array.isArray(yedekDeger)){
+            let mevcutDizi = [];
+            try{ mevcutDizi = JSON.parse(localStorage.getItem(anahtar) || '[]'); }catch(e){ mevcutDizi = []; }
+            if(!Array.isArray(mevcutDizi)) mevcutDizi = [];
+            const birlesikHarita = new Map(mevcutDizi.map(o => [o && o.id, o]));
+            for(const oge of yedekDeger){
+              if(oge && oge.id !== undefined){ birlesikHarita.set(oge.id, oge); optikKayitSayisi++; }
+            }
+            localStorage.setItem(anahtar, JSON.stringify(Array.from(birlesikHarita.values())));
+          } else if(yedekDeger && typeof yedekDeger === 'object'){
+            let mevcutNesne = {};
+            try{ mevcutNesne = JSON.parse(localStorage.getItem(anahtar) || '{}'); }catch(e){ mevcutNesne = {}; }
+            if(!mevcutNesne || typeof mevcutNesne !== 'object') mevcutNesne = {};
+            localStorage.setItem(anahtar, JSON.stringify({ ...mevcutNesne, ...yedekDeger }));
+            optikKayitSayisi++;
+          } else {
+            localStorage.setItem(anahtar, JSON.stringify(yedekDeger));
+            optikKayitSayisi++;
+          }
+        }catch(e){
+          console.warn('Optik veri geri yüklenemedi, atlandı:', anahtar, e.message);
+        }
+      }
+      toplamKayit += optikKayitSayisi;
     }
     const yedekDosyaEl = document.getElementById('yedekDosya');
     if(yedekDosyaEl) yedekDosyaEl.value = '';
