@@ -1844,7 +1844,11 @@ window.OmrOkuyucu = (function () {
    * arasındaki fark en az MIN_FARK olmalı; yoksa belirsiz sayılır.
    */
   function _basamakEnKoyusu(cImageData, bubbles, ppmm) {
-    const MIN_FARK = 0.04; // çok düşük tutuldu: dijital formlar için yeterli
+    // YENİ: 0.04 -> 0.02. Marjinal kontrastlı fotoğraflarda (bkz. Koyuluk
+    // özeti — genel maksimum bile 0.28 eşiğinin altında kalabiliyor) doğru
+    // basamak ile ikincisi arasındaki fark 0.04'ü aşamayıp "belirsiz/0"
+    // yazılıyordu (gözlemlenen: "103" -> "3", ilk iki hane boş sayıldı).
+    const MIN_FARK = 0.02;
     const sonuclar = bubbles.map(function(b) {
       const px = b.cx * ppmm;
       const py = b.cy * ppmm;
