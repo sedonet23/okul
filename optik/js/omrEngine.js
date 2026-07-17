@@ -2075,6 +2075,18 @@ window.OmrOkuyucu = (function () {
     const ppmm = secenekler.ppmm || VARSAYILAN_PPMM;
     const uyarilar = [];
 
+    // YENİ (kritik): cv.js henüz yüklenme sürecindeyse BEKLE, sessizce eski
+    // yönteme kayma. Önceden burada bir bekleme yoktu — aynı fotoğraf,
+    // uygulama yeni açıldığında (cv henüz hazır değil, eski yöntem) ve
+    // birkaç dakika sonra (cv hazır, yeni CV yöntemi) FARKLI sonuçlar
+    // veriyordu, çünkü hangi yöntemin çalıştığı saf ŞANSA/zamanlamaya
+    // bağlıydı. Burada beklemek, her okumanın AYNI (ve en güvenilir)
+    // yöntemi kullanmasını garanti eder — tutarlılık, hız kaybından
+    // (birkaç saniye, sadece cv henüz yüklenmediyse) daha değerli.
+    if (typeof window.SayfaTespitCV !== 'undefined') {
+      await window.SayfaTespitCV.cvHazirBekle();
+    }
+
     const { imageData: fotoImageData } = kaynaktanImageDataAl(kaynak);
 
     const { H, bulunamayanIsaretler, disariBirakilanIsaretler, hizalamaKanonikNoktalari, hamBulunanKanonikNoktalari, koseArtiklariMM, secilenYontem, bulunanPikselNoktalari, pikselPerMM } =
