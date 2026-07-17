@@ -206,7 +206,12 @@ window.OmrOkuyucu = (function () {
     // benzeri bir kontrast artışı sağlar. Kullanıcı gözlemi: en koyu bulunan
     // işaret bile eşiğe (0.28) çok yakın ama altında kalıyordu (0.246) —
     // bu, doğrusal gerdirmenin tek başına yetersiz kaldığının kanıtı.
-    const GAMA = 1.8; // >1 = orta tonları karart (kontrastı artır) — <1 yanlış yönde parlatırdı, düzeltildi
+    // NOT: 1.8 denendi — cevaplariCikar'daki mutlak eşiği (KARANLIK_ESIK)
+    // geçmeye yardımcı oldu ama numaraOku'nun KULLANDIĞI göreli fark
+    // (MIN_FARK) koyu tonlar arasında sıkıştığı için basamak okumasını
+    // bozdu (aynı fotoğrafta numara önce doğru okunurken 1.8 ile
+    // okunamaz oldu). 1.35'e düşürüldü — daha ölçülü, ikisini de gözetir.
+    const GAMA = 1.35;
     const aralik = beyazNokta - siyahNokta;
     for (let i = 0; i < data.length; i += 4) {
       for (let kanal = 0; kanal < 3; kanal++) {
