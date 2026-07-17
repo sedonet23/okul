@@ -2209,6 +2209,7 @@ window.OmrOkuyucu = (function () {
     if (_sonKoyulukOzeti) {
       uyarilar.push('Koyuluk özeti: ' + _sonKoyulukOzeti);
     }
+    uyarilar.push('[KOD SÜRÜMÜ: v18-minfark002]');
 
     return {
       basarili: true,
@@ -2338,6 +2339,7 @@ window.OmrOkuyucu = (function () {
     if (_sonKoyulukOzeti) {
       uyarilar.push("Koyuluk özeti: " + _sonKoyulukOzeti);
     }
+    uyarilar.push("[KOD SÜRÜMÜ: v18-minfark002]");
 
     return {
       basarili: true,
