@@ -139,9 +139,13 @@ window.OmrOkuyucu = (function () {
     const minKanal = Math.min(r, g, b);
     const doygunluk = maxKanal > 0 ? (maxKanal - minKanal) / maxKanal : 0;
 
-    // doygunluk arttıkça (renklilik) puanı hızla düşür; renksiz (siyah/gri)
-    // piksellerde çarpan ~1'de kalır.
-    const renksizlikCarpani = Math.max(0, 1 - doygunluk * 2.5);
+    // YENİ: çarpan 2.5 -> 1.2 yumuşatıldı. Gerçek fotoğraflarda (JPEG
+    // sıkıştırma, beyaz dengesi, ışık) siyah kalem izi bile hiçbir zaman
+    // %0 doygunlukta çıkmıyor — 2.5'lik agresif ceza, gözlemlenen "her
+    // soru tekdüze düşük guven (0.07-0.14), gerçek işaretli baloncuk bile
+    // ayırt edilemiyor" sorununun kaynağı olabilir: hafif renk sapması
+    // olan gerçek işaretleri de baskının pembesiyle birlikte eziyordu.
+    const renksizlikCarpani = Math.max(0, 1 - doygunluk * 1.2);
 
     return koyuluk * renksizlikCarpani;
   }
