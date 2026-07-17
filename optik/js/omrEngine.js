@@ -83,6 +83,7 @@ window.OmrOkuyucu = (function () {
   let _sonHTestSonucu = null;
   let _sonHKatsayilari = null;
   let _sonKoyulukOzeti = null;
+  let _sonNumaraTeshis = null;
 
   // ---------------------------------------------------------------------
   // 1) Genel yardımcılar: görüntü <-> ImageData
@@ -1820,12 +1821,20 @@ window.OmrOkuyucu = (function () {
     if (!numaraAlani || !numaraAlani.basamaklar) return null;
     let numara = '';
     let tamOkunduMu = true;
+    const basamakTeshis = [];
     for (const basamak of numaraAlani.basamaklar) {
       // Numara alanı için eşiksiz mod: her basamakta en koyu baloncuğu
       // her zaman seç. Eşik kontrolü (KARANLIK_ESIK) atlanır çünkü
       // dijital PDF'den üretilen formlarda baskı/tarama farkından dolayı
       // güven değerleri düşük kalabilir; ama yine de en koyu = işaretli.
       const sonuc = _basamakEnKoyusu(cImageData, basamak.bubbles, ppmm);
+      // YENİ (teşhis): her hane için en koyu 2 adayı ve aralarındaki farkı
+      // kaydet — "hangi hane neden belirsiz kaldı" artık görünür.
+      basamakTeshis.push(
+        'hane' + basamak.index + ':[' +
+        sonuc.detay.slice(0, 3).map((d) => d.deger + '=' + d.oran.toFixed(3)).join(',') +
+        ']->' + (sonuc.deger === null ? 'BELİRSİZ' : sonuc.deger)
+      );
       if (sonuc.deger === null) {
         // Belirsiz basamak: boş (işaretsiz) kabul et, '0' yaz.
         // Böylece "??19" yerine "0019" üretilir → parseInt → 19.
@@ -1835,6 +1844,7 @@ window.OmrOkuyucu = (function () {
         numara += String(sonuc.deger);
       }
     }
+    _sonNumaraTeshis = basamakTeshis.join(' | ');
     return { numara, tamOkunduMu };
   }
 
@@ -1853,17 +1863,22 @@ window.OmrOkuyucu = (function () {
       const px = b.cx * ppmm;
       const py = b.cy * ppmm;
       const pr = b.r * ppmm;
-      const s = baloncukKaranlikOraniYerelArama(cImageData, px, py, pr, 0.5, 0.15);
+      // YENİ: 0.5 -> 1.3 (cevap baloncukları için genişletilen değerle
+      // TUTARLI hale getirildi). Bu fonksiyon kendi sabit (ve çok dar) bir
+      // pencere kullanıyordu — cevaplariCikar'daki genişletmeden hiç
+      // etkilenmiyordu, bu yüzden numara okuma hâlâ küçük bir homografi
+      // sapmasında bile yanlış/komşu baloncuğu buluyordu.
+      const s = baloncukKaranlikOraniYerelArama(cImageData, px, py, pr, 1.3, 0.12);
       return { deger: b.deger !== undefined ? b.deger : b.harf, oran: s.oran };
     });
     sonuclar.sort(function(a, b) { return b.oran - a.oran; });
     const birinci = sonuclar[0];
     const ikinci = sonuclar[1];
     // İkinci yoksa (tek baloncuk) veya fark yeterliyse seç
-    if (!birinci) return { deger: null, guven: 0 };
+    if (!birinci) return { deger: null, guven: 0, detay: sonuclar };
     const fark = ikinci ? (birinci.oran - ikinci.oran) : 1;
-    if (fark < MIN_FARK) return { deger: null, guven: birinci.oran };
-    return { deger: birinci.deger, guven: birinci.oran };
+    if (fark < MIN_FARK) return { deger: null, guven: birinci.oran, detay: sonuclar };
+    return { deger: birinci.deger, guven: birinci.oran, detay: sonuclar };
   }
 
   /** Basit çapraz çarpım işareti — 3 noktanın döndüğü yönü (saat/saat-yönü-tersi) verir. */
@@ -2209,7 +2224,8 @@ window.OmrOkuyucu = (function () {
     if (_sonKoyulukOzeti) {
       uyarilar.push('Koyuluk özeti: ' + _sonKoyulukOzeti);
     }
-    uyarilar.push('[KOD SÜRÜMÜ: v18-minfark002]');
+    uyarilar.push('[KOD SÜRÜMÜ: v19-numaraTeshis]');
+    if (_sonNumaraTeshis) { uyarilar.push('Numara teşhisi: ' + _sonNumaraTeshis); }
 
     return {
       basarili: true,
@@ -2339,7 +2355,8 @@ window.OmrOkuyucu = (function () {
     if (_sonKoyulukOzeti) {
       uyarilar.push("Koyuluk özeti: " + _sonKoyulukOzeti);
     }
-    uyarilar.push("[KOD SÜRÜMÜ: v18-minfark002]");
+    uyarilar.push("[KOD SÜRÜMÜ: v19-numaraTeshis]");
+    if (_sonNumaraTeshis) { uyarilar.push("Numara teşhisi: " + _sonNumaraTeshis); }
 
     return {
       basarili: true,
