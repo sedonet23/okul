@@ -61,6 +61,12 @@ export function cvHazirMi() {
   return _cvHazir;
 }
 
+// omrEngine.js (klasik <script>, ES module değil) bu fonksiyonlara erişebilsin
+// diye window'a da asılıyor — nihai okuma artık canlı önizlemedeki AYNI
+// güvenilir tam-çerçeve kontur yöntemini kullanabiliyor (bkz. omrEngine.js:
+// formuOtomatikDuzlestir).
+window.SayfaTespitCV = { sayfaKoseleriniAraCV, cvHazirBekle, cvHazirMi };
+
 /**
  * 4 noktayı (herhangi bir sırada gelebilir) solUst/sagUst/sagAlt/solAlt
  * olarak sıralar. Standart "sum/diff" yöntemi:

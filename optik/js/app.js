@@ -3,6 +3,16 @@
 import { baglaGaleriSecici } from './galeriSecici.js';
 import { ayarlariGetir, ayarlariKaydet, ayarlariSifirla, VARSAYILAN as HASSASIYET_VARSAYILAN } from './hassasiyetAyarlari.js';
 
+// YENİ: sayfaTespitCV.js'i (ve dolayısıyla OpenCV.js'i) burada, uygulama
+// açılır açılmaz erkenden yüklemeye başlıyoruz (fire-and-forget) — önceden
+// SADECE kamera ekranı açıldığında (camera.js dinamik import'u üzerinden)
+// yükleniyordu. Galeriden içe aktarma akışı kamerayı hiç açmadığı için,
+// omrEngine.js:sayfaKoseleriniAraHibrit galeri okumalarında window.SayfaTespitCV'i
+// hiç bulamayıp sessizce eski (daha az güvenilir) köşe bulma yöntemine
+// düşüyordu. Burada erkenden tetiklemek, kamera açılana/gerekene kadar
+// arka planda hazır olmasını sağlar.
+import('./sayfaTespitCV.js').then((mod) => mod.cvHazirBekle()).catch(() => {});
+
 // ════════════════════════════════════════════════════════════════
 // VERİ KATMANI (localStorage)
 // ════════════════════════════════════════════════════════════════

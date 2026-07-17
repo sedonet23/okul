@@ -1875,8 +1875,59 @@ window.OmrOkuyucu = (function () {
    * bootstrap'i yerine doğrudan bulunan köşeler arasındaki mesafeden
    * fotoğraf ölçeği (piksel/mm) kestiriliyor.
    */
+  /**
+   * YENİ: Canlı önizlemede güvenilir çalıştığı defalarca doğrulanan CV
+   * (OpenCV.js, tam çerçeve kontur) yöntemini nihai okumada da kullanır.
+   * Eski sayfaKoseleriniAra() (4 ayrı köşe penceresi) sayfa altında boş
+   * alan olduğunda cevap ızgarasının bittiği yere kilitlenip GERÇEK sayfa
+   * köşesini kaçırabiliyordu (gözlemlenen: bulunan dörtgen A4 oranına
+   * hiç uymuyordu). Tam çerçeve konturu bu sorunu yaşamaz — sayfanın
+   * TAMAMININ en büyük dörtgenini bulur, alt boşluk onu etkilemez.
+   * CV bulduğu noktalar ÇERÇEVE ÇİZGİSİNİN köşesidir (hizalama karesinin
+   * merkezi DEĞİL — aradaki ~7mm için bkz. sayfaKoseleriniAra) — bu yüzden
+   * her köşe, etrafında küçük bir pencerede enBuyukKareBlobuBul ile
+   * GERÇEK kareye inceltiliyor (aynı "tohum + inceltme" deseni).
+   * cv.js yüklenmediyse/başarısız olursa eski yönteme sessizce düşülür.
+   */
+  function sayfaKoseleriniAraHibrit(fotoImageData, hassasiyet) {
+    if (typeof window.SayfaTespitCV === 'undefined' || !window.SayfaTespitCV.cvHazirMi()) {
+      return sayfaKoseleriniAra(fotoImageData, hassasiyet);
+    }
+    try {
+      const cerceve = window.SayfaTespitCV.sayfaKoseleriniAraCV(fotoImageData, null, null);
+      if (!cerceve || !cerceve.solUst || !cerceve.sagUst || !cerceve.solAlt || !cerceve.sagAlt) {
+        return sayfaKoseleriniAra(fotoImageData, hassasiyet);
+      }
+      // Kaba ölçek: üst kenar uzunluğu ~ (210mm - 2*CERCEVE_PAY) kabul edilip
+      // px/mm kestiriliyor — sadece inceltme penceresini boyutlandırmak için.
+      const ustGenislikPx = Math.hypot(cerceve.sagUst.x - cerceve.solUst.x, cerceve.sagUst.y - cerceve.solUst.y);
+      const pxPerMmTahmini = ustGenislikPx / 202; // 210mm - 2*4mm çerçeve payı
+      const INCELTME_YARICAP = Math.max(25, 16 * pxPerMmTahmini); // ~16mm
+
+      function inceltVeDon(nokta, disKoseX, disKoseY) {
+        const ince = enBuyukKareBlobuBul(
+          fotoImageData,
+          nokta.x - INCELTME_YARICAP, nokta.y - INCELTME_YARICAP,
+          nokta.x + INCELTME_YARICAP, nokta.y + INCELTME_YARICAP,
+          disKoseX, disKoseY, hassasiyet
+        );
+        return ince || nokta; // bulunamazsa çerçeve köşesini (kabaca) kullan
+      }
+
+      return {
+        solUst: inceltVeDon(cerceve.solUst, cerceve.solUst.x, cerceve.solUst.y),
+        sagUst: inceltVeDon(cerceve.sagUst, cerceve.sagUst.x, cerceve.sagUst.y),
+        solAlt: inceltVeDon(cerceve.solAlt, cerceve.solAlt.x, cerceve.solAlt.y),
+        sagAlt: inceltVeDon(cerceve.sagAlt, cerceve.sagAlt.x, cerceve.sagAlt.y),
+      };
+    } catch (e) {
+      console.error('[OMR] CV köşe tespiti hata verdi, eski yönteme düşülüyor:', e);
+      return sayfaKoseleriniAra(fotoImageData, hassasiyet);
+    }
+  }
+
   function formuOtomatikDuzlestir(fotoImageData, form, ppmm) {
-    const bulunanlar = sayfaKoseleriniAra(fotoImageData);
+    const bulunanlar = sayfaKoseleriniAraHibrit(fotoImageData);
     const konumEslesme = {
       'sol-ust': bulunanlar.solUst,
       'sag-ust': bulunanlar.sagUst,
