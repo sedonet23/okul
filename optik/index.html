@@ -8,6 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/optik.css">
 <script src="js/jsqr.min.js"></script>
+<!-- OpenCV.js (WASM) — sayfaTespitCV.js'in kullandığı global `cv` nesnesini
+     yükler. BU DOSYA ARŞİVE DAHİL DEĞİL (~8MB) — js/opencv.js yoluna SİZİN
+     eklemeniz gerekiyor (bkz. https://docs.opencv.org/4.x/d5/d10/tutorial_js_root.html
+     "opencv.js" WASM build). Diğer <script> etiketleriyle aynı sırada,
+     camera.js'ten (dinamik import ile app.js üzerinden yükleniyor) önce
+     bulunması yeterli — cvHazirBekle() zaten hazır olana kadar bekliyor. -->
+<script src="js/opencv.js"></script>
 <script src="js/layoutEngine.js"></script>
 <script src="js/omrEngine.js"></script>
 <script src="js/koseSecici.js"></script>
