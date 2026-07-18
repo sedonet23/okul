@@ -11,6 +11,14 @@
      ya artı/eksi (boş → + → − → boş) ya da sayısal puan (inline input)
    - Görünürlük: sadece oluşturan öğretmen + admin (bkz. service katmanı)
 
+   TASLAK + KAYDET MODELİ: Detay ekranı açılınca kayıt bir TASLAK olarak
+   yerel hafızaya kopyalanır (_oncTaslak). Hücre tıklama, sütun/öğrenci
+   ekleme-çıkarma SADECE taslağı değiştirir, Firestore'a hiçbir şey
+   yazılmaz — ekran her değişiklikte taslaktan yeniden çizilir. Sadece
+   "💾 Kaydet" butonuna basılınca taslağın TAMAMI tek seferde Firestore'a
+   yazılır. Kaydedilmemiş değişiklik varken kapatılırsa onay istenir ve
+   kaydedilmezse değişiklikler sessizce atılır.
+
    Veri katmanı: OdevNotCizelgeleriRepository / OdevNotCizelgeleriService
    (bkz. js/core/repositories, js/core/services)
    ================================================================ */
@@ -19,12 +27,14 @@ let odevTakipListesi = [];
 let notCizelgesiListesi = [];
 
 const ONC_BASLIK = { odevTakip: 'Ödev Takip Çizelgesi', notCizelgesi: 'Not Çizelgesi' };
+const ONC_KENARLIK = '1px solid #ccc'; // tüm hücrelerde ortak kenarlık
 
 function _oncListesi(tip){ return tip === 'odevTakip' ? odevTakipListesi : notCizelgesiListesi; }
 function _oncSinifAdi(sinifId){
   const sn = (typeof siniflar !== 'undefined' ? siniflar : []).find(s => s.id === sinifId);
   return sn ? `${sn.ad}${sn.sube ? '-' + sn.sube : ''}` : '—';
 }
+function _oncDerinKopya(o){ return JSON.parse(JSON.stringify(o || {})); }
 
 /* ---------------------------------------------------------------
    LİSTE GÖRÜNÜMÜ — kart grid + "Yeni Çizelge" butonu
@@ -41,7 +51,7 @@ function renderOncListesi(tip){
           <div style="font-weight:700;font-size:15px;">${escapeHtml(k.ad || '(isimsiz)')}</div>
           <div style="font-size:12px;opacity:.7;">${escapeHtml(_oncSinifAdi(k.sinifId))} · ${(k.ogrenciler||[]).length} öğrenci · ${(k.sutunlar||[]).length} sütun</div>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="oncSil('${tip}','${k.id}')" title="Sil">🗑️</button>
+        <button class="btn btn-ghost btn-sm" onclick="oncSil('${tip}','${k.id}')" title="Çizelgeyi sil">🗑️</button>
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-primary btn-sm" style="flex:1;" onclick="oncDetayAc('${tip}','${k.id}')">Aç</button>
@@ -104,12 +114,11 @@ async function oncOlustur(tip){
   if(!ad){ toast('Çizelgeye bir isim verin.'); return; }
   if(!sinifId){ toast('Bir sınıf seçin.'); return; }
 
-  // Sınıf listesinden öğrencileri otomatik çek (veliler → ogrenciAdi, sinifId eşleşenler)
   const otomatikOgrenciler = (typeof veliler !== 'undefined' ? veliler : [])
     .filter(v => v.sinifId === sinifId)
     .map(v => ({ id: 'o_' + v.id, ad: v.ogrenciAdi || '(isimsiz)' }));
 
-  const veri = { ad, sinifId, ogrenciler: otomatikOgrenciler, sutunlar: [] };
+  const veri = { ad, sinifId, ogrenciler: otomatikOgrenciler, sutunlar: [], hucreler: {} };
   if(tip === 'notCizelgesi'){
     veri.hucreModu = document.getElementById('oncHucreModu').value || 'artiEksi';
   }
@@ -134,27 +143,39 @@ function oncSil(tip, id){
 }
 
 /* ---------------------------------------------------------------
-   DETAY (TABLO) GÖRÜNÜMÜ
+   DETAY (TABLO) GÖRÜNÜMÜ — taslak + kaydet modeli
    --------------------------------------------------------------- */
 let _oncAcikTip = null;
 let _oncAcikId = null;
+let _oncTaslak = null;
+let _oncKirliMi = false;
 
 function oncDetayAc(tip, id){
+  const kaynakKayit = _oncListesi(tip).find(k => k.id === id);
+  if(!kaynakKayit){ toast('Çizelge bulunamadı.'); return; }
+
   _oncAcikTip = tip; _oncAcikId = id;
+  _oncTaslak = _oncDerinKopya(kaynakKayit);
+  _oncKirliMi = false;
+
   const overlayEski = document.getElementById('oncDetayOverlay'); if(overlayEski) overlayEski.remove();
 
   const ov = document.createElement('div');
   ov.id = 'oncDetayOverlay';
   ov.style.cssText = 'position:fixed;inset:0;z-index:9998;background:var(--bg,#f4f5f7);display:flex;flex-direction:column;';
   ov.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;padding:10px 14px;flex-wrap:wrap;">
-      <span id="oncDetayBaslik" style="font-weight:700;font-size:14px;"></span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:10px 14px;flex-wrap:wrap;">
+      <span id="oncDetayBaslik" style="font-weight:700;font-size:14px;color:#fff;"></span>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-ghost btn-sm" style="color:#fff;" onclick="oncSutunEkleModalAc()">+ Sütun</button>
-        <button class="btn btn-ghost btn-sm" style="color:#fff;" onclick="oncOgrenciEkleModalAc()">+ Öğrenci</button>
-        <button class="btn btn-ghost btn-sm" style="color:#fff;" onclick="oncPdfIndir('${tip}','${id}')">🖨️ PDF</button>
-        <button class="btn btn-ghost btn-sm" style="color:#fff;" onclick="oncDetayKapat()">✕ Kapat</button>
+        <button style="${_oncButonStil('#fff','#1b5e20')}" onclick="oncSutunEkleModalAc()">+ Sütun</button>
+        <button style="${_oncButonStil('#fff','#1b5e20')}" onclick="oncOgrenciEkleModalAc()">+ Öğrenci</button>
+        <button id="oncKaydetBtn" style="${_oncButonStil('#fff','#e65100')}" onclick="oncKaydet()">💾 Kaydet</button>
+        <button style="${_oncButonStil('#fff','#1b5e20')}" onclick="oncPdfIndir('${tip}','${id}')">🖨️ PDF</button>
+        <button style="${_oncButonStil('#fff','#c62828')}" onclick="oncDetayKapatIste()">✕ Kapat</button>
       </div>
+    </div>
+    <div id="oncKirliUyari" style="display:none;background:#fff3cd;color:#7a5b00;padding:6px 14px;font-size:12.5px;font-weight:600;">
+      ⚠️ Kaydedilmemiş değişiklikleriniz var — kapatmadan önce "💾 Kaydet"e basın.
     </div>
     <div style="flex:1;overflow:auto;padding:14px;">
       <div id="oncDetayTablo"></div>
@@ -164,23 +185,38 @@ function oncDetayAc(tip, id){
   _oncDetayRender();
 }
 
+function _oncButonStil(yaziRengi, zeminRengi){
+  return `background:${zeminRengi};color:${yaziRengi};border:1px solid rgba(255,255,255,.5);border-radius:7px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;`;
+}
+
+function oncDetayKapatIste(){
+  if(!_oncKirliMi){ oncDetayKapat(); return; }
+  uygulamaOnayAl('Kaydedilmemiş değişiklikleriniz var. Kaydetmeden kapatırsanız bu değişiklikler kaybolacak. Yine de kapatılsın mı?').then(onay => {
+    if(onay) oncDetayKapat();
+  });
+}
+
 function oncDetayKapat(){
   const ov = document.getElementById('oncDetayOverlay'); if(ov) ov.remove();
-  _oncAcikTip = null; _oncAcikId = null;
+  _oncAcikTip = null; _oncAcikId = null; _oncTaslak = null; _oncKirliMi = false;
 }
 
-function _oncGecerliKayit(){
-  if(!_oncAcikTip || !_oncAcikId) return null;
-  return _oncListesi(_oncAcikTip).find(k => k.id === _oncAcikId) || null;
+function _oncKirliIsaretle(){
+  _oncKirliMi = true;
+  const uyari = document.getElementById('oncKirliUyari');
+  if(uyari) uyari.style.display = 'block';
 }
 
-/** Firestore onSnapshot her güncellemede bunu çağırır — açık detay ekranı canlı güncellensin diye. */
 function oncDetayCanliGuncelle(){
-  if(document.getElementById('oncDetayOverlay')) _oncDetayRender();
+  if(!document.getElementById('oncDetayOverlay')) return;
+  if(_oncKirliMi) return;
+  const guncelKayit = _oncListesi(_oncAcikTip).find(k => k.id === _oncAcikId);
+  if(guncelKayit) _oncTaslak = _oncDerinKopya(guncelKayit);
+  _oncDetayRender();
 }
 
 function _oncDetayRender(){
-  const kayit = _oncGecerliKayit();
+  const kayit = _oncTaslak;
   const baslikEl = document.getElementById('oncDetayBaslik');
   const tabloEl = document.getElementById('oncDetayTablo');
   if(!kayit || !tabloEl) return;
@@ -188,37 +224,52 @@ function _oncDetayRender(){
   tabloEl.innerHTML = _oncTabloHtmlUret(_oncAcikTip, kayit, true);
 }
 
-/**
- * Tabloyu üretir. etkilesimliMi=true ise hücreler tıklanabilir (canlı ekran);
- * false ise sadece görüntü (PDF export için statik HTML).
- */
+async function oncKaydet(){
+  const kayit = _oncTaslak;
+  if(!kayit) return;
+  const btn = document.getElementById('oncKaydetBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Kaydediliyor…'; }
+  try{
+    await OdevNotCizelgeleriService.taslagiKaydet(_oncAcikTip, kayit);
+    _oncKirliMi = false;
+    const uyari = document.getElementById('oncKirliUyari');
+    if(uyari) uyari.style.display = 'none';
+    toast('Kaydedildi.');
+  }catch(e){
+    console.error(e);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '💾 Kaydet'; }
+  }
+}
+
 function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
   const sutunlar = kayit.sutunlar || [];
   const ogrenciler = kayit.ogrenciler || [];
   const hucreler = kayit.hucreler || {};
   const hucreModu = kayit.hucreModu || 'artiEksi';
+  const kb = `border:${ONC_KENARLIK};`;
 
   function hucreGoster(ogrenciId, sutunId){
     const anahtar = ogrenciId + '_' + sutunId;
     const deger = hucreler[anahtar];
     if(tip === 'odevTakip'){
       const sembol = deger === 'yapti' ? '✓' : (deger === 'yapmadi' ? '✗' : '');
-      const renk = deger === 'yapti' ? '#2e7d32' : (deger === 'yapmadi' ? '#c62828' : '#999');
+      const renk = deger === 'yapti' ? '#1b5e20' : (deger === 'yapmadi' ? '#b71c1c' : '#bbb');
+      const zemin = deger === 'yapti' ? '#e8f5e9' : (deger === 'yapmadi' ? '#ffebee' : '#fafafa');
       const tikla = etkilesimliMi ? `onclick="oncHucreTikla('${ogrenciId}','${sutunId}')"` : '';
-      return `<td ${tikla} style="text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};font-weight:700;font-size:16px;min-width:44px;">${sembol}</td>`;
+      return `<td ${tikla} style="${kb}text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};background:${zemin};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
     }
-    // notCizelgesi
     if(hucreModu === 'puan'){
       if(etkilesimliMi){
-        return `<td style="text-align:center;min-width:56px;"><input type="number" value="${deger !== undefined && deger !== null ? deger : ''}" style="width:48px;text-align:center;border:1px solid #ccc;border-radius:6px;padding:3px;" onchange="oncPuanGirildi('${ogrenciId}','${sutunId}', this.value)" /></td>`;
+        return `<td style="${kb}text-align:center;min-width:56px;background:#fafafa;"><input type="number" value="${deger !== undefined && deger !== null ? deger : ''}" style="width:48px;text-align:center;border:1px solid #bbb;border-radius:6px;padding:3px;" onchange="oncPuanGirildi('${ogrenciId}','${sutunId}', this.value)" /></td>`;
       }
-      return `<td style="text-align:center;min-width:44px;">${deger !== undefined && deger !== null ? deger : ''}</td>`;
+      return `<td style="${kb}text-align:center;min-width:44px;">${deger !== undefined && deger !== null ? deger : ''}</td>`;
     }
-    // artiEksi
     const sembol = deger === 'arti' ? '+' : (deger === 'eksi' ? '−' : '');
-    const renk = deger === 'arti' ? '#2e7d32' : (deger === 'eksi' ? '#c62828' : '#999');
+    const renk = deger === 'arti' ? '#1b5e20' : (deger === 'eksi' ? '#b71c1c' : '#bbb');
+    const zemin = deger === 'arti' ? '#e8f5e9' : (deger === 'eksi' ? '#ffebee' : '#fafafa');
     const tikla = etkilesimliMi ? `onclick="oncHucreTikla('${ogrenciId}','${sutunId}')"` : '';
-    return `<td ${tikla} style="text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};font-weight:700;font-size:16px;min-width:44px;">${sembol}</td>`;
+    return `<td ${tikla} style="${kb}text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};background:${zemin};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
   }
 
   function toplamGoster(ogrenciId){
@@ -238,30 +289,30 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
   }
 
   const sutunBaslikHtml = sutunlar.map(s => `
-    <th style="min-width:70px;padding:6px 4px;font-size:12px;">
+    <th style="${kb}min-width:70px;padding:6px 4px;font-size:12px;background:#eee;">
       ${escapeHtml(s.baslik)}${s.tarih ? `<div style="font-weight:400;opacity:.7;font-size:10.5px;">${_trTarih(s.tarih)}</div>` : ''}
-      ${etkilesimliMi ? `<div><button onclick="oncSutunSil('${s.id}')" style="border:none;background:none;color:#c62828;font-size:11px;cursor:pointer;">sil</button></div>` : ''}
+      ${etkilesimliMi ? `<button onclick="oncSutunSil('${s.id}')" title="Sütunu sil" style="border:none;background:none;color:#c62828;font-size:13px;cursor:pointer;padding:2px;">🗑️</button>` : ''}
     </th>
   `).join('');
 
   const satirlarHtml = ogrenciler.map(o => `
     <tr>
-      <td style="padding:6px 8px;font-size:13px;white-space:nowrap;">
+      <td style="${kb}padding:6px 8px;font-size:13px;white-space:nowrap;background:#fff;">
         ${escapeHtml(o.ad)}
-        ${etkilesimliMi ? `<button onclick="oncOgrenciSil('${o.id}')" style="border:none;background:none;color:#c62828;font-size:11px;cursor:pointer;margin-left:6px;">sil</button>` : ''}
+        ${etkilesimliMi ? `<button onclick="oncOgrenciSil('${o.id}')" title="Öğrenciyi sil" style="border:none;background:none;color:#c62828;font-size:13px;cursor:pointer;margin-left:6px;padding:2px;">🗑️</button>` : ''}
       </td>
       ${sutunlar.map(s => hucreGoster(o.id, s.id)).join('')}
-      <td style="text-align:center;font-weight:700;font-size:12px;">${toplamGoster(o.id)}</td>
+      <td style="${kb}text-align:center;font-weight:700;font-size:12px;background:#fff;">${toplamGoster(o.id)}</td>
     </tr>
   `).join('');
 
   return `
     <table style="border-collapse:collapse;width:100%;background:#fff;">
       <thead>
-        <tr style="border-bottom:2px solid #ddd;">
-          <th style="text-align:left;padding:6px 8px;">Öğrenci</th>
+        <tr>
+          <th style="${kb}text-align:left;padding:6px 8px;background:#eee;">Öğrenci</th>
           ${sutunBaslikHtml}
-          <th style="min-width:70px;">Toplam</th>
+          <th style="${kb}min-width:70px;background:#eee;">Toplam</th>
         </tr>
       </thead>
       <tbody>${satirlarHtml}</tbody>
@@ -270,27 +321,29 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
 }
 
 function oncHucreTikla(ogrenciId, sutunId){
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
+  const kayit = _oncTaslak; if(!kayit) return;
+  if(!kayit.hucreler) kayit.hucreler = {};
   const anahtar = ogrenciId + '_' + sutunId;
-  const mevcut = (kayit.hucreler || {})[anahtar];
+  const mevcut = kayit.hucreler[anahtar];
   let sonraki;
   if(_oncAcikTip === 'odevTakip'){
     sonraki = mevcut === 'yapti' ? 'yapmadi' : (mevcut === 'yapmadi' ? null : 'yapti');
   } else {
     sonraki = mevcut === 'arti' ? 'eksi' : (mevcut === 'eksi' ? null : 'arti');
   }
-  OdevNotCizelgeleriService.hucreGuncelle(_oncAcikTip, kayit, ogrenciId, sutunId, sonraki);
+  if(sonraki === null) delete kayit.hucreler[anahtar]; else kayit.hucreler[anahtar] = sonraki;
+  _oncKirliIsaretle();
+  _oncDetayRender();
 }
 
 function oncPuanGirildi(ogrenciId, sutunId, deger){
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
-  const sayi = deger === '' ? null : Number(deger);
-  OdevNotCizelgeleriService.hucreGuncelle(_oncAcikTip, kayit, ogrenciId, sutunId, sayi);
+  const kayit = _oncTaslak; if(!kayit) return;
+  if(!kayit.hucreler) kayit.hucreler = {};
+  const anahtar = ogrenciId + '_' + sutunId;
+  if(deger === ''){ delete kayit.hucreler[anahtar]; } else { kayit.hucreler[anahtar] = Number(deger); }
+  _oncKirliIsaretle();
 }
 
-/* ---------------------------------------------------------------
-   SÜTUN / ÖĞRENCİ EKLEME MODALLARI
-   --------------------------------------------------------------- */
 function oncSutunEkleModalAc(){
   const eski = document.getElementById('oncMiniModal'); if(eski) eski.remove();
   const modal = document.createElement('div');
@@ -315,14 +368,18 @@ function oncSutunEkleOnayla(){
   const baslik = (document.getElementById('oncSutunBaslik').value || '').trim();
   const tarih = document.getElementById('oncSutunTarih').value || null;
   if(!baslik){ toast('Sütun için bir başlık girin.'); return; }
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
-  OdevNotCizelgeleriService.sutunEkle(_oncAcikTip, kayit, baslik, tarih).then(() => {
-    document.getElementById('oncMiniModal').remove();
-  });
+  const kayit = _oncTaslak; if(!kayit) return;
+  if(!kayit.sutunlar) kayit.sutunlar = [];
+  kayit.sutunlar.push({ id: 's_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), baslik, tarih: tarih || null });
+  _oncKirliIsaretle();
+  document.getElementById('oncMiniModal').remove();
+  _oncDetayRender();
 }
 function oncSutunSil(sutunId){
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
-  OdevNotCizelgeleriService.sutunSil(_oncAcikTip, kayit, sutunId);
+  const kayit = _oncTaslak; if(!kayit) return;
+  kayit.sutunlar = (kayit.sutunlar || []).filter(s => s.id !== sutunId);
+  _oncKirliIsaretle();
+  _oncDetayRender();
 }
 
 function oncOgrenciEkleModalAc(){
@@ -346,19 +403,20 @@ function oncOgrenciEkleModalAc(){
 function oncOgrenciEkleOnayla(){
   const ad = (document.getElementById('oncOgrenciAd').value || '').trim();
   if(!ad){ toast('Öğrenci adı girin.'); return; }
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
-  OdevNotCizelgeleriService.ogrenciEkle(_oncAcikTip, kayit, ad).then(() => {
-    document.getElementById('oncMiniModal').remove();
-  });
+  const kayit = _oncTaslak; if(!kayit) return;
+  if(!kayit.ogrenciler) kayit.ogrenciler = [];
+  kayit.ogrenciler.push({ id: 'o_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ad });
+  _oncKirliIsaretle();
+  document.getElementById('oncMiniModal').remove();
+  _oncDetayRender();
 }
 function oncOgrenciSil(ogrenciId){
-  const kayit = _oncGecerliKayit(); if(!kayit) return;
-  OdevNotCizelgeleriService.ogrenciSil(_oncAcikTip, kayit, ogrenciId);
+  const kayit = _oncTaslak; if(!kayit) return;
+  kayit.ogrenciler = (kayit.ogrenciler || []).filter(o => o.id !== ogrenciId);
+  _oncKirliIsaretle();
+  _oncDetayRender();
 }
 
-/* ---------------------------------------------------------------
-   PDF / YAZDIRMA (mevcut _raporOverlayOlustur ile aynı desen)
-   --------------------------------------------------------------- */
 function oncPdfIndir(tip, id){
   const kayit = _oncListesi(tip).find(k => k.id === id);
   if(!kayit){ toast('Çizelge bulunamadı.'); return; }
@@ -381,9 +439,6 @@ function oncPdfIndir(tip, id){
   _raporOverlayOlustur(kayit.ad, html);
 }
 
-/* ---------------------------------------------------------------
-   FIRESTORE BAĞLANTILARI (sahiplik-filtreli dinleme)
-   --------------------------------------------------------------- */
 function odevNotCizelgeleriBaglantilariKur(){
   if(typeof AKTIF_KULLANICI === 'undefined' || !AKTIF_KULLANICI) return;
   const adminMi = AKTIF_KULLANICI.admin === true;
