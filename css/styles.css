@@ -255,6 +255,27 @@ input, select, textarea{ font-family: var(--font-body); }
 .card:hover{ box-shadow: var(--nm-lg); transform: translateY(-2px); }
 .card > h3{ font-size:15px; margin-bottom:14px; }
 
+/* ================= ÖDEV TAKİP / NOT ÇİZELGESİ (onc-*) ================= */
+/* YENİ: önceden bu tablo sabit (hep açık-mod) hex renkler kullanıyordu —
+   koyu modda arka plan hâlâ beyaz ama yazı rengi tema tarafından açık
+   renge çevrildiğinden okunaksız (düşük kontrast) çıkıyordu. Bunun yerine
+   uygulamanın zaten var olan --ink / --bg-card / --border değişkenlerini
+   kullanıyoruz, böylece tema değişince otomatik uyum sağlıyor. Sadece
+   +/-/yapıldı/yapılmadı gibi ANLAMLI (semantik) renkler için koyu moda
+   özel, daha AÇIK tonlar tanımlıyoruz (koyu zeminde koyu yeşil/kırmızı
+   okunmaz).
+*/
+.onc-th, .onc-td{ border: 1px solid var(--border); }
+.onc-th{ background: var(--bg-app-soft); color: var(--ink); }
+.onc-td-ad{ background: var(--bg-card); color: var(--ink); }
+.onc-td-bos{ background: var(--bg-card); color: var(--ink-muted); }
+.onc-td-yapti, .onc-td-arti{ background: rgba(46,125,50,.15); color:#2e7d32; }
+.onc-td-yapmadi, .onc-td-eksi{ background: rgba(198,40,40,.15); color:#c62828; }
+.onc-td-toplam{ background: var(--bg-card); color: var(--ink); }
+.onc-sil-ikon{ border:none; background:none; cursor:pointer; padding:2px; font-size:13px; color:#c62828; }
+[data-theme="dark"] .onc-td-yapti, [data-theme="dark"] .onc-td-arti{ background: rgba(102,187,106,.22); color:#81c784; }
+[data-theme="dark"] .onc-td-yapmadi, [data-theme="dark"] .onc-td-eksi{ background: rgba(239,83,80,.22); color:#e57373; }
+
 .form-group{ margin-bottom:14px; display:flex; flex-direction:column; gap:6px; }
 .form-group label{ font-size:12.5px; font-weight:700; color: var(--ink-soft); }
 .form-row{ display:flex; gap:12px; min-width:0; }
