@@ -161,7 +161,7 @@ function oncDetayAc(tip, id){
 
   const ov = document.createElement('div');
   ov.id = 'oncDetayOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg-app,#f4f5f7);display:flex;flex-direction:column;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9750;background:var(--bg-app,#f4f5f7);display:flex;flex-direction:column;';
   ov.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:10px 14px;flex-wrap:wrap;">
       <span id="oncDetayBaslik" style="font-weight:700;font-size:14px;color:#fff;"></span>
