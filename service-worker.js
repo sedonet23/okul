@@ -5,7 +5,7 @@
    · Strateji: statik dosyalar "Cache First", dış kaynaklar "Network First"
    ==================================================================== */
 
-const CACHE_ADI = 'oy-cache-v247';
+const CACHE_ADI = 'oy-cache-v244';
 
 /* ---- Önbelleğe alınacak tüm uygulama dosyaları ---- */
 const ONBELLEGE_ALINACAKLAR = [
@@ -57,6 +57,8 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/core/services/harita.service.js',
   './js/core/repositories/cizelgeler.repository.js',
   './js/core/services/cizelgeler.service.js',
+  './js/core/repositories/odev-not-cizelgeleri.repository.js',
+  './js/core/services/odev-not-cizelgeleri.service.js',
   './js/core/repositories/push.repository.js',
   './js/core/services/push.service.js',
   './js/core/repositories/haberler.repository.js',
@@ -71,6 +73,7 @@ const ONBELLEGE_ALINACAKLAR = [
   './js/core/services/anket.service.js',
   /* JS — modüller */
   './js/cizelgeler.js',
+  './js/odev-not-cizelgeleri.js',
   './js/mesajlasma.js',
   './js/duyurular.js',
   './js/anket.js',
