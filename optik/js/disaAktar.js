@@ -489,9 +489,12 @@ window.DisaAktar = (function () {
      * @param {Array<{dersAdi,soruSayisi,sikSayisi}>} dersler - formDersleriniGetir() çıktısı
      * @param {{dersler: Array<{dersAdi, anahtarlar:[{soruNo,dogru}]}>}} anahtar - DB.anahtariGetir() çıktısı
      * @param {string} sinavAdi
-     * @param {number} [kopyaSayisi=4] - sayfa başına kaç mini kopya (2 veya 4 önerilir; soru sayısı çoksa 4'ü aşmayın)
+     * @param {number} [kopyaSayisi] - verilirse sabit grid (2/4/6/8) kullanılır; verilmezse
+     *   (varsayılan) sayfa YÜKSEKLİĞİNE göre kaç satır sığdığı otomatik hesaplanır — kısa
+     *   sınavlarda (az ders/soru) daha çok kopya, uzun sınavlarda (LGS gibi) daha az kopya
+     *   üretilir, sayfada boşluk KALMAZ.
      */
-    async function miniAnahtarPdfIndir(dersler, anahtar, sinavAdi, kopyaSayisi = 4) {
+    async function miniAnahtarPdfIndir(dersler, anahtar, sinavAdi, kopyaSayisi) {
 
         const toplamSoru = (dersler || []).reduce((t, d) => t + (d.soruSayisi || 0), 0);
         if (!toplamSoru) { alert('Bu sınav için ders/soru tanımı bulunamadı.'); return; }
@@ -509,9 +512,23 @@ window.DisaAktar = (function () {
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
         const pageW = 210, pageH = 297, disMargin = 6;
-        // kopyaSayisi=4 → 2x2, kopyaSayisi=6 → 2x3, kopyaSayisi=2 → 1x2
+        const fontPt = toplamSoru > 70 ? 5.7 : (toplamSoru > 40 ? 6.3 : 7);
+        const satirYuksekligi = fontPt * 0.42;
+
+        // Sabit grid mi (kullanıcı belirtti) yoksa otomatik mi?
         const gridler = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4] };
-        const [kolon, satirSayisi] = gridler[kopyaSayisi] || [2, 2];
+        let kolon, satirSayisi;
+        if (kopyaSayisi && gridler[kopyaSayisi]) {
+            [kolon, satirSayisi] = gridler[kopyaSayisi];
+        } else {
+            kolon = 2;
+            const hucreW = (pageW - disMargin * 2) / kolon;
+            const gerekliYukseklik = _miniKopyaYuksekligiHesapla(dersler, anahtarMap, hucreW, fontPt, satirYuksekligi);
+            const kullanilabilirYukseklik = pageH - disMargin * 2;
+            // +3mm pay (kesme çizgisiyle içerik arasında nefes payı) — en az 1, en çok 14 satır (aşırı küçülmesin diye üst sınır)
+            satirSayisi = Math.max(1, Math.min(14, Math.floor(kullanilabilirYukseklik / (gerekliYukseklik + 3))));
+        }
+
         const hucreW = (pageW - disMargin * 2) / kolon;
         const hucreH = (pageH - disMargin * 2) / satirSayisi;
 
@@ -519,62 +536,7 @@ window.DisaAktar = (function () {
             const col = k % kolon, row = Math.floor(k / kolon);
             const x0 = disMargin + col * hucreW;
             const y0 = disMargin + row * hucreH;
-
-            // Kesme çizgisi (kesik çizgi çerçeve)
-            doc.setDrawColor(160);
-            doc.setLineDashPattern([1.2, 1], 0);
-            doc.rect(x0 + 1.5, y0 + 1.5, hucreW - 3, hucreH - 3, 'S');
-            doc.setLineDashPattern([], 0);
-
-            let y = y0 + 6;
-            const xMerkez = x0 + hucreW / 2;
-
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(9);
-            doc.text(String(sinavAdi || 'Sınav'), xMerkez, y, { align: 'center' });
-            y += 4;
-            doc.setFontSize(7);
-            doc.setFont('helvetica', 'normal');
-            doc.text('CEVAP ANAHTARI', xMerkez, y, { align: 'center' });
-            y += 4.5;
-
-            // Yoğunluğa göre font boyutu: soru çoksa küçült (5.5pt'nin altına inmez)
-            const fontPt = toplamSoru > 70 ? 5.7 : (toplamSoru > 40 ? 6.3 : 7);
-            const satirYuksekligi = fontPt * 0.42;
-
-            doc.setFont('courier', 'normal');
-            for (const ders of dersler) {
-                if (y > y0 + hucreH - 4) break; // taşarsa kes (sayfa dolduysa)
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(fontPt + 0.5);
-                doc.text(String(ders.dersAdi), x0 + 3, y);
-                y += satirYuksekligi + 0.8;
-
-                const dMap = anahtarMap[ders.dersAdi] || {};
-                const parcalar = [];
-                for (let s = 1; s <= ders.soruSayisi; s++) {
-                    parcalar.push(s + ':' + (dMap[s] || '-'));
-                }
-                doc.setFont('courier', 'normal');
-                doc.setFontSize(fontPt);
-                // Satır genişliğine göre kaç parça sığar hesapla (kaba tahmin)
-                const karakterGenisligiMM = fontPt * 0.42;
-                const satirBasinaKarakter = Math.floor((hucreW - 6) / karakterGenisligiMM);
-                let satirMetni = '';
-                for (const p of parcalar) {
-                    const aday = satirMetni ? satirMetni + '  ' + p : p;
-                    if (aday.length > satirBasinaKarakter) {
-                        doc.text(satirMetni, x0 + 3, y);
-                        y += satirYuksekligi;
-                        satirMetni = p;
-                        if (y > y0 + hucreH - 3) break;
-                    } else {
-                        satirMetni = aday;
-                    }
-                }
-                if (satirMetni && y <= y0 + hucreH - 3) { doc.text(satirMetni, x0 + 3, y); y += satirYuksekligi; }
-                y += 1.2;
-            }
+            _miniKopyaCiz(doc, dersler, anahtarMap, sinavAdi, x0, y0, hucreW, hucreH, fontPt, satirYuksekligi);
         }
 
         const dosyaAdi = `mini_cevap_anahtari_${_tarihDamgasi()}.pdf`;
@@ -588,6 +550,80 @@ window.DisaAktar = (function () {
         } catch (e) {
             console.error('[DisaAktar] Mini cevap anahtarı kaydedilemedi:', e);
             alert('PDF dosyası kaydedilemedi: ' + e.message);
+        }
+    }
+
+    /** Bir mini kopyanın (çizmeden) ne kadar YÜKSEKLİK (mm) kaplayacağını hesaplar — satır sayısını belirlemek için. */
+    function _miniKopyaYuksekligiHesapla(dersler, anahtarMap, hucreW, fontPt, satirYuksekligi) {
+        let y = 6 + 4 + 4.5; // başlık + "CEVAP ANAHTARI" için sabit üst boşluk
+        const karakterGenisligiMM = fontPt * 0.42;
+        const satirBasinaKarakter = Math.floor((hucreW - 6) / karakterGenisligiMM);
+        for (const ders of dersler) {
+            y += satirYuksekligi + 0.8; // ders başlığı
+            let satirMetni = '';
+            for (let s = 1; s <= ders.soruSayisi; s++) {
+                const p = s + ':' + ((anahtarMap[ders.dersAdi] || {})[s] || '-');
+                const aday = satirMetni ? satirMetni + '  ' + p : p;
+                if (aday.length > satirBasinaKarakter) { y += satirYuksekligi; satirMetni = p; }
+                else { satirMetni = aday; }
+            }
+            if (satirMetni) y += satirYuksekligi;
+            y += 1.2;
+        }
+        return y - 6; // y0'a göre göreli yükseklik (üstteki 6mm başlangıç payını çıkar)
+    }
+
+    /** Tek bir mini kopyayı (x0,y0) konumuna, (hucreW,hucreH) boyutunda çizer. */
+    function _miniKopyaCiz(doc, dersler, anahtarMap, sinavAdi, x0, y0, hucreW, hucreH, fontPt, satirYuksekligi) {
+        // Kesme çizgisi (kesik çizgi çerçeve)
+        doc.setDrawColor(160);
+        doc.setLineDashPattern([1.2, 1], 0);
+        doc.rect(x0 + 1.5, y0 + 1.5, hucreW - 3, hucreH - 3, 'S');
+        doc.setLineDashPattern([], 0);
+
+        let y = y0 + 6;
+        const xMerkez = x0 + hucreW / 2;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text(String(sinavAdi || 'Sınav'), xMerkez, y, { align: 'center' });
+        y += 4;
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('CEVAP ANAHTARI', xMerkez, y, { align: 'center' });
+        y += 4.5;
+
+        const karakterGenisligiMM = fontPt * 0.42;
+        const satirBasinaKarakter = Math.floor((hucreW - 6) / karakterGenisligiMM);
+
+        for (const ders of dersler) {
+            if (y > y0 + hucreH - 4) break; // taşarsa kes (hücre dolduysa)
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(fontPt + 0.5);
+            doc.text(String(ders.dersAdi), x0 + 3, y);
+            y += satirYuksekligi + 0.8;
+
+            const dMap = anahtarMap[ders.dersAdi] || {};
+            const parcalar = [];
+            for (let s = 1; s <= ders.soruSayisi; s++) {
+                parcalar.push(s + ':' + (dMap[s] || '-'));
+            }
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(fontPt);
+            let satirMetni = '';
+            for (const p of parcalar) {
+                const aday = satirMetni ? satirMetni + '  ' + p : p;
+                if (aday.length > satirBasinaKarakter) {
+                    doc.text(satirMetni, x0 + 3, y);
+                    y += satirYuksekligi;
+                    satirMetni = p;
+                    if (y > y0 + hucreH - 3) break;
+                } else {
+                    satirMetni = aday;
+                }
+            }
+            if (satirMetni && y <= y0 + hucreH - 3) { doc.text(satirMetni, x0 + 3, y); y += satirYuksekligi; }
+            y += 1.2;
         }
     }
 
