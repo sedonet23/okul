@@ -478,6 +478,119 @@ window.DisaAktar = (function () {
         });
     }
 
-    return { excelIndir, pdfRaporuIndir, cevapAnahtariniIndir, dosyaKaydet: _dosyaKaydet };
+    // ----------------------------------------------------------------
+    // MİNİ CEVAP ANAHTARI — yazdırıp öğrencilere dağıtmak için, tek A4
+    // sayfasına çoklu küçük kopya (kesme çizgileriyle). Tüm sınav türleri
+    // (LGS, Bursluluk, Özel) için ortak — dersler/anahtar dinamik olarak
+    // gelir, sabit bir şablona bağlı değildir.
+    // ----------------------------------------------------------------
+
+    /**
+     * @param {Array<{dersAdi,soruSayisi,sikSayisi}>} dersler - formDersleriniGetir() çıktısı
+     * @param {{dersler: Array<{dersAdi, anahtarlar:[{soruNo,dogru}]}>}} anahtar - DB.anahtariGetir() çıktısı
+     * @param {string} sinavAdi
+     * @param {number} [kopyaSayisi=4] - sayfa başına kaç mini kopya (2 veya 4 önerilir; soru sayısı çoksa 4'ü aşmayın)
+     */
+    async function miniAnahtarPdfIndir(dersler, anahtar, sinavAdi, kopyaSayisi = 4) {
+
+        const toplamSoru = (dersler || []).reduce((t, d) => t + (d.soruSayisi || 0), 0);
+        if (!toplamSoru) { alert('Bu sınav için ders/soru tanımı bulunamadı.'); return; }
+
+        const anahtarMap = {}; // dersAdi -> {soruNo: dogru}
+        (anahtar?.dersler || []).forEach(d => {
+            anahtarMap[d.dersAdi] = {};
+            (d.anahtarlar || []).forEach(a => { anahtarMap[d.dersAdi][a.soruNo] = a.dogru; });
+        });
+        const doluSoruSayisi = Object.values(anahtarMap).reduce((t, m) => t + Object.keys(m).length, 0);
+        if (!doluSoruSayisi) { alert('Cevap anahtarı boş — önce en az bir soruyu işaretleyin.'); return; }
+
+        if (!window.jspdf && !window.jsPDF) { await _jspdfYukle(); }
+        const { jsPDF } = window.jspdf || window;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+        const pageW = 210, pageH = 297, disMargin = 6;
+        // kopyaSayisi=4 → 2x2, kopyaSayisi=6 → 2x3, kopyaSayisi=2 → 1x2
+        const gridler = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4] };
+        const [kolon, satirSayisi] = gridler[kopyaSayisi] || [2, 2];
+        const hucreW = (pageW - disMargin * 2) / kolon;
+        const hucreH = (pageH - disMargin * 2) / satirSayisi;
+
+        for (let k = 0; k < kolon * satirSayisi; k++) {
+            const col = k % kolon, row = Math.floor(k / kolon);
+            const x0 = disMargin + col * hucreW;
+            const y0 = disMargin + row * hucreH;
+
+            // Kesme çizgisi (kesik çizgi çerçeve)
+            doc.setDrawColor(160);
+            doc.setLineDashPattern([1.2, 1], 0);
+            doc.rect(x0 + 1.5, y0 + 1.5, hucreW - 3, hucreH - 3, 'S');
+            doc.setLineDashPattern([], 0);
+
+            let y = y0 + 6;
+            const xMerkez = x0 + hucreW / 2;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            doc.text(String(sinavAdi || 'Sınav'), xMerkez, y, { align: 'center' });
+            y += 4;
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'normal');
+            doc.text('CEVAP ANAHTARI', xMerkez, y, { align: 'center' });
+            y += 4.5;
+
+            // Yoğunluğa göre font boyutu: soru çoksa küçült (5.5pt'nin altına inmez)
+            const fontPt = toplamSoru > 70 ? 5.7 : (toplamSoru > 40 ? 6.3 : 7);
+            const satirYuksekligi = fontPt * 0.42;
+
+            doc.setFont('courier', 'normal');
+            for (const ders of dersler) {
+                if (y > y0 + hucreH - 4) break; // taşarsa kes (sayfa dolduysa)
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(fontPt + 0.5);
+                doc.text(String(ders.dersAdi), x0 + 3, y);
+                y += satirYuksekligi + 0.8;
+
+                const dMap = anahtarMap[ders.dersAdi] || {};
+                const parcalar = [];
+                for (let s = 1; s <= ders.soruSayisi; s++) {
+                    parcalar.push(s + ':' + (dMap[s] || '-'));
+                }
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(fontPt);
+                // Satır genişliğine göre kaç parça sığar hesapla (kaba tahmin)
+                const karakterGenisligiMM = fontPt * 0.42;
+                const satirBasinaKarakter = Math.floor((hucreW - 6) / karakterGenisligiMM);
+                let satirMetni = '';
+                for (const p of parcalar) {
+                    const aday = satirMetni ? satirMetni + '  ' + p : p;
+                    if (aday.length > satirBasinaKarakter) {
+                        doc.text(satirMetni, x0 + 3, y);
+                        y += satirYuksekligi;
+                        satirMetni = p;
+                        if (y > y0 + hucreH - 3) break;
+                    } else {
+                        satirMetni = aday;
+                    }
+                }
+                if (satirMetni && y <= y0 + hucreH - 3) { doc.text(satirMetni, x0 + 3, y); y += satirYuksekligi; }
+                y += 1.2;
+            }
+        }
+
+        const dosyaAdi = `mini_cevap_anahtari_${_tarihDamgasi()}.pdf`;
+        try {
+            return await _dosyaKaydet(
+                doc.output('datauristring').split(',')[1],
+                dosyaAdi,
+                'application/pdf',
+                () => doc.save(dosyaAdi)
+            );
+        } catch (e) {
+            console.error('[DisaAktar] Mini cevap anahtarı kaydedilemedi:', e);
+            alert('PDF dosyası kaydedilemedi: ' + e.message);
+        }
+    }
+
+    return { excelIndir, pdfRaporuIndir, cevapAnahtariniIndir, miniAnahtarPdfIndir, dosyaKaydet: _dosyaKaydet };
 
 })();

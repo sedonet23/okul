@@ -2230,7 +2230,14 @@ function baslat() {
             anahtarIzgaraCiz(); _tumSonuclariYenidenHesapla();
         });
     });
-    document.getElementById('btnMiniAnahtar').addEventListener('click', () => alert('Mini cevap anahtarı yakında'));
+    document.getElementById('btnMiniAnahtar').addEventListener('click', async () => {
+        if (!_aktifSinavId) return;
+        const dersler = formDersleriniGetir(_aktifSinavId);
+        const anahtar = DB.anahtariGetir(_aktifSinavId);
+        const sinavAdi = DB.sinaviBul(_aktifSinavId)?.ad;
+        const { DisaAktar } = await import('./disaAktar.js').catch(() => ({ DisaAktar: window.DisaAktar }));
+        (DisaAktar || window.DisaAktar)?.miniAnahtarPdfIndir?.(dersler, anahtar, sinavAdi);
+    });
 
     // Raporlar
     document.querySelectorAll('.rapor-satir').forEach(btn =>
