@@ -401,8 +401,33 @@ function renderYonetimKullanicilari(){
         <div style="font-size:12px;color:var(--ink-muted);">${escapeHtml(k.kullaniciAdi ? '@'+k.kullaniciAdi : (k.email || ''))} · ${escapeHtml(rolAdi)}</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="kullaniciDuzenleAc('${k.id}')">Düzenle</button>
+      <button class="btn btn-ghost btn-sm" style="color:#c62828;" onclick="kullaniciSilOnayla('${k.id}')" title="Kullanıcıyı sil">🗑️ Sil</button>
     </div>`;
   }).join('');
+}
+
+/* kendiUid ile eşleşen kayıt için "Sil" gösterilmez (kendini silemez) — bkz. renderYonetimKullanicilari çağrısı */
+function kullaniciSilOnayla(uid){
+  if(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && uid === AKTIF_KULLANICI.uid){
+    toast('Kendi hesabınızı silemezsiniz.');
+    return;
+  }
+  const k = YONETIM_KULLANICILAR_CACHE.find(u=>u.id===uid);
+  if(!k) return;
+  uygulamaOnayAl(
+    `"${_kullaniciGoruntulenecekAd(k)}" kullanıcısını silmek istediğinize emin misiniz?\n\n` +
+    `NOT: Bu, kişinin uygulama içi profilini ve tüm yetkilerini kaldırır. ` +
+    `Firebase'deki giriş bilgisi (e-posta/şifre) teknik sebeplerle ayrıca silinemez, ` +
+    `ama profili olmadığı için uygulamayı kullanamaz.`
+  ).then(onay=>{
+    if(!onay) return;
+    KullaniciYonetimiService.kullaniciSil(uid, AKTIF_KULLANICI ? AKTIF_KULLANICI.uid : null)
+      .then(()=>toast('Kullanıcı silindi.'))
+      .catch(err=>{
+        if(err.message === 'kendini-silemez'){ toast('Kendi hesabınızı silemezsiniz.'); return; }
+        if(err.message !== 'yetkisiz') hataGoster(err);
+      });
+  });
 }
 
 function kullaniciDuzenleAc(uid){
