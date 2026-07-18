@@ -53,5 +53,9 @@ const OdevNotCizelgeleriRepository = {
   /** Sütun ekle/çıkar veya öğrenci ekle/çıkar gibi tüm-alan güncellemeleri için. */
   alanGuncelle(tip, id, alanAdi, deger){
     return db.collection(COL[tip]).doc(id).update({ [alanAdi]: deger });
+  },
+  /** Taslak kaydı — sutunlar/ogrenciler/hucreler alanlarını TEK bir update() ile yazar. */
+  taslakKaydet(tip, id, sutunlar, ogrenciler, hucreler){
+    return db.collection(COL[tip]).doc(id).update({ sutunlar, ogrenciler, hucreler });
   }
 };
