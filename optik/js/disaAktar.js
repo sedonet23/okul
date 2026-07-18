@@ -489,12 +489,12 @@ window.DisaAktar = (function () {
      * @param {Array<{dersAdi,soruSayisi,sikSayisi}>} dersler - formDersleriniGetir() çıktısı
      * @param {{dersler: Array<{dersAdi, anahtarlar:[{soruNo,dogru}]}>}} anahtar - DB.anahtariGetir() çıktısı
      * @param {string} sinavAdi
-     * @param {number} [kopyaSayisi] - verilirse sabit grid (2/4/6/8) kullanılır; verilmezse
-     *   (varsayılan) sayfa YÜKSEKLİĞİNE göre kaç satır sığdığı otomatik hesaplanır — kısa
-     *   sınavlarda (az ders/soru) daha çok kopya, uzun sınavlarda (LGS gibi) daha az kopya
-     *   üretilir, sayfada boşluk KALMAZ.
+     * @param {number} [kopyaSayisi=12] - sayfa başına kopya sayısı (varsayılan 12 = 3×4).
+     *   Desteklenen ızgaralar: 2(1×2), 4(2×2), 6(2×3), 8(2×4), 12(3×4), 15(3×5).
+     *   Font boyutu HER SINAV TÜRÜ İÇİN (LGS'nin 6 dersi de dahil) içerik gerçekten
+     *   hücreye sığana kadar otomatik küçültülür — sabit bir tahmine güvenilmez.
      */
-    async function miniAnahtarPdfIndir(dersler, anahtar, sinavAdi, kopyaSayisi) {
+    async function miniAnahtarPdfIndir(dersler, anahtar, sinavAdi, kopyaSayisi = 12) {
 
         const toplamSoru = (dersler || []).reduce((t, d) => t + (d.soruSayisi || 0), 0);
         if (!toplamSoru) { alert('Bu sınav için ders/soru tanımı bulunamadı.'); return; }
@@ -512,25 +512,26 @@ window.DisaAktar = (function () {
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
         const pageW = 210, pageH = 297, disMargin = 6;
-        const fontPt = toplamSoru > 70 ? 5.7 : (toplamSoru > 40 ? 6.3 : 7);
-        const satirYuksekligi = fontPt * 0.42;
-
-        // Sabit grid mi (kullanıcı belirtti) yoksa otomatik mi?
-        const gridler = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4] };
-        let kolon, satirSayisi;
-        if (kopyaSayisi && gridler[kopyaSayisi]) {
-            [kolon, satirSayisi] = gridler[kopyaSayisi];
-        } else {
-            kolon = 2;
-            const hucreW = (pageW - disMargin * 2) / kolon;
-            const gerekliYukseklik = _miniKopyaYuksekligiHesapla(dersler, anahtarMap, hucreW, fontPt, satirYuksekligi);
-            const kullanilabilirYukseklik = pageH - disMargin * 2;
-            // +3mm pay (kesme çizgisiyle içerik arasında nefes payı) — en az 1, en çok 14 satır (aşırı küçülmesin diye üst sınır)
-            satirSayisi = Math.max(1, Math.min(14, Math.floor(kullanilabilirYukseklik / (gerekliYukseklik + 3))));
-        }
-
+        const gridler = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4], 12: [3, 4], 15: [3, 5] };
+        const [kolon, satirSayisi] = gridler[kopyaSayisi] || gridler[12];
         const hucreW = (pageW - disMargin * 2) / kolon;
         const hucreH = (pageH - disMargin * 2) / satirSayisi;
+
+        // YENİ: font boyutu artık "soru sayısına göre kaba tahmin" değil,
+        // içerik gerçekten hücreye sığana kadar 7pt'den başlayıp adım adım
+        // küçültülerek bulunuyor (7 → 4.2pt, 0.2pt adımlarla). Böylece LGS
+        // gibi çok-dersli sınavlar dar hücrelerde (3+ sütun) bile taşıp
+        // ders eksik göstermez — okunaklılığın izin verdiği en büyük fontla basılır.
+        const ustBosluk = 6 + 4 + 4.5; // başlık + "CEVAP ANAHTARI" için
+        let fontPt = 4.2; // bulunamazsa en okunaklı taban budur
+        for (let i = 0; i <= 14; i++) { // 7.0, 6.8, ..., 4.2 (tam 14 adım — float birikim hatasından kaçınmak için tam sayı sayaçla)
+            const deneme = 7 - i * 0.2;
+            const satirYuksekligiDeneme = deneme * 0.42;
+            const gerekli = _miniKopyaYuksekligiHesapla(dersler, anahtarMap, hucreW, deneme, satirYuksekligiDeneme);
+            if (gerekli <= hucreH - 8) { fontPt = deneme; break; } // -8: kesme çizgisi + alt pay
+            fontPt = deneme; // hiçbiri sığmazsa en küçük (son denenen = 4.2) ile devam edilir
+        }
+        const satirYuksekligi = fontPt * 0.42;
 
         for (let k = 0; k < kolon * satirSayisi; k++) {
             const col = k % kolon, row = Math.floor(k / kolon);
