@@ -27,7 +27,6 @@ let odevTakipListesi = [];
 let notCizelgesiListesi = [];
 
 const ONC_BASLIK = { odevTakip: 'Ödev Takip Çizelgesi', notCizelgesi: 'Not Çizelgesi' };
-const ONC_KENARLIK = '1px solid #ccc'; // tüm hücrelerde ortak kenarlık
 
 function _oncListesi(tip){ return tip === 'odevTakip' ? odevTakipListesi : notCizelgesiListesi; }
 function _oncSinifAdi(sinifId){
@@ -162,7 +161,7 @@ function oncDetayAc(tip, id){
 
   const ov = document.createElement('div');
   ov.id = 'oncDetayOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg,#f4f5f7);display:flex;flex-direction:column;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9500;background:var(--bg-app,#f4f5f7);display:flex;flex-direction:column;';
   ov.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(135deg,#1b5e20,#2e7d32);padding:10px 14px;flex-wrap:wrap;">
       <span id="oncDetayBaslik" style="font-weight:700;font-size:14px;color:#fff;"></span>
@@ -247,29 +246,26 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
   const ogrenciler = kayit.ogrenciler || [];
   const hucreler = kayit.hucreler || {};
   const hucreModu = kayit.hucreModu || 'artiEksi';
-  const kb = `border:${ONC_KENARLIK};`;
 
   function hucreGoster(ogrenciId, sutunId){
     const anahtar = ogrenciId + '_' + sutunId;
     const deger = hucreler[anahtar];
     if(tip === 'odevTakip'){
       const sembol = deger === 'yapti' ? '✓' : (deger === 'yapmadi' ? '✗' : '');
-      const renk = deger === 'yapti' ? '#1b5e20' : (deger === 'yapmadi' ? '#b71c1c' : '#bbb');
-      const zemin = deger === 'yapti' ? '#e8f5e9' : (deger === 'yapmadi' ? '#ffebee' : '#fafafa');
+      const sinif = deger === 'yapti' ? 'onc-td-yapti' : (deger === 'yapmadi' ? 'onc-td-yapmadi' : 'onc-td-bos');
       const tikla = etkilesimliMi ? `onclick="oncHucreTikla('${ogrenciId}','${sutunId}')"` : '';
-      return `<td ${tikla} style="${kb}text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};background:${zemin};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
+      return `<td class="onc-td ${sinif}" ${tikla} style="text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
     }
     if(hucreModu === 'puan'){
       if(etkilesimliMi){
-        return `<td style="${kb}text-align:center;min-width:56px;background:#fafafa;"><input type="number" value="${deger !== undefined && deger !== null ? deger : ''}" style="width:48px;text-align:center;border:1px solid #bbb;border-radius:6px;padding:3px;" onchange="oncPuanGirildi('${ogrenciId}','${sutunId}', this.value)" /></td>`;
+        return `<td class="onc-td onc-td-bos" style="text-align:center;min-width:56px;"><input type="number" value="${deger !== undefined && deger !== null ? deger : ''}" style="width:48px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:3px;background:var(--bg-card);color:var(--ink);" onchange="oncPuanGirildi('${ogrenciId}','${sutunId}', this.value)" /></td>`;
       }
-      return `<td style="${kb}text-align:center;min-width:44px;">${deger !== undefined && deger !== null ? deger : ''}</td>`;
+      return `<td class="onc-td onc-td-bos" style="text-align:center;min-width:44px;">${deger !== undefined && deger !== null ? deger : ''}</td>`;
     }
     const sembol = deger === 'arti' ? '+' : (deger === 'eksi' ? '−' : '');
-    const renk = deger === 'arti' ? '#1b5e20' : (deger === 'eksi' ? '#b71c1c' : '#bbb');
-    const zemin = deger === 'arti' ? '#e8f5e9' : (deger === 'eksi' ? '#ffebee' : '#fafafa');
+    const sinif = deger === 'arti' ? 'onc-td-arti' : (deger === 'eksi' ? 'onc-td-eksi' : 'onc-td-bos');
     const tikla = etkilesimliMi ? `onclick="oncHucreTikla('${ogrenciId}','${sutunId}')"` : '';
-    return `<td ${tikla} style="${kb}text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};color:${renk};background:${zemin};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
+    return `<td class="onc-td ${sinif}" ${tikla} style="text-align:center;cursor:${etkilesimliMi ? 'pointer' : 'default'};font-weight:800;font-size:16px;min-width:44px;">${sembol}</td>`;
   }
 
   function toplamGoster(ogrenciId){
@@ -289,30 +285,30 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
   }
 
   const sutunBaslikHtml = sutunlar.map(s => `
-    <th style="${kb}min-width:70px;padding:6px 4px;font-size:12px;background:#eee;">
-      ${escapeHtml(s.baslik)}${s.tarih ? `<div style="font-weight:400;opacity:.7;font-size:10.5px;">${_trTarih(s.tarih)}</div>` : ''}
-      ${etkilesimliMi ? `<button onclick="oncSutunSil('${s.id}')" title="Sütunu sil" style="border:none;background:none;color:#c62828;font-size:13px;cursor:pointer;padding:2px;">🗑️</button>` : ''}
+    <th class="onc-th" style="min-width:70px;padding:6px 4px;font-size:12px;">
+      ${escapeHtml(s.baslik)}${s.tarih ? `<div style="font-weight:400;opacity:.75;font-size:10.5px;">${_trTarih(s.tarih)}</div>` : ''}
+      ${etkilesimliMi ? `<button class="onc-sil-ikon" onclick="oncSutunSil('${s.id}')" title="Sütunu sil">🗑️</button>` : ''}
     </th>
   `).join('');
 
   const satirlarHtml = ogrenciler.map(o => `
     <tr>
-      <td style="${kb}padding:6px 8px;font-size:13px;white-space:nowrap;background:#fff;">
+      <td class="onc-td onc-td-ad" style="padding:6px 8px;font-size:13px;white-space:nowrap;">
         ${escapeHtml(o.ad)}
-        ${etkilesimliMi ? `<button onclick="oncOgrenciSil('${o.id}')" title="Öğrenciyi sil" style="border:none;background:none;color:#c62828;font-size:13px;cursor:pointer;margin-left:6px;padding:2px;">🗑️</button>` : ''}
+        ${etkilesimliMi ? `<button class="onc-sil-ikon" onclick="oncOgrenciSil('${o.id}')" title="Öğrenciyi sil" style="margin-left:6px;">🗑️</button>` : ''}
       </td>
       ${sutunlar.map(s => hucreGoster(o.id, s.id)).join('')}
-      <td style="${kb}text-align:center;font-weight:700;font-size:12px;background:#fff;">${toplamGoster(o.id)}</td>
+      <td class="onc-td onc-td-toplam" style="text-align:center;font-weight:700;font-size:12px;">${toplamGoster(o.id)}</td>
     </tr>
   `).join('');
 
   return `
-    <table style="border-collapse:collapse;width:100%;background:#fff;">
+    <table style="border-collapse:collapse;width:100%;">
       <thead>
         <tr>
-          <th style="${kb}text-align:left;padding:6px 8px;background:#eee;">Öğrenci</th>
+          <th class="onc-th" style="text-align:left;padding:6px 8px;">Öğrenci</th>
           ${sutunBaslikHtml}
-          <th style="${kb}min-width:70px;background:#eee;">Toplam</th>
+          <th class="onc-th" style="min-width:70px;">Toplam</th>
         </tr>
       </thead>
       <tbody>${satirlarHtml}</tbody>
