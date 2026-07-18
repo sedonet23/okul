@@ -104,8 +104,22 @@ function girisFormGonder(e){
 }
 
 function cikisYap(){
-  AKTIF_KULLANICI = null;
-  if(auth) auth.signOut();
+  // YENİ: Eskiden sadece AKTIF_KULLANICI=null + signOut() yapılıyordu — ama
+  // uygulama boyunca açılan onlarca Firestore dinleyicisi (onSnapshot) hiç
+  // kapatılmıyordu. Sonuç: (1) çıkış sonrası bu dinleyiciler hâlâ açık kalıp
+  // sunucudan cevap almaya çalışınca "Missing or insufficient permissions"
+  // hatası fırlatıyordu (oturum artık yok); (2) yeni kullanıcı girişinde
+  // eski dinleyiciler/render edilmiş ekranlar temizlenmediği için önceki
+  // kullanıcının verisi bir süre görünmeye devam ediyordu. Tüm dinleyicileri
+  // tek tek bulup kapatmak yerine (bu kod tabanında onlarca farklı yerde
+  // açılıyorlar), TAM SAYFA YENİLEMESİ ile aynı sonucu garanti ediyoruz —
+  // "yenileyince düzeliyor" gözleminin doğruladığı gibi, sayfa yeniden
+  // yüklenince tüm dinleyiciler ve durum sıfırdan, temiz kuruluyor.
+  if(auth){
+    auth.signOut().finally(() => { window.location.reload(); });
+  } else {
+    window.location.reload();
+  }
 }
 
 /* ================================================================
