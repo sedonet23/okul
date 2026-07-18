@@ -510,6 +510,18 @@ window.DisaAktar = (function () {
         if (!window.jspdf && !window.jsPDF) { await _jspdfYukle(); }
         const { jsPDF } = window.jspdf || window;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        // YENİ: jsPDF'in yerleşik "helvetica" fontu Türkçe İ/ı/ğ/Ğ/Ş/ş
+        // karakterlerini desteklemiyor (WinAnsi kodlaması) — "İnkılap" gibi
+        // kelimeler "0nk1lap" çıkıyordu. pdfFormGenerator.js'te aynı sorun
+        // için zaten gömülmüş olan Roboto TTF'i burada da kullanıyoruz.
+        // (Cevap ızgarasındaki "1:A 2:B..." kısmı Türkçe karakter İÇERMEDİĞİ
+        // için orada hizalama amacıyla courier kalabilir.)
+        try {
+            const { fontlariKaydet } = await import('./pdfFormGenerator.js');
+            fontlariKaydet(doc);
+        } catch (e) {
+            console.warn('[DisaAktar] Roboto fontu yüklenemedi, Türkçe karakterler bozuk çıkabilir:', e);
+        }
 
         const pageW = 210, pageH = 297, disMargin = 6;
         const gridler = { 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4], 12: [3, 4], 15: [3, 5] };
@@ -585,12 +597,12 @@ window.DisaAktar = (function () {
         let y = y0 + 6;
         const xMerkez = x0 + hucreW / 2;
 
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Roboto', 'bold');
         doc.setFontSize(9);
         doc.text(String(sinavAdi || 'Sınav'), xMerkez, y, { align: 'center' });
         y += 4;
         doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Roboto', 'normal');
         doc.text('CEVAP ANAHTARI', xMerkez, y, { align: 'center' });
         y += 4.5;
 
@@ -599,7 +611,7 @@ window.DisaAktar = (function () {
 
         for (const ders of dersler) {
             if (y > y0 + hucreH - 4) break; // taşarsa kes (hücre dolduysa)
-            doc.setFont('helvetica', 'bold');
+            doc.setFont('Roboto', 'bold');
             doc.setFontSize(fontPt + 0.5);
             doc.text(String(ders.dersAdi), x0 + 3, y);
             y += satirYuksekligi + 0.8;

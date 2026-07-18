@@ -348,17 +348,13 @@ function hizalamaIsaretleriCiz(doc, form) {
   for (const m of form.hizalamaIsaretleri) {
     doc.rect(m.x, m.y, m.boyut, m.boyut, 'F');
   }
-  // 4 köşe karesini birbirine bağlayan çerçeve — kenar/kontur tabanlı köşe
-  // tespitine (bkz. omrEngine.js kenarCizgisiIleKoseBul, sayfaTespitCV.js)
-  // sağlam bir referans verir; izole karelerden çok daha zor gölgeyle karışır.
-  // YENİ: 0.35mm -> 1.1mm. Eski kalınlık, canlı kamera tespitinin kullandığı
-  // düşük analiz çözünürlüğünde (~360-480px) neredeyse tek pikselin altına
-  // düşüp Canny kenar tespitinden tamamen kayboluyordu — köşe bulucu bu
-  // yüzden sayfayı değil arka plandaki rastgele nesneleri buluyordu.
+  // 4 köşe karesini birbirine bağlayan ince çerçeve — kenar/çizgi tabanlı
+  // köşe tespitine (bkz. omrEngine.js kenarCizgisiIleKoseBul) sağlam bir
+  // referans verir; izole karelerden çok daha zor gölgeyle karışır.
   if (form.sayfaCercevesi) {
     const c = form.sayfaCercevesi;
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(1.1);
+    doc.setLineWidth(0.35);
     doc.rect(c.x, c.y, c.width, c.height, 'S');
   }
 }
@@ -466,4 +462,5 @@ export {
   headerCiz,
   bolumlerCiz,
   izgaraCiz,
+  fontlariKaydet,
 };
