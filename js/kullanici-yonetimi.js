@@ -52,6 +52,8 @@ const MODUL_LISTESI = [
   {grup:'Çizelgeler', modul:'maarifRapor', ad:'Maarif Model Raporlar'},
   {grup:'Çizelgeler', modul:'digerEvrak', ad:'Diğer Evraklar'},
   {grup:'Çizelgeler', modul:'periyodikIsler', ad:'Aylık İşler'},
+  {grup:'Çizelgeler', modul:'odevTakip', ad:'Ödev Takip Çizelgesi'},
+  {grup:'Çizelgeler', modul:'notCizelgesi', ad:'Not Çizelgesi'},
   {grup:'Yönetim', modul:'okulBilgileri', ad:'Okul Bilgileri'},
   {grup:'Yönetim', modul:'veri', ad:'Veri'},
   {grup:'Yönetim', modul:'ayarlar', ad:'Ayarlar'},

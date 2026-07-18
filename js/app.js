@@ -1664,6 +1664,8 @@ async function yedekVerisiOlustur(){
     belirliGunler: typeof belirliGunlerListesi !== 'undefined' ? belirliGunlerListesi : [],
     digerEvrak: typeof digerEvrakListesi !== 'undefined' ? digerEvrakListesi : [],
     sinavlar, denemeSinavlari,
+    odevTakip: typeof odevTakipListesi !== 'undefined' ? odevTakipListesi : [],
+    notCizelgesi: typeof notCizelgesiListesi !== 'undefined' ? notCizelgesiListesi : [],
     personel: typeof personelListesi !== 'undefined' ? personelListesi : [],
     mevzuat: mevzuat || undefined,
     optikVerileri
@@ -1816,6 +1818,7 @@ async function yedektenGeriYukle(file){
       [data.belirliGunler, COL.belirliGunler],[data.digerEvrak, COL.digerEvrak],
       [data.periyodikIsler, COL.periyodikIsler],[data.servisler, COL.servisler],
       [data.sinavlar, COL.sinavlar],[data.denemeSinavlari, COL.denemeSinavlari],
+      [data.odevTakip, COL.odevTakip],[data.notCizelgesi, COL.notCizelgesi],
       [data.dersListesi, COL.dersListesi],[data.bransListesi, COL.bransListesi],
       [data.personel, COL.personel]
     ];
@@ -1978,6 +1981,8 @@ const TEMBEL_MODUL_TABLOSU = {
   rehberlik:      () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
   maarifRapor:    () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
   digerEvrak:     () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  odevTakip:      () => { if(typeof odevNotCizelgeleriBaglantilariKur === 'function') odevNotCizelgeleriBaglantilariKur(); },
+  notCizelgesi:   () => { if(typeof odevNotCizelgeleriBaglantilariKur === 'function') odevNotCizelgeleriBaglantilariKur(); },
   anket:          () => { if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur(); },
   periyodikIsler: () => { periyodikBaglantilariKur(); },
   // Taşıma sekmesi açılınca hem servis listesi hem de servis oturma

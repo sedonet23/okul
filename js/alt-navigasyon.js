@@ -90,6 +90,8 @@
       {ad:'Öğrenciler', ikon:'ogrenci', modul:'ogrenciler', aksiyon:git('ogrenciler')},
       {ad:'Sınıflar', ikon:'sinif', modul:'siniflar', aksiyon:git('siniflar')},
       {ad:'Öğrenci Listesi Oluşturucu', ikon:'liste', modul:null, aksiyon:function(){ sekmeAc('ogretmenListe'); if(typeof ogretmenListeSekmesiAc==='function') ogretmenListeSekmesiAc(); }},
+      {ad:'Ödev Takip Çizelgesi', ikon:'liste', modul:'odevTakip', aksiyon:git('odevTakip', function(){ if(typeof renderOncListesi==='function') renderOncListesi('odevTakip'); })},
+      {ad:'Not Çizelgesi', ikon:'liste', modul:'notCizelgesi', aksiyon:git('notCizelgesi', function(){ if(typeof renderOncListesi==='function') renderOncListesi('notCizelgesi'); })},
     ]},
     { ad:'Sınavlar ve Not İşlemleri', renk:'#1F6FD1', ikon:I.yazili, ogeler:[
       {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('yaziliSinavlar')},

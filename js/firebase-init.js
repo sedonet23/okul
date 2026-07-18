@@ -70,6 +70,9 @@ const COL = {
                                          // unvan==='Müdür Yardımcısı' filtresiyle hesaplanır (bkz. app.js muduYardimcilari()).
   // --- YENİ: Personel İşleri + Dilekçe Sistemi (v6.0) ---
   personel:'oy_personel',               // {adSoyad, tc, telefon, adres, gorev, notlar}
+  // --- YENİ: Ödev Takip + Not Çizelgesi (öğretmen bazlı, sadece sahibi+admin görür) ---
+  odevTakip:'oy_odevTakip',             // {ad, sinifId, sahipUid, olusturmaTarihi, ogrenciler:[{id,ad}], sutunlar:[{id,baslik,tarih?}], hucreler:{'ogrId_sutunId':'yapti'|'yapmadi'}}
+  notCizelgesi:'oy_notCizelgesi',       // {ad, sinifId, sahipUid, olusturmaTarihi, hucreModu:'artiEksi'|'puan', ogrenciler:[{id,ad}], sutunlar:[{id,baslik,tarih?}], hucreler:{'ogrId_sutunId':deger}}
   dilekceler:'oy_dilekceler',           // {personelId, izinTuru, baslangicTarihi, sure, olusturmaTarihi}
   // --- YENİ: Personel Puantaj / İzin Kayıtları (v7.0) ---
   personelIzinler:'oy_personelIzinler', // {personelId, baslangic:'YYYY-MM-DD', bitis:'YYYY-MM-DD', tur:'YILLIK İZİNLİ'|'RAPORLU'|'ÜCRETSİZ MAZERET İZİNİ'|'CUMARTESİ ÇALIŞMASI'|'PAZAR TAM ÇALIŞMASI'|'UBGT TAM ÇALIŞMASI', aciklama, dilekceId?}
