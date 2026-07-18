@@ -52,7 +52,16 @@
   async function _pdfYukle(ov, url) {
     const govde = ov.querySelector('#dokOkuyucuGovde');
     try {
-      _pdfDoc = await pdfjsLib.getDocument(url).promise;
+      // YENİ: disableFontFace:true — pdf.js VARSAYILAN olarak PDF'e gömülü
+      // fontları tarayıcının kendi @font-face render motoruna devrediyor;
+      // bazı gömülü font alt kümeleriyle (özellikle resmi kurum
+      // belgelerinin Word→PDF dönüşümlerinde sık görülen türden) bu,
+      // metnin "kalın/çift görünme" gibi bozuk çıkmasına yol açan bilinen
+      // bir pdf.js davranışı. Bu ayar, glif çizimini HER ZAMAN pdf.js'in
+      // kendi (canvas tabanlı) font yorumlayıcısına zorlar — daha yavaş
+      // olabilir ama bu tür font kaynaklı bozulmaları giderir. Diğer
+      // (bu sorunu yaşamayan) PDF'lerde görünür bir fark yaratmaz.
+      _pdfDoc = await pdfjsLib.getDocument({ url, disableFontFace: true }).promise;
       _state.tur = 'pdf';
       _state.toplamSayfa = _pdfDoc.numPages;
       govde.style.overflow = 'hidden';
