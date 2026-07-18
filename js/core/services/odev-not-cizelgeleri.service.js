@@ -75,5 +75,17 @@ const OdevNotCizelgeleriService = {
   hucreGuncelle(tip, kayit, ogrenciId, sutunId, deger){
     if(!this._sahiplikKontrol(kayit)) return Promise.reject(new Error('yetkisiz'));
     return OdevNotCizelgeleriRepository.hucreGuncelle(tip, kayit.id, ogrenciId + '_' + sutunId, deger);
+  },
+
+  /**
+   * YENİ: Taslak+Kaydet modeli — kullanıcı tabloda ne kadar değişiklik
+   * yaparsa yapsın (hücre, sütun, öğrenci), hiçbiri Firestore'a anında
+   * yazılmaz. Sadece "Kaydet" butonuna basılınca BU fonksiyon çağrılır ve
+   * taslağın düzenlenebilir tüm alanları (sutunlar, ogrenciler, hucreler)
+   * TEK bir update() ile yazılır.
+   */
+  taslagiKaydet(tip, taslak){
+    if(!this._sahiplikKontrol(taslak)) return Promise.reject(new Error('yetkisiz'));
+    return OdevNotCizelgeleriRepository.taslakKaydet(tip, taslak.id, taslak.sutunlar || [], taslak.ogrenciler || [], taslak.hucreler || {});
   }
 };
