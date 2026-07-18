@@ -39,5 +39,11 @@ const KullaniciYonetimiService = {
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
     if(uid === kendiUid && !veri.aktif) return Promise.reject(new Error('kendini-pasif-yapamaz'));
     return KullaniciYonetimiRepository.kullaniciGuncelle(uid, veri);
+  },
+  /* kendiUid: kendi hesabını silemesin diye (kilitli kalır). */
+  kullaniciSil(uid, kendiUid){
+    if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    if(uid === kendiUid) return Promise.reject(new Error('kendini-silemez'));
+    return KullaniciYonetimiRepository.kullaniciSil(uid);
   }
 };
