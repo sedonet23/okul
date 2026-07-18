@@ -186,6 +186,8 @@
         <button class="nav-tab nav-sub-tab" data-tab="maarifRapor"><i class="nt-ico ni-maarif" data-lucide="bar-chart-3"></i><span class="nt-label">Maarif Model Raporlar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="digerEvrak"><i class="nt-ico ni-digrevr" data-lucide="folder-open"></i><span class="nt-label">Diğer Evraklar</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="periyodikIsler"><i class="nt-ico ni-aylik" data-lucide="refresh-cw"></i><span class="nt-label">Aylık İşler</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="odevTakip" onclick="renderOncListesi('odevTakip')"><i class="nt-ico" data-lucide="clipboard-check"></i><span class="nt-label">Ödev Takip Çizelgesi</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="notCizelgesi" onclick="renderOncListesi('notCizelgesi')"><i class="nt-ico" data-lucide="clipboard-list"></i><span class="nt-label">Not Çizelgesi</span></button>
       </div>
       
       <button class="nav-tab" data-tab="okulBilgileri"><i class="nt-ico ni-okul" data-lucide="building-2"></i><span class="nt-label">Okul Bilgileri</span></button>
@@ -802,6 +804,22 @@
       </div>
       <div id="sosyalKuluplerListesi" style="display:none; margin-bottom:20px;"></div>
       <div class="card cizelge-wrap"><div id="sosyalKuluplerTablo"></div></div>
+    </section>
+
+    <!-- ÖDEV TAKİP ÇİZELGESİ -->
+    <section id="tab-odevTakip" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Ödev Takip Çizelgesi</div><div class="page-sub">Sınıf seçip öğrencilerin ödev takibini işaretleyin — sadece siz ve yönetici görür</div></div>
+      </div>
+      <div id="odevTakipListesi"></div>
+    </section>
+
+    <!-- NOT ÇİZELGESİ -->
+    <section id="tab-notCizelgesi" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">Not Çizelgesi</div><div class="page-sub">Artı/eksi ya da puan bazlı değerlendirme çizelgesi — sadece siz ve yönetici görür</div></div>
+      </div>
+      <div id="notCizelgesiListesi"></div>
     </section>
 
     <!-- BELİRLİ GÜN VE HAFTALAR -->
@@ -1497,6 +1515,8 @@
 <script src="js/core/services/harita.service.js"></script>
 <script src="js/core/repositories/cizelgeler.repository.js"></script>
 <script src="js/core/services/cizelgeler.service.js"></script>
+<script src="js/core/repositories/odev-not-cizelgeleri.repository.js"></script>
+<script src="js/core/services/odev-not-cizelgeleri.service.js"></script>
 <script src="js/core/repositories/push.repository.js"></script>
 <script src="js/core/services/push.service.js"></script>
 <script src="js/core/repositories/haberler.repository.js"></script>
@@ -1511,6 +1531,7 @@
 <script src="js/core/services/anket.service.js"></script>
 <script src="js/push.js"></script>
 <script src="js/cizelgeler.js"></script>
+<script src="js/odev-not-cizelgeleri.js"></script>
 <script src="js/mesajlasma.js"></script>
 <script src="js/duyurular.js"></script>
 <script src="js/anket.js"></script>
