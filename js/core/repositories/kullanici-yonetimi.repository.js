@@ -38,5 +38,11 @@ const KullaniciYonetimiRepository = {
       hataCb || (err => console.warn('Kullanıcılar dinlenemedi:', err))
     );
   },
-  kullaniciGuncelle(uid, veri){ return db.collection(COL.kullanicilar).doc(uid).update(veri); }
+  kullaniciGuncelle(uid, veri){ return db.collection(COL.kullanicilar).doc(uid).update(veri); },
+  /* NOT: Bu SADECE Firestore'daki profil belgesini siler — Firebase
+     Authentication'daki gerçek giriş bilgisini (e-posta/şifre) istemci
+     taraftan silemeyiz (Admin SDK/Cloud Functions gerekir, bu projede
+     yok). Profili silinen kullanıcı teorik olarak giriş yapabilir ama
+     hiçbir yetkisi/verisi olmadığından pratikte uygulamayı kullanamaz. */
+  kullaniciSil(uid){ return db.collection(COL.kullanicilar).doc(uid).delete(); }
 };
