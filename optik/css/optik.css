@@ -265,22 +265,36 @@ input[type="date"]::-webkit-inner-spin-button { display: none; }
    ANAHTAR SEKMESİ
 ═══════════════════════════════════════════════════════════════ */
 .anahtar-toolbar {
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 8px;
     padding: 12px 16px 8px; flex-shrink: 0; border-bottom: 1px solid var(--border);
 }
 .anahtar-ders-sec {
-    flex: 1; padding: 10px 14px; border-radius: 999px;
+    flex: 1; min-width: 0; /* YENİ: bu olmadan uzun ders adları kutunun küçülmesini
+       engelleyip butonları ekran dışına itiyordu (flex child'lar varsayılan
+       olarak içeriğinin genişliğinin altına küçülmez) */
+    padding: 10px 14px; border-radius: 999px;
     border: 1.5px solid var(--border); background: var(--bg-card);
     font-family: var(--font); font-size: 14px; color: var(--text); outline: none;
     -webkit-appearance: none; appearance: none;
+    text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
 }
-.anahtar-butonlar { display: flex; gap: 4px; }
+.anahtar-butonlar {
+    display: flex; gap: 4px;
+    flex-shrink: 0; /* YENİ: butonlar HİÇBİR ZAMAN sıkışıp küçülmesin/kaybolmasın */
+}
 .tb-btn {
-    width: 38px; height: 38px; border-radius: 10px; border: none;
+    width: 36px; height: 36px; border-radius: 10px; border: none;
     background: var(--bg-card); box-shadow: var(--nm-sm);
     display: flex; align-items: center; justify-content: center; color: var(--text-dim);
+    flex-shrink: 0;
 }
+.tb-btn svg { width: 16px; height: 16px; } /* biraz küçültüldü, 4 buton daha rahat sığsın diye */
 .tb-btn-tehlike { color: var(--tehlike); }
+@media (max-width: 360px) {
+    /* Çok dar ekranlarda ders adını tamamen gizleyip sadece butonlara yer aç */
+    .anahtar-toolbar { gap: 4px; padding: 10px 8px 6px; }
+    .tb-btn { width: 32px; height: 32px; }
+}
 .anahtar-soru-listesi {
     flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 80px;
 }
