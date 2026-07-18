@@ -6,12 +6,14 @@ import android.os.Bundle;
 import android.webkit.WebView;
 // (androidx SwipeRefreshLayout artık kullanılmıyor — bkz. LogoSwipeRefreshLayout)
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.WebViewListener;
 import com.capacitorjs.plugins.pushnotifications.PushNotificationsPlugin;
 
 public class MainActivity extends BridgeActivity {
 
     private LogoSwipeRefreshLayout swipeRefresh;
     private long sonGeriTusuZamani = 0;
+    private android.widget.FrameLayout baslangicYuklemeKatmani;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,7 +27,84 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         handleIntent(getIntent());
         setupPullToRefresh();
+        setupBaslangicYuklemesi();
         kenarJestiniAyir();
+    }
+
+    /* YENİ: Uygulama açılışında WebView sayfayı yükleyip JS/CSS/ilk render
+       tamamlanana kadar EKRANIN ORTASINDA dönen bir logo göstergesi + kısa
+       bir "Bağlanıyor…" yazısı gösterir. Sayfa yüklenince (Capacitor'ın
+       resmi WebViewListener.onPageLoaded kancası — WebViewClient'ı
+       DEĞİŞTİRMEDEN, bridge'in kendi mekanizmasına eklenir) katman
+       kaybolur. Mevcut aşağı-çekince-yenile göstergesinden (LogoPullRefreshView,
+       üstte küçük) ayrı, bağımsız bir katmandır — ikisi çakışmaz. */
+    private void setupBaslangicYuklemesi() {
+        WebView webView = getBridge().getWebView();
+        android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
+        if (parent == null) return;
+
+        float density = getResources().getDisplayMetrics().density;
+        int logoBoyutPx = Math.round(96 * density);
+
+        baslangicYuklemeKatmani = new android.widget.FrameLayout(this);
+        baslangicYuklemeKatmani.setBackgroundColor(0xFF0A6E6E); // android:windowBackground / colorPrimary ile birebir — splash'tan WebView'e geçişte "flaş" olmasın
+
+        android.widget.LinearLayout icerik = new android.widget.LinearLayout(this);
+        icerik.setOrientation(android.widget.LinearLayout.VERTICAL);
+        icerik.setGravity(android.view.Gravity.CENTER);
+
+        LogoPullRefreshView spinner = new LogoPullRefreshView(this);
+        android.widget.LinearLayout.LayoutParams spinnerLp =
+            new android.widget.LinearLayout.LayoutParams(logoBoyutPx, logoBoyutPx);
+        icerik.addView(spinner, spinnerLp);
+        spinner.setSpinning(true);
+
+        android.widget.TextView metin = new android.widget.TextView(this);
+        metin.setText("Bağlanıyor…");
+        metin.setTextColor(0xFFFFFFFF); // koyu teal zemin üzerinde beyaz — kontrast için
+        metin.setTextSize(14f);
+        android.widget.LinearLayout.LayoutParams metinLp = new android.widget.LinearLayout.LayoutParams(
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        metinLp.topMargin = Math.round(14 * density);
+        icerik.addView(metin, metinLp);
+
+        android.widget.FrameLayout.LayoutParams icerikLp = new android.widget.FrameLayout.LayoutParams(
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+        );
+        icerikLp.gravity = android.view.Gravity.CENTER;
+        baslangicYuklemeKatmani.addView(icerik, icerikLp);
+
+        // swipeRefresh, webView'i zaten kendi parent'ına eklemiş durumda —
+        // bu katmanı EN ÜSTE (son child olarak) ekliyoruz ki her şeyin üzerinde görünsün.
+        parent.addView(baslangicYuklemeKatmani, new android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        ));
+
+        getBridge().addWebViewListener(new WebViewListener() {
+            @Override
+            public void onPageLoaded(WebView view) {
+                baslangicYuklemesiniGizle();
+            }
+        });
+    }
+
+    private void baslangicYuklemesiniGizle() {
+        if (baslangicYuklemeKatmani == null) return;
+        baslangicYuklemeKatmani.animate()
+            .alpha(0f)
+            .setDuration(220)
+            .withEndAction(() -> {
+                if (baslangicYuklemeKatmani != null) {
+                    android.view.ViewGroup p = (android.view.ViewGroup) baslangicYuklemeKatmani.getParent();
+                    if (p != null) p.removeView(baslangicYuklemeKatmani);
+                    baslangicYuklemeKatmani = null;
+                }
+            })
+            .start();
     }
 
     /* Android 10+ (API 29) sistem "geri" hareket algılaması, ekranın sol
