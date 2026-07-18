@@ -273,16 +273,27 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
       const yapti = sutunlar.filter(s => hucreler[ogrenciId + '_' + s.id] === 'yapti').length;
       return `${yapti}/${sutunlar.length}`;
     }
-    if(hucreModu === 'puan'){
-      const degerler = sutunlar.map(s => hucreler[ogrenciId + '_' + s.id]).filter(v => v !== undefined && v !== null && v !== '').map(Number);
-      if(!degerler.length) return '—';
-      const ort = degerler.reduce((a, b) => a + b, 0) / degerler.length;
-      return ort.toFixed(1);
-    }
+    if(hucreModu === 'puan') return null; // puan modunda ayrı Toplam+Ortalama sütunları kullanılıyor, bkz. aşağı
     const arti = sutunlar.filter(s => hucreler[ogrenciId + '_' + s.id] === 'arti').length;
     const eksi = sutunlar.filter(s => hucreler[ogrenciId + '_' + s.id] === 'eksi').length;
     return `+${arti} / −${eksi}`;
   }
+
+  /** Puan modunda: "Toplam" GERÇEK TOPLAM (sütunların basit toplamı), "Ortalama" ise
+      girilmiş puanların ortalaması — önceden ikisi "Toplam" başlığı altında karışıyordu,
+      kullanıcı geri bildirimiyle ayrı sütunlara bölündü. */
+  function puanToplamHesapla(ogrenciId){
+    const degerler = sutunlar.map(s => hucreler[ogrenciId + '_' + s.id]).filter(v => v !== undefined && v !== null && v !== '').map(Number);
+    if(!degerler.length) return '—';
+    return degerler.reduce((a, b) => a + b, 0).toFixed(1).replace(/\.0$/, '');
+  }
+  function puanOrtalamaHesapla(ogrenciId){
+    const degerler = sutunlar.map(s => hucreler[ogrenciId + '_' + s.id]).filter(v => v !== undefined && v !== null && v !== '').map(Number);
+    if(!degerler.length) return '—';
+    return (degerler.reduce((a, b) => a + b, 0) / degerler.length).toFixed(1);
+  }
+
+  const puanModuMu = tip === 'notCizelgesi' && hucreModu === 'puan';
 
   const sutunBaslikHtml = sutunlar.map(s => `
     <th class="onc-th" style="min-width:70px;padding:6px 4px;font-size:12px;">
@@ -298,7 +309,10 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
         ${etkilesimliMi ? `<button class="onc-sil-ikon" onclick="oncOgrenciSil('${o.id}')" title="Öğrenciyi sil" style="margin-left:6px;">🗑️</button>` : ''}
       </td>
       ${sutunlar.map(s => hucreGoster(o.id, s.id)).join('')}
-      <td class="onc-td onc-td-toplam" style="text-align:center;font-weight:700;font-size:12px;">${toplamGoster(o.id)}</td>
+      ${puanModuMu
+        ? `<td class="onc-td onc-td-toplam" style="text-align:center;font-weight:700;font-size:12px;">${puanToplamHesapla(o.id)}</td>
+           <td class="onc-td onc-td-toplam" style="text-align:center;font-weight:700;font-size:12px;">${puanOrtalamaHesapla(o.id)}</td>`
+        : `<td class="onc-td onc-td-toplam" style="text-align:center;font-weight:700;font-size:12px;">${toplamGoster(o.id)}</td>`}
     </tr>
   `).join('');
 
@@ -308,7 +322,9 @@ function _oncTabloHtmlUret(tip, kayit, etkilesimliMi){
         <tr>
           <th class="onc-th" style="text-align:left;padding:6px 8px;">Öğrenci</th>
           ${sutunBaslikHtml}
-          <th class="onc-th" style="min-width:70px;">Toplam</th>
+          ${puanModuMu
+            ? `<th class="onc-th" style="min-width:60px;">Toplam</th><th class="onc-th" style="min-width:60px;">Ortalama</th>`
+            : `<th class="onc-th" style="min-width:70px;">Toplam</th>`}
         </tr>
       </thead>
       <tbody>${satirlarHtml}</tbody>
