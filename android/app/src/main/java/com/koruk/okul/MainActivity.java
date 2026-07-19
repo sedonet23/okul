@@ -96,6 +96,27 @@ public class MainActivity extends BridgeActivity {
         if (swipeRefresh != null) swipeRefresh.setPullEnabled(enabled);
     }
 
+    // YENİ: sabit bir bekleme süresi (800ms, 3sn, ne olursa olsun) tahmin
+    // yürütmekten vazgeçildi — gerçek yükleme süresi değişken (Firebase
+    // bağlantısı + ilk veri gelmesi bazen çok kısa bazen birkaç saniye
+    // sürebiliyor). Artık JS tarafı (auth.js: uygulamaBaslat() sonrası,
+    // PullToRefreshPlugin.appHazir() üzerinden) GERÇEKTEN hazır olduğunda
+    // haber veriyor — bkz. markAppReady(). Bu sinyal hiç gelmezse (hata/js
+    // kırılırsa) sonsuza kadar dönmesin diye FALLBACK_TIMEOUT_MS'lik bir
+    // güvenlik sınırı var.
+    private static final long FALLBACK_TIMEOUT_MS = 8000;
+    private final android.os.Handler _readyHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable _fallbackRunnable;
+
+    /* JS'in (auth.js) "uygulama gerçekten hazır" sinyali — bkz. PullToRefreshPlugin.appHazir(). */
+    public void markAppReady() {
+        if (_fallbackRunnable != null) {
+            _readyHandler.removeCallbacks(_fallbackRunnable);
+            _fallbackRunnable = null;
+        }
+        if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
+    }
+
     private void setupPullToRefresh() {
         WebView webView = getBridge().getWebView();
         android.view.ViewGroup parent = (android.view.ViewGroup) webView.getParent();
@@ -124,30 +145,14 @@ public class MainActivity extends BridgeActivity {
             webView.reload();
             // NOT: eskiden reload() çağrıldıktan HEMEN bir satır sonra
             // setRefreshing(false) çağrılıyordu — sayfa gerçekten
-            // yüklenmeyi BEKLEMEDEN gösterge anında kapanıyordu. Artık
-            // Capacitor'ın resmi WebViewListener.onPageLoaded kancasıyla
-            // (WebViewClient'ı DEĞİŞTİRMEDEN) gerçek yükleme bitimini
-            // bekliyoruz — bkz. aşağıdaki addWebViewListener çağrısı.
-        });
-
-        getBridge().addWebViewListener(new com.getcapacitor.WebViewListener() {
-            @Override
-            public void onPageLoaded(WebView view) {
-                // YENİ: onPageLoaded, sayfanın HTML/JS'i indirip ayrıştırdığı
-                // anı bildirir — ama uygulamanın GERÇEKTEN kullanılabilir
-                // olması (Firebase bağlantısı + ilk veri gelmesi) bundan
-                // biraz sonra oluyor. Gösterge çok erken kapanıp kullanıcıyı
-                // hâlâ boş/yükleniyor bir ekranla baş başa bırakıyordu.
-                // Basit çözüm: 3 saniye ekstra bekleyip öyle kapat.
-                // YENİ: 3000ms çok uzun geldi VE sayfa gerçekten yeniden
-                // yüklenirken oluşan geçici/çirkin ara durumu (kısa süreliğine
-                // iki gösterge/boş ekran gibi görünme) daha da UZUN görünür
-                // kılıyordu. 800ms'e düşürüldü — hâlâ ham onPageLoaded'dan
-                // biraz daha payı var ama aşırıya kaçmıyor.
-                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-                    if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
-                }, 800);
-            }
+            // yüklenmeyi BEKLEMEDEN gösterge anında kapanıyordu. Sonra
+            // sabit bir bekleme (800ms/3sn) denendi, o da gerçek yükleme
+            // süresiyle uyuşmuyordu (video analizinde ~4sn'lik bir "takılı
+            // kalma" gözlendi). Artık aşağıdaki fallback + markAppReady()
+            // ikilisiyle yönetiliyor.
+            if (_fallbackRunnable != null) _readyHandler.removeCallbacks(_fallbackRunnable);
+            _fallbackRunnable = () -> { if (swipeRefresh != null) swipeRefresh.setRefreshing(false); };
+            _readyHandler.postDelayed(_fallbackRunnable, FALLBACK_TIMEOUT_MS);
         });
     }
 

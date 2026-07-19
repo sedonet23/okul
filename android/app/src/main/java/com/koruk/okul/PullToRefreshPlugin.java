@@ -26,4 +26,17 @@ public class PullToRefreshPlugin extends Plugin {
         }
         call.resolve();
     }
+
+    /* YENİ: JS tarafı (auth.js: uygulamaBaslat() sonrası) uygulamanın
+       GERÇEKTEN kullanılabilir olduğu anı bildirmek için bunu çağırır —
+       pull-to-refresh göstergesi artık sabit bir süre tahmin etmek yerine
+       bu sinyali bekleyip HEMEN kapanabiliyor (bkz. MainActivity.markAppReady). */
+    @PluginMethod
+    public void appHazir(PluginCall call) {
+        MainActivity activity = (MainActivity) getActivity();
+        if (activity != null) {
+            activity.runOnUiThread(activity::markAppReady);
+        }
+        call.resolve();
+    }
 }
