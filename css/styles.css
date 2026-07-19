@@ -1586,7 +1586,7 @@ table.cizelge td.cz-rowlabel .cz-extra{ display:block; max-width:100%; overflow:
 [id*="havaDurumuDetay"]{
   position: fixed !important;
   inset: 0 !important;
-  z-index: 9650 !important;
+  z-index: 8000 !important; /* DÜZELTME: 9650 idi — alt nav menüsünün (.an-grid-katman/.an-liste-katman, z-index:9500) ÜSTÜNDE kalıp menüyü arkada bırakıyordu. JS'teki (hava-durumu.js) orijinal inline değeri olan 8000 ile eşitlendi. */
   background: var(--nm-bg) !important;
   overflow-y: auto;
   pointer-events: all !important;
