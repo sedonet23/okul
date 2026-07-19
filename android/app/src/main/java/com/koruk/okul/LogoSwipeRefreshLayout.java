@@ -6,7 +6,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.animation.OvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.webkit.WebView;
 import android.widget.FrameLayout;
 
@@ -23,6 +23,16 @@ import android.widget.FrameLayout;
  * WebViewAwareSwipeRefreshLayout.canChildScrollUp()'tan birebir taşındı —
  * aynı sebep: standart View kaydırma sistemi WebView'in iç durumuyla her
  * zaman senkron olmuyor.
+ *
+ * NOT: Bir ara web'deki (HTML demo) davranışına benzetmek için içeriğin
+ * (WebView) parmakla birlikte kaymasını, kare-kök tabanlı "rubber-band"
+ * direncini ve OvershootInterpolator'ı denedik — ama gerçek cihazda bu,
+ * ÇALIŞAN bir deneyimi bozdu (içerik aşağı kayıp arkada koyu bir boşluk
+ * bırakıyordu, dönme/bekleme davranışı da bozuluyordu). Geri alındı.
+ * Eğer ileride tekrar denenirse, "arkadaki boşluk" sorununun kaynağı
+ * muhtemelen FrameLayout'un kendi arka planının (webView'in ardından
+ * görünen alan) şeffaf/uygulama temasıyla eşleşmemesidir — o kısım
+ * çözülmeden içerik kaydırma denemesi tekrar aynı soruna yol açar.
  */
 public class LogoSwipeRefreshLayout extends FrameLayout {
 
@@ -30,19 +40,16 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         void onRefresh();
     }
 
-    private static final float DAMPING              = 0.6f; // eğri hesaba katılmadan önceki temel oran (bkz. dampedDy hesaplaması)
+    private static final float DAMPING              = 0.6f; // parmak mesafesi -> görsel mesafe oranı
     private static final int   TRIGGER_DISTANCE_DP   = 135;  // bu kadar (dp) çekilince yenileme tetiklenir
     private static final int   INDICATOR_SIZE_DP     = 48;
     private static final int   INDICATOR_TOP_MARGIN_DP = 80; // eskiden 14dp — çok üstte/başlığın içinde kalıyordu
     private static final int   SPRING_BACK_MS        = 220;
-    private static final float CONTENT_FOLLOW_RATIO  = 0.55f; // YENİ: içerik, gösterge mesafesinin bu kadarı kadar aşağı kaysın
-    private static final float MAX_RAW_DY_DP         = 260f;  // YENİ: rubber-band eğrisinin doygunlaştığı ham (parmak) mesafe
 
     private final WebView webView;
     private final LogoPullRefreshView indicator;
     private final int touchSlop;
     private final float triggerDistancePx;
-    private final float maxRawDyPx; // YENİ: rubber-band eğrisi bu ham mesafede doygunlaşır
     private final float hiddenTranslationY; // indicator'ın tamamen gizliyken durduğu translationY
 
     private float downY;
@@ -60,7 +67,6 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         float density = context.getResources().getDisplayMetrics().density;
         this.touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         this.triggerDistancePx = TRIGGER_DISTANCE_DP * density;
-        this.maxRawDyPx = MAX_RAW_DY_DP * density;
 
         int indicatorSizePx = Math.round(INDICATOR_SIZE_DP * density);
         int topMarginPx = Math.round(INDICATOR_TOP_MARGIN_DP * density);
@@ -151,12 +157,7 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
             case MotionEvent.ACTION_MOVE: {
                 if (!dragging) return false;
                 float rawDy = Math.max(0f, ev.getY() - downY);
-                // YENİ: düz çarpan (rawDy * DAMPING) yerine kare-kök tabanlı
-                // "rubber-band" direnci — parmak ne kadar uzağa giderse
-                // görsel karşılık o kadar YAVAŞLAR (gerçek esneme hissi).
-                // Web'deki demoyla birebir aynı formül.
-                float clampedRaw = Math.min(rawDy, maxRawDyPx);
-                float dampedDy = (float) Math.sqrt(clampedRaw) * (triggerDistancePx * 1.15f / (float) Math.sqrt(maxRawDyPx));
+                float dampedDy = rawDy * DAMPING;
                 applyPull(dampedDy);
                 return true;
             }
@@ -176,16 +177,14 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         return false;
     }
 
-    /** Çekme sırasında göstergeyi VE içeriği (WebView) birlikte hareket ettirir —
-        eskiden sadece gösterge kayıyordu, içerik yerinde sabit kalıyordu. */
+    /** Çekme sırasında SADECE göstergeyi (üstte şeffaf bir katman olarak) hareket
+        ettirir — içerik (WebView) yerinde sabit kalır, ekran aşağı kaymaz. */
     private void applyPull(float dampedDy) {
         currentDampedDy = dampedDy;
         float revealed = hiddenTranslationY + dampedDy;
         indicator.setTranslationY(Math.min(0f, revealed));
         indicator.setProgress(dampedDy / triggerDistancePx);
         indicator.setVisibility(dampedDy > 0.5f ? VISIBLE : INVISIBLE);
-        // YENİ: içerik parmakla birlikte aşağı kayıyor (web demoyla aynı davranış)
-        webView.setTranslationY(dampedDy * CONTENT_FOLLOW_RATIO);
     }
 
     /** Belirtilen mesafeye (0 = tamamen kapalı, triggerDistancePx = tam açık) yumuşakça döner. */
@@ -194,9 +193,7 @@ public class LogoSwipeRefreshLayout extends FrameLayout {
         float startDampedDy = currentDampedDy;
         springAnimator = ValueAnimator.ofFloat(startDampedDy, targetDampedDy);
         springAnimator.setDuration(SPRING_BACK_MS);
-        // YENİ: Decelerate (düz yumuşama) yerine Overshoot — bırakınca hafifçe
-        // "fazla gidip" geri toparlanan esneme hissi (web demoyla aynı).
-        springAnimator.setInterpolator(new OvershootInterpolator(1.4f));
+        springAnimator.setInterpolator(new DecelerateInterpolator());
         springAnimator.addUpdateListener(a -> applyPull((float) a.getAnimatedValue()));
         springAnimator.start();
     }
