@@ -277,6 +277,18 @@ function authDinleyiciKur(){
       if(typeof IstatistikService !== 'undefined') IstatistikService.girisKaydet();
       if(typeof uygulamaBaslat === 'function') uygulamaBaslat();
 
+      // YENİ: Native tarafa (Android) "uygulama gerçekten hazır" sinyali
+      // gönder — pull-to-refresh göstergesinin sabit bir süre yerine
+      // GERÇEKTEN hazır olana kadar dönmesi için. window.Capacitor yoksa
+      // (web sürümü) sessizce atlanır. Bu satır hem ilk açılışta hem
+      // location.reload() sonrası (çıkış/pull-to-refresh) aynı auth
+      // callback'inden geçtiği için tek bir yer yeterli.
+      try{
+        if(window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.PullToRefreshPlugin){
+          window.Capacitor.Plugins.PullToRefreshPlugin.appHazir();
+        }
+      }catch(e){ /* native köprü yoksa (web) sorun değil */ }
+
     }catch(err){
       console.error('Kullanıcı belgesi kontrol edilemedi:', err);
       alert('Hesap bilgileri okunamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.\n\n' + (err.message || ''));
