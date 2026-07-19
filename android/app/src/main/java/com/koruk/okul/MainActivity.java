@@ -139,9 +139,14 @@ public class MainActivity extends BridgeActivity {
                 // biraz sonra oluyor. Gösterge çok erken kapanıp kullanıcıyı
                 // hâlâ boş/yükleniyor bir ekranla baş başa bırakıyordu.
                 // Basit çözüm: 3 saniye ekstra bekleyip öyle kapat.
+                // YENİ: 3000ms çok uzun geldi VE sayfa gerçekten yeniden
+                // yüklenirken oluşan geçici/çirkin ara durumu (kısa süreliğine
+                // iki gösterge/boş ekran gibi görünme) daha da UZUN görünür
+                // kılıyordu. 800ms'e düşürüldü — hâlâ ham onPageLoaded'dan
+                // biraz daha payı var ama aşırıya kaçmıyor.
                 new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
                     if (swipeRefresh != null) swipeRefresh.setRefreshing(false);
-                }, 3000);
+                }, 800);
             }
         });
     }
