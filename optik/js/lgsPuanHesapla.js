@@ -174,6 +174,49 @@
     }
 
     // ────────────────────────────────────────────────────────────────
+    // BURSLULUK — STANDARDİZASYONUN TANIMSIZ KALDIĞI DURUM İÇİN
+    // BAĞIMSIZ TAHMİNİ FORMÜL (resmi 7 adımlı yöntemin YERİNE GEÇMEZ)
+    // ────────────────────────────────────────────────────────────────
+    // Resmi yöntem, sınava giren öğrenciler arasında varyans olmasını
+    // gerektirir (stdSapma>0, MaxTASP≠MinTASP). Tek öğrenci taratıldığında
+    // ya da tüm öğrenciler eşit TASP aldığında bu matematiksel olarak
+    // tanımsız kalır — mspHesapla() o durumda performanstan bağımsız sabit
+    // 300 döner (bkz. yukarısı). Bu bölüm SADECE o durumda devreye giren,
+    // hiçbir dışarıdan veri gerektirmeyen, doğrudan net/soru oranına dayalı
+    // basit bir formül sağlar:
+    //
+    //   Puan = 100 + 400 × ( Σ(Net_ders × Katsayı_ders) / Σ(SoruSayısı_ders × Katsayı_ders) )
+    //
+    // (ağırlıklı net oranı 0'ın altındaysa 0'a, 1'in üzerindeyse 1'e sabitlenir)
+
+    /**
+     * @param {Array<{dersAdi:string, d:number, y:number, soruSayisi?:number}>} dersDetay
+     * @param {Array<{dersAdi:string, soruSayisi:number}>} [dersler] - ders başına toplam soru sayısı;
+     *   verilmezse dersDetay içindeki soruSayisi, o da yoksa 20 varsayılır.
+     * @returns {{puan:number, dersNetleri:Array<{dersAdi:string, net:number, katsayi:number, soruSayisi:number}>}}
+     */
+    function burslulukTekOgrenciPuanHesapla(dersDetay, dersler) {
+        function soruSayisiBul(dersAdi, detay) {
+            if (Number.isFinite(detay?.soruSayisi)) return detay.soruSayisi;
+            const eslesen = (dersler || []).find(x => normalizeDersAdi(x.dersAdi) === normalizeDersAdi(dersAdi));
+            return Number.isFinite(eslesen?.soruSayisi) ? eslesen.soruSayisi : 20;
+        }
+        let agirlikliNetToplam = 0, agirlikliMaksToplam = 0;
+        const dersNetleri = (dersDetay || []).map(detay => {
+            const net = detaydanNetHesapla(detay);
+            const katsayi = dersKatsayisi(detay.dersAdi, 'bursluluk');
+            const soru = soruSayisiBul(detay.dersAdi, detay);
+            agirlikliNetToplam += net * katsayi;
+            agirlikliMaksToplam += soru * katsayi;
+            return { dersAdi: detay.dersAdi, net, katsayi, soruSayisi: soru };
+        });
+        let oran = agirlikliMaksToplam > 0 ? (agirlikliNetToplam / agirlikliMaksToplam) : 0;
+        if (oran < 0) oran = 0;
+        if (oran > 1) oran = 1;
+        return { puan: parseFloat((100 + 400 * oran).toFixed(1)), dersNetleri };
+    }
+
+    // ────────────────────────────────────────────────────────────────
     // SABİT KATSAYILI TAHMİNİ PUAN (yaygın kullanılan formül)
     // ────────────────────────────────────────────────────────────────
     // MEB'in resmî standardizasyon yöntemi (yukarısı) Türkiye ortalaması,
@@ -356,7 +399,24 @@
             taspKaynak = 'tahmini';
         }
 
-        ogrenciler.forEach(o => { o.msp = parseFloat(mspHesapla(o.tasp, minTasp, maxTasp).toFixed(1)); });
+        // Standardizasyon tanımsız mı? (aralık<=0 → tek öğrenci ya da tüm
+        // öğrenciler eşit TASP aldı). Bu durumda SADECE bursluluk için resmi
+        // mspHesapla()'nın döndüreceği sabit 300 yerine, net/soru oranına
+        // dayalı bağımsız tahmini formüle düşülür — resmi formülün kendisi
+        // (mspHesapla, standartPuanHesapla vb.) DEĞİŞTİRİLMEDEN, sadece n>1
+        // ve gerçek varyans olduğunda kullanılmaya devam eder.
+        const standardizasyonTanimsizMi = (maxTasp - minTasp) <= 0;
+        ogrenciler.forEach(o => {
+            if (sinavTuru === 'bursluluk' && standardizasyonTanimsizMi) {
+                const sonuc = gecerliSonuclar.find(s => s.id === o.sonucId);
+                const yedek = burslulukTekOgrenciPuanHesapla(sonuc.puan.dersDetay, dersler);
+                o.msp = yedek.puan;
+                o.mspYontemi = 'tek-ogrenci-tahmini';
+            } else {
+                o.msp = parseFloat(mspHesapla(o.tasp, minTasp, maxTasp).toFixed(1));
+                o.mspYontemi = 'resmi';
+            }
+        });
         ogrenciler.sort((a, b) => b.msp - a.msp);
 
         const sinavOrtalamaMsp = ogrenciler.length
@@ -374,6 +434,11 @@
             ogrenciler,
             sinavOrtalamaMsp,
             tamamiGercek,
+            // true ⇒ MaxTASP=MinTASP (tek öğrenci ya da tüm öğrenciler eşit TASP aldı),
+            // resmi standardizasyon tanımsız kaldı. Bursluluk'ta bu durumda ogrenciler[].msp
+            // resmi formülle DEĞİL, net/soru oranına dayalı yedek formülle (bkz.
+            // burslulukTekOgrenciPuanHesapla, ogrenciler[].mspYontemi==='tek-ogrenci-tahmini') hesaplanır.
+            standardizeEdilemedi: standardizasyonTanimsizMi,
         };
     }
 
@@ -393,6 +458,8 @@
         sabitFormulKatsayisi,
         sabitFormulPuanHesapla,
         sinavRaporuSabitFormulHesapla,
+        // Bursluluk — standardizasyon tanımsız kaldığında (tek öğrenci vb.) kullanılan yedek formül
+        burslulukTekOgrenciPuanHesapla,
     };
 
 })(window);

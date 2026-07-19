@@ -513,6 +513,7 @@ function kagitlariRender() {
     // bir test) formlarda hiçbir puan formülü GEÇERLİ DEĞİL, bu yüzden
     // puan gösterilmez (yalnızca D/Y/B/N görünür).
     const puanMap = {}; // sonucId -> puan (number) | undefined
+    const puanYontemMap = {}; // sonucId -> 'resmi' | 'tek-ogrenci-tahmini' (yalnızca bursluluk)
     if (sinavTuru === 'lgs') {
         sonuclar.forEach(r => {
             const sonuc = window.LgsPuanHesapla?.sabitFormulPuanHesapla(r.puan?.dersDetay || []);
@@ -522,7 +523,7 @@ function kagitlariRender() {
         const dersler = formDersleriniGetir(_aktifSinavId);
         const harici = _lgsHariciVeriyiHazirla('bursluluk');
         const rapor = window.LgsPuanHesapla?.sinavRaporuHesapla(sonuclar, dersler, harici, 'bursluluk');
-        (rapor?.ogrenciler || []).forEach(o => { puanMap[o.sonucId] = o.msp; });
+        (rapor?.ogrenciler || []).forEach(o => { puanMap[o.sonucId] = o.msp; puanYontemMap[o.sonucId] = o.mspYontemi; });
     }
 
     // Puana göre büyükten küçüğe sırala (puanı olmayanlar — ör. özel form
@@ -544,12 +545,13 @@ function kagitlariRender() {
         const p     = r.puan || {};
 
         const puan = puanMap[r.id];
+        const tahminiMi = puanYontemMap[r.id] === 'tek-ogrenci-tahmini';
         const puanBadgeHtml = puan != null
             ? (() => {
                 const puanSinif = puan >= 350 ? 'puan-yuksek' : puan >= 250 ? 'puan-orta' : 'puan-dusuk';
-                return `<span class="puan-badge ${puanSinif}">
-                    <span class="puan-badge-sayi">${puan.toFixed(1)}</span>
-                    <span class="puan-badge-ad">${_h(formAd)}</span>
+                return `<span class="puan-badge ${puanSinif}" ${tahminiMi ? 'title="Standardizasyon tanımsız (tek öğrenci) — net oranına dayalı yaklaşık puan, resmi MEB puanı değildir."' : ''}>
+                    <span class="puan-badge-sayi">${puan.toFixed(1)}${tahminiMi ? ' *' : ''}</span>
+                    <span class="puan-badge-ad">${_h(formAd)}${tahminiMi ? ' (tahmini)' : ''}</span>
                 </span>`;
             })()
             : '';
@@ -1033,7 +1035,7 @@ function lgsPuanRaporunuAcVeGoster() {
 
         if (kaynakEl) {
             kaynakEl.textContent = rapor.standardizeEdilemedi
-                ? 'İOKBS puanı hesaplanamıyor: standardizasyon için en az 2 farklı öğrenci sonucu (birbirinden farklı TASP) gerekiyor. "MEB Verilerini Gir" panelinden geçmiş yıl/tahmini ortalama-standart sapma-TASP aralığı girerseniz tek öğrenciyle de puan hesaplanabilir. Aşağıda yalnızca doğru/yanlış/boş/net görünüyor.'
+                ? 'Resmi İOKBS standardizasyonu tanımsız kaldı: en az 2 farklı öğrenci sonucu (birbirinden farklı TASP) gerekiyor — şu an tek öğrenci var ya da tüm öğrenciler eşit TASP aldı. Bu yüzden aşağıdaki puan(lar) resmi yöntemle DEĞİL, doğrudan net/soru oranına dayalı yaklaşık bir formülle hesaplandı (gerçek İOKBS puanı değildir). "MEB Verilerini Gir" panelinden geçmiş yıl ortalama/standart sapma/TASP aralığı girerseniz resmi yönteme göre daha güvenilir bir sonuç alınabilir.'
                 : (rapor.tamamiGercek
                     ? 'Girilen referans verileriyle (geçmiş yıl/tahmini ortalama-standart sapma-TASP aralığı) hesaplandı — resmî sonuçtan farklı olabilir.'
                     : 'İOKBS resmî yöntemiyle hesaplandı: Ham Puan = Doğru − Yanlış/3; ortalama, standart sapma ve TASP aralığı bu sınava giren öğrencilerin kendi verisinden alınır (bkz. ODSGM İOKBS Kılavuzu). Daha güvenilir bir tahmin için "MEB Verilerini Gir" panelinden geçmiş yıl değerlerini girebilirsiniz.');
@@ -1064,7 +1066,7 @@ function lgsPuanRaporunuAcVeGoster() {
                     <strong>${_h(ogr.adSoyad || 'İsimsiz')}</strong>
                     <small>${_h(ogr.sinif || '')}${ogr.sinif && ogr.ogrenciNo ? ' · ' : ''}${_h(ogr.ogrenciNo || '')}</small>
                 </div>
-                <span class="lgs-ogr-msp">${o.msp != null ? o.msp.toFixed(1) : '—'}</span>
+                <span class="lgs-ogr-msp"${o.mspYontemi === 'tek-ogrenci-tahmini' ? ' title="Net/soru oranına dayalı yaklaşık puan — resmi İOKBS puanı değildir."' : ''}>${o.msp != null ? o.msp.toFixed(1) : '—'}${o.mspYontemi === 'tek-ogrenci-tahmini' ? ' *' : ''}</span>
             </div>
             <div class="lgs-ogr-detay">
                 <span class="lgs-detay-baslik">Ders</span>
