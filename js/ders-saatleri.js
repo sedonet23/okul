@@ -34,19 +34,15 @@ function dersSaatleriBaglantisiKur(){
     // "takılı" bırakabiliyor (Android'de aynı ağda bile sorun yaşanmayabilir,
     // çünkü APK tarayıcı uzantılarından geçmiyor). 8 saniye içinde sunucu
     // onayı gelmezse kalıcı bir uyarı gösterilir.
+    //
+    // KAPATILDI (kullanıcı isteğiyle): bu uyarı çok sık yanlış pozitif
+    // veriyor (Firestore ilk anlık görüntüyü zaten neredeyse her zaman
+    // önce yerel önbellekten verir, bu normal davranıştır — 8sn içinde
+    // sunucu onayı gecikmesi mutlaka gerçek bir senkron sorunu anlamına
+    // gelmiyor). Uyarı tetiklenmiyor; veri akışı (dersSaatleriAyarlari
+    // güncellemesi) bundan etkilenmeden aynı şekilde çalışmaya devam eder.
     if(_dsrSenkronUyariZamanlayici) clearTimeout(_dsrSenkronUyariZamanlayici);
-    // YENİ: Bu uyarı artık SADECE native (APK) ortamda gösteriliyor. Web/PWA
-    // sürümünde (Capacitor yok ya da isNativePlatform() false) hiç tetiklenmiyor.
-    const _nativeMi = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-    if(metadata && metadata.fromCache && _nativeMi){
-      _dsrSenkronUyariZamanlayici = setTimeout(()=>{
-        if(typeof _senkronUyariGoster === 'function'){
-          _senkronUyariGoster('⚠️ Ders saatleri/Tatil Modu verisi sunucudan doğrulanamadı — cihazınızın eski önbelleğinden gösteriliyor olabilir. Farklı bir ağ deneyin veya tarayıcı uzantılarını (reklam engelleyici vb.) kapatıp yeniden yükleyin.');
-        }
-      }, 8000);
-    } else if(typeof _senkronUyariGizle === 'function'){
-      _senkronUyariGizle();
-    }
+    if(typeof _senkronUyariGizle === 'function') _senkronUyariGizle();
   });
 }
 
