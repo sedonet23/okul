@@ -131,7 +131,7 @@
   --ink-on-dark:      #D0ECEC;
   --ink-on-dark-muted:#3A7878;
 
-  --border:      rgba(0,0,0,0.28);
+  --border:      rgba(255,255,255,0.18);
   --border-soft: rgba(42,60,68,0.20);
 
   --el-1: var(--nm-sm);
