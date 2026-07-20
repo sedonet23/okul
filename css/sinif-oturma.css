@@ -144,7 +144,7 @@
 #sinifOturmaOverlay .so-koltuk:active { background: rgba(255,255,255,.85); }
 
 #sinifOturmaOverlay .so-oge.ogretmen-masasi { background: var(--brand-light); color: var(--brand-dark); border: 1.5px dashed var(--brand); flex-direction: column; }
-#sinifOturmaOverlay .so-ogretmen-ad { cursor: pointer; font-size: 14px; font-weight: 700; }
+#sinifOturmaOverlay .so-ogretmen-ad { cursor: pointer; font-size: 19px; font-weight: 800; }
 #sinifOturmaOverlay .so-oge.kapi { background: #fff; color: #8a4b00; border: 2px solid #c98a2e; flex-direction: column; font-size: 15px; }
 #sinifOturmaOverlay .so-oge.pencere { background: #fff; color: #1565c0; border: 2px solid #64b5f6; flex-direction: column; font-size: 14px; }
 #sinifOturmaOverlay .so-oge.yazi-tahtasi { background: #213238; color: #fff; border: 2px solid #0a1518; }
@@ -333,7 +333,7 @@
 #sinifOturmaOverlay .so-koltuk:active{ background:rgba(255,255,255,.85); }
 
 #sinifOturmaOverlay .so-oge.ogretmen-masasi{ background:var(--brand-light); color:var(--brand-dark); border:1.5px dashed var(--brand); flex-direction:column; }
-#sinifOturmaOverlay .so-ogretmen-ad{ cursor:pointer; font-size:14px; font-weight:700; }
+#sinifOturmaOverlay .so-ogretmen-ad{ cursor:pointer; font-size:19px; font-weight:800; }
 #sinifOturmaOverlay .so-oge.kapi{ background:#fff; color:#8a4b00; border:2px solid #c98a2e; flex-direction:column; font-size:15px; }
 #sinifOturmaOverlay .so-oge.pencere{ background:#fff; color:#1565c0; border:2px solid #64b5f6; flex-direction:column; font-size:14px; }
 #sinifOturmaOverlay .so-oge.yazi-tahtasi{ background:#213238; color:#fff; border:2px solid #0a1518; }
