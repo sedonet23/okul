@@ -50,7 +50,7 @@ const SinifOturma = (function(){
   function koltukYaziBoyutuAyarla(masaEl){
     masaEl.querySelectorAll('.so-koltuk').forEach(k => {
       const boyut = Math.min(k.offsetWidth, k.offsetHeight);
-      const punto = Math.max(9, Math.min(26, Math.round(boyut * 0.30)));
+      const punto = Math.max(7, Math.min(16, Math.round(boyut * 0.18)));
       k.style.fontSize = punto + 'px';
     });
   }
@@ -344,10 +344,16 @@ const SinifOturma = (function(){
       }
 
       const mesafe = Math.hypot((e.clientX || basX) - basX, (e.clientY || basY) - basY);
-      if (mesafe < TIKLAMA_ESIGI && basHedef && basHedef.classList) {
-        if (basHedef.classList.contains('so-koltuk')) {
+      if (mesafe < TIKLAMA_ESIGI && basHedef) {
+        const koltukEl2 = basHedef.closest ? basHedef.closest('.so-koltuk') : null;
+        const ogretmenEl2 = basHedef.closest ? basHedef.closest('.so-ogretmen-ad') : null;
+        if (koltukEl2) {
+          koltukSecimAc(koltukEl2);
+        } else if (ogretmenEl2) {
+          ogretmenAdiSor(ogretmenEl2);
+        } else if (basHedef.classList && basHedef.classList.contains('so-koltuk')) {
           koltukSecimAc(basHedef);
-        } else if (basHedef.classList.contains('so-ogretmen-ad')) {
+        } else if (basHedef.classList && basHedef.classList.contains('so-ogretmen-ad')) {
           ogretmenAdiSor(basHedef);
         }
       } else if (mesafe >= TIKLAMA_ESIGI) {
@@ -676,94 +682,99 @@ const SinifOturma = (function(){
       </div>
       <div class="so-govde">
         <div class="so-palet so-nm-raised">
-          <div class="so-palet-grup">
-            <h3>Masa / Sıra</h3>
-            <button class="so-palet-btn" data-tur="tekli-sira"><span class="so-ikon">▭</span> Tekli Sıra</button>
-            <button class="so-palet-btn" data-tur="ikili-masa"><span class="so-ikon">▬</span> İkili Masa</button>
-            <button class="so-palet-btn" data-tur="grup-masasi-4"><span class="so-ikon">▦</span> Grup Masası (4'lü)</button>
-            <button class="so-palet-btn" data-tur="grup-masasi-6"><span class="so-ikon">▦</span> Grup Masası (6'lı)</button>
-          </div>
-          <div class="so-palet-grup">
-            <h3>Sınıf Unsurları</h3>
-            <button class="so-palet-btn" data-tur="ogretmen-masasi"><span class="so-ikon">🧑‍🏫</span> Öğretmen Masası</button>
-            <button class="so-palet-btn" data-tur="kapi"><span class="so-ikon">🚪</span> Kapı</button>
-            <button class="so-palet-btn" data-tur="pencere"><span class="so-ikon">🪟</span> Pencere</button>
-            <button class="so-palet-btn" data-tur="yazi-tahtasi"><span class="so-ikon">📋</span> Yazı Tahtası</button>
+          <!-- Masa/Sıra + Sınıf Unsurları yan yana -->
+          <div class="so-palet-2kolon">
+            <div class="so-palet-grup">
+              <h3>Masa / Sıra</h3>
+              <button class="so-palet-btn" data-tur="tekli-sira"><span class="so-ikon">▭</span> Tekli Sıra</button>
+              <button class="so-palet-btn" data-tur="ikili-masa"><span class="so-ikon">▬</span> İkili Masa</button>
+              <button class="so-palet-btn" data-tur="grup-masasi-4"><span class="so-ikon">▦</span> 4'lü Grup</button>
+              <button class="so-palet-btn" data-tur="grup-masasi-6"><span class="so-ikon">▦</span> 6'lı Grup</button>
+            </div>
+            <div class="so-palet-grup">
+              <h3>Sınıf Unsurları</h3>
+              <button class="so-palet-btn" data-tur="ogretmen-masasi"><span class="so-ikon">🧑‍🏫</span> Öğretmen</button>
+              <button class="so-palet-btn" data-tur="kapi"><span class="so-ikon">🚪</span> Kapı</button>
+              <button class="so-palet-btn" data-tur="pencere"><span class="so-ikon">🪟</span> Pencere</button>
+              <button class="so-palet-btn" data-tur="yazi-tahtasi"><span class="so-ikon">📋</span> Tahta</button>
+            </div>
           </div>
 
-          <div class="so-palet-grup so-oto-panel">
-            <h3>🪄 Otomatik Yerleşim</h3>
-            <label class="so-oto-etiket">Masa türü</label>
-            <select id="soMasaTuru" class="so-oto-input">
-              <option value="tekli-sira">Tekli Sıra</option>
-              <option value="ikili-masa" selected>İkili Masa</option>
-              <option value="grup-masasi-4">Grup Masası (4'lü)</option>
-              <option value="grup-masasi-6">Grup Masası (6'lı)</option>
-            </select>
-            <div class="so-oto-satir-2">
-              <div>
-                <label class="so-oto-etiket">Yan yana (sütun)</label>
-                <input type="number" id="soSutun" class="so-oto-input" value="3" min="1" max="10">
+          <!-- Otomatik Yerleşim + Öge Boyutları yan yana -->
+          <div class="so-palet-2kolon so-oto-panel">
+            <div>
+              <h3>🪄 Otomatik Yerleşim</h3>
+              <label class="so-oto-etiket">Masa türü</label>
+              <select id="soMasaTuru" class="so-oto-input">
+                <option value="tekli-sira">Tekli Sıra</option>
+                <option value="ikili-masa" selected>İkili Masa</option>
+                <option value="grup-masasi-4">Grup (4'lü)</option>
+                <option value="grup-masasi-6">Grup (6'lı)</option>
+              </select>
+              <div class="so-oto-satir-2">
+                <div>
+                  <label class="so-oto-etiket">Sütun</label>
+                  <input type="number" id="soSutun" class="so-oto-input" value="3" min="1" max="10">
+                </div>
+                <div>
+                  <label class="so-oto-etiket">Satır</label>
+                  <input type="number" id="soSatir" class="so-oto-input" value="5" min="1" max="15">
+                </div>
               </div>
-              <div>
-                <label class="so-oto-etiket">Arka arkaya (satır)</label>
-                <input type="number" id="soSatir" class="so-oto-input" value="5" min="1" max="15">
+              <label class="so-oto-etiket">Kapı konumu</label>
+              <select id="soKapiYonu" class="so-oto-input">
+                <option value="sol">Sol</option>
+                <option value="sag" selected>Sağ</option>
+              </select>
+              <label class="so-oto-etiket">Sütun aralığı</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoSutunAraligiAzalt">－</button>
+                <span id="soSutunAraligiGoster">12px</span>
+                <button type="button" class="so-yon-btn" id="btnSoSutunAraligiArtir">＋</button>
+              </div>
+              <label class="so-oto-etiket">Satır aralığı</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoSatirAraligiAzalt">－</button>
+                <span id="soSatirAraligiGoster">66px</span>
+                <button type="button" class="so-yon-btn" id="btnSoSatirAraligiArtir">＋</button>
               </div>
             </div>
-            <label class="so-oto-etiket">Kapı konumu</label>
-            <select id="soKapiYonu" class="so-oto-input">
-              <option value="sol">Sol</option>
-              <option value="sag" selected>Sağ</option>
-            </select>
-            <label class="so-oto-etiket">Sütun aralığı (koridor)</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoSutunAraligiAzalt">－</button>
-              <span id="soSutunAraligiGoster">12px</span>
-              <button type="button" class="so-yon-btn" id="btnSoSutunAraligiArtir">＋</button>
-            </div>
-            <label class="so-oto-etiket">Satır aralığı</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoSatirAraligiAzalt">－</button>
-              <span id="soSatirAraligiGoster">66px</span>
-              <button type="button" class="so-yon-btn" id="btnSoSatirAraligiArtir">＋</button>
-            </div>
-            <div class="so-palet-not" style="padding:6px 2px 8px;">Öğretmen masası ve pencereler kapının ters tarafına yerleştirilir.</div>
-            <button class="so-btn so-btn-brand" id="btnSoOtoYerlestir" style="width:100%; justify-content:center;">🪄 Otomatik Yerleştir</button>
-          </div>
-
-          <div class="so-palet-grup so-oto-panel">
-            <h3>📐 Öge Boyutları</h3>
-            <label class="so-oto-etiket">Masa (yukarıda seçili tür)</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoMasaBoyutAzalt">－</button>
-              <span id="soMasaBoyutGoster">224×98</span>
-              <button type="button" class="so-yon-btn" id="btnSoMasaBoyutArtir">＋</button>
-            </div>
-            <label class="so-oto-etiket">Öğretmen Masası</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoOgretmenBoyutAzalt">－</button>
-              <span id="soOgretmenBoyutGoster">224×112</span>
-              <button type="button" class="so-yon-btn" id="btnSoOgretmenBoyutArtir">＋</button>
-            </div>
-            <label class="so-oto-etiket">Kapı</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoKapiBoyutAzalt">－</button>
-              <span id="soKapiBoyutGoster">28×168</span>
-              <button type="button" class="so-yon-btn" id="btnSoKapiBoyutArtir">＋</button>
-            </div>
-            <label class="so-oto-etiket">Pencere</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoPencereBoyutAzalt">－</button>
-              <span id="soPencereBoyutGoster">14×224</span>
-              <button type="button" class="so-yon-btn" id="btnSoPencereBoyutArtir">＋</button>
-            </div>
-            <label class="so-oto-etiket">Yazı Tahtası</label>
-            <div class="so-oto-stepper">
-              <button type="button" class="so-yon-btn" id="btnSoTahtaBoyutAzalt">－</button>
-              <span id="soTahtaBoyutGoster">336×28</span>
-              <button type="button" class="so-yon-btn" id="btnSoTahtaBoyutArtir">＋</button>
+            <div>
+              <h3>📐 Öge Boyutları</h3>
+              <label class="so-oto-etiket">Masa</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoMasaBoyutAzalt">－</button>
+                <span id="soMasaBoyutGoster">224×98</span>
+                <button type="button" class="so-yon-btn" id="btnSoMasaBoyutArtir">＋</button>
+              </div>
+              <label class="so-oto-etiket">Öğretmen</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoOgretmenBoyutAzalt">－</button>
+                <span id="soOgretmenBoyutGoster">224×112</span>
+                <button type="button" class="so-yon-btn" id="btnSoOgretmenBoyutArtir">＋</button>
+              </div>
+              <label class="so-oto-etiket">Kapı</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoKapiBoyutAzalt">－</button>
+                <span id="soKapiBoyutGoster">28×168</span>
+                <button type="button" class="so-yon-btn" id="btnSoKapiBoyutArtir">＋</button>
+              </div>
+              <label class="so-oto-etiket">Pencere</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoPencereBoyutAzalt">－</button>
+                <span id="soPencereBoyutGoster">14×224</span>
+                <button type="button" class="so-yon-btn" id="btnSoPencereBoyutArtir">＋</button>
+              </div>
+              <label class="so-oto-etiket">Tahta</label>
+              <div class="so-oto-stepper">
+                <button type="button" class="so-yon-btn" id="btnSoTahtaBoyutAzalt">－</button>
+                <span id="soTahtaBoyutGoster">336×28</span>
+                <button type="button" class="so-yon-btn" id="btnSoTahtaBoyutArtir">＋</button>
+              </div>
             </div>
           </div>
+          <div class="so-palet-not" style="padding:4px 2px 6px; font-size:10px;">Öğretmen masası ve pencereler kapının ters tarafına yerleştirilir.</div>
+          <button class="so-btn so-btn-brand" id="btnSoOtoYerlestir" style="width:100%; justify-content:center; margin-bottom:14px;">🪄 Otomatik Yerleştir</button>
 
           <div class="so-palet-grup">
             <h3>👥 Atanmamış Öğrenciler <span id="soHavuzSayi" style="color:var(--ink-muted);"></span></h3>
