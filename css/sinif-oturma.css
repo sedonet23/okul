@@ -104,14 +104,15 @@
   border:1px solid rgba(107,91,58,.18);
 }
 
-#sinifOturmaOverlay .so-koltuklar{ position:absolute; inset:4px; display:grid; gap:3px; }
+#sinifOturmaOverlay .so-koltuklar{ position:absolute; inset:4px; }
 #sinifOturmaOverlay .so-koltuk{
+  position:absolute; box-sizing:border-box;
   background:rgba(255,255,255,.55); border:1px dashed rgba(107,91,58,.35); border-radius:6px;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
-  font-size:9.5px; font-weight:600; padding:2px; line-height:1.1; word-break:break-word;
+  font-weight:600; padding:2px; line-height:1.1; word-break:break-word;
   color:var(--so-masa-ink); cursor:pointer;
 }
-#sinifOturmaOverlay .so-koltuk.so-bos{ color:rgba(107,91,58,.45); font-weight:400; font-size:14px; }
+#sinifOturmaOverlay .so-koltuk.so-bos{ color:rgba(107,91,58,.45); font-weight:400; }
 #sinifOturmaOverlay #soTuval.so-yakalama-modu .so-koltuk.so-bos{ color:transparent; }
 #sinifOturmaOverlay .so-koltuk:active{ background:rgba(255,255,255,.85); }
 
