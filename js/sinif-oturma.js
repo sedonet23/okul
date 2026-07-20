@@ -125,10 +125,16 @@ const SinifOturma = (function(){
         </div>
       </div>`;
     document.body.appendChild(kutu);
+    const acilisTs = performance.now();
+    // Yukarıdaki preventDefault normalde yeterli, ama bazı WebView
+    // sürümlerinde hayalet click yine de sızabiliyor — ek güvenlik olarak
+    // pencere açıldıktan sonraki ilk ~350ms içindeki tıklamaları yok sayıyoruz
+    // (gerçek bir kullanıcı dokunuşu bu kadar hızlı gelmez).
+    const korumali = (fn) => (e) => { if (performance.now() - acilisTs < 350) return; fn(e); };
 
-    kutu.addEventListener('click', (e) => { if (e.target === kutu) kutu.remove(); });
+    kutu.addEventListener('click', korumali((e) => { if (e.target === kutu) kutu.remove(); }));
     kutu.querySelectorAll('.so-secim-item').forEach(item => {
-      item.addEventListener('click', () => {
+      item.addEventListener('click', korumali(() => {
         koltukEl.dataset.ogrenciId = item.dataset.id;
         koltukEl.dataset.isim = item.dataset.ad;
         koltukEl.textContent = item.dataset.ad;
@@ -136,9 +142,9 @@ const SinifOturma = (function(){
         kutu.remove();
         atanmamisHavuzuGuncelle();
         kaydedilmemisDegisiklik = true;
-      });
+      }));
     });
-    document.getElementById('soSecimSerbest').addEventListener('click', () => {
+    document.getElementById('soSecimSerbest').addEventListener('click', korumali(() => {
       const yeni = prompt('Öğrenci adı (serbest metin):', koltukEl.dataset.isim || '');
       kutu.remove();
       if (yeni === null) return;
@@ -148,9 +154,9 @@ const SinifOturma = (function(){
       koltukEl.classList.toggle('so-bos', !yeni.trim());
       atanmamisHavuzuGuncelle();
       kaydedilmemisDegisiklik = true;
-    });
+    }));
     const bosaltBtn = document.getElementById('soSecimBosalt');
-    if (bosaltBtn) bosaltBtn.addEventListener('click', () => {
+    if (bosaltBtn) bosaltBtn.addEventListener('click', korumali(() => {
       delete koltukEl.dataset.ogrenciId;
       koltukEl.dataset.isim = '';
       koltukEl.textContent = '+';
@@ -158,8 +164,8 @@ const SinifOturma = (function(){
       kutu.remove();
       atanmamisHavuzuGuncelle();
       kaydedilmemisDegisiklik = true;
-    });
-    document.getElementById('soSecimKapat').addEventListener('click', () => kutu.remove());
+    }));
+    document.getElementById('soSecimKapat').addEventListener('click', korumali(() => kutu.remove()));
   }
 
   function ogretmenAdiSor(el){
@@ -377,6 +383,15 @@ const SinifOturma = (function(){
       }
 
       const mesafe = Math.hypot((e.clientX || basX) - basX, (e.clientY || basY) - basY);
+      // DÜZELTME (hayalet tıklama): koltuğa dokunulduğunda burada AYNI ekran
+      // konumunda yeni bir seçim penceresi açılıyor. Tarayıcı bu dokunuş için
+      // hemen ardından bir de senkron "click" olayı üretiyor; preventDefault
+      // çağrılmazsa bu olay artık o konumda duran YENİ pencerenin bir
+      // düğmesine (liste maddesi, Serbest İsim, Kapat) isabet edip istenmeyen
+      // ikinci bir işlem tetikliyordu — koltuğun ekranda nereye denk geldiğine
+      // göre rastgele/tutarsız görünüyordu. preventDefault bu izleyen click
+      // olayını tamamen engeller.
+      if (e.cancelable) e.preventDefault();
       if (mesafe < TIKLAMA_ESIGI && basHedef) {
         const koltukEl2 = basHedef.closest ? basHedef.closest('.so-koltuk') : null;
         const ogretmenEl2 = basHedef.closest ? basHedef.closest('.so-ogretmen-ad') : null;
@@ -680,15 +695,15 @@ const SinifOturma = (function(){
       const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
       const kurumBasligiVar = !!(logoDataUri || okulAdi);
 
-      const kenarMM = 8, ustBaslikPayiMM = kurumBasligiVar ? 26 : 18;
+      const kenarMM = 8, ustBaslikPayiMM = kurumBasligiVar ? 32 : 18;
       const kullanilabilirGenMM = sayfaGenMM - kenarMM * 2;
 
       if (logoDataUri) {
-        try { doc.addImage(logoDataUri, 'PNG', kenarMM, 4, 12, 12); } catch (e) { /* bozuk görsel olursa sessizce atla */ }
+        try { doc.addImage(logoDataUri, 'PNG', kenarMM, 4, 18, 18); } catch (e) { /* bozuk görsel olursa sessizce atla */ }
       }
       if (okulAdi) {
         doc.setFontSize(11);
-        doc.text(okulAdi.toLocaleUpperCase('tr'), sayfaGenMM / 2, 10, { align: 'center' });
+        doc.text(okulAdi.toLocaleUpperCase('tr'), sayfaGenMM / 2, 12, { align: 'center' });
       }
 
       // DÜZELTME: başlık metni sabit 13pt ile sayfa genişliğini aşıp
@@ -701,7 +716,7 @@ const SinifOturma = (function(){
         baslikPunto -= 0.5;
         doc.setFontSize(baslikPunto);
       }
-      const baslikY = kurumBasligiVar ? 19 : 12;
+      const baslikY = kurumBasligiVar ? 25 : 12;
       doc.text(baslikMetni, sayfaGenMM / 2, baslikY, { align: 'center' });
 
       const kullanilabilirYukMM = sayfaYukMM - ustBaslikPayiMM - kenarMM;
