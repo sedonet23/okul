@@ -292,9 +292,12 @@ const SinifOturma = (function(){
       basHedef = e.target;
       basX = e.clientX; basY = e.clientY;
       ogeBasX = el.offsetLeft; ogeBasY = el.offsetTop;
+      // setPointerCapture HER ZAMAN çağrılmalı (kilitliyken de) — aksi halde
+      // parmağın en ufak titremesinde pointerup başka bir elemana kayıyor ve
+      // koltuk tıklaması (özellikle küçük/alt sıra koltuklarında) kayboluyor.
+      el.setPointerCapture(e.pointerId);
       if (masalarKilitli) { grup = null; return; } // konum kilitliyken sürükleme durumu kurulmaz
       el.classList.add('so-surukleniyor');
-      el.setPointerCapture(e.pointerId);
 
       if (topluTasimaAcik && KOLTUK_DUZENI[el.dataset.tur]) {
         const parcalar = Array.from(tuval.querySelectorAll('.so-oge')).filter(d => KOLTUK_DUZENI[d.dataset.tur]);
