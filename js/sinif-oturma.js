@@ -802,6 +802,8 @@ const SinifOturma = (function(){
             </div>
             <div class="so-yon-secim">
               <button class="so-yon-btn" id="btnSoTopluTasima" title="Açıkken herhangi bir masayı sürüklemek TÜM masaları birlikte taşır">🔗 Masaları Birlikte Taşı</button>
+              <button class="so-yon-btn" id="btnGenelKilit" title="Masaların yanlışlıkla yerinin değişmesini önlemek için kilitleyin">🔒 Masaları Kilitle</button>
+
             </div>
             <span class="so-ipucu">Sayfa sınırı siyah çerçeve · Boş alanı sürükleyerek kaydırın</span>
           </div>
