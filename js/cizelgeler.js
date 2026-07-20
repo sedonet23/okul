@@ -131,12 +131,85 @@ function sosyalKulupModalAc(id){
 function sosyalKuluplerKaydet(){ toast('Değişiklikler otomatik kaydediliyor.'); }
 function renderSosyalKuluplerListesi(){ renderCizelge('sosyalKulupler'); }
 
+/* ================================================================
+   KULÜBE ÖĞRENCİ EKLE — danışman öğretmen (ya da admin) kendi kulübüne
+   sınıf-sınıf açılır/kapanır bir liste üzerinden öğrenci seçer. Kaydet
+   sadece SiniflarService.ogrenciKulupGuncelle() ÜZERİNDEN, tek tek
+   öğrencinin kulupId/kulupAdi alanını yazar — genel öğrenci düzenleme
+   yetkisi GEREKMEZ, sadece bu kulübün danışmanı olmak yeterlidir (bkz.
+   siniflar.service.js → _kulupDanismaniMi). Diğer hiçbir öğrenci alanına
+   dokunulmaz.
+   ================================================================ */
+function kulupOgrenciEkleAc(kulupId){
+  const kulup = (cizelgeVerileri.sosyalKulupler||[]).find(k=>k.id===kulupId);
+  if(!kulup){ toast('Kulüp bulunamadı.'); return; }
+  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  const yetkiVar = (typeof duzenleyebilir==='function' && (duzenleyebilir('siniflar')||duzenleyebilir('ogrenciler')))
+    || (ben && Array.isArray(kulup.ogretmenIdler) && kulup.ogretmenIdler.includes(ben.id));
+  if(!yetkiVar){ toast('Bu kulübün danışmanı değilsiniz.'); return; }
+
+  const tumVeliler = typeof veliler!=='undefined' ? veliler : [];
+  const tumSiniflar = typeof siniflar!=='undefined' ? siniflar : [];
+  // Kulübün sınıf kısıtı varsa sadece o sınıflar, yoksa tüm sınıflar gösterilir.
+  const uygunSinifIdler = kulup.sinifIdler && kulup.sinifIdler.length ? new Set(kulup.sinifIdler) : null;
+  const uygunSiniflar = tumSiniflar
+    .filter(s=>!uygunSinifIdler || uygunSinifIdler.has(s.id))
+    .sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+
+  const baslangicSecili = new Set(tumVeliler.filter(v=>v.kulupId===kulupId).map(v=>v.id));
+
+  const body = `
+    <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Bu kulübe eklemek istediğiniz öğrencileri işaretleyin. İşareti kaldırdığınız (daha önce bu kulüpte olan) öğrenciler kulüpten çıkarılır. Sınıf adına dokunarak öğrenci listesini açıp kapatabilirsiniz.</p>
+    <div id="kulupOgrSecAlani">
+      ${uygunSiniflar.map(s=>{
+        const ogrencilerBuSinif = tumVeliler.filter(v=>v.sinifId===s.id).sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr'));
+        return `
+        <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--nm-bg-dark);cursor:pointer;font-weight:600;" onclick="_kulupOgrSinifAcKapat(this)">
+            <span>${escapeHtml(s.ad)} <span style="color:var(--ink-muted);font-weight:400;font-size:12px;">(${ogrencilerBuSinif.length} öğrenci)</span></span>
+            <span class="kulup-ogr-ok">▾</span>
+          </div>
+          <div style="display:none;padding:4px 10px;">
+            ${ogrencilerBuSinif.length ? ogrencilerBuSinif.map(v=>`
+              <label class="ogr-cb-row"><input type="checkbox" class="kulup-ogr-cb" value="${v.id}" ${baslangicSecili.has(v.id)?'checked':''}><span>${escapeHtml(v.ogrenciAdi)}${v.kulupId && v.kulupId!==kulupId && v.kulupAdi ? ` <span style="color:#c0392b;font-size:11px;">(${escapeHtml(v.kulupAdi)}'de)</span>`:''}</span></label>
+            `).join('') : '<p class="empty-state" style="padding:6px 0;">Bu sınıfta öğrenci yok.</p>'}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  modalAc(`➕ ${kulup.ad} — Öğrenci Ekle`, body, ()=>{
+    const yeniSecili = new Set(Array.from(document.querySelectorAll('.kulup-ogr-cb:checked')).map(cb=>cb.value));
+    const eklenecekler = [...yeniSecili].filter(id=>!baslangicSecili.has(id));
+    const cikarilacaklar = [...baslangicSecili].filter(id=>!yeniSecili.has(id));
+    if(!eklenecekler.length && !cikarilacaklar.length){ toast('Değişiklik yapılmadı.'); modalKapat(); return; }
+    Promise.all([
+      ...eklenecekler.map(id=>SiniflarService.ogrenciKulupGuncelle(id, kulup.id, kulup.ad)),
+      ...cikarilacaklar.map(id=>SiniflarService.ogrenciKulupGuncelle(id, '', '')),
+    ]).then(()=>{
+      toast(`Kaydedildi — ${eklenecekler.length} eklendi, ${cikarilacaklar.length} çıkarıldı.`);
+    }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+    modalKapat();
+  }, null, 'Tamam');
+}
+function _kulupOgrSinifAcKapat(baslikEl){
+  const liste = baslikEl.nextElementSibling;
+  const ok = baslikEl.querySelector('.kulup-ogr-ok');
+  const acik = liste.style.display !== 'none';
+  liste.style.display = acik ? 'none' : 'block';
+  if(ok) ok.textContent = acik ? '▾' : '▴';
+}
+
 function _renderSosyalKulupler(el,veri){
   if(!veri.length){el.innerHTML='<p class="empty-state">Henüz kulüp eklenmedi.</p>';return;}
   el.innerHTML=`<div class="kulup-grid">${veri.map(k=>{
     const k12=[...(k.kontroller||[])]; while(k12.length<12) k12.push(false);
     const t=k12.filter(Boolean).length;
     const ogrenciSayisi=(typeof veliler!=='undefined'?veliler:[]).filter(v=>v.kulupId===k.id).length;
+    const benOgretmen=(typeof bagliOgretmenimGetir==='function')?bagliOgretmenimGetir():null;
+    const ogrEkleGorunsun=(typeof duzenleyebilir==='function' && (duzenleyebilir('siniflar')||duzenleyebilir('ogrenciler')))
+      || (benOgretmen && Array.isArray(k.ogretmenIdler) && k.ogretmenIdler.includes(benOgretmen.id));
     return `<div class="kulup-kart ${k.aktif===false?'kulup-pasif':''}" id="belge-${k.id}">
       <div class="kulup-kart-baslik">
         <span>${escapeHtml(k.ad)}</span>
@@ -146,7 +219,8 @@ function _renderSosyalKulupler(el,veri){
       <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;">${k.sinifIdler&&k.sinifIdler.length?'Sınıflar: '+k.sinifIdler.map(_sinifAdi).join(', '):'Sınıf kısıtı yok — tüm sınıflar seçebilir'}</div>
       <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
         <span class="belge-mini-sayac ${t===12?'tamam':t>0?'kismi':''}">${t}/12</span>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${ogrEkleGorunsun?`<button class="btn btn-amber btn-sm" onclick="kulupOgrenciEkleAc('${k.id}')">➕ Öğrenci Ekle</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${k.id}')" title="Bu kulübe atanmış öğrencileri listele">👥 Öğrenciler (${ogrenciSayisi})</button>
           <button class="btn btn-ghost btn-sm" onclick="sosyalKulupModalAc('${k.id}')">Düzenle</button>
         </div>
@@ -744,11 +818,10 @@ function renderDigerEvrak(){
 /* ---------- FIRESTORE BAĞLANTISI (app.js baglantilariKur içinden çağrılır) ----------
    Artık doğrudan db.collection() çağrılmıyor — CizelgelerRepository üzerinden dinleniyor. */
 function cizelgelerBaglantilariKur(){
-  ['sosyalKulupler','sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
+  ['sok','zumre','bepPlani','rehberlik','maarifRapor'].forEach(tip=>{
     CizelgelerRepository.kayitlariDinle(tip, v=>{
       cizelgeVerileri[tip] = v;
       renderCizelge(tip);
-      if(tip==='sosyalKulupler') renderSosyalKuluplerListesi();
     });
   });
   CizelgelerRepository.kayitlariDinle('belirliGunler', v=>{
@@ -759,5 +832,21 @@ function cizelgelerBaglantilariKur(){
   CizelgelerRepository.kayitlariDinle('digerEvrak', v=>{
     digerEvrakListesi = v;
     if(typeof renderDigerEvrak==='function') renderDigerEvrak();
+  });
+}
+
+/* DÜZELTME: sosyalKulupler eskiden yukarıdaki tembel (Çizelgeler sekmesi
+   ilk açıldığında başlayan) grubun içindeydi. Artık öğrenci formundaki
+   "Sosyal Kulüp" seçimi, arama sayfası filtresi ve raporlama da bu veriye
+   bağlı — yani Çizelgeler sekmesi hiç açılmadan da gerekiyor. Bu yüzden
+   personelIzin'de yapılan düzeltmeyle aynı desende, ayrı bir fonksiyona
+   çıkarılıp uygulama açılışında (app.js → baglantilariKur) koşulsuz
+   başlatılıyor; TEMBEL_MODUL_TABLOSU'ndan çıkarıldı. */
+function sosyalKuluplerBaglantisiniKur(){
+  CizelgelerRepository.kayitlariDinle('sosyalKulupler', v=>{
+    cizelgeVerileri.sosyalKulupler = v;
+    renderCizelge('sosyalKulupler');
+    renderSosyalKuluplerListesi();
+    if(typeof aramaGelismisFiltreDoldur==='function') aramaGelismisFiltreDoldur();
   });
 }

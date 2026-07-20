@@ -1972,8 +1972,9 @@ async function yedektenGeriYukle(file){
    tekrarlanıyor.
    ============================================================ */
 const TEMBEL_MODUL_TABLOSU = {
-  // Çizelgeler grubu — 8 alt sekmenin tamamı tek bir dinleyici setini paylaşır
-  sosyalKulupler: () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  // Çizelgeler grubu — 7 alt sekme tek bir dinleyici setini paylaşır.
+  // NOT: sosyalKulupler burada YOK — artık öğrenci formu/arama/raporlama
+  // bağımlılığı yüzünden baglantilariKur() içinde koşulsuz başlatılıyor.
   belirliGunler:  () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
   zumre:          () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
   sok:            () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
@@ -2043,6 +2044,12 @@ function baglantilariKur(){
   // yazılıyor ("Kaydedildi" doğruydu) ama liste hiç güncellenmiyordu. Artık
   // personel verisiyle birlikte, uygulama açılışında koşulsuz başlatılıyor.
   if(typeof personelIzinBaglantilariKur === 'function') personelIzinBaglantilariKur();
+  // DÜZELTME: sosyalKulupler eskiden Çizelgeler grubuyla birlikte tembel
+  // yükleniyordu — ama artık öğrenci formundaki "Sosyal Kulüp" seçimi,
+  // arama sayfası kulüp filtresi ve kulüp bazlı raporlama da bu veriye
+  // ihtiyaç duyuyor; Çizelgeler sekmesi hiç açılmadan da çalışmalı. Bu
+  // yüzden personelIzin ile aynı gerekçeyle burada koşulsuz başlatılıyor.
+  if(typeof sosyalKuluplerBaglantisiniKur === 'function') sosyalKuluplerBaglantisiniKur();
 
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:

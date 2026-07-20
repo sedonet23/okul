@@ -81,9 +81,12 @@ function ogretmenDetayAc(id){
       `<span class="cz-check ${e.tamamlandi?'on':''}" style="display:inline-flex;margin-right:4px;font-size:10px;">${e.tamamlandi?'✓':''}</span>`
     ).join('') : '';
     const ogrenciSayisi = (typeof veliler!=='undefined'?veliler:[]).filter(v=>v.kulupId===k.id).length;
-    return `<div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    return `<div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
       <span>${escapeHtml(k.ad)}${ilgiliGunler ? `<span style="margin-left:8px;color:var(--ink-muted);font-size:11px;">Görevler: ${ilgiliGunler}</span>` : ''}</span>
-      <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${k.id}')">👥 Öğrenciler (${ogrenciSayisi})</button>
+      <span style="display:flex;gap:6px;">
+        ${kendiProfiliMi?`<button class="btn btn-amber btn-sm" onclick="kulupOgrenciEkleAc('${k.id}')">➕ Öğrenci Ekle</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${k.id}')">👥 Öğrenciler (${ogrenciSayisi})</button>
+      </span>
     </div>`;
   }).join('') : '<p class="empty-state">Danışmanı olduğu kulüp yok.</p>';
 
