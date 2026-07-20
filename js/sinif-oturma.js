@@ -37,7 +37,7 @@ const SinifOturma = (function(){
 
   let sinifId = null, sinifAdi = '', ov = null, tuval = null;
   let sayac = 0, seciliOge = null, mevcutYon = 'dikey';
-  let sutunBoslugu = 12, satirBoslugu = 66, topluTasimaAcik = false;
+  let sutunBoslugu = 12, satirBoslugu = 66, topluTasimaAcik = false, masalarKilitli = false;
   let tabanZoom = 1, manuelZoom = 1;
   let AKTIF_BOYUT = {};
   let kaydedilmemisDegisiklik = false;
@@ -275,14 +275,14 @@ const SinifOturma = (function(){
     if (seciliOge) seciliOge.classList.remove('so-secili');
     seciliOge = el;
     if (seciliOge) seciliOge.classList.add('so-secili');
-  }
-
-  function surukleBagla(el){
+ 
+   function surukleBagla(el){
     let basX = 0, basY = 0, ogeBasX = 0, ogeBasY = 0, surukleniyor = false, basHedef = null;
     let grup = null;
 
-    el.addEventListener('pointerdown', (e) => {
+        el.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.so-sil, .so-dondur, .so-boyut')) return;
+      if (masalarKilitli) return; // <-- MASALAR KİLİTLİYSE SÜRÜKLEMEYİ BAŞLATMA
       ogeSec(el);
       surukleniyor = true;
       basHedef = e.target;
@@ -845,13 +845,13 @@ const SinifOturma = (function(){
       topluTasimaAcik = !topluTasimaAcik;
       e.currentTarget.classList.toggle('so-aktif', topluTasimaAcik);
     });
-    ov.querySelector('#btnGenelKilit').addEventListener('click', (e) => {
-      const kilitli = tuval.classList.toggle('so-kilitli');
-      e.currentTarget.classList.toggle('so-aktif', kilitli);
-      e.currentTarget.innerHTML = kilitli ? '🔓 Kilitleri Aç' : '🔒 Masaları Kilitle';
-      tuval.querySelectorAll('.so-oge').forEach(el => {
-        el.style.pointerEvents = kilitli ? 'none' : 'auto';
-      });
+        ov.querySelector('#btnGenelKilit').addEventListener('click', (e) => {
+      masalarKilitli = !masalarKilitli;
+      tuval.classList.toggle('so-kilitli', masalarKilitli);
+      e.currentTarget.classList.toggle('so-aktif', masalarKilitli);
+      e.currentTarget.innerHTML = masalarKilitli ? '🔓 Kilitleri Aç' : '🔒 Masaları Kilitle';
+    });
+
     });
 
     ov.querySelector('#btnSoZoomArtir').addEventListener('click', () => { manuelZoom = Math.min(3, +(manuelZoom+0.2).toFixed(2)); zoomUygula(); });
