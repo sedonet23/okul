@@ -44,6 +44,17 @@ const SinifOturma = (function(){
 
   function izgaraHizala(deger){ return Math.round(deger / IZGARA) * IZGARA; }
 
+  // Masa/sıra büyüdükçe veya küçüldükçe, içindeki koltukların yazı boyutu da
+  // KENDİ gerçek piksel boyutlarına ORANTILI olarak büyür/küçülür — böylece
+  // büyük bir masada isim küçük kalmaz, küçük bir masada da taşmaz.
+  function koltukYaziBoyutuAyarla(masaEl){
+    masaEl.querySelectorAll('.so-koltuk').forEach(k => {
+      const boyut = Math.min(k.offsetWidth, k.offsetHeight);
+      const punto = Math.max(9, Math.min(26, Math.round(boyut * 0.30)));
+      k.style.fontSize = punto + 'px';
+    });
+  }
+
   function sinifOgrencileri(){
     return (typeof veliler !== 'undefined' ? veliler : [])
       .filter(v => v.sinifId === sinifId)
@@ -213,6 +224,7 @@ const SinifOturma = (function(){
 
     surukleBagla(el);
     tuval.appendChild(el);
+    koltukYaziBoyutuAyarla(el);
     ogeSec(el);
     kaydedilmemisDegisiklik = true;
     return el;
@@ -230,6 +242,7 @@ const SinifOturma = (function(){
     const yeniH = Math.max(OGE_MIN_BOYUT, Math.min(OGE_MAX_BOYUT, Math.round(el.offsetHeight * carpan)));
     el.style.width  = izgaraHizala(yeniW) + 'px';
     el.style.height = izgaraHizala(yeniH) + 'px';
+    koltukYaziBoyutuAyarla(el);
   }
 
   function turBazliBoyutlandir(tur, carpan){
@@ -496,6 +509,7 @@ const SinifOturma = (function(){
       const el = ogeOlustur(o.tur, o.x, o.y, false);
       el.style.width = o.w + 'px';
       el.style.height = o.h + 'px';
+      koltukYaziBoyutuAyarla(el);
       if (o.rotasyon) { el.dataset.rotasyon = o.rotasyon; el.style.transform = `rotate(${o.rotasyon}deg)`; }
       if (o.isim) {
         el.dataset.isim = o.isim;
@@ -541,45 +555,76 @@ const SinifOturma = (function(){
     return (typeof siniflar !== 'undefined') ? siniflar.find(x => x.id === sinifId) : null;
   }
 
-  function yazdir(){
-    const header = ov.querySelector('.so-header');
-    // DÜZELTME (kök neden — Android): zoom, transform+sabit-kutu ve
-    // afterprint-zamanlama gibi üç ayrı ÖLÇEKLEME tekniği denendi, hepsi bu
-    // masaüstü/Chromium test ortamında çalıştı ama gerçek Android Chrome'un
-    // yazdırma altyapısında HÂLÂ aynı bozuk sonucu verdi. Bu, sorunun
-    // "hangi ölçekleme tekniği" değil, ÖLÇEKLEMENİN KENDİSİ olduğunu
-    // gösteriyor — Android'in yazdırma motoru zoom/transform gibi çalışma
-    // zamanı CSS oynamalarını, gerçek yazdırma anında (screenshot/önizleme
-    // anından farklı bir zamanlamada) tutarsız uyguluyor olmalı.
-    //
-    // Bu yüzden ölçeklemeyi TAMAMEN ortadan kaldırıyoruz: hiçbir zoom,
-    // hiçbir transform kullanılmıyor. Bunun yerine sayfa boyutunu
-    // (@page size), başlık + tuvalin GERÇEK (olduğu gibi, hiç küçültülmemiş)
-    // piksel boyutuna birebir eşitliyoruz. İçerik zaten 1:1 sığdığı için
-    // hiçbir tarayıcı/yazdırma motorunun ölçekleme kararına bağımlı kalmıyoruz.
+  // "2026 - 2027 EĞİTİM ÖĞRETİM YILI 2-A SINIFI OTURMA DÜZENİ" biçiminde
+  // başlık üretir (bkz. ilk istenen format). Eğitim yılı, uygulama genelinde
+  // tek bir ortak değişken olmadığı için takvimden hesaplanır: Eylül-Aralık
+  // arası "bu yıl - gelecek yıl", Ocak-Ağustos arası "geçen yıl - bu yıl".
+  function _egitimYiliHesapla(){
+    const su_an = new Date();
+    const yil = su_an.getFullYear();
+    return (su_an.getMonth() >= 8) ? `${yil} - ${yil + 1}` : `${yil - 1} - ${yil}`;
+  }
+  function _soBaslikMetni(){
+    return `${_egitimYiliHesapla()} EĞİTİM ÖĞRETİM YILI ${(sinifAdi || '').toLocaleUpperCase('tr')} SINIFI OTURMA DÜZENİ`;
+  }
+
+  // DÜZELTME (Android kök sebep — TAMAMEN FARKLI YOL): window.print() +
+  // CSS @page/zoom/transform ile üç ayrı ölçekleme tekniği denendi, hepsi
+  // masaüstünde çalıştı ama Android'in yazdırma altyapısında ısrarla bozuk
+  // sonuç verdi. window.print() TAMAMEN terk edildi — bunun yerine tuval
+  // doğrudan bir görüntüye (html2canvas) çevrilip jsPDF ile bir PDF'e
+  // gömülüyor ve uygulamanın zaten var olan güvenilir native kaydetme
+  // köprüsüyle (uygulamaDosyaKaydet — bkz. ogretmen-liste-olusturucu.js'de
+  // aynı desen) kaydediliyor. Tarayıcının yazdırma/önizleme motoruna hiç
+  // uğramadığı için önceki tutarsızlıklara bağımlı değil.
+  async function yazdir(){
+    const btn = ov.querySelector('#btnSoYazdir');
+    const eskiMetin = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ PDF Oluşturuluyor…';
+
+    const eskiSecili = seciliOge;
+    ogeSec(null); // sil/döndür/boyut düğmeleri görüntüye girmesin
+    tuval.classList.add('so-yakalama-modu'); // boş koltuklardaki "+" işareti çıktıda görünmesin
     const ekranZoom = tuval.style.zoom;
-    tuval.style.zoom = '';
+    tuval.style.zoom = ''; // yakalama sırasında ekrana-sığdırma zoom'u karışmasın, gerçek boyut kullanılsın
+    await new Promise(r => setTimeout(r, 60)); // seçim kaldırma/zoom sıfırlamanın ekrana yansıması için kısa bekleme
 
-    const guvenlikPayi = 24; // px — kenarlarda küçük bir nefes payı
-    const toplamGenislikPx  = tuval.offsetWidth + guvenlikPayi;
-    const toplamYukseklikPx = header.offsetHeight + tuval.offsetHeight + guvenlikPayi;
+    try {
+      const canvas = await html2canvas(tuval, { scale: 2, backgroundColor: '#ffffff' });
+      const { jsPDF } = window.jspdf;
+      const oranGenYuk = canvas.width / canvas.height;
+      const sayfaGenMM = mevcutYon === 'yatay' ? 297 : 210;
+      const sayfaYukMM = mevcutYon === 'yatay' ? 210 : 297;
+      const doc = new jsPDF({ orientation: mevcutYon === 'yatay' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
 
-    const eskiStil = document.getElementById('soYazdirmaSayfaStili');
-    if (eskiStil) eskiStil.remove();
-    const stil = document.createElement('style');
-    stil.id = 'soYazdirmaSayfaStili';
-    stil.textContent = `@page{ size: ${toplamGenislikPx}px ${toplamYukseklikPx}px; margin: 0; }`;
-    document.head.appendChild(stil);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(_soBaslikMetni(), sayfaGenMM / 2, 12, { align: 'center' });
 
-    window.print();
-    const geriAl = () => {
-      const s = document.getElementById('soYazdirmaSayfaStili');
-      if (s) s.remove();
+      const kenarMM = 8, ustBaslikPayiMM = 18;
+      const kullanilabilirGenMM = sayfaGenMM - kenarMM * 2;
+      const kullanilabilirYukMM = sayfaYukMM - ustBaslikPayiMM - kenarMM;
+      let cizimGenMM = kullanilabilirGenMM, cizimYukMM = cizimGenMM / oranGenYuk;
+      if (cizimYukMM > kullanilabilirYukMM) { cizimYukMM = kullanilabilirYukMM; cizimGenMM = cizimYukMM * oranGenYuk; }
+      const xMM = (sayfaGenMM - cizimGenMM) / 2;
+      doc.addImage(canvas.toDataURL('image/png'), 'PNG', xMM, ustBaslikPayiMM, cizimGenMM, cizimYukMM);
+
+      const dosyaAdi = `${(sinifAdi || 'Sinif').replace(/[^\wğüşıöçĞÜŞİÖÇ-]/g, '_')}_Oturma_Plani.pdf`;
+      if (typeof uygulamaDosyaKaydet === 'function') {
+        const datauri = doc.output('datauristring');
+        const base64 = datauri.split('base64,')[1];
+        await uygulamaDosyaKaydet(base64, dosyaAdi, 'application/pdf');
+      } else {
+        doc.save(dosyaAdi);
+      }
+    } catch (e) {
+      alert('PDF oluşturma hatası: ' + e.message);
+    } finally {
+      tuval.classList.remove('so-yakalama-modu');
       tuval.style.zoom = ekranZoom;
-      window.removeEventListener('afterprint', geriAl);
-    };
-    window.addEventListener('afterprint', geriAl);
-    setTimeout(geriAl, 6000);
+      if (eskiSecili) ogeSec(eskiSecili);
+      btn.disabled = false; btn.textContent = eskiMetin;
+    }
   }
 
   function _iskeletHtml(){
@@ -590,7 +635,7 @@ const SinifOturma = (function(){
         <div style="display:flex; gap:8px;">
           <button class="so-btn so-btn-ghost" id="btnSoTemizle">🗑 Tümünü Temizle</button>
           <button class="so-btn so-btn-brand" id="btnSoKaydet">💾 Kaydet</button>
-          <button class="so-btn so-btn-brand" id="btnSoYazdir">🖨 Yazdır / PDF</button>
+          <button class="so-btn so-btn-brand" id="btnSoYazdir">📄 PDF Oluştur</button>
         </div>
       </div>
       <div class="so-govde">
@@ -802,7 +847,7 @@ const SinifOturma = (function(){
     if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
 
     tuval = ov.querySelector('#soTuval');
-    ov.querySelector('#soBaslik').textContent = `Sınıf Oturma Planı — ${sinifAdi || ''}`;
+    ov.querySelector('#soBaslik').textContent = _soBaslikMetni();
 
     AKTIF_BOYUT = {};
     Object.keys(VARSAYILAN_BOYUT).forEach(tur => { AKTIF_BOYUT[tur] = { w: VARSAYILAN_BOYUT[tur].w, h: VARSAYILAN_BOYUT[tur].h }; });
