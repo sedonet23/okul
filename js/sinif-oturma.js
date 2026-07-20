@@ -777,8 +777,14 @@ const SinifOturma = (function(){
 
   function kapat(){
     if (ov) { ov.remove(); ov = null; }
-    document.body.classList.remove('modal-open');
-    if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+    // DÜZELTME: Burada _pullToRefreshAyarla(true) ÇAĞRILMIYOR — bu editör
+    // her zaman zaten açık bir sınıf detay panelinin (#detayOverlay) İÇİNDEN
+    // açılıyor; o panel açılırken jesti kendisi kapatmıştı (sinifDetayAc)
+    // ve kendisi kapanırken tekrar açacak (detayPanelKapat). Burada tekrar
+    // açarsak, kullanıcı editörü kapatıp hâlâ açık olan sınıf detayında
+    // kaydırdığında yenileme jesti erken devreye giriyordu (bulunan hata).
+    // (modal-open sınıfı da kaldırılmıyor — aynı sebeple, alttaki panel
+    // hâlâ "modal açık" durumunda.)
   }
 
   function ac(id){
