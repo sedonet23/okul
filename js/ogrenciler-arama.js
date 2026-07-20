@@ -155,7 +155,7 @@ function _ogrenciSatirHtml(v, sinifAdi) {
         ${v.ogrenciNo ? `<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>` : ''}
         ${v.cinsiyet ? `<span class="badge badge-${v.cinsiyet === 'Kız' ? 'rose' : 'blue'}">${escapeHtml(v.cinsiyet)}</span>` : ''}
         ${v.servisAdi ? `<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>` : ''}
-        ${v.kulupAdi ? `<span class="badge badge-sage">🎗️ ${escapeHtml(v.kulupAdi)}</span>` : ''}
+        ${v.kulupAdi ? `<span class="badge badge-sage badge-kulup" title="${escapeHtml(v.kulupAdi)}">🎗️ ${escapeHtml(v.kulupAdi)}</span>` : ''}
         <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(sinifAdi || '—')} · ${escapeHtml(v.veliAdi || '—')}</span>
         ${telefonlar ? `<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>` : ''}
       </span>

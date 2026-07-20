@@ -36,6 +36,11 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   const logoGoster   = secenekler.logoGoster !== false;
   const ortaliBaslik = !!secenekler.ortaliBaslik;
   const servisRaporu = !!secenekler.servisRaporu;
+  // Opsiyonel: üstte küçük bir alt-başlık (örn. okul adı), altında ASIL
+  // başlık büyük/ortalı/BÜYÜK HARF gösterilir; bu modda oluşturma tarihi
+  // satırı da basılmaz. Sadece bunu açıkça isteyen çağıranları etkiler —
+  // diğer tüm raporların başlık düzeni aynı kalır.
+  const ustBaslik    = secenekler.ustBaslik || null;
   // 'yatay' | 'dikey' — sadece Android yazdırma diyaloğunda HANGİSİNİN
   // öntanımlı seçili geleceğini belirler, kullanıcı diyalogda istediği an
   // değiştirebilir (CSS'te ARTIK yön SABİTLENMİYOR — eskiden "A4 portrait"
@@ -153,10 +158,11 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
   <div class="rapor-header${ortaliBaslik ? ' rapor-header-ortali' : ''}">
     ${logoHtml}
     <div class="rapor-header-text">
-      <h1>${baslik}</h1>
-      ${servisRaporu
-        ? `<h2 style="font-size:10px;color:#555;font-weight:400;">${okulAdi}</h2>`
-        : `<h2>${okulAdi}</h2><div class="rapor-tarih">Oluşturulma: ${tarih}</div>`}
+      ${ustBaslik
+        ? `<h2 style="font-size:10px;color:#555;font-weight:400;margin-bottom:2px;">${ustBaslik}</h2><h1 style="text-transform:uppercase;">${baslik}</h1>`
+        : (servisRaporu
+          ? `<h1>${baslik}</h1><h2 style="font-size:10px;color:#555;font-weight:400;">${okulAdi}</h2>`
+          : `<h1>${baslik}</h1><h2>${okulAdi}</h2><div class="rapor-tarih">Oluşturulma: ${tarih}</div>`)}
     </div>
   </div>
   ${htmlIcerik}
@@ -241,21 +247,35 @@ function kulupOgrenciListesiYazdir(kulupId){
       return sa.localeCompare(sb,'tr') || (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr');
     });
 
-  let html = `<span class="ozet-kutu">Toplam Öğrenci: ${ogrenciler.length}</span>
-    <span class="ozet-kutu">Danışman: ${_ogretmenAdlari(kulup.ogretmenIdler)}</span>`;
+  let html = `<span class="ozet-kutu">Toplam Öğrenci: ${ogrenciler.length}</span>`;
 
   if(!ogrenciler.length){
     html += `<p style="color:#888;font-size:11px;padding:8px 0;">Bu kulübe henüz öğrenci atanmadı.</p>`;
   } else {
-    html += `<table><thead><tr><th>#</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Öğrenci No</th></tr></thead><tbody>`;
+    html += `<table><thead><tr><th>#</th><th>Öğrenci No</th><th>Öğrenci Adı</th><th>Sınıf</th></tr></thead><tbody>`;
     ogrenciler.forEach((v,i)=>{
       const sinifAdi = (typeof siniflar!=='undefined'?(siniflar.find(s=>s.id===v.sinifId)||{}).ad:'')||'—';
-      html += `<tr><td>${i+1}</td><td>${escapeHtml(v.ogrenciAdi||'—')}</td><td>${escapeHtml(sinifAdi)}</td><td>${escapeHtml(v.ogrenciNo||'—')}</td></tr>`;
+      html += `<tr><td>${i+1}</td><td>${escapeHtml(v.ogrenciNo||'—')}</td><td>${escapeHtml(v.ogrenciAdi||'—')}</td><td>${escapeHtml(sinifAdi)}</td></tr>`;
     });
     html += `</tbody></table>`;
   }
 
-  _raporPenceresiniAc(html, `🎗️ ${kulup.ad} — Öğrenci Listesi`);
+  // Danışman öğretmen(ler) — listenin altında, imza alanı gibi ortalı bir
+  // blok: ad soyad üstte, altında "Danışman Öğretmen" etiketi.
+  const danismanlar = (Array.isArray(kulup.ogretmenIdler) ? kulup.ogretmenIdler : []).map(_ogretmenAdi).filter(ad=>ad && ad!=='—');
+  if(danismanlar.length){
+    html += `<div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:36px;">
+      ${danismanlar.map(ad=>`
+        <div style="text-align:center;">
+          <div style="font-weight:700;font-size:12px;color:#1a1a1a;">${escapeHtml(ad)}</div>
+          <div style="font-size:10px;color:#666;margin-top:2px;">Danışman Öğretmen</div>
+        </div>`).join('')}
+    </div>`;
+  }
+
+  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
+  const baslikMetni = `🎗️ ${kulup.ad} — Öğrenci Listesi`.toLocaleUpperCase('tr');
+  _raporPenceresiniAc(html, baslikMetni, { ortaliBaslik:true, ustBaslik: okulAdi });
 }
 
 /* ================================================================
