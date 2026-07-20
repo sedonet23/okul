@@ -239,10 +239,14 @@
   align-items: center !important;
   justify-content: center !important;
 }
-/* Masalar kilitliyken sürüklenemez olduğunu belli etmek için */
-.so-tuval.so-kilitli .so-oge {
-  pointer-events: none !important;
-  opacity: 0.85;
-  cursor: not-allowed !important;
+/* Masalar kilitliyken masa sürüklenmesin ama koltuklar tıklanabilsin */
+#sinifOturmaOverlay #soTuval.so-kilitli .so-oge {
+  cursor: default !important;
+  outline: 1.5px dashed rgba(231, 76, 60, 0.4); /* Kilitli olduğunu belirten hafif kırmızı çerçeve */
 }
-W
+
+/* Koltukların tıklanabilir kalmasını garanti altına alıyoruz */
+#sinifOturmaOverlay #soTuval.so-kilitli .so-koltuk {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
