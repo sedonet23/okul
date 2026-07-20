@@ -357,6 +357,11 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .badge-blue{ background: var(--blue-info-wash); color: var(--blue-info); }
 .badge-brick,.badge-red{ background: var(--red-danger-wash); color: var(--red-danger); }
 .badge-gray{ background: var(--gray-muted-wash); color: var(--gray-muted); }
+/* Kulüp adları servis/cinsiyet gibi kısa etiketlere göre çok daha uzun
+   olabiliyor (örn. "Bilinçli Tüketici ve Enerjiyi Doğru Kullanma Kulübü") —
+   normal .badge sabit genişlikte taşıyordu. Bu değişken, satıra sığacak
+   şekilde küçük punto + üç nokta ile kısaltıyor. */
+.badge-kulup{ font-size:10px; max-width:170px; overflow:hidden; text-overflow:ellipsis; }
 
 /* =========================================================
    AÇILIŞ EKRANI
