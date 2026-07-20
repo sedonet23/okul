@@ -325,7 +325,7 @@
 
     const kategoriler = [
       { baslik:'Sosyal Kulüpler', ikon:'kalp', renk:'#D6528F', kolonlar:KULUP_RAPOR,
-        kayitlar:(cv.sosyalKulupler||[]).filter(s => adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(ogretmenId))),
+        kayitlar:(cv.sosyalKulupler||[]).filter(s => Array.isArray(s.ogretmenIdler) && s.ogretmenIdler.includes(ogretmenId)),
         adFn:k=>k.ad },
       { baslik:'Rehberlik', ikon:'pusula', renk:'#7C52D6', kolonlar:REHB_RAPOR,
         kayitlar:(cv.rehberlik||[]).filter(k => k.ogretmenId===ogretmenId || adGeciyorMu(k.danisman, adSoyad)),
@@ -366,12 +366,19 @@
             const kArr = k.kolonlar ? kontrolDizisi(kayit, k.kolonlar) : null;
             const tamamlanan = kArr ? kArr.filter(Boolean).length : null;
             const rozet = kArr ? `${tamamlanan}/${k.kolonlar.length}` : (k.durumFn ? k.durumFn(kayit) : '');
+            const kulupMu = k.baslik === 'Sosyal Kulüpler';
+            const ogrenciSayisi = kulupMu ? (typeof veliler!=='undefined'?veliler:[]).filter(v=>v.kulupId===kayit.id).length : 0;
             return `
               <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:${kArr?'8px':'0'};">
                   <span style="font-weight:700;font-size:13.5px;color:var(--ink);">${escapeHtml(k.adFn(kayit) || '—')}</span>
                   <span style="font-size:11px;font-weight:700;color:${k.renk};background:${k.renk}1a;padding:2px 9px;border-radius:20px;flex-shrink:0;">${escapeHtml(rozet)}</span>
                 </div>
+                ${kulupMu ? `
+                <div style="display:flex;gap:8px;margin-bottom:${kArr?'8px':'0'};flex-wrap:wrap;">
+                  <button class="btn btn-amber btn-sm" onclick="kulupOgrenciEkleAc('${kayit.id}')">➕ Öğrenci Ekle</button>
+                  <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${kayit.id}')">👥 Öğrenciler (${ogrenciSayisi})</button>
+                </div>` : ''}
                 ${kArr ? `
                 <div style="display:flex;flex-direction:column;gap:6px;">
                   ${k.kolonlar.map((etiket,i) => `
