@@ -239,3 +239,10 @@
   align-items: center !important;
   justify-content: center !important;
 }
+/* Masalar kilitliyken sürüklenemez olduğunu belli etmek için */
+.so-tuval.so-kilitli .so-oge {
+  pointer-events: none !important;
+  opacity: 0.85;
+  cursor: not-allowed !important;
+}
+W
