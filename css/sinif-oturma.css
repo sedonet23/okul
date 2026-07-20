@@ -188,3 +188,54 @@
   font-size:13px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 #soSecimOverlay .so-secim-item:active{ transform:scale(.98); }
 #soSecimOverlay .so-secim-alt{ display:flex; gap:8px; margin-top:10px; }
+
+/* ---- Mobil Taşma Düzeltmeleri (En Alta Eklenecek) ---- */
+
+/* 1. Palet Genişliğini Ekrana Tam Oturtma */
+#sinifOturmaOverlay .so-palet {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 10px !important;
+}
+
+/* 2. Kolon Taşmalarını Engelleme */
+#sinifOturmaOverlay .so-palet-2kolon {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 3. Öge Boyutları + / - Butonlarını Kutunun İçine Sığdırma */
+#sinifOturmaOverlay .so-oto-stepper {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  padding: 3px 2px !important;
+  gap: 2px !important;
+  box-sizing: border-box !important;
+}
+
+#sinifOturmaOverlay .so-oto-stepper span {
+  min-width: 0 !important;
+  flex: 1 !important;
+  font-size: 10.5px !important;
+  text-align: center !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+}
+
+#sinifOturmaOverlay .so-oto-stepper .so-yon-btn {
+  min-width: 20px !important;
+  width: 20px !important;
+  height: 22px !important;
+  padding: 0 !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
