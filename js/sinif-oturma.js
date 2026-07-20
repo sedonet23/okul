@@ -275,8 +275,9 @@ const SinifOturma = (function(){
     if (seciliOge) seciliOge.classList.remove('so-secili');
     seciliOge = el;
     if (seciliOge) seciliOge.classList.add('so-secili');
- 
-   function surukleBagla(el){
+  }
+
+  function surukleBagla(el){
     let basX = 0, basY = 0, ogeBasX = 0, ogeBasY = 0, surukleniyor = false, basHedef = null;
     let grup = null;
 
@@ -851,8 +852,6 @@ const SinifOturma = (function(){
       tuval.classList.toggle('so-kilitli', masalarKilitli);
       e.currentTarget.classList.toggle('so-aktif', masalarKilitli);
       e.currentTarget.innerHTML = masalarKilitli ? '🔓 Kilitleri Aç' : '🔒 Masaları Kilitle';
-    });
-
     });
 
     ov.querySelector('#btnSoZoomArtir').addEventListener('click', () => { manuelZoom = Math.min(3, +(manuelZoom+0.2).toFixed(2)); zoomUygula(); });
