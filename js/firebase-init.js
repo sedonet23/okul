@@ -59,6 +59,8 @@ const COL = {
   bransListesi:'oy_bransListesi',          // {ad} — Öğretmen Branşı seçim listesi (ayrı)
   // --- YENİ: Servis Oturma Planı (v5.0) ---
   servisOturma:'oy_servisOturma',
+  // --- YENİ: Sınıf İçi Oturma Planı ---
+  sinifOturma:'oy_sinifOturma',          // belge ID = sinifId; {sinifId, sayfaYonu, masaTuru, sutunSayisi, satirSayisi, sutunBoslugu, satirBoslugu, kapiYonu, ogeler:[{id,tur,x,y,w,h,rotasyon,ogrenciId?,ogrenciAdi?}], guncellemeTarihi}
   nobetRotasyon:'oy_nobetRotasyon',
   // --- YENİ: Dökümanlar modülü ---
   dokumanlar:'oy_dokumanlar',

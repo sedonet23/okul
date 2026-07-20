@@ -171,6 +171,7 @@ function sinifDetayBilgiRender(s){
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eOkulBilgiInput_${s.id}').click()">📋 e-Okul Aktar</button>
           <input type="file" id="eOkulBilgiInput_${s.id}" accept=".xlsx,.xls" style="display:none;" onchange="eOkulListesiOku(this.files[0], '${s.id}'); this.value='';">
           <button class="btn btn-amber btn-sm" onclick="sinifVeliModalAc()">➕ Öğrenci Ekle</button>
+          <button class="btn btn-ghost btn-sm" onclick="SinifOturma.ac('${s.id}')">🗺️ Oturma Planı</button>
         </span>
       </h4>
       ${ogrenciler.length ? ogrenciler.sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr')).map(v=>`
