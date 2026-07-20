@@ -520,6 +520,12 @@ const SinifOturma = (function(){
         tur: el.dataset.tur,
         x: el.offsetLeft,
         y: el.offsetTop,
+        // DÜZELTME: w/h hiç kaydedilmiyordu — kayıtlı bir plan yeniden
+        // açıldığında planiYukle() bu alanları undefined okuyup her ögeyi
+        // 0×0'a (görünmez) çöktürüyor, AKTIF_BOYUT de "undefined×undefined"
+        // gösteriyordu. Artık her ögenin GERÇEK ölçülen boyutu kaydediliyor.
+        w: el.offsetWidth,
+        h: el.offsetHeight,
         rotasyon: parseInt(el.dataset.rotasyon || 0)
       };
 
@@ -557,8 +563,14 @@ const SinifOturma = (function(){
 
     (kayit.ogeler || []).forEach(o => {
       const el = ogeOlustur(o.tur, o.x, o.y, false);
-      el.style.width = o.w + 'px';
-      el.style.height = o.h + 'px';
+      // DÜZELTME: eski (w/h kaydetmeyen) kayıtlarda o.w/o.h undefined olabilir —
+      // bu durumda ogeOlustur()'ın zaten uyguladığı geçerli varsayılan boyutu
+      // ezmeden koruyoruz, "undefined×undefined" çökmesini önlüyoruz.
+      if (Number.isFinite(o.w) && Number.isFinite(o.h)) {
+        el.style.width = o.w + 'px';
+        el.style.height = o.h + 'px';
+        AKTIF_BOYUT[o.tur] = { w: o.w, h: o.h };
+      }
       koltukYaziBoyutuAyarla(el);
       if (o.rotasyon) { el.dataset.rotasyon = o.rotasyon; el.style.transform = `rotate(${o.rotasyon}deg)`; }
       if (o.isim) {
@@ -575,7 +587,6 @@ const SinifOturma = (function(){
           if (k.isim) { kEl.dataset.isim = k.isim; kEl.textContent = k.isim; kEl.classList.remove('so-bos'); }
         });
       }
-      AKTIF_BOYUT[o.tur] = { w: o.w, h: o.h };
     });
     Object.keys(AKTIF_BOYUT).forEach(boyutGosterGuncelle);
     ogeSec(null);
