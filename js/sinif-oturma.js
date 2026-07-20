@@ -38,6 +38,28 @@ const SinifOturma = (function(){
   let sinifId = null, sinifAdi = '', ov = null, tuval = null;
   let sayac = 0, seciliOge = null, mevcutYon = 'dikey';
   let sutunBoslugu = 12, satirBoslugu = 66, topluTasimaAcik = false, masalarKilitli = false;
+  let _soLogoDataUri = null;
+
+  // Okul logosunu (assets/logo.png) PDF başlığında kullanmak üzere data-URI'ye
+  // çevirip önbelleğe alır — jsPDF.addImage() doğrudan data-URI kabul eder.
+  async function _soLogoDataUriGetir(){
+    if (_soLogoDataUri !== null) return _soLogoDataUri;
+    try {
+      const logoSrc = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + 'assets/logo.png';
+      const resp = await fetch(logoSrc);
+      const blob = await resp.blob();
+      _soLogoDataUri = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn('Okul logosu PDF için yüklenemedi:', e);
+      _soLogoDataUri = '';
+    }
+    return _soLogoDataUri;
+  }
   let tabanZoom = 1, manuelZoom = 1;
   let AKTIF_BOYUT = {};
   let kaydedilmemisDegisiklik = false;
@@ -436,8 +458,8 @@ const SinifOturma = (function(){
     const pencereBoyut = AKTIF_BOYUT['pencere'];
     const pencereBaslangicY = UST_SIRA_Y + ogretmenBoyut.h + 24;
     const pencereBolgeYukseklik = Math.max(0, (baslangicY + izgaraYukseklik) - pencereBaslangicY);
-    const pencereAraligi = pencereBoyut.h + 30;
-    const pencereSayisi = Math.max(1, Math.floor(pencereBolgeYukseklik / pencereAraligi));
+    const PENCERE_SAYISI_VARSAYILAN = 3; // DÜZELTME: alana göre otomatik hesaplamak yerine sabit 3 pencere
+    const pencereSayisi = PENCERE_SAYISI_VARSAYILAN;
     for (let i = 0; i < pencereSayisi; i++){
       const dilim = pencereBolgeYukseklik / pencereSayisi;
       const y = pencereBaslangicY + (i + 0.5) * dilim - pencereBoyut.h / 2;
@@ -643,8 +665,21 @@ const SinifOturma = (function(){
       }
       doc.setFont(fontAdi, 'normal');
 
-      const kenarMM = 8, ustBaslikPayiMM = 18;
+      const logoDataUri = await _soLogoDataUriGetir();
+      const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
+      const kurumBasligiVar = !!(logoDataUri || okulAdi);
+
+      const kenarMM = 8, ustBaslikPayiMM = kurumBasligiVar ? 26 : 18;
       const kullanilabilirGenMM = sayfaGenMM - kenarMM * 2;
+
+      if (logoDataUri) {
+        try { doc.addImage(logoDataUri, 'PNG', kenarMM, 4, 12, 12); } catch (e) { /* bozuk görsel olursa sessizce atla */ }
+      }
+      if (okulAdi) {
+        doc.setFontSize(11);
+        doc.text(okulAdi.toLocaleUpperCase('tr'), sayfaGenMM / 2, 10, { align: 'center' });
+      }
+
       // DÜZELTME: başlık metni sabit 13pt ile sayfa genişliğini aşıp
       // kırpılıyordu — artık metin genişliği ölçülüp, sığana kadar punto
       // kademeli olarak küçültülüyor (7pt'nin altına inmiyor).
@@ -655,7 +690,8 @@ const SinifOturma = (function(){
         baslikPunto -= 0.5;
         doc.setFontSize(baslikPunto);
       }
-      doc.text(baslikMetni, sayfaGenMM / 2, 12, { align: 'center' });
+      const baslikY = kurumBasligiVar ? 19 : 12;
+      doc.text(baslikMetni, sayfaGenMM / 2, baslikY, { align: 'center' });
 
       const kullanilabilirYukMM = sayfaYukMM - ustBaslikPayiMM - kenarMM;
       let cizimGenMM = kullanilabilirGenMM, cizimYukMM = cizimGenMM / oranGenYuk;
