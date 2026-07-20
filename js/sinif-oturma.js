@@ -845,6 +845,15 @@ const SinifOturma = (function(){
       topluTasimaAcik = !topluTasimaAcik;
       e.currentTarget.classList.toggle('so-aktif', topluTasimaAcik);
     });
+    ov.querySelector('#btnGenelKilit').addEventListener('click', (e) => {
+      const kilitli = tuval.classList.toggle('so-kilitli');
+      e.currentTarget.classList.toggle('so-aktif', kilitli);
+      e.currentTarget.innerHTML = kilitli ? '🔓 Kilitleri Aç' : '🔒 Masaları Kilitle';
+      tuval.querySelectorAll('.so-oge').forEach(el => {
+        el.style.pointerEvents = kilitli ? 'none' : 'auto';
+      });
+    });
+
     ov.querySelector('#btnSoZoomArtir').addEventListener('click', () => { manuelZoom = Math.min(3, +(manuelZoom+0.2).toFixed(2)); zoomUygula(); });
     ov.querySelector('#btnSoZoomAzalt').addEventListener('click', () => { manuelZoom = Math.max(0.3, +(manuelZoom-0.2).toFixed(2)); zoomUygula(); });
     ov.querySelector('#btnSoZoomSigdir').addEventListener('click', () => { manuelZoom = 1; tuvalEkraniSigdir(); });
