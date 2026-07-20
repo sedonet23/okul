@@ -37,7 +37,7 @@
 #sinifOturmaOverlay .so-govde{ flex:1 1 auto; display:flex; gap:14px; padding:0 14px 16px; align-items:flex-start;
   flex-wrap:wrap; overflow-y:auto; min-height:0; }
 
-#sinifOturmaOverlay .so-palet{ width:100%; max-width:420px; flex-shrink:0; padding:14px; }
+#sinifOturmaOverlay .so-palet{ width:420px; flex-shrink:0; padding:14px; }
 #sinifOturmaOverlay .so-palet h3{ font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-muted); margin:0 0 10px; }
 #sinifOturmaOverlay .so-palet-grup{ margin-bottom:16px; }
 #sinifOturmaOverlay .so-palet-2kolon{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
@@ -151,23 +151,3 @@
   font-size:13px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 #soSecimOverlay .so-secim-item:active{ transform:scale(.98); }
 #soSecimOverlay .so-secim-alt{ display:flex; gap:8px; margin-top:10px; }
-
-/* ---- Mobil / dar ekran düzeltmeleri ----
-   Palet iki sütunu (MASA/SIRA + SINIF UNSURLARI) ve üst bar butonları,
-   dar telefon ekranlarında ekran genişliğini aşıp yatay taşmaya
-   sebep oluyordu. 480px altında tek sütuna indiriyoruz ve buton
-   boyutlarını küçültüyoruz. */
-@media (max-width:480px){
-  #sinifOturmaOverlay .so-header{ padding:10px 10px; gap:8px; }
-  #sinifOturmaOverlay .so-header h1{ font-size:15px; flex:1 1 100%; order:1; }
-  #sinifOturmaOverlay .so-header > button{ order:0; }
-  #sinifOturmaOverlay .so-header > div{ order:2; flex:1 1 100%; justify-content:center; flex-wrap:wrap; }
-  #sinifOturmaOverlay .so-btn{ font-size:11px; padding:8px 10px; }
-
-  #sinifOturmaOverlay .so-palet{ max-width:100%; padding:12px; }
-  #sinifOturmaOverlay .so-palet-2kolon{ grid-template-columns:1fr; }
-  #sinifOturmaOverlay .so-oto-satir-2{ grid-template-columns:1fr; }
-
-  #sinifOturmaOverlay .so-govde{ padding:0 8px 12px; gap:10px; }
-  #sinifOturmaOverlay .so-tuval-sarici{ min-width:0; padding:10px; }
-}
