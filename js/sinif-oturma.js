@@ -481,33 +481,34 @@ const SinifOturma = (function(){
     }
   }
 
-  function planiSerilestir(){
+    function planiSerilestir() {
     const ogeler = Array.from(tuval.children).map(el => {
       const obj = {
         tur: el.dataset.tur,
-        x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight,
-        rotasyon: parseInt(el.dataset.rotasyon, 10) || 0,
+        x: el.offsetLeft,
+        y: el.offsetTop,
+        rotasyon: parseInt(el.dataset.rotasyon || 0)
       };
+
       if (el.dataset.isim) obj.isim = el.dataset.isim;
+
       const koltuklar = el.querySelectorAll('.so-koltuk');
       if (koltuklar.length) {
         obj.koltuklar = Array.from(koltuklar).map(k => ({
-          ogrenciId: k.dataset.ogrenciId || null,
-          isim: k.dataset.isim || '',
+          ogrenciId: k.dataset.ogrenciId || '',
+          isim: k.dataset.isim || ''
         }));
       }
+
       return obj;
     });
+
     return {
-      sinifId, ogeler,
-      sayfaYonu: mevcutYon, sutunBoslugu, satirBoslugu,
-      masaTuru: ov.querySelector('#soMasaTuru').value,
-      sutunSayisi: ov.querySelector('#soSutun').value,
-      satirSayisi: ov.querySelector('#soSatir').value,
-      kapiYonu: ov.querySelector('#soKapiYonu').value,
-      guncellemeTarihi: new Date().toISOString(),
+      sinifId,
+      ogeler
     };
   }
+
 
   function planiYukle(kayit){
     tuval.innerHTML = '';
