@@ -112,6 +112,7 @@
   color:var(--so-masa-ink); cursor:pointer;
 }
 #sinifOturmaOverlay .so-koltuk.so-bos{ color:rgba(107,91,58,.45); font-weight:400; font-size:14px; }
+#sinifOturmaOverlay #soTuval.so-yakalama-modu .so-koltuk.so-bos{ color:transparent; }
 #sinifOturmaOverlay .so-koltuk:active{ background:rgba(255,255,255,.85); }
 
 #sinifOturmaOverlay .so-oge.ogretmen-masasi{ background:var(--brand-light); color:var(--brand-dark); border:1.5px dashed var(--brand); flex-direction:column; }
@@ -147,19 +148,3 @@
   font-size:13px; font-weight:600; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:8px; }
 #soSecimOverlay .so-secim-item:active{ transform:scale(.98); }
 #soSecimOverlay .so-secim-alt{ display:flex; gap:8px; margin-top:10px; }
-
-/* ---- Yazdırma ---- */
-@page{ size: A4; margin: 8mm; }
-@media print{
-  body > *:not(#sinifOturmaOverlay){ display:none !important; }
-  #sinifOturmaOverlay{ position:static; background:#fff; }
-  #sinifOturmaOverlay .so-header .so-btn, #sinifOturmaOverlay .so-palet, #sinifOturmaOverlay .so-footer,
-  #sinifOturmaOverlay .so-tuval-baslik .so-ipucu, #sinifOturmaOverlay .so-yon-secim,
-  #sinifOturmaOverlay .so-tuval-baslik .so-ad{ display:none !important; }
-  #sinifOturmaOverlay .so-govde{ padding:0; display:block; overflow:visible; }
-  #sinifOturmaOverlay .so-tuval-sarici{ width:100%; padding:0; box-shadow:none; background:none; }
-  #sinifOturmaOverlay .so-tuval-kaydirma{ background:none; padding:0; max-height:none; overflow:hidden; }
-  #sinifOturmaOverlay #soTuval{ border:2px solid #000; }
-  #sinifOturmaOverlay .so-oge .so-sil, #sinifOturmaOverlay .so-oge .so-dondur, #sinifOturmaOverlay .so-oge .so-boyut{ display:none !important; }
-  #sinifOturmaOverlay .so-koltuk.so-bos{ color:transparent; }
-}
