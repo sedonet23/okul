@@ -166,14 +166,24 @@ const SinifOturma = (function(){
     el.style.top  = (hizalaMi ? izgaraHizala(y) : Math.round(y)) + 'px';
 
     if (duzen) {
+      // DÜZELTME: CSS Grid (grid-template-columns/rows) yerine her koltuğa
+      // AÇIKÇA hesaplanmış yüzde konum/boyut veriliyor — html2canvas, CSS
+      // Grid'in "stretch" davranışını güvenilir şekilde render edemiyor
+      // (koltuklar küçük bir kare olarak kalıyordu); mutlak yüzde
+      // konumlandırma bu sınırlamadan tamamen bağımsız, her zaman doğru
+      // sonuç veriyor. Bu aynı zamanda "isim tam masanın yarısı olsun"
+      // isteğini de birebir karşılıyor (2'li masada her koltuk tam %50x%100).
       const izgara = document.createElement('div');
       izgara.className = 'so-koltuklar';
-      izgara.style.gridTemplateColumns = `repeat(${duzen.sutun}, 1fr)`;
-      izgara.style.gridTemplateRows = `repeat(${duzen.satir}, 1fr)`;
       for (let i = 0; i < duzen.adet; i++) {
+        const sutunNo = i % duzen.sutun, satirNo = Math.floor(i / duzen.sutun);
         const koltuk = document.createElement('div');
         koltuk.className = 'so-koltuk so-bos';
         koltuk.textContent = '+';
+        koltuk.style.left   = (sutunNo * 100 / duzen.sutun) + '%';
+        koltuk.style.top    = (satirNo * 100 / duzen.satir) + '%';
+        koltuk.style.width  = (100 / duzen.sutun) + '%';
+        koltuk.style.height = (100 / duzen.satir) + '%';
         izgara.appendChild(koltuk);
       }
       el.appendChild(izgara);
@@ -597,12 +607,38 @@ const SinifOturma = (function(){
       const sayfaYukMM = mevcutYon === 'yatay' ? 210 : 297;
       const doc = new jsPDF({ orientation: mevcutYon === 'yatay' ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text(_soBaslikMetni(), sayfaGenMM / 2, 12, { align: 'center' });
+      // DÜZELTME: jsPDF'in yerleşik fontları (Helvetica vb.) Türkçe'ye özgü
+      // karakterleri (Ğ, İ, ı, Ş, ğ, ş) desteklemiyor, "0" gibi bozuk
+      // karakterlere dönüşüyordu — uygulamada zaten var olan, Türkçe
+      // destekli Roboto fontunu yükleyen ortak yardımcı (bkz.
+      // ogretmen-liste-olusturucu.js) burada da kullanılıyor.
+      let fontAdi = 'helvetica';
+      if (typeof olPdfFontBase64Getir === 'function') {
+        try {
+          const fontB64 = await olPdfFontBase64Getir();
+          if (fontB64) {
+            doc.addFileToVFS('Roboto-Regular.ttf', fontB64);
+            doc.addFont('Roboto-Regular.ttf', 'Roboto', 'normal');
+            fontAdi = 'Roboto';
+          }
+        } catch (e) { /* yüklenemezse helvetica ile devam edilir */ }
+      }
+      doc.setFont(fontAdi, 'normal');
 
       const kenarMM = 8, ustBaslikPayiMM = 18;
       const kullanilabilirGenMM = sayfaGenMM - kenarMM * 2;
+      // DÜZELTME: başlık metni sabit 13pt ile sayfa genişliğini aşıp
+      // kırpılıyordu — artık metin genişliği ölçülüp, sığana kadar punto
+      // kademeli olarak küçültülüyor (7pt'nin altına inmiyor).
+      const baslikMetni = _soBaslikMetni();
+      let baslikPunto = 13;
+      doc.setFontSize(baslikPunto);
+      while (doc.getTextWidth(baslikMetni) > kullanilabilirGenMM && baslikPunto > 7) {
+        baslikPunto -= 0.5;
+        doc.setFontSize(baslikPunto);
+      }
+      doc.text(baslikMetni, sayfaGenMM / 2, 12, { align: 'center' });
+
       const kullanilabilirYukMM = sayfaYukMM - ustBaslikPayiMM - kenarMM;
       let cizimGenMM = kullanilabilirGenMM, cizimYukMM = cizimGenMM / oranGenYuk;
       if (cizimYukMM > kullanilabilirYukMM) { cizimYukMM = kullanilabilirYukMM; cizimGenMM = cizimYukMM * oranGenYuk; }
