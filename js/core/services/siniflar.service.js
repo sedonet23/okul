@@ -42,6 +42,27 @@ const SiniflarService = {
     return SiniflarRepository.veliSil(id);
   },
 
+  /* Bir kulübün danışman öğretmeni mi kontrolü — genel 'siniflar'/'ogrenciler'
+     düzenleme yetkisinden TAMAMEN BAĞIMSIZ, dar kapsamlı bir kontrol. */
+  _kulupDanismaniMi(kulupId){
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    if(!ben) return false;
+    const kulup = (typeof cizelgeVerileri !== 'undefined' && cizelgeVerileri.sosyalKulupler || []).find(k=>k.id===kulupId);
+    return !!(kulup && Array.isArray(kulup.ogretmenIdler) && kulup.ogretmenIdler.includes(ben.id));
+  },
+  /* Öğrenciyi bir kulübe atar/kulüpten çıkarır. Öğretmen rolü genel öğrenci
+     bilgilerini düzenleyemese BİLE, kendi danışmanı olduğu kulüp için bu
+     TEK ALANI (kulupId/kulupAdi) değiştirebilir — diğer öğrenci alanlarına
+     (isim, telefon, veli bilgisi vb.) bu yoldan asla dokunulmaz. */
+  ogrenciKulupGuncelle(ogrenciId, kulupId, kulupAdi){
+    const genelYetkiVar = this._yetkiKontrolSessiz();
+    const kulupDanismaniMi = this._kulupDanismaniMi(kulupId) || this._kulupDanismaniMi(this._ogrenciMevcutKulupId ? this._ogrenciMevcutKulupId(ogrenciId) : null);
+    if(!genelYetkiVar && !kulupDanismaniMi){ toast('Bu işlem için yetkiniz yok.'); return Promise.reject(new Error('yetkisiz')); }
+    return SiniflarRepository.veliGuncelle(ogrenciId, { kulupId: kulupId || '', kulupAdi: kulupAdi || '' });
+  },
+  _yetkiKontrolSessiz(){ return typeof duzenleyebilir==='function' && (duzenleyebilir('siniflar') || duzenleyebilir('ogrenciler')); },
+  _ogrenciMevcutKulupId(ogrenciId){ const v=(typeof veliler!=='undefined'?veliler:[]).find(x=>x.id===ogrenciId); return v?v.kulupId:null; },
+
   /* ================= SAF EŞLEME MANTIĞI (iş kuralı, DOM yok) ================= */
   /* Ad/soyad karşılaştırmasında TR yerel duyarlılığı ile eşleştirir. */
   _turkceEsitMi(a, b){
