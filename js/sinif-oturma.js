@@ -283,14 +283,18 @@ const SinifOturma = (function(){
 
         el.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.so-sil, .so-dondur, .so-boyut')) return;
-      if (masalarKilitli) return; // <-- MASALAR KİLİTLİYSE SÜRÜKLEMEYİ BAŞLATMA
+      // NOT: masalarKilitli iken de buraya giriyoruz — aksi halde koltuk
+      // seçimi/boşaltma/öğretmen adı gibi tıklama tabanlı işlemler de
+      // (birak() içinde tespit ediliyor) çalışmaz hale gelirdi. Kilit sadece
+      // aşağıda pointermove'da GERÇEK sürükleme/konum değişimini engelliyor.
       ogeSec(el);
       surukleniyor = true;
       basHedef = e.target;
-      el.classList.add('so-surukleniyor');
-      el.setPointerCapture(e.pointerId);
       basX = e.clientX; basY = e.clientY;
       ogeBasX = el.offsetLeft; ogeBasY = el.offsetTop;
+      if (masalarKilitli) { grup = null; return; } // konum kilitliyken sürükleme durumu kurulmaz
+      el.classList.add('so-surukleniyor');
+      el.setPointerCapture(e.pointerId);
 
       if (topluTasimaAcik && KOLTUK_DUZENI[el.dataset.tur]) {
         const parcalar = Array.from(tuval.querySelectorAll('.so-oge')).filter(d => KOLTUK_DUZENI[d.dataset.tur]);
@@ -308,7 +312,7 @@ const SinifOturma = (function(){
     });
 
     el.addEventListener('pointermove', (e) => {
-      if (!surukleniyor) return;
+      if (!surukleniyor || masalarKilitli) return; // konum kilitliyken masa görsel olarak yer değiştirmez
       let dx = e.clientX - basX, dy = e.clientY - basY;
       if (grup) {
         dx = Math.max(-grup.minX, Math.min(tuval.clientWidth - grup.maxX, dx));
@@ -330,7 +334,10 @@ const SinifOturma = (function(){
       if (!surukleniyor) return;
       surukleniyor = false;
       el.classList.remove('so-surukleniyor');
-      if (grup) {
+      if (masalarKilitli) {
+        // Konum kilitliyken masa hiç kımıldamadı; sadece aşağıdaki tıklama
+        // (koltuk seçimi / öğretmen adı) tespitine geçiyoruz.
+      } else if (grup) {
         const hizaliX = izgaraHizala(el.offsetLeft);
         const hizaliY = izgaraHizala(el.offsetTop);
         const dX = hizaliX - el.offsetLeft, dY = hizaliY - el.offsetTop;
@@ -357,7 +364,7 @@ const SinifOturma = (function(){
         } else if (basHedef.classList && basHedef.classList.contains('so-ogretmen-ad')) {
           ogretmenAdiSor(basHedef);
         }
-      } else if (mesafe >= TIKLAMA_ESIGI) {
+      } else if (mesafe >= TIKLAMA_ESIGI && !masalarKilitli) {
         kaydedilmemisDegisiklik = true;
       }
     };
