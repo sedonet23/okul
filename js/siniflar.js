@@ -181,6 +181,7 @@ function sinifDetayBilgiRender(s){
             ${v.ogrenciNo?`<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>`:''}
             ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
             ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
+            ${v.kulupAdi?`<span class="badge badge-sage">🎗️ ${escapeHtml(v.kulupAdi)}</span>`:''}
             <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}</span>
           </span>
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
@@ -299,12 +300,23 @@ function sinifVeliModalAc(id){
         ${servisler.map(sv=>`<option value="${sv.id}" ${v&&v.servisId===sv.id?'selected':''}>${escapeHtml(sv.servisAdi||'Servis')}</option>`).join('')}
       </select>
     </div>
+    <div class="form-group"><label>Sosyal Kulüp</label>
+      <select id="f_vKulup">
+        <option value="">— Kulüp seçilmedi —</option>
+        ${(typeof cizelgeVerileri!=='undefined'?cizelgeVerileri.sosyalKulupler:[])
+          .filter(k=>(k.aktif!==false && (!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(detaySinifId))) || (v&&v.kulupId===k.id))
+          .sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+          .map(k=>`<option value="${k.id}" ${v&&v.kulupId===k.id?'selected':''}>${escapeHtml(k.ad)}</option>`).join('')}
+      </select>
+      ${v&&v.kulupId&&!(typeof cizelgeVerileri!=='undefined'&&cizelgeVerileri.sosyalKulupler.some(k=>k.id===v.kulupId&&(k.aktif!==false)&&(!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(detaySinifId))))?'<p style="font-size:11px;color:#c0392b;margin-top:4px;">⚠️ Mevcut kulüp bu sınıf için artık uygun değil ya da pasif — listede görünmeyebilir, gerekirse değiştirin.</p>':''}
+    </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_vNotlar" rows="2">${v?escapeHtml(v.notlar||''):''}</textarea></div>
   `;
   modalAc(v?'Öğrenci Düzenle':'Yeni Öğrenci Ekle', body, ()=>{
     const ogrenciAdi = document.getElementById('f_vOgrenci').value.trim();
     if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
     const servisId = document.getElementById('f_vServis').value;
+    const kulupId = document.getElementById('f_vKulup').value;
     SiniflarService.veliKaydet(v?v.id:null, {
       sinifId: detaySinifId,
       ogrenciAdi,
@@ -322,6 +334,8 @@ function sinifVeliModalAc(id){
       adres: document.getElementById('f_vAdres').value.trim(),
       servisId,
       servisAdi: servisId ? (servisler.find(sv=>sv.id===servisId)||{}).servisAdi||'' : '',
+      kulupId,
+      kulupAdi: kulupId ? ((typeof cizelgeVerileri!=='undefined'?cizelgeVerileri.sosyalKulupler:[]).find(k=>k.id===kulupId)||{}).ad||'' : '',
       notlar: document.getElementById('f_vNotlar').value.trim(),
     }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
@@ -361,9 +375,10 @@ function ogrenciDetayModalAc(id){
       <div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Adres</div>
       <div style="font-size:13px;">📍 ${escapeHtml(v.adres||'—')}</div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
       <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sınıf</div><div><span class="badge badge-blue">${escapeHtml(sinifAdi)}</span></div></div>
       <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Servis</div><div>${v.servisId?`<span class="badge badge-amber">🚌 ${escapeHtml(servisAdi)}</span>`:'<span style="color:var(--ink-muted);">Servis yok</span>'}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sosyal Kulüp</div><div>${v.kulupAdi?`<span class="badge badge-sage">🎗️ ${escapeHtml(v.kulupAdi)}</span>`:'<span style="color:var(--ink-muted);">Kulüp yok</span>'}</div></div>
     </div>
     ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">

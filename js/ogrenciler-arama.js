@@ -155,6 +155,7 @@ function _ogrenciSatirHtml(v, sinifAdi) {
         ${v.ogrenciNo ? `<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>` : ''}
         ${v.cinsiyet ? `<span class="badge badge-${v.cinsiyet === 'Kız' ? 'rose' : 'blue'}">${escapeHtml(v.cinsiyet)}</span>` : ''}
         ${v.servisAdi ? `<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>` : ''}
+        ${v.kulupAdi ? `<span class="badge badge-sage">🎗️ ${escapeHtml(v.kulupAdi)}</span>` : ''}
         <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(sinifAdi || '—')} · ${escapeHtml(v.veliAdi || '—')}</span>
         ${telefonlar ? `<br><span style="font-size:12px;color:var(--ink-muted);">📞 ${escapeHtml(telefonlar)}</span>` : ''}
       </span>
@@ -234,6 +235,7 @@ function renderOgrenciler() {
 // _aramaKategori zaten yukarıda tanımlı
 let _seciliServisler = new Set(); // çoklu servis filtresi
 let _seciliSiniflar  = new Set(); // çoklu sınıf filtresi
+let _seciliKulupler  = new Set(); // çoklu sosyal kulüp filtresi
 
 function aramaKatSec(btn) {
   document.querySelectorAll('.arama-kat').forEach(b => b.classList.remove('aktif'));
@@ -251,6 +253,7 @@ function globalAramaTemizle() {
 function gelismisFiltreSifirla() {
   _seciliServisler.clear();
   _seciliSiniflar.clear();
+  _seciliKulupler.clear();
   document.getElementById('aramaCinsiyetFiltre').value = '';
   document.querySelectorAll('.arama-filtre-chip.secili').forEach(c => c.classList.remove('secili'));
   globalAramaYap();
@@ -263,10 +266,11 @@ function aramaFiltreTikla(set, id, el) {
   globalAramaYap();
 }
 
-/* Gelişmiş filtre seçeneklerini (servis + sınıf chip'leri) doldur */
+/* Gelişmiş filtre seçeneklerini (servis + sınıf + kulüp chip'leri) doldur */
 function aramaGelismisFiltreDoldur() {
   const servisEl = document.getElementById('aramaServisSecenekleri');
   const sinifEl  = document.getElementById('aramaSinifSecenekleri');
+  const kulupEl  = document.getElementById('aramaKulupSecenekleri');
   if (!servisEl || !sinifEl) return;
 
   // Her seferinde yenile (veriler sonradan yüklenmiş olabilir)
@@ -288,6 +292,16 @@ function aramaGelismisFiltreDoldur() {
       btn.textContent = '🏫 ' + (s.ad || '—');
       btn.onclick = () => aramaFiltreTikla(_seciliSiniflar, s.id, btn);
       sinifEl.appendChild(btn);
+    });
+  }
+  if (kulupEl && typeof cizelgeVerileri !== 'undefined' && cizelgeVerileri.sosyalKulupler && cizelgeVerileri.sosyalKulupler.length > 0) {
+    kulupEl.innerHTML = '';
+    cizelgeVerileri.sosyalKulupler.slice().sort((a,b)=>String(a.ad||'').localeCompare(String(b.ad||''),'tr')).forEach(k => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-ghost btn-sm arama-filtre-chip' + (_seciliKulupler.has(k.id) ? ' secili' : '');
+      btn.textContent = '🎗️ ' + (k.ad || '—');
+      btn.onclick = () => aramaFiltreTikla(_seciliKulupler, k.id, btn);
+      kulupEl.appendChild(btn);
     });
   }
 }
@@ -358,6 +372,8 @@ function globalAramaYap() {
       }
       // Çoklu sınıf filtresi
       if (_seciliSiniflar.size > 0 && !_seciliSiniflar.has(v.sinifId)) return false;
+      // Çoklu sosyal kulüp filtresi
+      if (_seciliKulupler.size > 0 && !_seciliKulupler.has(v.kulupId)) return false;
       // Cinsiyet filtresi
       if (cinsF === 'kiz' && !['Kız','K','kiz','kız'].includes(v.cinsiyet)) return false;
       if (cinsF === 'erkek' && !['Erkek','E','erkek'].includes(v.cinsiyet)) return false;
@@ -370,13 +386,13 @@ function globalAramaYap() {
       // "Tümü" sekmesinde servis adı yazınca öğrencilerin hiç çıkmamasına yol açıyordu.)
       const sAdi = (typeof siniflar !== 'undefined') ? (siniflar.find(s=>s.id===v.sinifId)||{}).ad||'' : '';
       const sonServisAdi = (typeof servisler !== 'undefined') ? (servisler.find(s=>s.id===v.servisId)||{}).servisAdi||'' : '';
-      const hay = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi, sonServisAdi, v.servisAdi]
+      const hay = [v.ogrenciAdi, v.veliAdi, v.telefon, v.eposta, sAdi, sonServisAdi, v.servisAdi, v.kulupAdi]
         .join(' ').toLocaleLowerCase('tr');
       return hay.includes(q);
     });
 
     if (hits.length) {
-      const baslik = _seciliServisler.size > 0 || _seciliSiniflar.size > 0
+      const baslik = _seciliServisler.size > 0 || _seciliSiniflar.size > 0 || _seciliKulupler.size > 0
         ? `Filtreli Öğrenciler (${hits.length})`
         : `👨‍🎓 Öğrenciler (${hits.length})`;
       html += `<div class="card" style="margin-bottom:12px;"><h3>${baslik}</h3>`;

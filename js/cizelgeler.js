@@ -21,6 +21,32 @@ function _trTarih(iso){ if(!iso) return ''; const p=iso.split('-'); return p.len
 /* not: koleksiyon adı çözümlemesi artık CizelgelerRepository/Service içinde (tip parametresiyle) */
 function _ogretmenAdi(id){ if(!id) return '—'; const o=(typeof ogretmenler!=='undefined'?ogretmenler:[]).find(x=>x.id===id); return o?`${o.ad} ${o.soyad}`:'—'; }
 function _ogretmenAdlari(idler){ if(!Array.isArray(idler)||!idler.length) return '—'; return idler.map(_ogretmenAdi).join(', '); }
+function _sinifAdi(id){ if(!id) return '—'; const s=(typeof siniflar!=='undefined'?siniflar:[]).find(x=>x.id===id); return s?s.ad:'—'; }
+/* Kulüp tanımında "bu kulübü hangi sınıflar seçebilir" checkbox listesi —
+   _ogretmenListesiHtml ile aynı desen. Her satıra data-seviye eklenip
+   İlkokul/Ortaokul hızlı seçim butonlarının hangi kutuları işaretleyeceği
+   belirleniyor. */
+function _sinifListesiHtml(seciliIdler, inputId){
+  const sec=Array.isArray(seciliIdler)?seciliIdler:(seciliIdler?[seciliIdler]:[]);
+  const liste=(typeof siniflar!=='undefined'?siniflar:[]).slice().sort((a,b)=>String(a.ad).localeCompare(String(b.ad),'tr'));
+  return `
+    <div style="display:flex;gap:6px;margin-bottom:6px;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_kulupSeviyeHizliSec('${inputId}',1,4)">🧒 Tüm İlkokul (1-4)</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_kulupSeviyeHizliSec('${inputId}',5,8)">🎓 Tüm Ortaokul (5-8)</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_kulupSeviyeHizliSec('${inputId}',null,null)">✕ Temizle</button>
+    </div>
+    <div class="ogr-checkbox-liste" id="${inputId}">${liste.map(s=>`<label class="ogr-cb-row"><input type="checkbox" value="${s.id}" data-seviye="${escapeHtml(s.seviye||'')}" ${sec.includes(s.id)?'checked':''}><span>${escapeHtml(s.ad)}${s.seviye?` <span style="color:var(--ink-muted);">(Seviye ${escapeHtml(String(s.seviye))})</span>`:''}</span></label>`).join('')}</div>
+    <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Hiç sınıf seçilmezse bu kulübü tüm sınıflar seçebilir.</p>`;
+}
+/* min/max null verilirse tüm kutular temizlenir; aksi halde seviyesi
+   [min,max] aralığında olan kutular işaretlenir, diğerleri dokunulmaz. */
+function _kulupSeviyeHizliSec(inputId, min, max){
+  document.querySelectorAll(`#${inputId} input[type=checkbox]`).forEach(cb=>{
+    if (min===null){ cb.checked=false; return; }
+    const sv=parseInt(cb.dataset.seviye,10);
+    if (Number.isFinite(sv) && sv>=min && sv<=max) cb.checked=true;
+  });
+}
 function _ogretmenListesiHtml(seciliIdler, inputId){
   const sec=Array.isArray(seciliIdler)?seciliIdler:(seciliIdler?[seciliIdler]:[]);
   return `<div class="ogr-checkbox-liste" id="${inputId}">${(typeof ogretmenler!=='undefined'?ogretmenler:[]).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).map(o=>`<label class="ogr-cb-row"><input type="checkbox" value="${o.id}" ${sec.includes(o.id)?'checked':''}><span>${escapeHtml(o.ad+' '+o.soyad)}</span></label>`).join('')}</div>`;
@@ -89,6 +115,7 @@ function sosyalKulupModalAc(id){
   const body=`
     <div class="form-group"><label>Kulüp Adı</label><input id="f_kulupAdi" value="${k?escapeHtml(k.ad):''}"></div>
     <div class="form-group"><label>Danışman Öğretmenler</label>${_ogretmenListesiHtml(k?k.ogretmenIdler||[]:[],'f_kulupOgr')}</div>
+    <div class="form-group"><label>Bu Kulübü Seçebilecek Sınıflar</label>${_sinifListesiHtml(k?k.sinifIdler||[]:[],'f_kulupSinif')}</div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px;">
       <label style="margin:0;">Aktif Kulüp</label>
       <input type="checkbox" id="f_aktif" style="width:auto;" ${!k||k.aktif!==false?'checked':''}>
@@ -96,7 +123,7 @@ function sosyalKulupModalAc(id){
   modalAc(k?'Kulüp Düzenle':'Yeni Kulüp',body,()=>{
     const ad=document.getElementById('f_kulupAdi').value.trim();
     if(!ad){toast('Kulüp adı zorunludur.');return;}
-    CizelgelerService.kayitKaydet('sosyalKulupler',k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)})
+    CizelgelerService.kayitKaydet('sosyalKulupler',k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),sinifIdler:_secilenIdler('f_kulupSinif'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)})
       .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   },k?()=>{if(confirm('Bu kulübü silmek istiyor musunuz?')){CizelgelerService.kayitSil('sosyalKulupler',k.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
@@ -109,15 +136,20 @@ function _renderSosyalKulupler(el,veri){
   el.innerHTML=`<div class="kulup-grid">${veri.map(k=>{
     const k12=[...(k.kontroller||[])]; while(k12.length<12) k12.push(false);
     const t=k12.filter(Boolean).length;
+    const ogrenciSayisi=(typeof veliler!=='undefined'?veliler:[]).filter(v=>v.kulupId===k.id).length;
     return `<div class="kulup-kart ${k.aktif===false?'kulup-pasif':''}" id="belge-${k.id}">
       <div class="kulup-kart-baslik">
         <span>${escapeHtml(k.ad)}</span>
         ${k.aktif===false?'<span class="badge badge-gray">Pasif</span>':'<span class="badge badge-sage">Aktif</span>'}
       </div>
       <div class="kulup-ogretmenler">${k.ogretmenIdler&&k.ogretmenIdler.length?k.ogretmenIdler.map(id=>`<span class="ogr-badge">${escapeHtml(_ogretmenAdi(id))}</span>`).join(''):'<span style="color:var(--ink-muted);font-size:12px;">Öğretmen atanmadı</span>'}</div>
-      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
+      <div style="font-size:11px;color:var(--ink-muted);margin-top:4px;">${k.sinifIdler&&k.sinifIdler.length?'Sınıflar: '+k.sinifIdler.map(_sinifAdi).join(', '):'Sınıf kısıtı yok — tüm sınıflar seçebilir'}</div>
+      <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;">
         <span class="belge-mini-sayac ${t===12?'tamam':t>0?'kismi':''}">${t}/12</span>
-        <button class="btn btn-ghost btn-sm" onclick="sosyalKulupModalAc('${k.id}')">Düzenle</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${k.id}')" title="Bu kulübe atanmış öğrencileri listele">👥 Öğrenciler (${ogrenciSayisi})</button>
+          <button class="btn btn-ghost btn-sm" onclick="sosyalKulupModalAc('${k.id}')">Düzenle</button>
+        </div>
       </div>
       <div class="belge-kontroller">${KULUP_KONTROLLER.map((ad,i)=>`
         <label class="belge-kontrol-item ${k12[i]?'tamamlandi':''}">

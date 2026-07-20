@@ -223,6 +223,42 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
 }
 
 /* ================================================================
+   KULÜP ÖĞRENCİ LİSTESİ — danışman öğretmen veya admin, bir kulübe
+   atanmış öğrencileri (tüm sınıflar genelinde) sınıflarıyla birlikte
+   listeleyip yazdırabilir. _raporPenceresiniAc üzerinden aynı
+   Android/Türkçe karakter/scroll/z-index sorunları çözülmüş boru
+   hattını kullanır — burada ayrı bir yazdırma mekanizması KURULMAZ.
+   ================================================================ */
+function kulupOgrenciListesiYazdir(kulupId){
+  const kulup = (typeof cizelgeVerileri!=='undefined' ? cizelgeVerileri.sosyalKulupler : []).find(k=>k.id===kulupId);
+  if(!kulup){ toast('Kulüp bulunamadı.'); return; }
+
+  const ogrenciler = (typeof veliler!=='undefined'?veliler:[])
+    .filter(v=>v.kulupId===kulupId)
+    .sort((a,b)=>{
+      const sa=(typeof siniflar!=='undefined'?(siniflar.find(s=>s.id===a.sinifId)||{}).ad:'')||'';
+      const sb=(typeof siniflar!=='undefined'?(siniflar.find(s=>s.id===b.sinifId)||{}).ad:'')||'';
+      return sa.localeCompare(sb,'tr') || (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr');
+    });
+
+  let html = `<span class="ozet-kutu">Toplam Öğrenci: ${ogrenciler.length}</span>
+    <span class="ozet-kutu">Danışman: ${_ogretmenAdlari(kulup.ogretmenIdler)}</span>`;
+
+  if(!ogrenciler.length){
+    html += `<p style="color:#888;font-size:11px;padding:8px 0;">Bu kulübe henüz öğrenci atanmadı.</p>`;
+  } else {
+    html += `<table><thead><tr><th>#</th><th>Öğrenci Adı</th><th>Sınıf</th><th>Öğrenci No</th></tr></thead><tbody>`;
+    ogrenciler.forEach((v,i)=>{
+      const sinifAdi = (typeof siniflar!=='undefined'?(siniflar.find(s=>s.id===v.sinifId)||{}).ad:'')||'—';
+      html += `<tr><td>${i+1}</td><td>${escapeHtml(v.ogrenciAdi||'—')}</td><td>${escapeHtml(sinifAdi)}</td><td>${escapeHtml(v.ogrenciNo||'—')}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  _raporPenceresiniAc(html, `🎗️ ${kulup.ad} — Öğrenci Listesi`);
+}
+
+/* ================================================================
    1. 📋 Öğrenci Listesi  (Modal seçim + alan özelleştirmesi)
    ================================================================ */
 function raporOgrenciListesi() {
@@ -236,12 +272,25 @@ function raporOgrenciListesi() {
     .map(s => `<option value="${s.id}">${escapeHtml(s.ad)}</option>`)
     .join('');
 
+  const kulupler = (typeof cizelgeVerileri!=='undefined' ? cizelgeVerileri.sosyalKulupler : []) || [];
+  const kuluplerHtml = kulupler
+    .slice().sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
+    .map(k => `<option value="${k.id}">${escapeHtml(k.ad)}</option>`)
+    .join('');
+
   const alanlarHtml = `
     <div style="margin-bottom: 14px;">
       <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Sınıf Seçin:</label>
       <select id="sinifSec" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 13px;">
         <option value="">— Tüm Sınıflar —</option>
         ${siniflarHtml}
+      </select>
+    </div>
+    <div style="margin-bottom: 14px;">
+      <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Kulübe Göre Filtrele (isteğe bağlı):</label>
+      <select id="kulupSec" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 13px;">
+        <option value="">— Tüm Öğrenciler —</option>
+        ${kuluplerHtml}
       </select>
     </div>
     <div>
@@ -253,6 +302,7 @@ function raporOgrenciListesi() {
         <label style="cursor: pointer;"><input type="checkbox" id="alan_veliAdi" checked> Veli Adı</label>
         <label style="cursor: pointer;"><input type="checkbox" id="alan_yakinlik"> Yakınlık</label>
         <label style="cursor: pointer;"><input type="checkbox" id="alan_telefon"> Telefon</label>
+        <label style="cursor: pointer;"><input type="checkbox" id="alan_kulup" checked> Sosyal Kulüp</label>
         <label style="cursor: pointer;"><input type="checkbox" id="alan_not"> Not</label>
       </div>
     </div>
@@ -260,6 +310,7 @@ function raporOgrenciListesi() {
 
   _raporModalAc('📋 Öğrenci Listesi', alanlarHtml, () => {
     const sinifId = document.getElementById('sinifSec').value;
+    const kulupId = document.getElementById('kulupSec').value;
     const seciliAlanlar = {
       ogrenciAdi: document.getElementById('alan_ogrenciAdi').checked,
       ogrenciNo: document.getElementById('alan_ogrenciNo').checked,
@@ -267,31 +318,35 @@ function raporOgrenciListesi() {
       veliAdi: document.getElementById('alan_veliAdi').checked,
       yakinlik: document.getElementById('alan_yakinlik').checked,
       telefon: document.getElementById('alan_telefon').checked,
+      kulup: document.getElementById('alan_kulup').checked,
       not: document.getElementById('alan_not').checked,
     };
     modalKapat();
-    _raporOgrenciListesiGoster(sinifId || null, seciliAlanlar);
+    _raporOgrenciListesiGoster(sinifId || null, seciliAlanlar, kulupId || null);
   });
 }
 
-function _raporOgrenciListesiGoster(sinifIdFiltre, seciliAlanlar) {
+function _raporOgrenciListesiGoster(sinifIdFiltre, seciliAlanlar, kulupIdFiltre) {
   const seciliSiniflar = sinifIdFiltre
     ? siniflar.filter(s => s.id === sinifIdFiltre)
     : [...siniflar].sort((a, b) => (a.ad || '').localeCompare(b.ad || '', 'tr'));
+
+  const kulupAdi = id => { if(!id) return '—'; const k=(typeof cizelgeVerileri!=='undefined'?cizelgeVerileri.sosyalKulupler:[]).find(x=>x.id===id); return k?k.ad:(id?'—':''); };
 
   let html = '';
   let toplamOgrenci = 0;
 
   seciliSiniflar.forEach(sinif => {
-    const ogrenciler = veliler
+    let ogrenciler = veliler
       .filter(v => v.sinifId === sinif.id)
       .sort((a, b) => (a.ogrenciAdi || '').localeCompare(b.ogrenciAdi || '', 'tr'));
+    if (kulupIdFiltre) ogrenciler = ogrenciler.filter(v => v.kulupId === kulupIdFiltre);
 
     toplamOgrenci += ogrenciler.length;
 
     html += `<div class="bolum-baslik">📚 ${escapeHtml(sinif.ad)} — ${ogrenciler.length} öğrenci</div>`;
     if (!ogrenciler.length) {
-      html += `<p style="color:#888;font-size:10px;padding:3px 8px;">Bu sınıfta kayıtlı öğrenci yok.</p>`;
+      html += `<p style="color:#888;font-size:10px;padding:3px 8px;">${kulupIdFiltre ? 'Bu sınıfta seçilen kulübe atanmış öğrenci yok.' : 'Bu sınıfta kayıtlı öğrenci yok.'}</p>`;
       return;
     }
 
@@ -302,6 +357,7 @@ function _raporOgrenciListesiGoster(sinifIdFiltre, seciliAlanlar) {
     if (seciliAlanlar.veliAdi) thHtml += '<th>Veli Adı</th>';
     if (seciliAlanlar.yakinlik) thHtml += '<th>Yakınlık</th>';
     if (seciliAlanlar.telefon) thHtml += '<th>Telefon</th>';
+    if (seciliAlanlar.kulup) thHtml += '<th>Sosyal Kulüp</th>';
     if (seciliAlanlar.not) thHtml += '<th>Not</th>';
 
     html += `<table><thead><tr>${thHtml}</tr></thead><tbody>`;
@@ -314,6 +370,7 @@ function _raporOgrenciListesiGoster(sinifIdFiltre, seciliAlanlar) {
       if (seciliAlanlar.veliAdi) html += `<td>${escapeHtml(v.veliAdi || '—')}</td>`;
       if (seciliAlanlar.yakinlik) html += `<td>${escapeHtml(v.yakinlik || '—')}</td>`;
       if (seciliAlanlar.telefon) html += `<td>${escapeHtml(v.telefon1 || v.telefon || '—')}</td>`;
+      if (seciliAlanlar.kulup) html += `<td>${escapeHtml(v.kulupAdi || kulupAdi(v.kulupId) || '—')}</td>`;
       if (seciliAlanlar.not) html += `<td>${escapeHtml(v.not || '')}</td>`;
       html += `</tr>`;
     });
@@ -323,7 +380,7 @@ function _raporOgrenciListesiGoster(sinifIdFiltre, seciliAlanlar) {
   html = `<span class="ozet-kutu">Toplam Sınıf: ${seciliSiniflar.length}</span>
            <span class="ozet-kutu">Toplam Öğrenci: ${toplamOgrenci}</span>` + html;
 
-  _raporPenceresiniAc(html, '📋 Öğrenci Listesi');
+  _raporPenceresiniAc(html, kulupIdFiltre ? `📋 Öğrenci Listesi — ${kulupAdi(kulupIdFiltre)}` : '📋 Öğrenci Listesi');
 }
 
 /* ================================================================

@@ -74,13 +74,17 @@ function ogretmenDetayAc(id){
      DÜZELTME: Kulüp/etkinlik ADLARI herkese görünür (temel bilgi sayılır),
      ama tamamlanma tikleri (✓) sadece kendi profili veya 'ogretmenHassasBilgi'
      yetkisi olan kullanıcıya gösterilir. */
-  const kulupler = (cizelgeVerileri.sosyalKulupler||[]).filter(s=> adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id)));
+  const kulupler = (cizelgeVerileri.sosyalKulupler||[]).filter(s=> Array.isArray(s.ogretmenIdler) && s.ogretmenIdler.includes(id));
   const kulupHtml = kulupler.length ? kulupler.map(k=>{
     const belirliGunler = (belirliGunlerListesi||[]).filter(e=>adGeciyorMu(e.gorevliOgretmen, k.ad));
     const ilgiliGunler = (hassasGorebilir && belirliGunler.length) ? belirliGunler.map(e=>
       `<span class="cz-check ${e.tamamlandi?'on':''}" style="display:inline-flex;margin-right:4px;font-size:10px;">${e.tamamlandi?'✓':''}</span>`
     ).join('') : '';
-    return `<div class="detay-row">${escapeHtml(k.ad)}${ilgiliGunler ? `<span style="margin-left:8px;color:var(--ink-muted);font-size:11px;">Görevler: ${ilgiliGunler}</span>` : ''}</div>`;
+    const ogrenciSayisi = (typeof veliler!=='undefined'?veliler:[]).filter(v=>v.kulupId===k.id).length;
+    return `<div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <span>${escapeHtml(k.ad)}${ilgiliGunler ? `<span style="margin-left:8px;color:var(--ink-muted);font-size:11px;">Görevler: ${ilgiliGunler}</span>` : ''}</span>
+      <button class="btn btn-ghost btn-sm" onclick="kulupOgrenciListesiYazdir('${k.id}')">👥 Öğrenciler (${ogrenciSayisi})</button>
+    </div>`;
   }).join('') : '<p class="empty-state">Danışmanı olduğu kulüp yok.</p>';
 
   const rehberlikler = (cizelgeVerileri.rehberlik||[]).filter(s=>adGeciyorMu(s.danisman, adSoyad));
@@ -307,7 +311,7 @@ function ogretmenRaporOlustur(id) {
 
   /* ---- Sosyal Kulüpler ---- */
   const kulupler = (cizelgeVerileri.sosyalKulupler || [])
-    .filter(s => adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id)));
+    .filter(s => Array.isArray(s.ogretmenIdler) && s.ogretmenIdler.includes(id));
   const kulupHtml = kulupler.length
     ? kulupler.map(k => `<div style="padding:3px 0;border-bottom:1px solid #eee;">📌 ${escapeHtml(k.ad)}</div>`).join('')
     : '<p style="color:#888;font-style:italic;">Danışmanı olduğu kulüp yok.</p>';
@@ -366,7 +370,7 @@ function ogretmenRaporOlustur(id) {
 
   // Sosyal Kulüpler
   const kulupBelge = (cizelgeVerileri.sosyalKulupler || []).filter(s =>
-    adGeciyorMu(s.danisman, adSoyad) || (s.ogretmenler && s.ogretmenler.includes(id))
+    Array.isArray(s.ogretmenIdler) && s.ogretmenIdler.includes(id)
   );
   if (kulupBelge.length) {
     belgeDurumHtml += '<div style="font-weight:700;font-size:11px;color:#555;margin-bottom:8px;letter-spacing:.3px;">🎭 SOSYAL KULÜPLER</div>';
