@@ -115,19 +115,8 @@ function _yplTanim(id){ return yillikPlanTanimlari.find(t=>t.id===id); }
    kullanılır (Ay/Hafta/Saat dar, içerik sütunları eşit paylaşır). */
 const YPL_SISTEM_SUTUNLARI = [ ['_ay','Ay'], ['_hafta','Hafta'], ['_saat','Saat'] ];
 function _yplSutunGenislikleri(tanim){
-  const sutunlar = tanim.sutunlar || [];
-  // Ekran önizlemesinde px cinsinden yeniden boyutlandırma yapıldıysa
-  // (sutunGenislikleriPx), yazdırma/PDF çıktısı da ORANLARINI % olarak
-  // kullanır — px kaydı yoksa eski % sistemine (sutunGenislikleri) düşer.
-  if (tanim.sutunGenislikleriPx){
-    const pxKayitli = tanim.sutunGenislikleriPx;
-    const anahtarlar = YPL_SISTEM_SUTUNLARI.map(([k]) => k).concat(sutunlar);
-    const pxToplam = anahtarlar.reduce((s,k) => s + (pxKayitli[k] || 0), 0) || 1;
-    const sonuc = {};
-    anahtarlar.forEach(k => { sonuc[k] = +(((pxKayitli[k] || 0) / pxToplam) * 100).toFixed(2); });
-    return sonuc;
-  }
   const kayitli = tanim.sutunGenislikleri || {};
+  const sutunlar = tanim.sutunlar || [];
   const sonuc = {};
   const varsayilanSistem = { _ay:8, _hafta:11, _saat:6 };
   YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || varsayilanSistem[k]; });
@@ -136,157 +125,135 @@ function _yplSutunGenislikleri(tanim){
   sutunlar.forEach(sid => { sonuc[sid] = kayitli[sid] || esitPay; });
   return sonuc;
 }
-/* Ekran önizlemesindeki sürükle-boyutlandır tablosu için PX cinsinden
-   sütun genişlikleri — Firestore'da sutunGenislikleriPx altında saklanır. */
-const YPL_VARSAYILAN_PX = { _ay:70, _hafta:95, _saat:55 };
-function _yplSutunGenislikleriPx(tanim){
-  const kayitli = tanim.sutunGenislikleriPx || {};
-  const sutunlar = tanim.sutunlar || [];
-  const sonuc = {};
-  YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || YPL_VARSAYILAN_PX[k]; });
-  const icerikVarsayilan = 160;
-  sutunlar.forEach(sid => { sonuc[sid] = kayitli[sid] || icerikVarsayilan; });
-  return sonuc;
-}
-/* Aynı şekilde satır yükseklikleri (px) — index bazlı dizi. */
-function _yplSatirYukseklikleri(tanim){
-  const kayitli = tanim.satirYukseklikleri || [];
-  return (tanim.satirlar || []).map((_, i) => kayitli[i] || 40);
-}
 /* Yazdırma ve ekran önizlemesinde ortak tam-kenarlıklı tablo görünümü —
    raporlama.js'in genel table/th/td kuralları sadece alt-çizgi verdiği
    için (diğer raporları etkilememesi adına) burada .ypl-tablo ile
-   SINIRLANDIRILMIŞ ayrı bir stil bloğu ekleniyor. */
+   SINIRLANDIRILMIŞ ayrı bir stil bloğu ekleniyor.
+   ÖNEMLİ: table-layout:fixed olmadan tarayıcı sütun genişliğini içeriğe
+   göre kendi hesaplıyor ve <colgroup>'taki genişlikler yok sayılıyor —
+   bu yüzden hem burada hem de sürükleyerek yeniden boyutlandırmada
+   MUTLAKA <colgroup><col style="width:%"> kullanılıyor (satır içi th
+   genişliği DEĞİL), tablo da width:100% ile sabit tutuluyor. */
 const YPL_TABLO_STIL = `<style>
   .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; }
-  .ypl-tablo th, .ypl-tablo td{ border:1px solid #999 !important; padding:5px 6px; word-wrap:break-word; }
-  .ypl-tablo thead th{ background:#0A6E6E; color:#fff; }
+  .ypl-tablo th, .ypl-tablo td{
+    border:1px solid #999 !important; padding:5px 6px;
+    overflow:hidden; white-space:pre-line; word-break:break-word; overflow-wrap:break-word;
+    vertical-align:top;
+  }
+  .ypl-tablo thead th{ background:#0A6E6E; color:#fff; vertical-align:middle; }
+  .ypl-tablo th.ypl-th-dikey{
+    writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
+    white-space:nowrap; padding:8px 4px; min-height:70px;
+  }
+  .ypl-tablo-sarici{ position:relative; overflow-x:auto; }
+  .ypl-resize-tutamac{
+    position:absolute; top:0; bottom:0; width:10px; margin-left:-5px;
+    cursor:col-resize; z-index:5; touch-action:none;
+  }
+  .ypl-resize-tutamac:hover, .ypl-resize-tutamac.ypl-surukleniyor{ background:rgba(10,110,110,0.25); }
 </style>`;
-function _yplTabloHtml(tanim){
+/* interaktif=true → ekran önizlemesi: sütun sınırlarına sürükle-bırak
+   tutamaçları eklenir (bkz. _yplSurüklemeyiBagla). interaktif=false →
+   yazdırma çıktısı: aynı colgroup genişlikleri, tutamaç yok. */
+function _yplTabloHtml(tanim, interaktif){
   const sutunlar = tanim.sutunlar || [];
   const genislik = _yplSutunGenislikleri(tanim);
-  let html = YPL_TABLO_STIL + `<table class="ypl-tablo"><thead><tr>
-    <th style="width:${genislik._ay}%;">Ay</th><th style="width:${genislik._hafta}%;">Hafta</th><th style="width:${genislik._saat}%;">Saat</th>`;
-  sutunlar.forEach(sid => { html += `<th style="width:${genislik[sid]}%;">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
-  html += `</tr></thead><tbody>`;
-  const satirYukseklikleriPx = tanim.satirYukseklikleri || [];
-  (tanim.satirlar||[]).forEach((satir, _i) => {
-    const yukseklikStil = satirYukseklikleriPx[_i] ? ` style="height:${satirYukseklikleriPx[_i]}px;"` : '';
-    html += `<tr${yukseklikStil}><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
-    sutunlar.forEach(sid => {
-      html += `<td style="text-align:left;white-space:pre-line;">${escapeHtml((satir.degerler||{})[sid]||'')}</td>`;
-    });
-    html += `</tr>`;
-  });
-  html += `</tbody></table>`;
-  return html;
-}
+  const tumAnahtarlar = YPL_SISTEM_SUTUNLARI.map(([k])=>k).concat(sutunlar);
 
-/* ================================================================
-   EKRAN ÖNİZLEMESİ — SÜRÜKLE-BOYUTLANDIR (px)
-   _yplTabloHtml yazdırma için değişmeden kalır; burada AYRI bir
-   üretici fonksiyon var çünkü ekran önizlemesi sütun genişliği (dikey
-   çizgi) ve satır yüksekliği (yatay çizgi, sadece ilk hücrede) için
-   parmakla/mouse ile sürüklenebilir tutamaçlar içeriyor. Sürükleme
-   sırasında değerler SADECE bellekte (_yplPxCalisma) tutulur; kalıcı
-   olması için kullanıcının "Boyutları Kaydet" butonuna basması gerekir.
-   ================================================================ */
-let _yplPxCalisma = {};        // planId -> {sutunGenislikleriPx, satirYukseklikleri} — henüz kaydedilmemiş çalışma kopyası
-let _yplBoyutlandirmaAktif = null; // sürükleme sırasında aktif işlem bilgisi
-
-const YPL_RESIZE_STIL = `<style>
-  .ypl-resiz-tablo{ border-collapse:collapse; }
-  .ypl-resiz-tablo th, .ypl-resiz-tablo td{ border:1px solid #999; padding:0; position:relative; vertical-align:top; }
-  .ypl-resiz-tablo thead th{ background:#0A6E6E; color:#fff; padding:5px 6px; white-space:nowrap; }
-  .ypl-resiz-hucre{ padding:5px 6px; overflow:auto; box-sizing:border-box; white-space:pre-line; }
-  .ypl-col-tutamac{ position:absolute; top:0; right:-7px; width:14px; height:100%; cursor:col-resize; touch-action:none; z-index:6; }
-  .ypl-col-tutamac::after{ content:''; position:absolute; top:0; left:6px; width:2px; height:100%; background:rgba(0,0,0,.25); }
-  .ypl-row-tutamac{ position:absolute; left:0; bottom:-7px; width:36px; height:14px; cursor:row-resize; touch-action:none; z-index:6; }
-  .ypl-row-tutamac::after{ content:''; position:absolute; left:0; top:6px; width:100%; height:2px; background:rgba(0,0,0,.25); }
-</style>`;
-
-function _yplResizableTabloHtml(tanim, planId){
-  const sutunlar = tanim.sutunlar || [];
-  const pxGenislik = _yplSutunGenislikleriPx(tanim);
-  const satirYukseklik = _yplSatirYukseklikleri(tanim);
-  // Bu görüntüleme için çalışma kopyası — Kaydet'e basılana kadar Firestore'a yazılmaz.
-  _yplPxCalisma[planId] = {
-    sutunGenislikleriPx: Object.assign({}, pxGenislik),
-    satirYukseklikleri: satirYukseklik.slice(),
-  };
-  const tumSutunlar = YPL_SISTEM_SUTUNLARI.map(([k,ad]) => ({k, ad})).concat(sutunlar.map(sid => ({k:sid, ad:_yplBaslikAdi(sid)})));
-  let html = YPL_RESIZE_STIL + `<table class="ypl-resiz-tablo" id="yplResizTablo_${planId}"><colgroup>`;
-  tumSutunlar.forEach(c => { html += `<col id="yplCol_${planId}_${c.k}" style="width:${pxGenislik[c.k]}px;">`; });
+  let html = YPL_TABLO_STIL;
+  if (interaktif) html += `<div class="ypl-tablo-sarici" id="yplTabloSarici">`;
+  html += `<table class="ypl-tablo" id="${interaktif?'yplTabloInteraktif':''}"><colgroup>`;
+  tumAnahtarlar.forEach(k => { html += `<col data-col-key="${k}" style="width:${genislik[k]}%;">`; });
   html += `</colgroup><thead><tr>`;
-  tumSutunlar.forEach(c => {
-    html += `<th>${escapeHtml(c.ad)}<div class="ypl-col-tutamac" onpointerdown="_yplKolonBoyutlandirBasla(event,'${planId}','${c.k}')"></div></th>`;
-  });
+  YPL_SISTEM_SUTUNLARI.forEach(([k, ad]) => { html += `<th class="ypl-th-dikey" data-col-key="${k}">${escapeHtml(ad)}</th>`; });
+  sutunlar.forEach(sid => { html += `<th data-col-key="${sid}">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
   html += `</tr></thead><tbody>`;
-  (tanim.satirlar||[]).forEach((satir, i) => {
-    const yukseklik = satirYukseklik[i];
-    html += `<tr id="yplRow_${planId}_${i}">`;
-    html += `<td style="height:${yukseklik}px;"><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(satir.ay||'')}</div><div class="ypl-row-tutamac" onpointerdown="_yplSatirBoyutlandirBasla(event,'${planId}',${i})"></div></td>`;
-    html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</div></td>`;
-    html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(satir.saat||'')}</div></td>`;
+  (tanim.satirlar||[]).forEach(satir => {
+    html += `<tr><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
     sutunlar.forEach(sid => {
-      html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;text-align:left;">${escapeHtml((satir.degerler||{})[sid]||'')}</div></td>`;
+      html += `<td style="text-align:left;">${escapeHtml((satir.degerler||{})[sid]||'')}</td>`;
     });
     html += `</tr>`;
   });
   html += `</tbody></table>`;
+  if (interaktif) {
+    // Tutamaçlar tablonun DIŞINA, aynı sarıcı içine mutlak konumlu ekleniyor
+    // (th'lerin İÇİNE değil) — böylece sürüklerken hücre içeriğini bozmaz.
+    html += `<div id="yplTutamacKatmani" style="position:absolute;top:0;left:0;right:0;height:0;"></div></div>`;
+  }
   return html;
 }
 
-function _yplKolonBoyutlandirBasla(e, planId, key){
-  e.preventDefault(); e.stopPropagation();
-  const col = document.getElementById(`yplCol_${planId}_${key}`);
-  if (!col) return;
-  const baslangicPx = parseInt(col.style.width, 10) || 100;
-  _yplBoyutlandirmaAktif = { tip:'kolon', planId, key, baslangicPx, baslangicX: e.clientX, el: col };
-  document.addEventListener('pointermove', _yplBoyutlandirmaTasi);
-  document.addEventListener('pointerup', _yplBoyutlandirmaBitir);
-}
-function _yplSatirBoyutlandirBasla(e, planId, index){
-  e.preventDefault(); e.stopPropagation();
-  const tr = document.getElementById(`yplRow_${planId}_${index}`);
-  if (!tr) return;
-  const baslangicPx = tr.children[0] ? tr.children[0].offsetHeight : 40;
-  _yplBoyutlandirmaAktif = { tip:'satir', planId, index, baslangicPx, baslangicY: e.clientY, el: tr };
-  document.addEventListener('pointermove', _yplBoyutlandirmaTasi);
-  document.addEventListener('pointerup', _yplBoyutlandirmaBitir);
-}
-function _yplBoyutlandirmaTasi(e){
-  const s = _yplBoyutlandirmaAktif;
-  if (!s) return;
-  if (s.tip === 'kolon'){
-    const yeniPx = Math.max(30, s.baslangicPx + (e.clientX - s.baslangicX));
-    s.el.style.width = yeniPx + 'px';
-    if (_yplPxCalisma[s.planId]) _yplPxCalisma[s.planId].sutunGenislikleriPx[s.key] = yeniPx;
-  } else if (s.tip === 'satir'){
-    const yeniPx = Math.max(24, s.baslangicPx + (e.clientY - s.baslangicY));
-    Array.from(s.el.children).forEach(td => {
-      td.style.height = yeniPx + 'px';
-      const icHucre = td.querySelector('.ypl-resiz-hucre');
-      if (icHucre) icHucre.style.maxHeight = yeniPx + 'px';
+/* Sürükle-bırak ile sütun genişliği ayarlama — sadece "Tüm Planı Görüntüle"
+   önizlemesinde. Her tutamaç bir sütunun SAĞ kenarına karşılık gelir;
+   sürüklendiğinde SADECE o sütunun yüzdesi değişir (komşu sütunlardan
+   çalmaz — "tablo çizgisi" değil gerçek genişlik değişikliği), bırakınca
+   Firestore'a kaydedilir ve hem colgroup hem tablo aynı anda güncellenir. */
+function _yplSurüklemeyiBagla(planId){
+  const sarici = document.getElementById('yplTabloSarici');
+  const tablo = document.getElementById('yplTabloInteraktif');
+  const katman = document.getElementById('yplTutamacKatmani');
+  if (!sarici || !tablo || !katman) return;
+
+  const cols = Array.from(tablo.querySelectorAll('colgroup col'));
+  const basliklar = Array.from(tablo.querySelectorAll('thead th'));
+
+  function tutamaclariYerlestir(){
+    katman.innerHTML = '';
+    let soldanPx = 0;
+    const saricGenislik = sarici.clientWidth;
+    basliklar.forEach((th, i) => {
+      soldanPx += th.offsetWidth;
+      if (i === basliklar.length - 1) return; // son sütunun sağında tutamaç yok
+      const tut = document.createElement('div');
+      tut.className = 'ypl-resize-tutamac';
+      tut.style.left = soldanPx + 'px';
+      tut.style.height = tablo.offsetHeight + 'px';
+      tut.dataset.colIndex = i;
+      katman.appendChild(tut);
     });
-    if (_yplPxCalisma[s.planId]) _yplPxCalisma[s.planId].satirYukseklikleri[s.index] = yeniPx;
+    katman.style.height = tablo.offsetHeight + 'px';
+    katman.style.position = 'absolute';
   }
+  tutamaclariYerlestir();
+
+  let surukleme = null;
+  katman.addEventListener('pointerdown', (e) => {
+    const tut = e.target.closest('.ypl-resize-tutamac');
+    if (!tut) return;
+    e.preventDefault();
+    const i = parseInt(tut.dataset.colIndex, 10);
+    surukleme = { index: i, baslangicX: e.clientX, saricGenislik: sarici.clientWidth, baslangicYuzde: parseFloat(cols[i].style.width) };
+    tut.classList.add('ypl-surukleniyor');
+    tut.setPointerCapture(e.pointerId);
+  });
+  katman.addEventListener('pointermove', (e) => {
+    if (!surukleme) return;
+    const deltaPx = e.clientX - surukleme.baslangicX;
+    const deltaYuzde = (deltaPx / surukleme.saricGenislik) * 100;
+    const yeniYuzde = Math.max(3, +(surukleme.baslangicYuzde + deltaYuzde).toFixed(1));
+    cols[surukleme.index].style.width = yeniYuzde + '%';
+    tutamaclariYerlestir();
+  });
+  function surüklemeBitir(e){
+    if (!surukleme) return;
+    document.querySelectorAll('.ypl-surukleniyor').forEach(el=>el.classList.remove('ypl-surukleniyor'));
+    const yeniGenislik = {};
+    cols.forEach(c => { yeniGenislik[c.dataset.colKey] = parseFloat(c.style.width); });
+    surukleme = null;
+    const t = _yplTanim(planId);
+    if (t) {
+      YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
+        .catch(err => { if (err.message!=='yetkisiz') toast('Genişlik kaydedilemedi: '+err.message); });
+    }
+  }
+  katman.addEventListener('pointerup', surüklemeBitir);
+  katman.addEventListener('pointercancel', surüklemeBitir);
+  window.addEventListener('resize', tutamaclariYerlestir);
 }
-function _yplBoyutlandirmaBitir(){
-  _yplBoyutlandirmaAktif = null;
-  document.removeEventListener('pointermove', _yplBoyutlandirmaTasi);
-  document.removeEventListener('pointerup', _yplBoyutlandirmaBitir);
-}
-function _yplResizeKaydet(planId){
-  const calisma = _yplPxCalisma[planId];
-  if (!calisma){ toast('Kaydedilecek bir değişiklik bulunamadı.'); return; }
-  YillikPlanService.tanimGuncelle(planId, {
-    sutunGenislikleriPx: calisma.sutunGenislikleriPx,
-    satirYukseklikleri: calisma.satirYukseklikleri,
-  })
-    .then(() => { toast('Boyutlar kaydedildi.'); })
-    .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
-}
+
+
 
 /* İmza/başlık bloğu — kulüp raporundaki iki-uçlu yerleşimle birebir aynı
    desen: öğretmen solda, müdür sağda. */
@@ -329,7 +296,7 @@ function yillikPlaniYazdir(planId){
   const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
-  const html = _yplTabloHtml(tanim) + _yplImzaBlogu();
+  const html = _yplTabloHtml(tanim, false) + _yplImzaBlogu();
   _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay' });
 }
 
@@ -341,11 +308,15 @@ function yillikPlanTumunuGoster(planId){
   const gov = `
     <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">
       ${escapeHtml(tanim.egitimOgretimYili||'')} · ${escapeHtml(tanim.dersAdi||'')} · ${tanim.seviye}. Sınıf
-      <br><span style="font-size:11px;">Sütun kenarını yana, satır kenarını aşağı sürükleyerek boyutlandırabilirsiniz.</span>
+      <span style="display:block;margin-top:2px;">Sütun sınırlarını sürükleyerek genişliği ayarlayabilirsiniz — anında kaydedilir.</span>
     </div>
-    <div style="overflow-x:auto;">${_yplResizableTabloHtml(tanim, planId)}</div>
+    ${_yplTabloHtml(tanim, true)}
   `;
-  modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, () => _yplResizeKaydet(planId), null, '💾 Boyutları Kaydet');
+  modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
+  // Tutamaçların doğru konumlanması için tablo DOM'a yerleşip layout
+  // hesaplanana kadar bir sonraki frame'e bırakılıyor.
+  requestAnimationFrame(() => _yplSurüklemeyiBagla(planId));
 }
 
 /* ================================================================
