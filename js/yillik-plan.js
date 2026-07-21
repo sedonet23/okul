@@ -429,30 +429,56 @@ function _yplTakipListesiCiz(){
 function yillikPlanSecimModalAc(){
   const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
   if (!ben){ toast('Profilinize bağlı bir öğretmen kaydı bulunamadı.'); return; }
-  const secili = new Set((_yplOgretmenSecimleri && _yplOgretmenSecimleri.planIdler) || []);
-  const gruplu = {};
-  yillikPlanTanimlari.forEach(t=>{ (gruplu[t.dersAdi] = gruplu[t.dersAdi] || []).push(t); });
-
+  const seviyeler = Array.from(new Set(yillikPlanTanimlari.map(t=>t.seviye))).sort((a,b)=>a-b);
   const body = `
-    <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Okuttuğunuz ders(ler)e ait planları işaretleyin.</p>
-    <div style="max-height:55vh;overflow-y:auto;">
-      ${Object.keys(gruplu).sort((a,b)=>a.localeCompare(b,'tr')).map(ders=>`
-        <div style="margin-bottom:10px;">
-          <div style="font-weight:700;font-size:12.5px;margin-bottom:4px;">${escapeHtml(ders)}</div>
-          ${gruplu[ders].sort((a,b)=>a.seviye-b.seviye).map(t=>`
-            <label class="ogr-cb-row"><input type="checkbox" class="ypl-secim-cb" value="${t.id}" ${secili.has(t.id)?'checked':''}><span>${t.seviye}. Sınıf — ${escapeHtml(t.egitimOgretimYili||'')}</span></label>
-          `).join('')}
-        </div>`).join('') || '<p class="empty-state">Henüz hiç plan tanımı oluşturulmamış.</p>'}
+    <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Önce sınıfı seçin, sonra o sınıfa ait yıllık planlardan istediklerinizi sisteme ekleyin.</p>
+    <div style="display:flex;flex-direction:column;gap:2px;max-height:55vh;overflow-y:auto;">
+      ${seviyeler.map(s=>{
+        const dersSayisi = yillikPlanTanimlari.filter(t=>t.seviye===s).length;
+        return `
+        <button class="btn btn-ghost btn-sm" style="justify-content:space-between;text-align:left;" onclick="modalKapat();_yplSecimPlanListesiAc(${s})">
+          <span>${s}. Sınıf</span>
+          <span style="color:var(--ink-muted);">${dersSayisi} ders ›</span>
+        </button>`;
+      }).join('') || '<p class="empty-state">Henüz hiç plan tanımı oluşturulmamış.</p>'}
     </div>`;
-  modalAc('🎯 Plan Ekle / Değiştir', body, () => {
-    const yeniSecim = Array.from(document.querySelectorAll('.ypl-secim-cb:checked')).map(cb=>cb.value);
-    YillikPlanService.secimKaydet(ben.id, yeniSecim).then(()=>{
-      _yplOgretmenSecimleri = { _ogretmenId: ben.id, planIdler: yeniSecim };
-      _yplTakipListesiCiz();
-      toast('Kaydedildi.');
-    }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
-    modalKapat();
-  });
+  modalAc('🎯 Sınıf Seçin', body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
+}
+
+function _yplSecimPlanListesiAc(seviye){
+  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  if (!ben){ toast('Profilinize bağlı bir öğretmen kaydı bulunamadı.'); return; }
+  const planlar = yillikPlanTanimlari.filter(t=>t.seviye===seviye).sort((a,b)=>(a.dersAdi||'').localeCompare(b.dersAdi||'','tr'));
+  const secili = new Set((_yplOgretmenSecimleri && _yplOgretmenSecimleri.planIdler) || []);
+  const body = `
+    <div id="yplSecimPlanListesi" style="display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;">
+      ${planlar.map(t=>`
+        <div class="detay-row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <div>
+            <div style="font-weight:700;">${escapeHtml(t.dersAdi)}</div>
+            <div style="font-size:11.5px;color:var(--ink-muted);">${escapeHtml(t.egitimOgretimYili||'')} · ${(t.satirlar||[]).length} hafta</div>
+          </div>
+          <button class="btn btn-sm ypl-ekle-btn" data-plan-id="${t.id}" onclick="_yplSecimTikla('${t.id}', ${seviye})" style="${secili.has(t.id)?'background:var(--brand);color:#fff;':''}">${secili.has(t.id)?'✓ Eklendi':'➕ Sisteme Ekle'}</button>
+        </div>`).join('') || '<p class="empty-state">Bu sınıf seviyesinde henüz plan yok.</p>'}
+    </div>
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="modalKapat();yillikPlanSecimModalAc()">← Sınıf Seçimine Dön</button>
+  `;
+  modalAc(`🎯 ${seviye}. Sınıf — Yıllık Planlar`, body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
+}
+
+function _yplSecimTikla(planId, seviye){
+  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  if (!ben) return;
+  const mevcut = new Set((_yplOgretmenSecimleri && _yplOgretmenSecimleri.planIdler) || []);
+  if (mevcut.has(planId)) mevcut.delete(planId); else mevcut.add(planId);
+  const yeniSecim = Array.from(mevcut);
+  YillikPlanService.secimKaydet(ben.id, yeniSecim).then(()=>{
+    _yplOgretmenSecimleri = { _ogretmenId: ben.id, planIdler: yeniSecim };
+    _yplTakipListesiCiz();
+    _yplSecimPlanListesiAc(seviye); // düğme durumunu tazele
+  }).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* ================================================================
