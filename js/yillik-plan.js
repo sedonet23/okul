@@ -339,7 +339,7 @@ function _yplSurüklemeyiBagla(planId){
     surukleme = null;
     const t = _yplTanim(planId);
     if (t) {
-      YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
+      YillikPlanService.goruntuAyarlariniKaydet(t.id, { sutunGenislikleri: yeniGenislik })
         .catch(err => { if (err.message!=='yetkisiz') toast('Genişlik kaydedilemedi: '+err.message); });
     }
     requestAnimationFrame(_yplSayfaSonlariniCiz); // sütun daralıp/genişleyince metin sarması satır yüksekliğini değiştirir
@@ -446,13 +446,16 @@ function yillikPlanTumunuGoster(planId){
         <button class="btn btn-ghost btn-sm" onclick="yillikPlaniOnizlemedenYazdir('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">🖨 Yazdır</button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--ink-muted);text-align:center;padding:4px 10px;background:var(--bg-app);border-bottom:1px solid var(--border);">
-      Bu, A4 yatay sayfada GERÇEKTE nasıl görüneceğinin birebir önizlemesidir. Sütun sınırlarını sürükleyin, yazı boyutunu ayarlayın — değişiklikler anında kaydedilir, "💾 Kaydet" ile emin olabilirsiniz.
+    <div style="font-size:11px;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:4px 10px;background:var(--bg-app);border-bottom:1px solid var(--border);">
+      <span>Sütun sınırlarını sürükleyin, yazı boyutunu ayarlayın — "💾 Kaydet" ile emin olun.</span>
+      <label style="display:flex;align-items:center;gap:4px;">İmza Tarihi:
+        <input type="date" id="yplImzaTarihiInput" value="${tanim.imzaTarihi || new Date().toISOString().slice(0,10)}" style="font-size:11px;padding:2px 4px;">
+      </label>
     </div>
     <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
       <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;padding-bottom:16px;">
         ${_yplTabloHtml(tanim, true)}
-        <div style="padding:0 12px;">${_yplImzaBlogu(tanim)}</div>
+        <div style="padding:0 12px;" id="yplImzaBlogu">${_yplImzaBlogu(tanim)}</div>
       </div>
     </div>
   `;
@@ -463,6 +466,17 @@ function yillikPlanTumunuGoster(planId){
     _yplSayfaSonlariniCiz();
     _yplFontKontrolleriBagla(planId);
     document.getElementById('yplKaydetBtn')?.addEventListener('click', () => _yplTumunuKaydet(planId, true));
+    document.getElementById('yplImzaTarihiInput')?.addEventListener('change', (e) => {
+      const guncel = _yplTanim(planId);
+      const imzaAlani = document.getElementById('yplImzaBlogu');
+      if (guncel && imzaAlani) imzaAlani.innerHTML = _yplImzaBlogu({ ...guncel, imzaTarihi: e.target.value });
+      const t = _yplTanim(planId);
+      if (t) {
+        YillikPlanService.goruntuAyarlariniKaydet(t.id, { imzaTarihi: e.target.value || null })
+          .then(()=>toast('İmza tarihi kaydedildi.'))
+          .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
+      }
+    });
   });
 }
 function yillikPlanOnizlemeKapat(){
@@ -521,7 +535,10 @@ function _yplTumunuKaydet(planId, bildirimGoster){
   if (!t || !tablo) return;
   const genislik = {};
   tablo.querySelectorAll('colgroup col').forEach(c => { genislik[c.dataset.colKey] = parseFloat(c.style.width); });
-  YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: genislik, fontBoyutuPx: _yplMevcutFontPx })
+  const tarihInput = document.getElementById('yplImzaTarihiInput');
+  const veri = { sutunGenislikleri: genislik, fontBoyutuPx: _yplMevcutFontPx };
+  if (tarihInput) veri.imzaTarihi = tarihInput.value || null;
+  YillikPlanService.goruntuAyarlariniKaydet(t.id, veri)
     .then(() => { if (bildirimGoster) toast('Kaydedildi.'); })
     .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
@@ -1023,7 +1040,7 @@ function yillikPlanSutunGenislikleriAc(planId){
   modalAc(`📐 ${t.dersAdi} — Sütun Genişlikleri`, body, () => {
     const yeniGenislik = {};
     document.querySelectorAll('.ypl-genislik-input').forEach(inp => { yeniGenislik[inp.dataset.key] = parseFloat(inp.value) || 1; });
-    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
+    YillikPlanService.goruntuAyarlariniKaydet(t.id, { sutunGenislikleri: yeniGenislik })
       .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   });
