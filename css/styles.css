@@ -600,7 +600,15 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
    DERS / NÖBET PROGRAMI
    ========================================================= */
 .schedule-grid, table.sch{ width:100%; border-collapse: separate; border-spacing:0; font-size:12.5px; }
-.bugun-kolon{ background: rgba(10,110,110,0.07) !important; }
+/* DÜZELTME (kontrast): bu sınıf sadece th'lere uygulanıyordu ve
+   neredeyse saydam bir "yıkama" rengiyle (%7 opaklık) koyu başlık
+   arka planının ÜZERİNE yazıyordu — böylece açık renkli başlık yazısı
+   (ink-on-dark) neredeyse görünmez oluyordu ("bugün" sütunu okunamaz
+   hale geliyordu). Artık th için opak, kontrastı korunmuş ayrı bir
+   vurgu rengi kullanılıyor; olası td kullanımı için hafif yıkama
+   ayrı bırakıldı (koyu metin üzerinde sorun yaratmaz). */
+th.bugun-kolon{ background: var(--brand) !important; }
+td.bugun-kolon{ background: rgba(10,110,110,0.07) !important; }
 .schedule-grid th, table.sch th{
   font-family: var(--font-display); font-size:11px; text-transform:uppercase; letter-spacing:.04em;
   color: var(--ink-on-dark);
@@ -653,7 +661,7 @@ body.nav-collapsed .sidebar .brand{ justify-content:center; }
    NOTLAR — Gelişmiş Not Defteri v2
    ========================================================= */
 .notes-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; }
-.note-card{ border-radius: var(--radius-md); padding:16px; min-height:120px; display:flex; flex-direction:column; box-shadow: var(--nm-out); cursor:pointer; transition: transform .12s ease, box-shadow .15s ease; border:none; border-left: 3px solid var(--amber); }
+.note-card{ border-radius: var(--radius-md); padding:16px; min-height:120px; display:flex; flex-direction:column; box-shadow: var(--nm-out); cursor:pointer; transition: transform .12s ease, box-shadow .15s ease; border:1px solid rgba(0,0,0,0.12); border-left: 3px solid var(--amber); }
 .note-card:hover{ transform: translateY(-2px) rotate(-0.3deg); box-shadow: var(--shadow-md); }
 /* Not kartlarının arka planı (renk.bg) her zaman açık pastel — tema
    değişse bile böyle kalması tasarlanmış (yapışkan not/post-it görünümü).
