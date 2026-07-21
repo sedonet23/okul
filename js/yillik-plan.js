@@ -427,7 +427,7 @@ function yillikPlanTumunuGoster(planId){
 
   const ov = document.createElement('div');
   ov.id = 'yplOnizlemeOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9600;background:var(--bg-app);display:flex;flex-direction:column;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);display:flex;flex-direction:column;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
@@ -568,7 +568,7 @@ function yillikPlanHaftaAc(planId, haftaIndex){
 
   const ov = document.createElement('div');
   ov.id = 'yplHaftaOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9600;background:var(--bg-app);overflow-y:auto;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
