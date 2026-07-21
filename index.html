@@ -137,6 +137,7 @@
       <div class="nav-group" id="programMenu">
         <button class="nav-tab nav-sub-tab" data-tab="dersProgrami"><i class="nt-ico ni-ders" data-lucide="book-open"></i><span class="nt-label">Ders Programı</span></button>
         <button class="nav-tab nav-sub-tab" data-tab="nobet"><i class="nt-ico ni-nobet" data-lucide="shield-check"></i><span class="nt-label">Nöbet Programı</span></button>
+        <button class="nav-tab nav-sub-tab" data-tab="yillikPlan"><i class="nt-ico" data-lucide="calendar-range"></i><span class="nt-label">Yıllık Plan</span></button>
       </div>
 
       <input type="checkbox" id="iletisimCheck" class="nav-group-check" hidden>
@@ -477,6 +478,28 @@
           <button class="btn btn-ghost btn-sm" onclick="nobetAyDegistir(1)">Sonraki Ay ›</button>
         </div>
         <table class="schedule-grid sch" id="nobetGridTablo"></table>
+      </div>
+    </section>
+
+    <section id="tab-yillikPlan" class="tab-panel">
+      <div class="page-header">
+        <div><div class="page-title">📚 Yıllık Plan</div><div class="page-sub">MEB ünitelendirilmiş yıllık ders planları — hafta bazlı takip</div></div>
+        <div class="page-header-actions" id="yplYonetimButonlari" style="display:none;">
+          <button class="btn btn-ghost btn-sm" onclick="yillikPlanBaslikYonetimiAc()">🏷️ Ana Başlıklar</button>
+          <button class="btn btn-ghost btn-sm" onclick="yillikPlanOrnekVerileriIceAktar()">⇪ Örnek Planları İçe Aktar</button>
+          <button class="btn btn-amber btn-sm" onclick="yillikPlanTanimModalAc()">➕ Yeni Plan Tanımı</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🎯 Takip Ettiğim Planlar</h3>
+        <div id="yplTakipListesi"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="yillikPlanSecimModalAc()">➕ Plan Ekle / Değiştir</button>
+      </div>
+
+      <div class="card" id="yplYonetimKarti" style="display:none;">
+        <h3>⚙️ Plan Tanımları (Yönetim)</h3>
+        <div id="yplTanimListesi"></div>
       </div>
     </section>
 
@@ -1498,6 +1521,8 @@
 <script src="js/core/services/nobet.service.js"></script>
 <script src="js/core/repositories/siniflar.repository.js"></script>
 <script src="js/core/services/siniflar.service.js"></script>
+<script src="js/core/repositories/yillik-plan.repository.js"></script>
+<script src="js/core/services/yillik-plan.service.js"></script>
 <script src="js/core/repositories/takvim.repository.js"></script>
 <script src="js/core/services/takvim.service.js"></script>
 <script src="js/core/repositories/personel.repository.js"></script>
@@ -1556,6 +1581,8 @@
 <script src="js/ogretmen-izin.js"></script>
 <script src="js/ders-saatleri.js"></script>
 <script src="js/siniflar.js"></script>
+<script src="js/yillik-plan.js"></script>
+<script src="js/yillik-plan-tohum-veri.js"></script>
 <script src="js/tasima.js"></script>
 <script src="js/haberler.js"></script>
 <script src="js/mevzuat-asistan.js"></script>
