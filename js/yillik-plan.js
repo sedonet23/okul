@@ -130,15 +130,33 @@ function _yplSutunGenislikleri(tanim){
    için (diğer raporları etkilememesi adına) burada .ypl-tablo ile
    SINIRLANDIRILMIŞ ayrı bir stil bloğu ekleniyor. */
 const YPL_TABLO_STIL = `<style>
-  .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; }
+  /* --- EKRAN: yatay kaydırma için tablo min genişliği --- */
+  @media screen {
+    .ypl-tablo-sarici{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .ypl-tablo{ border-collapse:collapse; table-layout:fixed; min-width:var(--ypl-min-w,900px); width:100%; }
+  }
+  /* --- YAZDIR/PDF: tam sayfa, scroll yok, sabit genişlik --- */
+  @media print {
+    .ypl-tablo-sarici{ overflow:visible; }
+    .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; min-width:unset; }
+  }
   .ypl-tablo th, .ypl-tablo td{ border:1px solid #999 !important; padding:5px 6px; word-wrap:break-word; }
   .ypl-tablo thead th{ background:#0A6E6E; color:#fff; }
+  /* Ay / Hafta / Saat başlıkları: dikey metin */
+  .ypl-tablo thead th.ypl-th-dikey{
+    writing-mode:vertical-rl;
+    text-orientation:mixed;
+    white-space:nowrap;
+    vertical-align:bottom;
+    padding:8px 4px;
+  }
 </style>`;
 function _yplTabloHtml(tanim){
   const sutunlar = tanim.sutunlar || [];
   const genislik = _yplSutunGenislikleri(tanim);
-  let html = YPL_TABLO_STIL + `<table class="ypl-tablo"><thead><tr>
-    <th style="width:${genislik._ay}%;">Ay</th><th style="width:${genislik._hafta}%;">Hafta</th><th style="width:${genislik._saat}%;">Saat</th>`;
+  const minPx = tanim.tabloMinPx || 900;
+  let html = YPL_TABLO_STIL + `<div class="ypl-tablo-sarici" style="--ypl-min-w:${minPx}px;"><table class="ypl-tablo"><thead><tr>
+    <th class="ypl-th-dikey" style="width:${genislik._ay}%;">Ay</th><th class="ypl-th-dikey" style="width:${genislik._hafta}%;">Hafta</th><th class="ypl-th-dikey" style="width:${genislik._saat}%;">Saat</th>`;
   sutunlar.forEach(sid => { html += `<th style="width:${genislik[sid]}%;">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
   html += `</tr></thead><tbody>`;
   (tanim.satirlar||[]).forEach(satir => {
@@ -148,7 +166,7 @@ function _yplTabloHtml(tanim){
     });
     html += `</tr>`;
   });
-  html += `</tbody></table>`;
+  html += `</tbody></table></div>`;
   return html;
 }
 
@@ -206,7 +224,7 @@ function yillikPlanTumunuGoster(planId){
     <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">
       ${escapeHtml(tanim.egitimOgretimYili||'')} · ${escapeHtml(tanim.dersAdi||'')} · ${tanim.seviye}. Sınıf
     </div>
-    <div style="overflow-x:auto;">${_yplTabloHtml(tanim)}</div>
+    <div>${_yplTabloHtml(tanim)}</div>
   `;
   modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, null, null);
   document.getElementById('modalKaydetBtn').style.display = 'none';
@@ -695,7 +713,11 @@ function yillikPlanSutunGenislikleriAc(planId){
     .concat((t.sutunlar||[]).map(sid=>({k:sid, ad:_yplBaslikAdi(sid)})));
   const body = `
     <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Her sütun için yüzde (%) genişlik girin — toplamın 100 olması önerilir, şu an <span id="yplGenislikToplam" style="font-weight:700;">${satirlar.reduce((s,r)=>s+genislik[r.k],0).toFixed(1)}</span>.</p>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-soft);margin-bottom:6px;">
+      <span style="font-size:12.5px;font-weight:600;">📱 Ekran Min. Genişliği (px)</span>
+      <input type="number" min="400" max="2400" step="50" id="yplTabloMinPx" value="${t.tabloMinPx||900}" style="width:80px;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:45vh;overflow-y:auto;">
       ${satirlar.map(r=>`
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <span style="font-size:12.5px;">${escapeHtml(r.ad)}</span>
@@ -705,7 +727,8 @@ function yillikPlanSutunGenislikleriAc(planId){
   modalAc(`📐 ${t.dersAdi} — Sütun Genişlikleri`, body, () => {
     const yeniGenislik = {};
     document.querySelectorAll('.ypl-genislik-input').forEach(inp => { yeniGenislik[inp.dataset.key] = parseFloat(inp.value) || 1; });
-    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
+    const tabloMinPx = parseInt(document.getElementById('yplTabloMinPx').value, 10) || 900;
+    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik, tabloMinPx })
       .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   });
