@@ -161,7 +161,7 @@ function yillikPlaniYazdir(planId){
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
   const html = _yplTabloHtml(tanim) + _yplImzaBlogu();
-  _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi });
+  _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay' });
 }
 
 /* "Tüm Planı Görüntüle" — ekranda kaydırılabilir tam tablo önizlemesi,
