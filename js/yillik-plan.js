@@ -353,7 +353,7 @@ function _yplSurüklemeyiBagla(planId){
 
 /* İmza/başlık bloğu — kulüp raporundaki iki-uçlu yerleşimle birebir aynı
    desen: öğretmen solda, müdür sağda. */
-function _yplImzaBlogu(){
+function _yplImzaBlogu(tanim){
   const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
   const benAdi = ben ? `${ben.ad||''} ${ben.soyad||''}`.trim() : '';
   const benBrans = ben ? (ben.brans||'') : '';
@@ -362,20 +362,24 @@ function _yplImzaBlogu(){
   const mudurAdi = mudur ? `${mudur.ad||''} ${mudur.soyad||''}`.trim() : '';
   const mudurUnvan = (mudur && mudur.unvan) ? mudur.unvan : 'Okul Müdürü';
   if (!benAdi && !mudurAdi) return '';
-  const tarihMetni = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  const tarihKaynagi = (tanim && tanim.imzaTarihi) ? new Date(tanim.imzaTarihi + 'T00:00:00') : new Date();
+  const tarihMetni = tarihKaynagi.toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric' });
   // Müdür tarafı iki satır daha (tarih + "Uygundur") uzun olduğu için,
   // öğretmen tarafına aynı yükseklikte GÖRÜNMEZ bir doldurucu ekleniyor —
   // böylece iki ad-soyad satırı da aynı hizada kalıyor (bkz. referans görsel).
+  // "Uygundur" ile ad-soyad arasına GERÇEK imza için bolca boşluk bırakılıyor.
   return `<div style="display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;margin-top:36px;">
     <div style="text-align:center;">
       <div style="visibility:hidden;font-size:10px;">${escapeHtml(tarihMetni)}</div>
       <div style="visibility:hidden;font-weight:700;font-size:11px;">Uygundur</div>
+      <div style="height:60px;"></div>
       <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-top:2px;">${escapeHtml(benAdi||'—')}</div>
       <div style="font-size:10px;color:#666;margin-top:2px;">${escapeHtml(benBrans||'Öğretmen')}</div>
     </div>
     <div style="text-align:center;">
       <div style="font-size:10px;color:#1a1a1a;">${escapeHtml(tarihMetni)}</div>
       <div style="font-weight:700;font-size:11px;color:#1a1a1a;margin-top:4px;">Uygundur</div>
+      <div style="height:60px;"></div>
       <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-top:2px;">${escapeHtml(mudurAdi||'—')}</div>
       <div style="font-size:10px;color:#666;margin-top:2px;">${escapeHtml(mudurUnvan)}</div>
     </div>
@@ -392,7 +396,7 @@ function yillikPlaniYazdir(planId, genislikOverride, fontOverride){
   const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
-  const html = _yplTabloHtml(tanim, false, genislikOverride, fontOverride) + _yplImzaBlogu();
+  const html = _yplTabloHtml(tanim, false, genislikOverride, fontOverride) + _yplImzaBlogu(tanim);
   _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay' });
 }
 /* Önizlemedeki 🖨 butonu BUNU çağırır — Firestore'a yazılan sütun
@@ -446,8 +450,9 @@ function yillikPlanTumunuGoster(planId){
       Bu, A4 yatay sayfada GERÇEKTE nasıl görüneceğinin birebir önizlemesidir. Sütun sınırlarını sürükleyin, yazı boyutunu ayarlayın — değişiklikler anında kaydedilir, "💾 Kaydet" ile emin olabilirsiniz.
     </div>
     <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
-      <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;">
+      <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;padding-bottom:16px;">
         ${_yplTabloHtml(tanim, true)}
+        <div style="padding:0 12px;">${_yplImzaBlogu(tanim)}</div>
       </div>
     </div>
   `;
@@ -855,7 +860,10 @@ function yillikPlanTanimModalAc(id){
         <select id="f_yplSeviye">${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${t&&t.seviye===s?'selected':''}>${s}. Sınıf</option>`).join('')}</select>
       </div>
     </div>
-    <div class="form-group"><label>Eğitim-Öğretim Yılı</label><input id="f_yplYil" value="${t?escapeHtml(t.egitimOgretimYili||''):'2026-2027'}" placeholder="örn: 2026-2027"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Eğitim-Öğretim Yılı</label><input id="f_yplYil" value="${t?escapeHtml(t.egitimOgretimYili||''):'2026-2027'}" placeholder="örn: 2026-2027"></div>
+      <div class="form-group" style="flex:0 0 160px;"><label>İmza Tarihi (yazdırmada)</label><input type="date" id="f_yplImzaTarihi" value="${t&&t.imzaTarihi?t.imzaTarihi:new Date().toISOString().slice(0,10)}"></div>
+    </div>
     <div class="form-group">
       <label>Bu Ders Hangi Ana Başlıkları Kullansın?</label>
       <div class="ogr-checkbox-liste">
@@ -876,6 +884,7 @@ function yillikPlanTanimModalAc(id){
       dersAdi,
       seviye: parseInt(document.getElementById('f_yplSeviye').value, 10),
       egitimOgretimYili: document.getElementById('f_yplYil').value.trim(),
+      imzaTarihi: document.getElementById('f_yplImzaTarihi').value || null,
       sutunlar,
     };
     if (t){
