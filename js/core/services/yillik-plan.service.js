@@ -13,7 +13,6 @@
 const YillikPlanService = {
   _yaziYetkisiVar(){ return typeof duzenleyebilir==='function' && duzenleyebilir('yillikPlan'); },
   _goruntuleyebilir(){ return typeof gorebilir==='function' && gorebilir('yillikPlan'); },
-
   /* ---- Ana Başlık Havuzu ---- */
   basliklariDinle(cb, hataCb){ return YillikPlanRepository.basliklariDinle(cb, hataCb); },
   baslikEkle(veri){
@@ -42,6 +41,22 @@ const YillikPlanService = {
   tanimSil(id){
     if(!this._yaziYetkisiVar()) return Promise.reject(new Error('yetkisiz'));
     return YillikPlanRepository.tanimSil(id);
+  },
+
+  /* ---- Görüntüleme/yazdırma tercihleri (sütun genişliği, yazı boyutu,
+     imza tarihi) — plan İÇERİĞİNİ (dersAdi/seviye/sutunlar/satirlar)
+     DEĞİŞTİRMEZ, sadece o teker teker basılırken nasıl göründüğünü
+     ayarlar. Bu yüzden 'yillikPlan' modülünü Görüntüle yetkisiyle
+     kullanan bir öğretmen de değiştirebilmeli — Düzenle şartı yok
+     (Firestore kuralında da bu üç alan ayrıca serbest bırakıldı,
+     bkz. firestore.rules). */
+  goruntuAyarlariniKaydet(id, { sutunGenislikleri, fontBoyutuPx, imzaTarihi } = {}){
+    if(!this._goruntuleyebilir()){ if(typeof toast==='function') toast('Bu modülü kullanma yetkiniz yok.'); return Promise.reject(new Error('yetkisiz')); }
+    const veri = {};
+    if (sutunGenislikleri !== undefined) veri.sutunGenislikleri = sutunGenislikleri;
+    if (fontBoyutuPx !== undefined) veri.fontBoyutuPx = fontBoyutuPx;
+    if (imzaTarihi !== undefined) veri.imzaTarihi = imzaTarihi;
+    return YillikPlanRepository.tanimGuncelle(id, veri);
   },
 
   /* ---- Öğretmenin kendi plan seçimi (dar kapsamlı, kendi kaydı) ---- */
