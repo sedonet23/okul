@@ -176,6 +176,7 @@ function yillikPlanTumunuGoster(planId){
     <div style="overflow-x:auto;">${_yplTabloHtml(tanim)}</div>
   `;
   modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
 }
 
 /* ================================================================
@@ -220,7 +221,7 @@ function yillikPlanHaftaAc(planId, haftaIndex){
 
   const ov = document.createElement('div');
   ov.id = 'yplHaftaOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9800;background:var(--bg-app);overflow-y:auto;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9600;background:var(--bg-app);overflow-y:auto;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
@@ -354,6 +355,7 @@ function yplMenuAc(planId){
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlaniYazdir('${planId}')">🖨 Planı Yazdır</button>
     </div>`;
   modalAc('Seçenekler', body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
 }
 function yillikPlanHaftayaGit(planId){
   const tanim = _yplTanim(planId);
@@ -367,6 +369,7 @@ function yillikPlanHaftayaGit(planId){
         </button>`).join('')}
     </div>`;
   modalAc('🗓 Haftaya Git', body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
 }
 function yillikPlanHaftaGit(index){
   _yplAcikHaftaIndex = index;
@@ -574,6 +577,7 @@ function yillikPlanHaftaSatirlariniDuzenle(planId){
     <button type="button" class="btn btn-amber btn-sm" onclick="modalKapat();_yplSatirDuzenleModalAc('${planId}', null)">➕ Yeni Hafta Ekle</button>
   `;
   modalAc(`📋 ${t.dersAdi} — Hafta Satırları`, body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
   document.getElementById('modalKaydetBtn').style.display = 'none';
 }
 function _yplSatirDuzenleModalAc(planId, index){
