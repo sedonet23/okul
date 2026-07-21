@@ -146,7 +146,6 @@ const YPL_TABLO_STIL = `<style>
     writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     white-space:nowrap; padding:8px 4px; min-height:70px;
   }
-  .ypl-tablo-sarici{ position:relative; overflow-x:auto; }
   .ypl-resize-tutamac{
     position:absolute; top:0; bottom:0; width:10px; margin-left:-5px;
     cursor:col-resize; z-index:5; touch-action:none;
@@ -162,7 +161,6 @@ function _yplTabloHtml(tanim, interaktif){
   const tumAnahtarlar = YPL_SISTEM_SUTUNLARI.map(([k])=>k).concat(sutunlar);
 
   let html = YPL_TABLO_STIL;
-  if (interaktif) html += `<div class="ypl-tablo-sarici" id="yplTabloSarici">`;
   html += `<table class="ypl-tablo" id="${interaktif?'yplTabloInteraktif':''}"><colgroup>`;
   tumAnahtarlar.forEach(k => { html += `<col data-col-key="${k}" style="width:${genislik[k]}%;">`; });
   html += `</colgroup><thead><tr>`;
@@ -178,9 +176,9 @@ function _yplTabloHtml(tanim, interaktif){
   });
   html += `</tbody></table>`;
   if (interaktif) {
-    // Tutamaçlar tablonun DIŞINA, aynı sarıcı içine mutlak konumlu ekleniyor
-    // (th'lerin İÇİNE değil) — böylece sürüklerken hücre içeriğini bozmaz.
-    html += `<div id="yplTutamacKatmani" style="position:absolute;top:0;left:0;right:0;height:0;"></div></div>`;
+    // Tutamaçlar tablonun DIŞINA, #yplTuval (position:relative) içine
+    // mutlak konumlu ekleniyor — böylece sürüklerken hücre içeriğini bozmaz.
+    html += `<div id="yplTutamacKatmani" style="position:absolute;top:0;left:0;right:0;height:0;"></div>`;
   }
   return html;
 }
@@ -191,7 +189,7 @@ function _yplTabloHtml(tanim, interaktif){
    çalmaz — "tablo çizgisi" değil gerçek genişlik değişikliği), bırakınca
    Firestore'a kaydedilir ve hem colgroup hem tablo aynı anda güncellenir. */
 function _yplSurüklemeyiBagla(planId){
-  const sarici = document.getElementById('yplTabloSarici');
+  const sarici = document.getElementById('yplTuval');
   const tablo = document.getElementById('yplTabloInteraktif');
   const katman = document.getElementById('yplTutamacKatmani');
   if (!sarici || !tablo || !katman) return;
@@ -217,8 +215,7 @@ function _yplSurüklemeyiBagla(planId){
     katman.style.position = 'absolute';
   }
   tutamaclariYerlestir();
-
-  let surukleme = null;
+  _yplTutamaclariYerlestir = tutamaclariYerlestir;
   katman.addEventListener('pointerdown', (e) => {
     const tut = e.target.closest('.ypl-resize-tutamac');
     if (!tut) return;
@@ -302,21 +299,76 @@ function yillikPlaniYazdir(planId){
 
 /* "Tüm Planı Görüntüle" — ekranda kaydırılabilir tam tablo önizlemesi,
    yazdırmayla aynı içerik üretici fonksiyonu kullanır. */
+/* A4 yatay gerçek genişlik (px, ~96dpi) — sinif-oturma.js'teki A4_PX.yatay.w
+   ile aynı referans. Önizleme tuvali HER ZAMAN bu genişlikte kalır; ekrana
+   sığdırmak için içerik küçültülmez, style.zoom ile GÖRSEL olarak ölçeklenir
+   — böylece sütun genişlikleri/dikey başlıklar telefon ekranında da yazdırma
+   çıktısıyla BİREBİR aynı görünür (reflow yok). */
+const YPL_A4_YATAY_PX = 1123;
+let _yplTabanZoom = 1, _yplManuelZoom = 1;
+
 function yillikPlanTumunuGoster(planId){
   const tanim = _yplTanim(planId);
   if (!tanim) return;
-  const gov = `
-    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">
-      ${escapeHtml(tanim.egitimOgretimYili||'')} · ${escapeHtml(tanim.dersAdi||'')} · ${tanim.seviye}. Sınıf
-      <span style="display:block;margin-top:2px;">Sütun sınırlarını sürükleyerek genişliği ayarlayabilirsiniz — anında kaydedilir.</span>
+
+  const ov = document.createElement('div');
+  ov.id = 'yplOnizlemeOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9600;background:var(--bg-app);display:flex;flex-direction:column;';
+  document.body.appendChild(ov);
+  document.body.classList.add('modal-open');
+  if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
+
+  ov.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--bg-sidebar);color:#fff;">
+      <button class="btn btn-ghost btn-sm" onclick="yillikPlanOnizlemeKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
+      <div style="font-weight:700;font-size:12.5px;text-align:center;flex:1;min-width:140px;">${escapeHtml(tanim.dersAdi)} — A4 Yatay Önizleme</div>
+      <div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm" id="yplZoomAzalt" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Uzaklaştır">➖</button>
+        <button class="btn btn-ghost btn-sm" id="yplZoomSigdir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Ekrana sığdır">🔍 Sığdır</button>
+        <button class="btn btn-ghost btn-sm" id="yplZoomArtir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yakınlaştır">➕</button>
+        <button class="btn btn-ghost btn-sm" onclick="yillikPlaniYazdir('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;">🖨</button>
+      </div>
     </div>
-    ${_yplTabloHtml(tanim, true)}
+    <div style="font-size:11px;color:var(--ink-muted);text-align:center;padding:4px 10px;background:var(--bg-app);border-bottom:1px solid var(--border);">
+      Bu, A4 yatay sayfada GERÇEKTE nasıl görüneceğinin birebir önizlemesidir. Sütun sınırlarını sürükleyerek genişliği ayarlayın — anında kaydedilir.
+    </div>
+    <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
+      <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;">
+        ${_yplTabloHtml(tanim, true)}
+      </div>
+    </div>
   `;
-  modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, null, null);
-  document.getElementById('modalKaydetBtn').style.display = 'none';
-  // Tutamaçların doğru konumlanması için tablo DOM'a yerleşip layout
-  // hesaplanana kadar bir sonraki frame'e bırakılıyor.
-  requestAnimationFrame(() => _yplSurüklemeyiBagla(planId));
+  requestAnimationFrame(() => {
+    _yplZoomBagla();
+    _yplSurüklemeyiBagla(planId);
+  });
+}
+function yillikPlanOnizlemeKapat(){
+  const ov = document.getElementById('yplOnizlemeOverlay');
+  if (ov) ov.remove();
+  _yplTutamaclariYerlestir = null;
+  document.body.classList.remove('modal-open');
+  if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+}
+let _yplTutamaclariYerlestir = null; // _yplSurüklemeyiBagla tarafından doldurulur — zoom değişince yeniden çağrılır
+function _yplZoomUygula(){
+  const tuval = document.getElementById('yplTuval');
+  if (tuval) tuval.style.zoom = _yplTabanZoom * _yplManuelZoom;
+  if (_yplTutamaclariYerlestir) requestAnimationFrame(_yplTutamaclariYerlestir);
+}
+function _yplEkraniSigdir(){
+  const kaydirma = document.getElementById('yplTuvalKaydirma');
+  if (!kaydirma) return;
+  const mevcutGenislik = kaydirma.clientWidth - 40;
+  _yplTabanZoom = Math.min(1, mevcutGenislik / YPL_A4_YATAY_PX);
+  _yplManuelZoom = 1;
+  _yplZoomUygula();
+}
+function _yplZoomBagla(){
+  document.getElementById('yplZoomArtir')?.addEventListener('click', () => { _yplManuelZoom = Math.min(3, +(_yplManuelZoom+0.2).toFixed(2)); _yplZoomUygula(); });
+  document.getElementById('yplZoomAzalt')?.addEventListener('click', () => { _yplManuelZoom = Math.max(0.3, +(_yplManuelZoom-0.2).toFixed(2)); _yplZoomUygula(); });
+  document.getElementById('yplZoomSigdir')?.addEventListener('click', _yplEkraniSigdir);
+  _yplEkraniSigdir();
 }
 
 /* ================================================================
