@@ -181,7 +181,7 @@ function sinifDetayBilgiRender(s){
             ${v.ogrenciNo?`<span class="detay-row-muted"> No:${escapeHtml(v.ogrenciNo)}</span>`:''}
             ${v.cinsiyet?`<span class="badge badge-${v.cinsiyet==='Kız'?'rose':'blue'}">${escapeHtml(v.cinsiyet)}</span>`:''}
             ${v.servisAdi?`<span class="badge badge-amber">🚌 ${escapeHtml(v.servisAdi)}</span>`:''}
-            ${v.kulupAdi?`<span class="badge badge-sage badge-kulup" title="${escapeHtml(v.kulupAdi)}">🎗️ ${escapeHtml(v.kulupAdi)}</span>`:''}
+            ${v.kulupAdi?`<span class="badge badge-sage badge-kulup" title="${escapeHtml(v.kulupAdi)}">🎗️ <span class="badge-kulup-metin">${escapeHtml(v.kulupAdi)}</span></span>`:''}
             <br><span style="font-size:12px;color:var(--ink-muted);">${escapeHtml(v.veliAdi||'—')}</span>
           </span>
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); sinifVeliModalAc('${v.id}')">Düzenle</button>
@@ -266,9 +266,41 @@ function sinifOgrenciExcelModalAc(sinifId){
 
 const VELI_YAKINLIK_SECENEKLERI = ['Anne', 'Baba', 'Diğer'];
 
+/* Öğrenci formundaki "Sosyal Kulüp" seçeneklerini, verilen sınıfa göre
+   uygun (aktif + sınıf kısıtı uyan, ya da öğrencinin zaten sahip olduğu)
+   kulüplerle üretir. Sınıf dropdown'ı değiştiğinde de yeniden çağrılır. */
+function _kulupSecenekleriHtml(sinifId, v){
+  const secenekler = (typeof cizelgeVerileri!=='undefined'?cizelgeVerileri.sosyalKulupler:[])
+    .filter(k=>(k.aktif!==false && (!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(sinifId))) || (v&&v.kulupId===k.id))
+    .sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+  return `<option value="">— Kulüp seçilmedi —</option>` +
+    secenekler.map(k=>`<option value="${k.id}" ${v&&v.kulupId===k.id?'selected':''}>${escapeHtml(k.ad)}</option>`).join('');
+}
+function _kulupSecenekleriYenile(){
+  const sinifSel = document.getElementById('f_vSinif');
+  const kulupSel = document.getElementById('f_vKulup');
+  if(!sinifSel || !kulupSel) return;
+  const oncekiSecim = kulupSel.value;
+  kulupSel.innerHTML = _kulupSecenekleriHtml(sinifSel.value || null, null);
+  // Kullanıcının az önce seçtiği kulüp yeni sınıf için de uygunsa koru.
+  if(oncekiSecim && Array.from(kulupSel.options).some(o=>o.value===oncekiSecim)) kulupSel.value = oncekiSecim;
+}
 function sinifVeliModalAc(id){
   const v = id ? veliler.find(x=>x.id===id) : null;
+  // DÜZELTME: Bu formda ŞİMDİYE KADAR bir "Sınıf" alanı YOKTU — kayıt hep
+  // sessizce global detaySinifId'ye yazılıyordu. Bu, sınıf detayının
+  // İÇİNDEN açılınca doğru çalışıyordu ama Arama/Öğrenci Detayı üzerinden
+  // "Düzenle" ile açılınca (detaySinifId o an başka bir sınıfa ait ya da
+  // boş olabilir) öğrenci yanlış sınıfa taşınabiliyor ya da "Sınıfsız"
+  // kalabiliyordu. Artık sınıf açıkça seçiliyor ve kaydediliyor.
+  const mevcutSinifId = v ? v.sinifId : detaySinifId;
   const body = `
+    <div class="form-group"><label>Sınıf</label>
+      <select id="f_vSinif" onchange="_kulupSecenekleriYenile()">
+        <option value="">— Sınıfsız —</option>
+        ${siniflar.slice().sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')).map(s=>`<option value="${s.id}" ${mevcutSinifId===s.id?'selected':''}>${escapeHtml(s.ad)}</option>`).join('')}
+      </select>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Öğrenci Adı</label><input id="f_vOgrenci" value="${v?escapeHtml(v.ogrenciAdi||''):''}"></div>
       <div class="form-group"><label>Öğrenci No</label><input id="f_vOgrenciNo" value="${v?escapeHtml(v.ogrenciNo||''):''}\" placeholder="örn: 1024"></div>
@@ -302,13 +334,9 @@ function sinifVeliModalAc(id){
     </div>
     <div class="form-group"><label>Sosyal Kulüp</label>
       <select id="f_vKulup">
-        <option value="">— Kulüp seçilmedi —</option>
-        ${(typeof cizelgeVerileri!=='undefined'?cizelgeVerileri.sosyalKulupler:[])
-          .filter(k=>(k.aktif!==false && (!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(detaySinifId))) || (v&&v.kulupId===k.id))
-          .sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'))
-          .map(k=>`<option value="${k.id}" ${v&&v.kulupId===k.id?'selected':''}>${escapeHtml(k.ad)}</option>`).join('')}
+        ${_kulupSecenekleriHtml(mevcutSinifId, v)}
       </select>
-      ${v&&v.kulupId&&!(typeof cizelgeVerileri!=='undefined'&&cizelgeVerileri.sosyalKulupler.some(k=>k.id===v.kulupId&&(k.aktif!==false)&&(!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(detaySinifId))))?'<p style="font-size:11px;color:#c0392b;margin-top:4px;">⚠️ Mevcut kulüp bu sınıf için artık uygun değil ya da pasif — listede görünmeyebilir, gerekirse değiştirin.</p>':''}
+      ${v&&v.kulupId&&!(typeof cizelgeVerileri!=='undefined'&&cizelgeVerileri.sosyalKulupler.some(k=>k.id===v.kulupId&&(k.aktif!==false)&&(!k.sinifIdler||!k.sinifIdler.length||k.sinifIdler.includes(mevcutSinifId))))?'<p style="font-size:11px;color:#c0392b;margin-top:4px;">⚠️ Mevcut kulüp bu sınıf için artık uygun değil ya da pasif — listede görünmeyebilir, gerekirse değiştirin.</p>':''}
     </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_vNotlar" rows="2">${v?escapeHtml(v.notlar||''):''}</textarea></div>
   `;
@@ -317,8 +345,9 @@ function sinifVeliModalAc(id){
     if(!ogrenciAdi){ toast('Öğrenci adı zorunludur.'); return; }
     const servisId = document.getElementById('f_vServis').value;
     const kulupId = document.getElementById('f_vKulup').value;
+    const sinifId = document.getElementById('f_vSinif').value || null;
     SiniflarService.veliKaydet(v?v.id:null, {
-      sinifId: detaySinifId,
+      sinifId,
       ogrenciAdi,
       ogrenciNo: document.getElementById('f_vOgrenciNo').value.trim(),
       cinsiyet: document.getElementById('f_vCinsiyet').value,
@@ -378,7 +407,7 @@ function ogrenciDetayModalAc(id){
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
       <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sınıf</div><div><span class="badge badge-blue">${escapeHtml(sinifAdi)}</span></div></div>
       <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Servis</div><div>${v.servisId?`<span class="badge badge-amber">🚌 ${escapeHtml(servisAdi)}</span>`:'<span style="color:var(--ink-muted);">Servis yok</span>'}</div></div>
-      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sosyal Kulüp</div><div>${v.kulupAdi?`<span class="badge badge-sage badge-kulup" title="${escapeHtml(v.kulupAdi)}">🎗️ ${escapeHtml(v.kulupAdi)}</span>`:'<span style="color:var(--ink-muted);">Kulüp yok</span>'}</div></div>
+      <div><div style="font-size:11px;color:var(--ink-muted);margin-bottom:2px;">Sosyal Kulüp</div><div>${v.kulupAdi?`<span class="badge badge-sage badge-kulup" title="${escapeHtml(v.kulupAdi)}">🎗️ <span class="badge-kulup-metin">${escapeHtml(v.kulupAdi)}</span></span>`:'<span style="color:var(--ink-muted);">Kulüp yok</span>'}</div></div>
     </div>
     ${v.notlar?`<div style="margin-top:8px;font-size:13px;color:var(--ink-muted);">Not: ${escapeHtml(v.notlar)}</div>`:''}
     <div style="margin-top:14px;">

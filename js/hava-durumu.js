@@ -145,6 +145,13 @@
   var _sonLat = null, _sonLon = null, _sonVeri = null, _sonKonumAdi = null;
   try { _sonKonumAdi = localStorage.getItem('oyHavaKonum') || null; } catch(e){}
 
+  function havaDurumuDetayKapat(){
+    const p = document.getElementById('havaDurumuDetayPanel');
+    if(p) p.remove();
+    if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
+  }
+  window.havaDurumuDetayKapat = havaDurumuDetayKapat;
+
   function havaDurumuDetayAc(){
     if(!_sonVeri) return;
     var v = _sonVeri;
@@ -158,6 +165,11 @@
     var panel = document.createElement('div');
     panel.id = 'havaDurumuDetayPanel';
     panel.style.cssText = 'position:fixed;inset:0;z-index:8000;overflow-y:auto;overflow-x:hidden;font-family:Inter,sans-serif;padding-bottom:80px;';
+    // DÜZELTME (kaydırma): bu panel diğer detay panellerinin aksine
+    // pull-to-refresh'i hiç kapatmıyordu — panel içinde kaydırırken
+    // (özellikle en üstten yukarı doğru) native "aşağı çekince yenile"
+    // hareketiyle çakışıp kaydırmayı bozuyordu.
+    if(typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
 
     // ------- ANA BAŞLIK ------- //
     var html = '<div style="min-height:100vh;background:linear-gradient(160deg,#0B1E4A 0%,#1B3570 50%,#2C509A 100%);">';
@@ -168,7 +180,7 @@
     html += '<div style="color:#fff;font-size:16px;font-weight:800;">🌤️ Hava Durumu</div>';
     html += '<div id="havDetayKonumMetni" style="color:rgba(255,255,255,.65);font-size:11px;margin-top:2px;">' + (_sonKonumAdi ? '📍 ' + _sonKonumAdi : 'Konum alınıyor…') + '</div>';
     html += '</div>';
-    html += '<button onclick="document.getElementById(\'havaDurumuDetayPanel\').remove()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
+    html += '<button onclick="havaDurumuDetayKapat()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:50%;width:38px;height:38px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>';
     html += '</div>';
 
     // Rüzgar yönü oku

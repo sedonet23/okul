@@ -617,6 +617,19 @@
     }
   }
 
+  // DÜZELTME (z-index): öğretmen/servis/sınıf detay paneli (#detayOverlay,
+  // z-index:9650) veya bir modal (#modalOverlay, z-index:9700) açıkken alt
+  // navigasyon butonlarına (Ana Sayfa/Arama/Profilim/Menü) basılınca, geri
+  // tuşunda zaten yapılan "önce üstteki paneli kapat" davranışı burada
+  // YOKTU — yeni ekran, açık kalan panelin ALTINDA (daha düşük z-index'te)
+  // render oluyor ve "sayfa arkada açılıyor" gibi görünüyordu.
+  function _ustPanelleriKapat(){
+    const mo = document.getElementById('modalOverlay');
+    if(mo && mo.classList.contains('active') && typeof modalKapat === 'function') modalKapat();
+    const deo = document.getElementById('detayOverlay');
+    if(deo && deo.classList.contains('active') && typeof detayPanelKapat === 'function') detayPanelKapat();
+  }
+
   const AltNav = {
     _kuruldu:false,
     kur(){
@@ -626,22 +639,26 @@
     },
     git(ekran, grupIndex){
       this.kur();
+      _ustPanelleriKapat();
       _ekran = ekran;
       if(typeof grupIndex === 'number') _acikGrupIndex = grupIndex;
       ekranUygula();
     },
     kapat(){
+      _ustPanelleriKapat();
       _ekran = 'ana';
       _donusEkrani = null;
       ekranUygula();
     },
     menuTikla(){
       this.kur();
+      _ustPanelleriKapat();
       if(_ekran === 'grid' || _ekran === 'liste'){ this.kapat(); return; }
       _donusEkrani = null; // yeni bir menü oturumu — eski "dönüş noktası" geçersiz
       this.git('grid');
     },
     profilAc(){
+      _ustPanelleriKapat();
       _donusEkrani = null;
       this.git('profil');
     },
@@ -666,6 +683,7 @@
       gridDoldur();
     },
     hizliNotAc(){
+      _ustPanelleriKapat();
       if(typeof notlarModalAc !== 'function'){ alert('Not modülü yüklenemedi.'); return; }
       notlarModalAc();
       // notlar.js'in kendi modalını değiştirmeden, içine plandaki

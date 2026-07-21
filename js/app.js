@@ -2137,7 +2137,7 @@ function geriTusuIsle(){
   if(typeof AltNav !== 'undefined' && typeof AltNav.geriTusu === 'function' && AltNav.geriTusu()) return 'handled';
 
   var hp = document.getElementById('havaDurumuDetayPanel');
-  if(hp){ hp.remove(); return 'handled'; }
+  if(hp){ if(typeof havaDurumuDetayKapat === 'function') havaDurumuDetayKapat(); else hp.remove(); return 'handled'; }
 
   var hem = document.getElementById('hizliEkleModal');
   if(hem && hem.style.display && hem.style.display !== 'none'){

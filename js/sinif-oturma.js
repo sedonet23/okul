@@ -38,6 +38,34 @@ const SinifOturma = (function(){
   let sinifId = null, sinifAdi = '', ov = null, tuval = null;
   let sayac = 0, seciliOge = null, mevcutYon = 'dikey';
   let sutunBoslugu = 12, satirBoslugu = 66, topluTasimaAcik = false, masalarKilitli = false;
+  let duzenlenebilir = true; // ac() içinde _sinifOturmaDuzenlenebilirMi() ile belirlenir
+
+  /* Sadece o sınıfın Sınıf Öğretmeni'i (ya da genel Sınıflar düzenleme
+     yetkisi olan admin) oturma planını düzenleyebilir; diğerleri salt
+     okunur (sadece görüntüleme) modunda açar. */
+  function _sinifOturmaDuzenlenebilirMi(s){
+    if (typeof duzenleyebilir === 'function' && duzenleyebilir('siniflar')) return true;
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    return !!(ben && s && s.sinifOgretmeniId === ben.id);
+  }
+
+  /* Editör arayüzünü salt-okunur hale getirir: masa/sıra paleti, otomatik
+     yerleşim, öge boyutları, Kaydet/Tümünü Temizle/Toplu Taşıma/Kilit
+     düğmeleri gizlenir; tuval üzerindeki tüm sürükleme/tıklama etkileşimi
+     (.so-salt-okunur CSS kuralıyla) devre dışı bırakılır. PDF/yazdırma ve
+     yakınlaştırma/sayfa yönü gibi salt-görüntüleme kontrolleri açık kalır. */
+  function _soSaltOkunurUygula(){
+    if (tuval) tuval.classList.add('so-salt-okunur');
+    const gizle = sel => { const el = ov.querySelector(sel); if (el) el.style.display = 'none'; };
+    gizle('.so-palet');
+    gizle('#btnSoTemizle');
+    gizle('#btnSoKaydet');
+    gizle('#btnSoTopluTasima');
+    gizle('#btnGenelKilit');
+    const baslik = ov.querySelector('#soBaslik');
+    if (baslik) baslik.insertAdjacentHTML('afterend',
+      '<span style="font-size:11px;font-weight:700;color:#8a6415;background:#fff3d6;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;">👁 Salt Okunur — sadece sınıf öğretmeni düzenleyebilir</span>');
+  }
   let _soLogoDataUri = null;
 
   // Okul logosunu (assets/logo.png) PDF başlığında kullanmak üzere data-URI'ye
@@ -966,6 +994,13 @@ const SinifOturma = (function(){
     sinifId = id;
     const s = _soSinifNesnesi();
     sinifAdi = s ? s.ad : '';
+    // DÜZELTME (yetki): sınıf oturma planı artık HERKES tarafından
+    // düzenlenebiliyordu. Artık sadece o sınıfın "Sınıf Öğretmeni" olarak
+    // atanmış kişi (ya da genel Sınıflar düzenleme yetkisi olan admin)
+    // düzenleyebiliyor; diğer öğretmenler tuvali sadece GÖRÜNTÜLEYEBİLİYOR
+    // (sürükleme/boyutlandırma/koltuk atama tamamen devre dışı, ilgili
+    // düğmeler gizli — ama PDF/yazdırma hâlâ herkese açık).
+    duzenlenebilir = _sinifOturmaDuzenlenebilirMi(s);
 
     const eski = document.getElementById('sinifOturmaOverlay');
     if (eski) eski.remove();
@@ -988,6 +1023,7 @@ const SinifOturma = (function(){
     _olaylariBagla();
     sayfaYonunuUygula('dikey');
     Object.keys(AKTIF_BOYUT).forEach(boyutGosterGuncelle);
+    if (!duzenlenebilir) _soSaltOkunurUygula();
 
     SinifOturmaService.planGetir(sinifId).then(doc => {
       if (doc.exists) {

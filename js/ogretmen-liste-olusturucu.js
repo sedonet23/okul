@@ -25,6 +25,7 @@ const OL_HAZIR_SUTUNLAR = [
   { key: 'telefon2',   label: 'Telefon 2',  fn: v => v.telefon2   || '' },
   { key: 'adres',      label: 'Adres',      fn: v => v.adres      || '' },
   { key: 'servisAdi',  label: 'Servis',     fn: v => v.servisAdi  || '' },
+  { key: 'kulupAdi',   label: 'Sosyal Kulüp', fn: v => v.kulupAdi || '' },
   { key: 'notlar',     label: 'Notlar',     fn: v => v.notlar     || '' },
 ];
 
@@ -191,6 +192,7 @@ function olSatirlariRosterdenOlustur() {
     telefon2:   v.telefon2   || '',
     adres:      v.adres      || '',
     servisAdi:  v.servisAdi  || '',
+    kulupAdi:   v.kulupAdi   || '',
     notlar:     v.notlar     || '',
   }));
 }
@@ -470,7 +472,7 @@ function olHucreDegisti(input) {
 }
 
 function olSatirEkle() {
-  _olSatirlar.push({ ogrenciAdi: '', ogrenciNo: '', cinsiyet: '', veliAdi: '', yakinlik1: '', telefon1: '', telefon2: '', adres: '', servisAdi: '', notlar: '' });
+  _olSatirlar.push({ ogrenciAdi: '', ogrenciNo: '', cinsiyet: '', veliAdi: '', yakinlik1: '', telefon1: '', telefon2: '', adres: '', servisAdi: '', kulupAdi: '', notlar: '' });
   olOnizlemeGuncelle();
 }
 
