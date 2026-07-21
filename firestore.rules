@@ -94,7 +94,15 @@ service cloud.firestore {
     }
     match /oy_yillikPlanTanimlari/{id} {
       allow read: if girisYapmis();
-      allow write: if adminMi();
+      allow create, delete: if adminMi();
+      // İçerik (dersAdi/seviye/sutunlar/satirlar/egitimOgretimYili) sadece
+      // admin değiştirebilir — ama sütun genişliği/yazı boyutu/imza tarihi
+      // birer YAZDIRMA TERCİHİDİR, plan içeriğini değiştirmez, bu yüzden
+      // Görüntüle yetkili herkes bu ÜÇ alanı güncelleyebilsin diye ayrıca
+      // serbest bırakıldı (bkz. yillik-plan.service.js → goruntuAyarlariniKaydet).
+      allow update: if adminMi()
+        || (girisYapmis() && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['sutunGenislikleri', 'fontBoyutuPx', 'imzaTarihi']));
     }
     // Öğretmenin "hangi planı takip ediyorum" seçimi: belge ID = kendi
     // ÖĞRETMEN kaydı ID'si (bkz. kendiOgretmenIdsi()) — Auth UID değil.
