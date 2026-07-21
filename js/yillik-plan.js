@@ -114,6 +114,9 @@ function _yplTanim(id){ return yillikPlanTanimlari.find(t=>t.id===id); }
 /* Sütun genişlikleri — admin özelleştirmediyse makul varsayılanlar
    kullanılır (Ay/Hafta/Saat dar, içerik sütunları eşit paylaşır). */
 const YPL_SISTEM_SUTUNLARI = [ ['_ay','Ay'], ['_hafta','Hafta'], ['_saat','Saat'] ];
+/* A4 yatay gerçek genişlik (px, ~96dpi) — sinif-oturma.js'teki A4_PX.yatay.w
+   ile aynı referans. Hem önizleme tuvali hem sayfa-sonu hesaplaması bunu kullanır. */
+const YPL_A4_YATAY_PX = 1123;
 function _yplSutunGenislikleri(tanim){
   const kayitli = tanim.sutunGenislikleri || {};
   const sutunlar = tanim.sutunlar || [];
@@ -142,9 +145,19 @@ const YPL_TABLO_STIL = `<style>
     vertical-align:top;
   }
   .ypl-tablo thead th{ background:#0A6E6E; color:#fff; vertical-align:middle; }
-  .ypl-tablo th.ypl-th-dikey{
+  .ypl-tablo .ypl-dikey{
     writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
-    white-space:nowrap; padding:8px 4px; min-height:70px;
+    white-space:nowrap; text-align:center;
+  }
+  .ypl-tablo th.ypl-dikey{ padding:8px 4px; }
+  .ypl-tablo td.ypl-dikey{ padding:6px 3px; }
+  .ypl-sayfa-sonu{
+    position:absolute; left:0; right:0; height:0; border-top:2px dashed #c0392b;
+    pointer-events:none;
+  }
+  .ypl-sayfa-sonu span{
+    position:absolute; right:4px; top:-9px; background:#c0392b; color:#fff;
+    font-size:9px; font-weight:700; padding:1px 6px; border-radius:3px; font-family:sans-serif;
   }
   .ypl-resize-tutamac{
     position:absolute; top:0; bottom:0; width:10px; margin-left:-5px;
@@ -164,11 +177,11 @@ function _yplTabloHtml(tanim, interaktif){
   html += `<table class="ypl-tablo" id="${interaktif?'yplTabloInteraktif':''}"><colgroup>`;
   tumAnahtarlar.forEach(k => { html += `<col data-col-key="${k}" style="width:${genislik[k]}%;">`; });
   html += `</colgroup><thead><tr>`;
-  YPL_SISTEM_SUTUNLARI.forEach(([k, ad]) => { html += `<th class="ypl-th-dikey" data-col-key="${k}">${escapeHtml(ad)}</th>`; });
+  YPL_SISTEM_SUTUNLARI.forEach(([k, ad]) => { html += `<th class="ypl-dikey" data-col-key="${k}">${escapeHtml(ad)}</th>`; });
   sutunlar.forEach(sid => { html += `<th data-col-key="${sid}">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
   html += `</tr></thead><tbody>`;
   (tanim.satirlar||[]).forEach(satir => {
-    html += `<tr><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
+    html += `<tr><td class="ypl-dikey">${escapeHtml(satir.ay||'')}</td><td class="ypl-dikey">${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td class="ypl-dikey">${escapeHtml(satir.saat||'')}</td>`;
     sutunlar.forEach(sid => {
       html += `<td style="text-align:left;">${escapeHtml((satir.degerler||{})[sid]||'')}</td>`;
     });
@@ -179,8 +192,62 @@ function _yplTabloHtml(tanim, interaktif){
     // Tutamaçlar tablonun DIŞINA, #yplTuval (position:relative) içine
     // mutlak konumlu ekleniyor — böylece sürüklerken hücre içeriğini bozmaz.
     html += `<div id="yplTutamacKatmani" style="position:absolute;top:0;left:0;right:0;height:0;"></div>`;
+    html += `<div id="yplSayfaSonuKatmani" style="position:absolute;top:0;left:0;right:0;height:0;"></div>`;
   }
   return html;
+}
+
+/* Sürükle-bırak ile sütun genişliği ayarlama — sadece "Tüm Planı Görüntüle"
+   önizlemesinde. Her tutamaç bir sütunun SAĞ kenarına karşılık gelir;
+   sürüklendiğinde SADECE o sütunun yüzdesi değişir (komşu sütunlardan
+   çalmaz — "tablo çizgisi" değil gerçek genişlik değişikliği), bırakınca
+   Firestore'a kaydedilir ve hem colgroup hem tablo aynı anda güncellenir. */
+/* ================================================================
+   SAYFA SONU ÇİZGİLERİ — yazdırmada (raporlama.js: @page margin:5mm 7mm,
+   A4 yatay) her sayfaya kaç satır sığacağını TAHMİN edip önizlemede kesik
+   kırmızı çizgiyle gösterir. Tablonun <thead>'i her sayfada TEKRARLANDIĞI
+   (tarayıcıların varsayılan tablo-yazdırma davranışı) ve 1. sayfada rapor
+   başlığı (logo+ünvan) da yer kapladığı için bunlar hesaba katılıyor.
+   NOT: Bu bir TAHMİNDİR — tarayıcının gerçek sayfalama algoritmasıyla
+   birebir aynı olmayabilir, ama sayfa sonuna ne kadar kaldığını görmek
+   için yeterince yakın bir referans verir. */
+const YPL_PX_MM = YPL_A4_YATAY_PX / 297;               // 1123px = 297mm
+const YPL_A4_YATAY_YUKSEKLIK_PX = Math.round(210 * YPL_PX_MM); // A4 yatay tam yükseklik
+const YPL_SAYFA_KENAR_PX = 5 * YPL_PX_MM;               // @page margin: 5mm (üst+alt)
+const YPL_ILK_SAYFA_BASLIK_PAYI_PX = 70;                 // rapor logosu+başlığı için yaklaşık pay
+
+function _yplSayfaSonlariniCiz(){
+  const tablo = document.getElementById('yplTabloInteraktif');
+  const katman = document.getElementById('yplSayfaSonuKatmani');
+  if (!tablo || !katman) return;
+  const olcek = (_yplTabanZoom * _yplManuelZoom) || 1; // offsetHeight zoom'a göre ölçekli geliyor, gerçek px'e normalize ediyoruz
+  katman.innerHTML = '';
+
+  const thead = tablo.querySelector('thead');
+  const theadYukseklik = thead ? thead.offsetHeight / olcek : 0;
+  const usableTam = YPL_A4_YATAY_YUKSEKLIK_PX - (YPL_SAYFA_KENAR_PX * 2);
+
+  const satirlar = Array.from(tablo.querySelectorAll('tbody tr'));
+  let sayfaNo = 1;
+  let kalanYukseklik = usableTam - YPL_ILK_SAYFA_BASLIK_PAYI_PX - theadYukseklik;
+  let birikenYGercek = thead ? thead.offsetHeight : 0; // GERÇEK (zoom'lu) — çizginin ekrandaki konumu için
+
+  satirlar.forEach(tr => {
+    const hGercek = tr.offsetHeight;
+    const h = hGercek / olcek;
+    if (h > kalanYukseklik) {
+      sayfaNo++;
+      const cizgi = document.createElement('div');
+      cizgi.className = 'ypl-sayfa-sonu';
+      cizgi.style.top = birikenYGercek + 'px';
+      cizgi.innerHTML = `<span>Sayfa ${sayfaNo} →</span>`;
+      katman.appendChild(cizgi);
+      kalanYukseklik = usableTam - theadYukseklik;
+    }
+    kalanYukseklik -= h;
+    birikenYGercek += hGercek;
+  });
+  katman.style.height = tablo.offsetHeight + 'px';
 }
 
 /* Sürükle-bırak ile sütun genişliği ayarlama — sadece "Tüm Planı Görüntüle"
@@ -216,6 +283,7 @@ function _yplSurüklemeyiBagla(planId){
   }
   tutamaclariYerlestir();
   _yplTutamaclariYerlestir = tutamaclariYerlestir;
+  let surukleme = null;
   katman.addEventListener('pointerdown', (e) => {
     const tut = e.target.closest('.ypl-resize-tutamac');
     if (!tut) return;
@@ -244,6 +312,7 @@ function _yplSurüklemeyiBagla(planId){
       YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
         .catch(err => { if (err.message!=='yetkisiz') toast('Genişlik kaydedilemedi: '+err.message); });
     }
+    requestAnimationFrame(_yplSayfaSonlariniCiz); // sütun daralıp/genişleyince metin sarması satır yüksekliğini değiştirir
   }
   katman.addEventListener('pointerup', surüklemeBitir);
   katman.addEventListener('pointercancel', surüklemeBitir);
@@ -304,7 +373,6 @@ function yillikPlaniYazdir(planId){
    sığdırmak için içerik küçültülmez, style.zoom ile GÖRSEL olarak ölçeklenir
    — böylece sütun genişlikleri/dikey başlıklar telefon ekranında da yazdırma
    çıktısıyla BİREBİR aynı görünür (reflow yok). */
-const YPL_A4_YATAY_PX = 1123;
 let _yplTabanZoom = 1, _yplManuelZoom = 1;
 
 function yillikPlanTumunuGoster(planId){
@@ -341,6 +409,7 @@ function yillikPlanTumunuGoster(planId){
   requestAnimationFrame(() => {
     _yplZoomBagla();
     _yplSurüklemeyiBagla(planId);
+    _yplSayfaSonlariniCiz();
   });
 }
 function yillikPlanOnizlemeKapat(){
@@ -355,6 +424,7 @@ function _yplZoomUygula(){
   const tuval = document.getElementById('yplTuval');
   if (tuval) tuval.style.zoom = _yplTabanZoom * _yplManuelZoom;
   if (_yplTutamaclariYerlestir) requestAnimationFrame(_yplTutamaclariYerlestir);
+  requestAnimationFrame(_yplSayfaSonlariniCiz);
 }
 function _yplEkraniSigdir(){
   const kaydirma = document.getElementById('yplTuvalKaydirma');
