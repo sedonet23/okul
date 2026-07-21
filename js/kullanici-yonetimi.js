@@ -595,6 +595,14 @@ const _SALT_OKUMA_ISTISNA_DESENLERI = [
   /Rapor/i, /Yazdir/i, /Sirku/i, /DetayAc\(/, /DetayModalAc\(/,
   /hizliEkleModalAc/, /profilVeyaSecimAc/,
   /ListeOlustur/i, /OnayModalAc\(/,
+  // DÜZELTME: Anasayfa kart özelleştirme butonları ("Hızlı Bakış",
+  // "İstatistik Şeridi", "Hızlı İşlemler" düzenle kalemleri ve "Anasayfa
+  // Kartlarını Düzenle") kurumsal veri YAZMIYOR — sadece kullanıcının
+  // KENDİ ana sayfasında hangi kartları/sırayla göreceğini belirliyor.
+  // Yine de /ModalAc\(/ desenine takılıp "panel" sekmesi salt-okuma
+  // olan kullanıcılarda (örn. Görüntüle yetkili öğretmen) yanlışlıkla
+  // gizleniyordu — herkes kendi ana sayfasını özelleştirebilmeli.
+  /dashboardOzellestirModalAc/, /dashboardAltDuzenModalAc/,
   // DÜZELTME: Dökümanlar modülü artık genel Görüntüle/Düzenle seviyesinden
   // BAĞIMSIZ, kendi sahiplik tabanlı yetkilendirmesini kullanıyor (bkz.
   // js/core/services/dokumanlar.service.js) — ekleme herkese açık (kendi
