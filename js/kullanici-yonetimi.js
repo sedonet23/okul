@@ -610,6 +610,13 @@ const _SALT_OKUMA_ISTISNA_DESENLERI = [
   // kişisel dökümanı için), silme sadece sahip/admin'e açık. Bu yüzden
   // genel salt-okuma mekanizması bu iki butona hiç karışmamalı.
   /dokumanYukleModalAc/, /dokumanSilOnay\(/,
+  // DÜZELTME: "Plan Ekle / Değiştir" (yillikPlanSecimModalAc) bir
+  // öğretmenin HANGİ yıllık planı takip edeceğini seçtiği, tamamen KENDİ
+  // kişisel listesine yazdığı bir işlem — plan İÇERİĞİNİ değiştirmiyor
+  // (bkz. YillikPlanService.secimKaydet: sadece gorebilir('yillikPlan')
+  // şart koşuyor, duzenleyebilir değil). /ModalAc\(/ desenine takılıp
+  // sadece Görüntüle yetkili öğretmenlerde buton hiç görünmüyordu.
+  /yillikPlanSecimModalAc/,
 ];
 function _saltOkumaYazmaTetikleyicisiMi(oc){
   if(!oc) return false;
