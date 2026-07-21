@@ -613,9 +613,11 @@ function yillikPlanHaftaAc(planId, haftaIndex){
         <button class="btn btn-ghost btn-sm" onclick="yplMenuAc('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">⋮</button>
       </div>
     </div>
-    <div id="yplHaftaGovde"></div>
+    <div id="yplHaftaGovde" style="padding-bottom:56px;"></div>
+    <div id="yplHaftaFooter" style="position:fixed;left:0;right:0;bottom:0;background:var(--bg-app);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:2;"></div>
   `;
   _yplHaftaGovdeCiz();
+  _yplHaftaSurüklemeyiBagla();
 }
 function yillikPlanHaftaKapat(){
   if (_yplWakeLock) _yplEkraniAcikTut(false);
@@ -646,17 +648,42 @@ function _yplHaftaGovdeCiz(){
     <div style="background:var(--brand);color:#fff;text-align:center;font-size:20px;font-weight:700;padding:16px;">
       ${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}
     </div>
-    <div style="background:var(--brand-light);padding:20px 18px 90px;min-height:calc(100vh - 130px);">
+    <div style="background:var(--brand-light);padding:20px 18px 24px;min-height:calc(100vh - 186px);">
       ${pilller || '<p class="empty-state">Bu hafta için içerik girilmemiş.</p>'}
       <div id="yplNotAlani"></div>
     </div>
-    <div style="position:sticky;bottom:0;background:var(--bg-app);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;">
+  `;
+  const footer = document.getElementById('yplHaftaFooter');
+  if (footer) {
+    footer.innerHTML = `
       <button class="btn btn-ghost btn-sm" ${_yplAcikHaftaIndex===0?'disabled style="opacity:.3;"':''} onclick="yplHaftaDegistir(-1)">‹ Önceki</button>
       <span style="font-size:12.5px;color:var(--ink-muted);font-weight:600;">${_yplAcikHaftaIndex+1} / ${satirlar.length}</span>
       <button class="btn btn-ghost btn-sm" ${_yplAcikHaftaIndex===satirlar.length-1?'disabled style="opacity:.3;"':''} onclick="yplHaftaDegistir(1)">Sonraki ›</button>
-    </div>
-  `;
+    `;
+  }
   _yplNotAlaniCiz();
+}
+/* Sağa/sola kaydırma ile hafta değiştirme — Önceki/Sonraki butonlarının
+   yanında ek bir yol, tüm rollerde (admin/öğretmen) aynı şekilde çalışır.
+   Dikey kaydırmayla (sayfa gezinme) karışmaması için sadece YATAY hareket
+   BASKINSA (|dx| > |dy| ve dx eşik üstü) hafta değiştiriyor. */
+function _yplHaftaSurüklemeyiBagla(){
+  const govde = document.getElementById('yplHaftaGovde');
+  if (!govde) return;
+  let basX = null, basY = null;
+  govde.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    basX = e.touches[0].clientX; basY = e.touches[0].clientY;
+  }, { passive: true });
+  govde.addEventListener('touchend', (e) => {
+    if (basX === null) return;
+    const bitX = e.changedTouches[0].clientX, bitY = e.changedTouches[0].clientY;
+    const dx = bitX - basX, dy = bitY - basY;
+    basX = null; basY = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      yplHaftaDegistir(dx < 0 ? 1 : -1);
+    }
+  }, { passive: true });
 }
 function yplHaftaDegistir(delta){
   const tanim = _yplTanim(_yplAcikPlanId);
