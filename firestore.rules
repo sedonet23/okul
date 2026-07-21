@@ -102,7 +102,7 @@ service cloud.firestore {
       // serbest bırakıldı (bkz. yillik-plan.service.js → goruntuAyarlariniKaydet).
       allow update: if adminMi()
         || (girisYapmis() && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['sutunGenislikleri', 'fontBoyutuPx', 'imzaTarihi']));
+              .hasOnly(['sutunGenislikleri', 'fontBoyutuPx', 'imzaTarihi', 'satirlar', 'okulAdiManuel']));
     }
     // Öğretmenin "hangi planı takip ediyorum" seçimi: belge ID = kendi
     // ÖĞRETMEN kaydı ID'si (bkz. kendiOgretmenIdsi()) — Auth UID değil.
