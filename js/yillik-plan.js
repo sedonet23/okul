@@ -33,10 +33,12 @@ function yillikPlanBaglantilariniKur(){
   YillikPlanService.basliklariDinle(v => {
     yillikPlanBasliklari = v;
     if (typeof renderYillikPlanAnaSayfa === 'function') renderYillikPlanAnaSayfa();
+    if (typeof renderOgretmenYillikPlanlarimKarti === 'function') renderOgretmenYillikPlanlarimKarti();
   });
   YillikPlanService.tanimlariDinle(v => {
     yillikPlanTanimlari = v;
     if (typeof renderYillikPlanAnaSayfa === 'function') renderYillikPlanAnaSayfa();
+    if (typeof renderOgretmenYillikPlanlarimKarti === 'function') renderOgretmenYillikPlanlarimKarti();
   });
 }
 
@@ -856,6 +858,45 @@ function _yplTakipListesiCiz(){
         <span style="color:var(--ink-muted);">›</span>
       </div>`;
   }).join('') : '<p class="empty-state">Henüz bir plan seçmediniz. Aşağıdaki "Plan Ekle" ile başlayın.</p>';
+}
+
+/* Anasayfa "📚 Yıllık Planlarım" kartı — takip edilen ilk 2 planı ve o
+   haftanın temasını gösterir, satıra dokununca doğrudan o planın bugünkü
+   haftasını açar (kartın kendisi tıklanırsa Yıllık Plan sekmesine gider).
+   js/app.js > renderOgretmenOzelKartlar() içinden çağrılır. */
+function renderOgretmenYillikPlanlarimKarti(){
+  const el = document.getElementById('ogretmenYillikPlanlarim');
+  if (!el) return;
+  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  if (!ben){ el.innerHTML = ''; return; }
+
+  if (!_yplOgretmenSecimleri || _yplOgretmenSecimleri._ogretmenId !== ben.id){
+    el.innerHTML = '<p class="empty-state">Yükleniyor…</p>';
+    YillikPlanService.secimGetir(ben.id).then(doc => {
+      _yplOgretmenSecimleri = { _ogretmenId: ben.id, planIdler: (doc.exists && doc.data().planIdler) || [] };
+      renderOgretmenYillikPlanlarimKarti();
+      _yplTakipListesiCiz(); // Yıllık Plan sekmesi açıksa o da tazelensin
+    }).catch(()=>{ _yplOgretmenSecimleri = { _ogretmenId: ben.id, planIdler: [] }; renderOgretmenYillikPlanlarimKarti(); });
+    return;
+  }
+
+  const takipEdilenler = _yplOgretmenSecimleri.planIdler.map(id=>_yplTanim(id)).filter(Boolean);
+  if (!takipEdilenler.length){
+    el.innerHTML = '<p class="empty-state">Henüz plan eklemediniz — dokunup ekleyin.</p>';
+    return;
+  }
+  const gosterilecek = takipEdilenler.slice(0, 2);
+  const kalan = takipEdilenler.length - gosterilecek.length;
+  el.innerHTML = gosterilecek.map(t=>{
+    const bugunIndex = _yplBugunHaftaIndex(t);
+    const bugunSatir = (t.satirlar||[])[bugunIndex];
+    const tema = bugunSatir ? ((bugunSatir.degerler||{})[t.sutunlar[0]] || '') : '';
+    return `
+      <div class="dash-row" style="cursor:pointer;" onclick="event.stopPropagation();yillikPlanHaftaAc('${t.id}')">
+        <strong>${escapeHtml(t.dersAdi)}</strong> <span style="color:var(--ink-muted);">· ${t.seviye}. Sınıf</span>
+        ${tema ? `<div style="font-size:11px;color:var(--ink-muted);margin-top:1px;">Bu hafta: ${escapeHtml(tema.slice(0,50))}${tema.length>50?'…':''}</div>` : ''}
+      </div>`;
+  }).join('') + (kalan > 0 ? `<div style="font-size:11.5px;color:var(--ink-muted);margin-top:4px;">+${kalan} tane daha</div>` : '');
 }
 
 function yillikPlanSecimModalAc(){

@@ -1616,6 +1616,8 @@ function renderOgretmenOzelKartlar(){
   const bugunGun = GUNADI[new Date().getDay()];
   const bugunISO = todayISO();
 
+  if(typeof renderOgretmenYillikPlanlarimKarti === 'function') renderOgretmenYillikPlanlarimKarti();
+
   // ---- Bugünkü Derslerim ----
   if(dersEl){
     if(!GUNLER.includes(bugunGun)){
