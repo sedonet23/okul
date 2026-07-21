@@ -358,10 +358,14 @@ select{ appearance:none; background-image: url("data:image/svg+xml,%3Csvg xmlns=
 .badge-brick,.badge-red{ background: var(--red-danger-wash); color: var(--red-danger); }
 .badge-gray{ background: var(--gray-muted-wash); color: var(--gray-muted); }
 /* Kulüp adları servis/cinsiyet gibi kısa etiketlere göre çok daha uzun
-   olabiliyor (örn. "Bilinçli Tüketici ve Enerjiyi Doğru Kullanma Kulübü") —
-   normal .badge sabit genişlikte taşıyordu. Bu değişken, satıra sığacak
-   şekilde küçük punto + üç nokta ile kısaltıyor. */
-.badge-kulup{ font-size:10px; max-width:170px; overflow:hidden; text-overflow:ellipsis; }
+   olabiliyor (örn. "Bilinçli Tüketici ve Enerjiyi Doğru Kullanma Kulübü").
+   text-overflow:ellipsis, flex/inline-flex kutularında (badge display:
+   inline-flex) güvenilir çalışmadığından, kısaltma badge'in kendisine değil
+   İÇİNDEKİ metin span'ine uygulanıyor (bkz. kullanım yerleri: emoji dışarıda,
+   metin ayrı bir inline-block span'de). Bu sınıf sadece punto küçültüyor.
+   */
+.badge-kulup{ font-size:10px; }
+.badge-kulup-metin{ display:inline-block; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; }
 
 /* =========================================================
    AÇILIŞ EKRANI

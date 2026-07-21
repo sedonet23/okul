@@ -427,3 +427,12 @@
   pointer-events: auto !important;
   cursor: pointer !important;
 }
+
+/* Sınıf öğretmeni olmayan biri (salt-okunur mod) sınıf oturma planını
+   açtığında — masalar da koltuklar da KESİNLİKLE hiçbir dokunuşa tepki
+   vermemeli (sürükleme, boyutlandırma, öğrenci atama dahil). Kilitli
+   moddan farklı olarak burada koltuklar da tıklanamaz olmalı. */
+#sinifOturmaOverlay #soTuval.so-salt-okunur .so-oge {
+  pointer-events: none !important;
+  cursor: default !important;
+}
