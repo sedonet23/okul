@@ -50,12 +50,14 @@ const YillikPlanService = {
      kullanan bir öğretmen de değiştirebilmeli — Düzenle şartı yok
      (Firestore kuralında da bu üç alan ayrıca serbest bırakıldı,
      bkz. firestore.rules). */
-  goruntuAyarlariniKaydet(id, { sutunGenislikleri, fontBoyutuPx, imzaTarihi } = {}){
+  goruntuAyarlariniKaydet(id, { sutunGenislikleri, fontBoyutuPx, imzaTarihi, okulAdiManuel, satirlar } = {}){
     if(!this._goruntuleyebilir()){ if(typeof toast==='function') toast('Bu modülü kullanma yetkiniz yok.'); return Promise.reject(new Error('yetkisiz')); }
     const veri = {};
     if (sutunGenislikleri !== undefined) veri.sutunGenislikleri = sutunGenislikleri;
     if (fontBoyutuPx !== undefined) veri.fontBoyutuPx = fontBoyutuPx;
     if (imzaTarihi !== undefined) veri.imzaTarihi = imzaTarihi;
+    if (okulAdiManuel !== undefined) veri.okulAdiManuel = okulAdiManuel;
+    if (satirlar !== undefined) veri.satirlar = satirlar;
     return YillikPlanRepository.tanimGuncelle(id, veri);
   },
 
