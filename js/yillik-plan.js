@@ -227,11 +227,11 @@ function yillikPlanHaftaAc(planId, haftaIndex){
 
   ov.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-sidebar);color:var(--ink-on-dark);position:sticky;top:0;z-index:2;">
-      <button class="btn btn-ghost btn-sm" onclick="yillikPlanHaftaKapat()" style="color:var(--ink-on-dark);">← Kapat</button>
+      <button class="btn btn-ghost btn-sm" onclick="yillikPlanHaftaKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="text-align:center;flex:1;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;">${escapeHtml(tanim.dersAdi)} · ${tanim.seviye}. Sınıf</div>
       <div style="display:flex;gap:4px;">
-        <button class="btn btn-ghost btn-sm" id="yplKilitBtn" onclick="yplKilitTikla()" style="color:var(--ink-on-dark);font-size:16px;" title="Ekranın kararmasını engellemek için dokunun">🔓</button>
-        <button class="btn btn-ghost btn-sm" onclick="yplMenuAc('${planId}')" style="color:var(--ink-on-dark);">⋮</button>
+        <button class="btn btn-ghost btn-sm" id="yplKilitBtn" onclick="yplKilitTikla()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-size:16px;" title="Ekranın kararmasını engellemek için dokunun">🔓</button>
+        <button class="btn btn-ghost btn-sm" onclick="yplMenuAc('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">⋮</button>
       </div>
     </div>
     <div id="yplHaftaGovde"></div>
@@ -661,4 +661,158 @@ function yillikPlanOrnekVerileriIceAktar(){
         .catch(err => toast('Hata: '+err.message));
     }, 600); // Firestore dinleyicisinin yeni başlıkları yillikPlanBasliklari'na yansıtması için kısa bekleme
   }).catch(err => { if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+}
+
+/* ================================================================
+   WORD (.docx) DOSYASINDAN İÇE AKTARMA
+   ---------------------------------------------------------------
+   Uygulamada zaten yüklü olan mammoth.js (bkz. js/dokuman-okuyucu.js)
+   ile istemci tarafında (sunucuya hiç gitmeden) dosyayı HTML'e çevirip
+   içindeki EN BÜYÜK tabloyu satır/sütun olarak ayrıştırıyoruz. Her ders
+   farklı sütun adları kullandığı için (Fen Bilimleri'nde "ÜNİTE",
+   Müzik'te "ÜNİTE KONU" vb.) sütun eşleştirmesini KULLANICI yapar —
+   ilk 3 sütun otomatik olarak Ay/Hafta/Saat'e önerilir (MEB
+   şablonlarının tamamında bu sıradadır), geri kalanlar için "Ana
+   Başlık" havuzundan seçim yapılır ya da yeni başlık oluşturulur.
+   ================================================================ */
+let _yplIceAktarSatirlar = null; // [[hücre, hücre, ...], ...] — ayrıştırılan ham tablo (0. satır: başlıklar)
+
+function yillikPlanWordIceAktarAc(){
+  if (typeof mammoth === 'undefined'){ toast('Word okuma kütüphanesi yüklenemedi.'); return; }
+  _yplIceAktarSatirlar = null;
+  const body = `
+    <div class="form-row">
+      <div class="form-group"><label>Ders Adı</label><input id="f_yplwDers" placeholder="örn: Sosyal Bilgiler"></div>
+      <div class="form-group" style="flex:0 0 110px;"><label>Sınıf Seviyesi</label>
+        <select id="f_yplwSeviye">${[1,2,3,4,5,6,7,8].map(s=>`<option value="${s}" ${s===6?'selected':''}>${s}. Sınıf</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="form-group"><label>Eğitim-Öğretim Yılı</label><input id="f_yplwYil" value="2026-2027"></div>
+    <div class="form-group">
+      <label>Yıllık Plan Dosyası (.docx)</label>
+      <input type="file" id="f_yplwDosya" accept=".docx" onchange="_yplWordDosyaSecildi(this.files[0])">
+    </div>
+    <div id="yplwEslesmeAlani"></div>
+  `;
+  modalAc('⇪ Word\'den İçe Aktar', body, () => _yplIceAktarKaydet(), null, 'Sütunları Eşleştirdim, Kaydet');
+  // Eşleştirme yapılmadan kaydedilemesin diye, tablo ayrıştırılana kadar buton devre dışı
+  const kaydetBtn = document.getElementById('modalKaydetBtn');
+  if (kaydetBtn) kaydetBtn.disabled = true;
+}
+
+async function _yplWordDosyaSecildi(dosya){
+  const alan = document.getElementById('yplwEslesmeAlani');
+  if (!dosya || !alan) return;
+  alan.innerHTML = `<p style="font-size:12px;color:var(--ink-muted);padding:10px 0;">Dosya okunuyor…</p>`;
+  try {
+    const buf = await dosya.arrayBuffer();
+    const sonuc = await mammoth.convertToHtml({ arrayBuffer: buf });
+    const gecici = document.createElement('div');
+    gecici.innerHTML = sonuc.value;
+    const tablolar = Array.from(gecici.querySelectorAll('table'));
+    if (!tablolar.length){ alan.innerHTML = `<p style="color:#c0392b;font-size:12px;">Bu dosyada bir tablo bulunamadı.</p>`; return; }
+    // Birden fazla tablo varsa en çok satırlı olanı (asıl yıllık plan tablosu) kullan.
+    const tablo = tablolar.sort((a,b)=> b.querySelectorAll('tr').length - a.querySelectorAll('tr').length)[0];
+    const satirlarDom = Array.from(tablo.querySelectorAll('tr'));
+    _yplIceAktarSatirlar = satirlarDom.map(tr =>
+      Array.from(tr.querySelectorAll('th,td')).map(td => (td.textContent||'').replace(/\s+/g,' ').replace(/^[#=]+/,'').trim())
+    );
+    _yplEslesmeFormuCiz();
+  } catch (e) {
+    alan.innerHTML = `<p style="color:#c0392b;font-size:12px;">Dosya okunamadı: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function _yplEslesmeFormuCiz(){
+  const alan = document.getElementById('yplwEslesmeAlani');
+  if (!alan || !_yplIceAktarSatirlar || !_yplIceAktarSatirlar.length) return;
+  const basliklar = _yplIceAktarSatirlar[0];
+  const ornekSatir = _yplIceAktarSatirlar[1] || [];
+  const sistemSecenekleri = ['','ay','hafta','saat'];
+  const sistemEtiket = { ay:'Ay (sistem)', hafta:'Hafta (sistem)', saat:'Saat (sistem)' };
+
+  alan.innerHTML = `
+    <p style="font-size:12px;color:var(--ink-muted);margin:10px 0;">${basliklar.length} sütun, ${_yplIceAktarSatirlar.length-1} veri satırı bulundu. Her sütunun neyi karşıladığını seçin — MEB şablonlarında ilk 3 sütun genelde Ay/Hafta/Saat'tir, otomatik önerdik.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:45vh;overflow-y:auto;">
+      ${basliklar.map((baslikMetni, i) => `
+        <div style="border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+          <div style="font-weight:700;font-size:12.5px;">${escapeHtml(baslikMetni || '(başlıksız sütun)')}</div>
+          <div style="font-size:11px;color:var(--ink-muted);margin:2px 0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">örn: ${escapeHtml((ornekSatir[i]||'').slice(0,60))}</div>
+          <select class="ypl-eslesme-select" data-index="${i}" onchange="_yplEslesmeYeniBaslikGoster(this)">
+            <option value="">— Yoksay (bu sütunu alma) —</option>
+            <optgroup label="Sistem Alanları">
+              ${sistemSecenekleri.slice(1).map(s=>`<option value="sys:${s}" ${i===sistemSecenekleri.indexOf(s)?'selected':''}>${sistemEtiket[s]}</option>`).join('')}
+            </optgroup>
+            <optgroup label="Ana Başlıklar">
+              ${yillikPlanBasliklari.map(b=>`<option value="baslik:${b.id}">${escapeHtml(b.ad)}</option>`).join('')}
+              <option value="yeni">+ Yeni Başlık Oluştur…</option>
+            </optgroup>
+          </select>
+          <input type="text" class="ypl-yeni-baslik-input" data-index="${i}" placeholder="Yeni başlık adı" style="display:none;margin-top:6px;">
+        </div>
+      `).join('')}
+    </div>
+  `;
+  const kaydetBtn = document.getElementById('modalKaydetBtn');
+  if (kaydetBtn) kaydetBtn.disabled = false;
+}
+function _yplEslesmeYeniBaslikGoster(selectEl){
+  const input = selectEl.parentElement.querySelector('.ypl-yeni-baslik-input');
+  if (input) input.style.display = selectEl.value === 'yeni' ? 'block' : 'none';
+}
+
+function _yplIceAktarKaydet(){
+  const dersAdi = document.getElementById('f_yplwDers').value.trim();
+  if (!dersAdi){ toast('Ders adı zorunludur.'); return; }
+  if (!_yplIceAktarSatirlar){ toast('Önce bir dosya seçip sütunları eşleştirin.'); return; }
+  const seviye = parseInt(document.getElementById('f_yplwSeviye').value, 10);
+  const egitimOgretimYili = document.getElementById('f_yplwYil').value.trim();
+
+  const selectler = Array.from(document.querySelectorAll('.ypl-eslesme-select'));
+  const yeniBaslikIslemleri = []; // {index, ad} — kaydetme sırasında gerçek id'ye çevrilecek
+  const eslesme = {}; // index -> {tur:'sys'|'baslik', deger}
+  selectler.forEach(sel => {
+    const idx = parseInt(sel.dataset.index, 10);
+    const val = sel.value;
+    if (!val) return;
+    if (val === 'yeni'){
+      const ad = sel.parentElement.querySelector('.ypl-yeni-baslik-input').value.trim();
+      if (ad) yeniBaslikIslemleri.push({ index: idx, ad });
+    } else if (val.startsWith('sys:')){
+      eslesme[idx] = { tur:'sys', deger: val.slice(4) };
+    } else if (val.startsWith('baslik:')){
+      eslesme[idx] = { tur:'baslik', deger: val.slice(7) };
+    }
+  });
+
+  const satirlarHam = _yplIceAktarSatirlar.slice(1);
+  const kaydetBtn = document.getElementById('modalKaydetBtn');
+  if (kaydetBtn){ kaydetBtn.disabled = true; kaydetBtn.textContent = 'Kaydediliyor…'; }
+
+  Promise.all(yeniBaslikIslemleri.map(y => YillikPlanService.baslikEkle({ ad: y.ad, sira: yillikPlanBasliklari.length })
+    .then(ref => { eslesme[y.index] = { tur:'baslik', deger: ref.id }; })))
+    .then(() => {
+      const sutunlar = [];
+      Object.keys(eslesme).forEach(idx => {
+        const e = eslesme[idx];
+        if (e.tur === 'baslik' && !sutunlar.includes(e.deger)) sutunlar.push(e.deger);
+      });
+      const satirlar = satirlarHam.filter(r => r.some(c=>c)).map(r => {
+        const satir = { ay:'', hafta:'', saat:'', degerler:{} };
+        Object.keys(eslesme).forEach(idx => {
+          const e = eslesme[idx];
+          const metin = (r[idx] || '').trim();
+          if (!metin) return;
+          if (e.tur === 'sys') satir[e.deger] = metin;
+          else satir.degerler[e.deger] = metin;
+        });
+        return satir;
+      });
+      return YillikPlanService.tanimEkle({ dersAdi, seviye, egitimOgretimYili, sutunlar, satirlar });
+    })
+    .then(() => { toast(`İçe aktarıldı — ${satirlarHam.length} satır.`); modalKapat(); })
+    .catch(err => {
+      if (kaydetBtn){ kaydetBtn.disabled = false; kaydetBtn.textContent = 'Sütunları Eşleştirdim, Kaydet'; }
+      if (err.message!=='yetkisiz') toast('Hata: '+err.message);
+    });
 }
