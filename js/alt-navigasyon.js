@@ -629,6 +629,12 @@
     if(mo && mo.classList.contains('active') && typeof modalKapat === 'function') modalKapat();
     const deo = document.getElementById('detayOverlay');
     if(deo && deo.classList.contains('active') && typeof detayPanelKapat === 'function') detayPanelKapat();
+    // DÜZELTME: Yıllık Plan'ın kendi tam ekran katmanları (hafta kartı,
+    // A4 önizleme) bu listede yoktu — bottom-nav'daki "Ana Sayfa" gibi
+    // butonlar arka planda sekme değiştiriyordu ama bu katmanlar ekranda
+    // asılı kalıp hiçbir şey olmamış gibi görünüyordu.
+    if(document.getElementById('yplHaftaOverlay') && typeof yillikPlanHaftaKapat === 'function') yillikPlanHaftaKapat();
+    if(document.getElementById('yplOnizlemeOverlay') && typeof yillikPlanOnizlemeKapat === 'function') yillikPlanOnizlemeKapat();
   }
 
   const AltNav = {

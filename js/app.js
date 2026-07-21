@@ -1559,7 +1559,7 @@ function renderHizliIslemler(){
     nobet:          { modul:'nobet',       onclick:"sekmeAc('nobet');",                 ikon:'🛡️', ikonClass:'qa-nobet',    label:'Nöbet' },
     servis:         { modul:'tasima',      onclick:"sekmeAc('tasima');",                ikon:'🚌', ikonClass:'qa-evrak',    label:'Servis' },
     evrak:          { modul:'evrak',       onclick:"sekmeAc('evrak'); evrakModalAc();", ikon:'📄', ikonClass:'qa-gorev',    label:'Evrak' },
-    raporlar:       { modul:'dokumanlar',  onclick:"sekmeAc('dokumanlar');",            ikon:'📊', ikonClass:'qa-rapor',    label:'Raporlar' },
+    raporlar:       { modul:'maarifRapor',  onclick:"sekmeAc('maarifRapor');",            ikon:'📊', ikonClass:'qa-rapor',    label:'Raporlar' },
     takvim:         { modul:'takvim',      onclick:"sekmeAc('takvim');",                ikon:'📅', ikonClass:'qa-takvim',   label:'Takvim' },
     notlar:         { modul:'notlar',      onclick:"notlarModalAc();",                  ikon:'📝', ikonClass:'qa-not',      label:'Notlar' },
     cizelgeler:     { modul:'sosyalKulupler', onclick:"sekmeAc('sosyalKulupler');",      ikon:'⋯',  ikonClass:'qa-daha',     label:'Çizelgeler' },

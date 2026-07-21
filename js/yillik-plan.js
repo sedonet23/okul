@@ -583,7 +583,9 @@ function _yplKilitIkonuGuncelle(){
   const btn = document.getElementById('yplKilitBtn');
   if (!btn) return;
   const acik = !!_yplWakeLock;
-  btn.textContent = acik ? '🔒' : '🔓';
+  btn.innerHTML = acik ? '🔒 Açık' : '🔓 Kapalı';
+  btn.style.background = acik ? '#D97706' : 'rgba(255,255,255,0.12)';
+  btn.style.borderColor = acik ? '#D97706' : 'rgba(255,255,255,0.40)';
   btn.title = acik ? 'Ekran açık kalıyor — kapatmak için dokunun' : 'Ekranın kararmasını engellemek için dokunun';
 }
 function yplKilitTikla(){ _yplEkraniAcikTut(!_yplWakeLock); }
@@ -609,12 +611,12 @@ function yillikPlanHaftaAc(planId, haftaIndex){
       <button class="btn btn-ghost btn-sm" onclick="yillikPlanHaftaKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="text-align:center;flex:1;font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;">${escapeHtml(tanim.dersAdi)} · ${tanim.seviye}. Sınıf</div>
       <div style="display:flex;gap:4px;">
-        <button class="btn btn-ghost btn-sm" id="yplKilitBtn" onclick="yplKilitTikla()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-size:16px;" title="Ekranın kararmasını engellemek için dokunun">🔓</button>
+        <button class="btn btn-ghost btn-sm" id="yplKilitBtn" onclick="yplKilitTikla()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-size:12px;font-weight:700;white-space:nowrap;" title="Ekranın kararmasını engellemek için dokunun">🔓 Kapalı</button>
         <button class="btn btn-ghost btn-sm" onclick="yplMenuAc('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">⋮</button>
       </div>
     </div>
-    <div id="yplHaftaGovde" style="padding-bottom:56px;"></div>
-    <div id="yplHaftaFooter" style="position:fixed;left:0;right:0;bottom:0;background:var(--bg-app);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:2;"></div>
+    <div id="yplHaftaGovde" style="padding-bottom:130px;"></div>
+    <div id="yplHaftaFooter" style="position:fixed;left:0;right:0;bottom:64px;background:var(--bg-app);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:9450;box-shadow:0 -2px 8px rgba(0,0,0,.08);"></div>
   `;
   _yplHaftaGovdeCiz();
   _yplHaftaSurüklemeyiBagla();
@@ -638,7 +640,7 @@ function _yplHaftaGovdeCiz(){
     const deger = (satir.degerler||{})[sid];
     if (!deger) return ''; // veri yoksa başlık HİÇ gösterilmez
     return `
-      <div style="margin-bottom:18px;">
+      <div style="background:var(--bg-card,#fff);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);">
         <span style="display:inline-block;background:var(--brand);color:#fff;font-weight:700;font-size:13px;padding:8px 16px;border-radius:20px;margin-bottom:10px;">${escapeHtml(_yplBaslikAdi(sid))}</span>
         <div style="font-size:14.5px;color:var(--ink);white-space:pre-line;line-height:1.5;">${escapeHtml(deger)}</div>
       </div>`;
