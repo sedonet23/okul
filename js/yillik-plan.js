@@ -140,13 +140,13 @@ function _yplSutunGenislikleri(tanim){
    MUTLAKA <colgroup><col style="width:%"> kullanılıyor (satır içi th
    genişliği DEĞİL), tablo da width:100% ile sabit tutuluyor. */
 const YPL_TABLO_STIL = `<style>
-  .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; }
+  .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; background:#fff; }
   .ypl-tablo th, .ypl-tablo td{
     border:1px solid #999 !important; padding:5px 6px;
     overflow:hidden; white-space:pre-line; word-break:break-word; overflow-wrap:break-word;
-    vertical-align:top;
+    vertical-align:top; background:#fff; color:#1a1a1a;
   }
-  .ypl-tablo thead th{ background:#0A6E6E; color:#fff; vertical-align:middle; }
+  .ypl-tablo thead th{ background:#0A6E6E !important; color:#fff !important; vertical-align:middle; }
   .ypl-tablo .ypl-dikey{
     writing-mode:vertical-rl; text-orientation:mixed; transform:rotate(180deg);
     white-space:nowrap; text-align:center;
@@ -304,11 +304,13 @@ function _yplSurüklemeyiBagla(planId){
     });
     katman.style.height = tablo.offsetHeight + 'px';
     katman.style.position = 'absolute';
+    katman.style.pointerEvents = _yplDuzenlemeKilidi ? 'none' : 'auto';
   }
   tutamaclariYerlestir();
   _yplTutamaclariYerlestir = tutamaclariYerlestir;
   let surukleme = null;
   katman.addEventListener('pointerdown', (e) => {
+    if (_yplDuzenlemeKilidi) return; // kilitliyken sürükleme hiç başlamaz
     const tut = e.target.closest('.ypl-resize-tutamac');
     if (!tut) return;
     e.preventDefault();
@@ -399,7 +401,7 @@ function yillikPlaniYazdir(planId, genislikOverride, fontOverride){
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
   const html = _yplTabloHtml(tanim, false, genislikOverride, fontOverride) + _yplImzaBlogu(tanim);
-  _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay' });
+  _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay', logoGoster:true });
 }
 /* Önizlemedeki 🖨 butonu BUNU çağırır — Firestore'a yazılan sütun
    genişliğinin dinleyici üzerinden geri yansıması birkaç yüz ms sürebilir;
@@ -422,6 +424,7 @@ function yillikPlaniOnizlemedenYazdir(planId){
    çıktısıyla BİREBİR aynı görünür (reflow yok). */
 let _yplTabanZoom = 1, _yplManuelZoom = 1;
 let _yplMevcutFontPx = YPL_VARSAYILAN_FONT_PX;
+let _yplDuzenlemeKilidi = true; // varsayılan: KİLİTLİ — sayfada gezinirken yanlışlıkla sütun boyutu değişmesin
 
 function yillikPlanTumunuGoster(planId){
   const tanim = _yplTanim(planId);
@@ -439,6 +442,7 @@ function yillikPlanTumunuGoster(planId){
       <button class="btn btn-ghost btn-sm" onclick="yillikPlanOnizlemeKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="font-weight:700;font-size:12.5px;text-align:center;flex:1;min-width:140px;">${escapeHtml(tanim.dersAdi)} — A4 Yatay Önizleme</div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn btn-sm" id="yplKilitDuzenleBtn" style="background:#D97706;border:1px solid #D97706;color:#fff;font-weight:700;" title="Sayfada rahatça gezinmek için kilitli tutun — sütun ayarlamak için açın">🔒 Düzenleme Kilidi</button>
         <button class="btn btn-ghost btn-sm" id="yplFontAzalt" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazıyı küçült (sayfa boşluğunu azaltır)">Aa➖</button>
         <button class="btn btn-ghost btn-sm" id="yplFontArtir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazıyı büyüt">Aa➕</button>
         <button class="btn btn-ghost btn-sm" id="yplZoomAzalt" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Uzaklaştır">➖</button>
@@ -458,7 +462,7 @@ function yillikPlanTumunuGoster(planId){
         <input type="text" id="yplOkulAdiInput" value="${escapeHtml(tanim.okulAdiManuel||'')}" placeholder="Yazdırmada görünecek okul adı" style="font-size:11px;padding:2px 4px;width:150px;">
       </label>` : ''}
     </div>
-    <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
+    <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y;background:#dcdfe1;padding:20px;">
       <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;padding-bottom:16px;">
         ${_yplTabloHtml(tanim, true)}
         <div style="padding:0 12px;" id="yplImzaBlogu">${_yplImzaBlogu(tanim)}</div>
@@ -466,11 +470,18 @@ function yillikPlanTumunuGoster(planId){
     </div>
   `;
   _yplMevcutFontPx = _yplFontBoyutu(tanim);
+  _yplDuzenlemeKilidi = true; // her açılışta varsayılan: kilitli
   requestAnimationFrame(() => {
     _yplZoomBagla();
     _yplSurüklemeyiBagla(planId);
     _yplSayfaSonlariniCiz();
     _yplFontKontrolleriBagla(planId);
+    document.getElementById('yplKilitDuzenleBtn')?.addEventListener('click', () => {
+      _yplDuzenlemeKilidi = !_yplDuzenlemeKilidi;
+      _yplKilitDuzenleButonuGuncelle();
+      if (_yplTutamaclariYerlestir) _yplTutamaclariYerlestir();
+    });
+    _yplKilitDuzenleButonuGuncelle();
     document.getElementById('yplKaydetBtn')?.addEventListener('click', () => _yplTumunuKaydet(planId, true));
     document.getElementById('yplImzaTarihiInput')?.addEventListener('change', (e) => {
       const guncel = _yplTanim(planId);
@@ -501,6 +512,17 @@ function yillikPlanOnizlemeKapat(){
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
 }
 let _yplTutamaclariYerlestir = null; // _yplSurüklemeyiBagla tarafından doldurulur — zoom değişince yeniden çağrılır
+function _yplKilitDuzenleButonuGuncelle(){
+  const btn = document.getElementById('yplKilitDuzenleBtn');
+  if (!btn) return;
+  if (_yplDuzenlemeKilidi) {
+    btn.innerHTML = '🔒 Düzenleme Kilidi';
+    btn.style.background = '#D97706'; btn.style.borderColor = '#D97706';
+  } else {
+    btn.innerHTML = '🔓 Düzenlemeye Açık';
+    btn.style.background = 'rgba(255,255,255,0.12)'; btn.style.borderColor = 'rgba(255,255,255,0.40)';
+  }
+}
 function _yplZoomUygula(){
   const tuval = document.getElementById('yplTuval');
   if (tuval) tuval.style.zoom = _yplTabanZoom * _yplManuelZoom;
@@ -601,7 +623,7 @@ function yillikPlanHaftaAc(planId, haftaIndex){
 
   const ov = document.createElement('div');
   ov.id = 'yplHaftaOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;overscroll-behavior:contain;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
