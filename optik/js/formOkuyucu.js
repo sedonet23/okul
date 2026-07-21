@@ -163,7 +163,7 @@ export async function formuOkuVeGoster(sourceCanvas) {
     let sonuc;
 
     try {
-        sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form, { genelDuzeltmeKullan: true });
+        sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form, { genelDuzeltmeKullan: false });
         dbg('formuOku: basarili=' + sonuc?.basarili + ' uyari=' + (sonuc?.uyarilar?.[0] || '-'));
         console.log('[OMR] sonuc: basarili=', sonuc?.basarili, 'uyarilar=', sonuc?.uyarilar);
         formKoduDogrula(sonuc, sinavTuru);
@@ -225,7 +225,7 @@ export async function formuOkuToplu(sourceCanvas) {
     let sonuc;
 
     try {
-        sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form, { genelDuzeltmeKullan: true });
+        sonuc = await window.OmrOkuyucu.formuOku(sourceCanvas, form, { genelDuzeltmeKullan: false });
         formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOku (toplu) hatası:", err);
@@ -272,7 +272,7 @@ export async function formuOkuElleKoseliVeGoster(sourceCanvas, koseler) {
     let sonuc;
 
     try {
-        sonuc = await window.OmrOkuyucu.formuOkuElleKoseli(sourceCanvas, form, koseler, { genelDuzeltmeKullan: true });
+        sonuc = await window.OmrOkuyucu.formuOkuElleKoseli(sourceCanvas, form, koseler, { genelDuzeltmeKullan: false });
         formKoduDogrula(sonuc, sinavTuru);
     } catch (err) {
         console.error("formuOkuElleKoseli hatası:", err);
