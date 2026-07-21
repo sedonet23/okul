@@ -1254,6 +1254,29 @@ function tatilModuKartlariniUygula(){
   document.body.classList.toggle('tatil-aktif', tatil);
 }
 
+/* Zil widget'ına tıklanınca: şu an bir dersin varsa (dersProgrami'ndan
+   tespit edilen kendi dersin) o dersin sınıfının seviyesine ve ders adına
+   uyan bir Yıllık Plan tanımı varsa doğrudan o planın haftalık kartını
+   (bugünün haftasına gitmiş halde) açar. Ders yoksa (teneffüs/öğle/tatil/
+   boşta) kişisel "Ders Programım" ekranına yönlendirir. */
+let _dashSuankiDersim = null; // renderZilSayaci tarafından her yenilemede güncellenir
+function zilTiklandi(){
+  if(_dashSuankiDersim){
+    const sinifKaydi = (typeof siniflar!=='undefined' ? siniflar : []).find(s=>s.ad===_dashSuankiDersim.sinif);
+    const seviye = sinifKaydi ? parseInt(sinifKaydi.seviye, 10) : null;
+    const tanim = (typeof yillikPlanTanimlari!=='undefined' ? yillikPlanTanimlari : [])
+      .find(t=>t.dersAdi===_dashSuankiDersim.ders && t.seviye===seviye);
+    if(tanim){
+      sekmeAc('yillikPlan');
+      setTimeout(()=>{ if(typeof yillikPlanHaftaAc==='function') yillikPlanHaftaAc(tanim.id); }, 150);
+      return;
+    }
+    toast(`"${_dashSuankiDersim.ders}" (${_dashSuankiDersim.sinif}) için tanımlı bir yıllık plan bulunamadı.`);
+    sekmeAc('yillikPlan');
+    return;
+  }
+  sekmeAc('dersNobetProgramim');
+}
 function renderZilSayaci(bugunGun){
   const zilEl = document.getElementById('zilWidget');
   const suankiEl = document.getElementById('dashSuankiDers');
@@ -1338,11 +1361,15 @@ function renderZilSayaci(bugunGun){
   // saatinde KENDİ dersi varsa "5/A sınıfına Din Kültürü dersin var" gibi
   // kişiye özel bilgiyi zil etiketine ekler.
   let kendiDersEtiketi = '';
+  _dashSuankiDersim = null;
   if(durum.durum==='ders'){
     const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
     if(ben){
       const kendiDersi = dersProgrami.find(d=>d.ogretmenId===ben.id && d.gun===bugunGun && d.saat===durum.saat);
-      if(kendiDersi) kendiDersEtiketi = ` — <strong>${escapeHtml(kendiDersi.sinif)}</strong> sınıfına <strong>${escapeHtml(kendiDersi.ders)}</strong> dersin var`;
+      if(kendiDersi){
+        kendiDersEtiketi = ` — <strong>${escapeHtml(kendiDersi.sinif)}</strong> sınıfına <strong>${escapeHtml(kendiDersi.ders)}</strong> dersin var`;
+        _dashSuankiDersim = kendiDersi;
+      }
     }
   }
   if(durum.durum==='bitti'){
@@ -1993,7 +2020,7 @@ const TEMBEL_MODUL_TABLOSU = {
   // MODUL_ALIAS) — ikisi de aynı sinavlar+denemeSinavlari dinleyicisini kurar.
   yaziliSinavlar:   () => { sinavBaglantilariKur(); },
   denemeSinavlari:  () => { sinavBaglantilariKur(); },
-  yillikPlan:     () => { if(typeof yillikPlanBaglantilariniKur === 'function') yillikPlanBaglantilariniKur(); },
+  // yillikPlan: artık burada değil — koşulsuz olarak baglantilariKur() içinde başlatılıyor (bkz. yukarıdaki not).
   dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
@@ -2051,6 +2078,11 @@ function baglantilariKur(){
   // ihtiyaç duyuyor; Çizelgeler sekmesi hiç açılmadan da çalışmalı. Bu
   // yüzden personelIzin ile aynı gerekçeyle burada koşulsuz başlatılıyor.
   if(typeof sosyalKuluplerBaglantisiniKur === 'function') sosyalKuluplerBaglantisiniKur();
+  // DÜZELTME: yillikPlan de aynı gerekçeyle koşulsuz — anasayfadaki zil
+  // widget'ı (zilTiklandi()) tıklanınca hangi yıllık planın açılacağını
+  // bulmak için yillikPlanTanimlari'na ihtiyaç duyuyor, Yıllık Plan
+  // sekmesi hiç açılmamış olsa bile bu veri hazır olmalı.
+  if(typeof yillikPlanBaglantilariniKur === 'function') yillikPlanBaglantilariniKur();
 
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
