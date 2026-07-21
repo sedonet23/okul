@@ -115,8 +115,19 @@ function _yplTanim(id){ return yillikPlanTanimlari.find(t=>t.id===id); }
    kullanılır (Ay/Hafta/Saat dar, içerik sütunları eşit paylaşır). */
 const YPL_SISTEM_SUTUNLARI = [ ['_ay','Ay'], ['_hafta','Hafta'], ['_saat','Saat'] ];
 function _yplSutunGenislikleri(tanim){
-  const kayitli = tanim.sutunGenislikleri || {};
   const sutunlar = tanim.sutunlar || [];
+  // Ekran önizlemesinde px cinsinden yeniden boyutlandırma yapıldıysa
+  // (sutunGenislikleriPx), yazdırma/PDF çıktısı da ORANLARINI % olarak
+  // kullanır — px kaydı yoksa eski % sistemine (sutunGenislikleri) düşer.
+  if (tanim.sutunGenislikleriPx){
+    const pxKayitli = tanim.sutunGenislikleriPx;
+    const anahtarlar = YPL_SISTEM_SUTUNLARI.map(([k]) => k).concat(sutunlar);
+    const pxToplam = anahtarlar.reduce((s,k) => s + (pxKayitli[k] || 0), 0) || 1;
+    const sonuc = {};
+    anahtarlar.forEach(k => { sonuc[k] = +(((pxKayitli[k] || 0) / pxToplam) * 100).toFixed(2); });
+    return sonuc;
+  }
+  const kayitli = tanim.sutunGenislikleri || {};
   const sonuc = {};
   const varsayilanSistem = { _ay:8, _hafta:11, _saat:6 };
   YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || varsayilanSistem[k]; });
@@ -125,49 +136,156 @@ function _yplSutunGenislikleri(tanim){
   sutunlar.forEach(sid => { sonuc[sid] = kayitli[sid] || esitPay; });
   return sonuc;
 }
+/* Ekran önizlemesindeki sürükle-boyutlandır tablosu için PX cinsinden
+   sütun genişlikleri — Firestore'da sutunGenislikleriPx altında saklanır. */
+const YPL_VARSAYILAN_PX = { _ay:70, _hafta:95, _saat:55 };
+function _yplSutunGenislikleriPx(tanim){
+  const kayitli = tanim.sutunGenislikleriPx || {};
+  const sutunlar = tanim.sutunlar || [];
+  const sonuc = {};
+  YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || YPL_VARSAYILAN_PX[k]; });
+  const icerikVarsayilan = 160;
+  sutunlar.forEach(sid => { sonuc[sid] = kayitli[sid] || icerikVarsayilan; });
+  return sonuc;
+}
+/* Aynı şekilde satır yükseklikleri (px) — index bazlı dizi. */
+function _yplSatirYukseklikleri(tanim){
+  const kayitli = tanim.satirYukseklikleri || [];
+  return (tanim.satirlar || []).map((_, i) => kayitli[i] || 40);
+}
 /* Yazdırma ve ekran önizlemesinde ortak tam-kenarlıklı tablo görünümü —
    raporlama.js'in genel table/th/td kuralları sadece alt-çizgi verdiği
    için (diğer raporları etkilememesi adına) burada .ypl-tablo ile
    SINIRLANDIRILMIŞ ayrı bir stil bloğu ekleniyor. */
 const YPL_TABLO_STIL = `<style>
-  /* --- EKRAN: yatay kaydırma için tablo min genişliği --- */
-  @media screen {
-    .ypl-tablo-sarici{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
-    .ypl-tablo{ border-collapse:collapse; table-layout:fixed; min-width:var(--ypl-min-w,900px); width:100%; }
-  }
-  /* --- YAZDIR/PDF: tam sayfa, scroll yok, sabit genişlik --- */
-  @media print {
-    .ypl-tablo-sarici{ overflow:visible; }
-    .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; min-width:unset; }
-  }
+  .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; }
   .ypl-tablo th, .ypl-tablo td{ border:1px solid #999 !important; padding:5px 6px; word-wrap:break-word; }
   .ypl-tablo thead th{ background:#0A6E6E; color:#fff; }
-  /* Ay / Hafta / Saat başlıkları: dikey metin */
-  .ypl-tablo thead th.ypl-th-dikey{
-    writing-mode:vertical-rl;
-    text-orientation:mixed;
-    white-space:nowrap;
-    vertical-align:bottom;
-    padding:8px 4px;
-  }
 </style>`;
 function _yplTabloHtml(tanim){
   const sutunlar = tanim.sutunlar || [];
   const genislik = _yplSutunGenislikleri(tanim);
-  const minPx = tanim.tabloMinPx || 900;
-  let html = YPL_TABLO_STIL + `<div class="ypl-tablo-sarici" style="--ypl-min-w:${minPx}px;"><table class="ypl-tablo"><thead><tr>
-    <th class="ypl-th-dikey" style="width:${genislik._ay}%;">Ay</th><th class="ypl-th-dikey" style="width:${genislik._hafta}%;">Hafta</th><th class="ypl-th-dikey" style="width:${genislik._saat}%;">Saat</th>`;
+  let html = YPL_TABLO_STIL + `<table class="ypl-tablo"><thead><tr>
+    <th style="width:${genislik._ay}%;">Ay</th><th style="width:${genislik._hafta}%;">Hafta</th><th style="width:${genislik._saat}%;">Saat</th>`;
   sutunlar.forEach(sid => { html += `<th style="width:${genislik[sid]}%;">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
   html += `</tr></thead><tbody>`;
-  (tanim.satirlar||[]).forEach(satir => {
-    html += `<tr><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
+  const satirYukseklikleriPx = tanim.satirYukseklikleri || [];
+  (tanim.satirlar||[]).forEach((satir, _i) => {
+    const yukseklikStil = satirYukseklikleriPx[_i] ? ` style="height:${satirYukseklikleriPx[_i]}px;"` : '';
+    html += `<tr${yukseklikStil}><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
     sutunlar.forEach(sid => {
       html += `<td style="text-align:left;white-space:pre-line;">${escapeHtml((satir.degerler||{})[sid]||'')}</td>`;
     });
     html += `</tr>`;
   });
-  html += `</tbody></table></div>`;
+  html += `</tbody></table>`;
   return html;
+}
+
+/* ================================================================
+   EKRAN ÖNİZLEMESİ — SÜRÜKLE-BOYUTLANDIR (px)
+   _yplTabloHtml yazdırma için değişmeden kalır; burada AYRI bir
+   üretici fonksiyon var çünkü ekran önizlemesi sütun genişliği (dikey
+   çizgi) ve satır yüksekliği (yatay çizgi, sadece ilk hücrede) için
+   parmakla/mouse ile sürüklenebilir tutamaçlar içeriyor. Sürükleme
+   sırasında değerler SADECE bellekte (_yplPxCalisma) tutulur; kalıcı
+   olması için kullanıcının "Boyutları Kaydet" butonuna basması gerekir.
+   ================================================================ */
+let _yplPxCalisma = {};        // planId -> {sutunGenislikleriPx, satirYukseklikleri} — henüz kaydedilmemiş çalışma kopyası
+let _yplBoyutlandirmaAktif = null; // sürükleme sırasında aktif işlem bilgisi
+
+const YPL_RESIZE_STIL = `<style>
+  .ypl-resiz-tablo{ border-collapse:collapse; }
+  .ypl-resiz-tablo th, .ypl-resiz-tablo td{ border:1px solid #999; padding:0; position:relative; vertical-align:top; }
+  .ypl-resiz-tablo thead th{ background:#0A6E6E; color:#fff; padding:5px 6px; white-space:nowrap; }
+  .ypl-resiz-hucre{ padding:5px 6px; overflow:auto; box-sizing:border-box; white-space:pre-line; }
+  .ypl-col-tutamac{ position:absolute; top:0; right:-7px; width:14px; height:100%; cursor:col-resize; touch-action:none; z-index:6; }
+  .ypl-col-tutamac::after{ content:''; position:absolute; top:0; left:6px; width:2px; height:100%; background:rgba(0,0,0,.25); }
+  .ypl-row-tutamac{ position:absolute; left:0; bottom:-7px; width:36px; height:14px; cursor:row-resize; touch-action:none; z-index:6; }
+  .ypl-row-tutamac::after{ content:''; position:absolute; left:0; top:6px; width:100%; height:2px; background:rgba(0,0,0,.25); }
+</style>`;
+
+function _yplResizableTabloHtml(tanim, planId){
+  const sutunlar = tanim.sutunlar || [];
+  const pxGenislik = _yplSutunGenislikleriPx(tanim);
+  const satirYukseklik = _yplSatirYukseklikleri(tanim);
+  // Bu görüntüleme için çalışma kopyası — Kaydet'e basılana kadar Firestore'a yazılmaz.
+  _yplPxCalisma[planId] = {
+    sutunGenislikleriPx: Object.assign({}, pxGenislik),
+    satirYukseklikleri: satirYukseklik.slice(),
+  };
+  const tumSutunlar = YPL_SISTEM_SUTUNLARI.map(([k,ad]) => ({k, ad})).concat(sutunlar.map(sid => ({k:sid, ad:_yplBaslikAdi(sid)})));
+  let html = YPL_RESIZE_STIL + `<table class="ypl-resiz-tablo" id="yplResizTablo_${planId}"><colgroup>`;
+  tumSutunlar.forEach(c => { html += `<col id="yplCol_${planId}_${c.k}" style="width:${pxGenislik[c.k]}px;">`; });
+  html += `</colgroup><thead><tr>`;
+  tumSutunlar.forEach(c => {
+    html += `<th>${escapeHtml(c.ad)}<div class="ypl-col-tutamac" onpointerdown="_yplKolonBoyutlandirBasla(event,'${planId}','${c.k}')"></div></th>`;
+  });
+  html += `</tr></thead><tbody>`;
+  (tanim.satirlar||[]).forEach((satir, i) => {
+    const yukseklik = satirYukseklik[i];
+    html += `<tr id="yplRow_${planId}_${i}">`;
+    html += `<td style="height:${yukseklik}px;"><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(satir.ay||'')}</div><div class="ypl-row-tutamac" onpointerdown="_yplSatirBoyutlandirBasla(event,'${planId}',${i})"></div></td>`;
+    html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</div></td>`;
+    html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;">${escapeHtml(satir.saat||'')}</div></td>`;
+    sutunlar.forEach(sid => {
+      html += `<td><div class="ypl-resiz-hucre" style="max-height:${yukseklik}px;text-align:left;">${escapeHtml((satir.degerler||{})[sid]||'')}</div></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  return html;
+}
+
+function _yplKolonBoyutlandirBasla(e, planId, key){
+  e.preventDefault(); e.stopPropagation();
+  const col = document.getElementById(`yplCol_${planId}_${key}`);
+  if (!col) return;
+  const baslangicPx = parseInt(col.style.width, 10) || 100;
+  _yplBoyutlandirmaAktif = { tip:'kolon', planId, key, baslangicPx, baslangicX: e.clientX, el: col };
+  document.addEventListener('pointermove', _yplBoyutlandirmaTasi);
+  document.addEventListener('pointerup', _yplBoyutlandirmaBitir);
+}
+function _yplSatirBoyutlandirBasla(e, planId, index){
+  e.preventDefault(); e.stopPropagation();
+  const tr = document.getElementById(`yplRow_${planId}_${index}`);
+  if (!tr) return;
+  const baslangicPx = tr.children[0] ? tr.children[0].offsetHeight : 40;
+  _yplBoyutlandirmaAktif = { tip:'satir', planId, index, baslangicPx, baslangicY: e.clientY, el: tr };
+  document.addEventListener('pointermove', _yplBoyutlandirmaTasi);
+  document.addEventListener('pointerup', _yplBoyutlandirmaBitir);
+}
+function _yplBoyutlandirmaTasi(e){
+  const s = _yplBoyutlandirmaAktif;
+  if (!s) return;
+  if (s.tip === 'kolon'){
+    const yeniPx = Math.max(30, s.baslangicPx + (e.clientX - s.baslangicX));
+    s.el.style.width = yeniPx + 'px';
+    if (_yplPxCalisma[s.planId]) _yplPxCalisma[s.planId].sutunGenislikleriPx[s.key] = yeniPx;
+  } else if (s.tip === 'satir'){
+    const yeniPx = Math.max(24, s.baslangicPx + (e.clientY - s.baslangicY));
+    Array.from(s.el.children).forEach(td => {
+      td.style.height = yeniPx + 'px';
+      const icHucre = td.querySelector('.ypl-resiz-hucre');
+      if (icHucre) icHucre.style.maxHeight = yeniPx + 'px';
+    });
+    if (_yplPxCalisma[s.planId]) _yplPxCalisma[s.planId].satirYukseklikleri[s.index] = yeniPx;
+  }
+}
+function _yplBoyutlandirmaBitir(){
+  _yplBoyutlandirmaAktif = null;
+  document.removeEventListener('pointermove', _yplBoyutlandirmaTasi);
+  document.removeEventListener('pointerup', _yplBoyutlandirmaBitir);
+}
+function _yplResizeKaydet(planId){
+  const calisma = _yplPxCalisma[planId];
+  if (!calisma){ toast('Kaydedilecek bir değişiklik bulunamadı.'); return; }
+  YillikPlanService.tanimGuncelle(planId, {
+    sutunGenislikleriPx: calisma.sutunGenislikleriPx,
+    satirYukseklikleri: calisma.satirYukseklikleri,
+  })
+    .then(() => { toast('Boyutlar kaydedildi.'); })
+    .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* İmza/başlık bloğu — kulüp raporundaki iki-uçlu yerleşimle birebir aynı
@@ -223,11 +341,11 @@ function yillikPlanTumunuGoster(planId){
   const gov = `
     <div style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">
       ${escapeHtml(tanim.egitimOgretimYili||'')} · ${escapeHtml(tanim.dersAdi||'')} · ${tanim.seviye}. Sınıf
+      <br><span style="font-size:11px;">Sütun kenarını yana, satır kenarını aşağı sürükleyerek boyutlandırabilirsiniz.</span>
     </div>
-    <div>${_yplTabloHtml(tanim)}</div>
+    <div style="overflow-x:auto;">${_yplResizableTabloHtml(tanim, planId)}</div>
   `;
-  modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, null, null);
-  document.getElementById('modalKaydetBtn').style.display = 'none';
+  modalAc(`📖 ${tanim.dersAdi} — Tüm Plan`, gov, () => _yplResizeKaydet(planId), null, '💾 Boyutları Kaydet');
 }
 
 /* ================================================================
@@ -713,11 +831,7 @@ function yillikPlanSutunGenislikleriAc(planId){
     .concat((t.sutunlar||[]).map(sid=>({k:sid, ad:_yplBaslikAdi(sid)})));
   const body = `
     <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Her sütun için yüzde (%) genişlik girin — toplamın 100 olması önerilir, şu an <span id="yplGenislikToplam" style="font-weight:700;">${satirlar.reduce((s,r)=>s+genislik[r.k],0).toFixed(1)}</span>.</p>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-soft);margin-bottom:6px;">
-      <span style="font-size:12.5px;font-weight:600;">📱 Ekran Min. Genişliği (px)</span>
-      <input type="number" min="400" max="2400" step="50" id="yplTabloMinPx" value="${t.tabloMinPx||900}" style="width:80px;">
-    </div>
-    <div style="display:flex;flex-direction:column;gap:6px;max-height:45vh;overflow-y:auto;">
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;">
       ${satirlar.map(r=>`
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
           <span style="font-size:12.5px;">${escapeHtml(r.ad)}</span>
@@ -727,8 +841,7 @@ function yillikPlanSutunGenislikleriAc(planId){
   modalAc(`📐 ${t.dersAdi} — Sütun Genişlikleri`, body, () => {
     const yeniGenislik = {};
     document.querySelectorAll('.ypl-genislik-input').forEach(inp => { yeniGenislik[inp.dataset.key] = parseFloat(inp.value) || 1; });
-    const tabloMinPx = parseInt(document.getElementById('yplTabloMinPx').value, 10) || 900;
-    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik, tabloMinPx })
+    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
       .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   });
