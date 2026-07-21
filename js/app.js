@@ -1993,6 +1993,7 @@ const TEMBEL_MODUL_TABLOSU = {
   // MODUL_ALIAS) — ikisi de aynı sinavlar+denemeSinavlari dinleyicisini kurar.
   yaziliSinavlar:   () => { sinavBaglantilariKur(); },
   denemeSinavlari:  () => { sinavBaglantilariKur(); },
+  yillikPlan:     () => { if(typeof yillikPlanBaglantilariniKur === 'function') yillikPlanBaglantilariniKur(); },
   dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
@@ -2083,6 +2084,7 @@ function sekmeAc(tab){
   // ayrıca tetikliyor; burada da tazelemek ilk açılışı garantiye alır.
   if(tab === 'arama' && typeof globalAramaYap === 'function') globalAramaYap();
   if(tab === 'dersNobetProgramim' && typeof renderDersNobetProgramim === 'function') renderDersNobetProgramim();
+  if(tab === 'yillikPlan' && typeof renderYillikPlanAnaSayfa === 'function') renderYillikPlanAnaSayfa();
   if(tab === 'harita') setTimeout(()=>{
     if(typeof haritaBaslat === 'function') haritaBaslat();
     if(typeof renderHaritaServisler === 'function') renderHaritaServisler();

@@ -95,6 +95,11 @@ const COL = {
   anketler:'oy_anketler',               // {soru, secenekler:[{id,metin}], coklu:bool, aktif:bool, olusturanUid, olusturanAdi, olusturmaTarihi, oylar:{uid:{adlar:[secenekId,...], ad, tarih}}}
   // --- YENİ: Kullanıcı İstatistikleri (v11.0) ---
   kullaniciIstatistikleri:'oy_kullaniciIstatistikleri', // belge ID = uid; {ad, girisSayisi, sonGiris, dosyaYuklemeSayisi, notEklemeSayisi, toplamSureSaniye, sayfaZiyaretleri:{sayfaAdi:sayi}, guncellenmeTarihi}
+  // --- YENİ: Yıllık Plan modülü ---
+  yillikPlanBasliklari:'oy_yillikPlanBasliklari', // {ad, sira} — tüm derslerin ortak kullandığı "ana başlık" havuzu (Tema, Kazanım, Etkinlik vb.)
+  yillikPlanTanimlari:'oy_yillikPlanTanimlari',   // {dersAdi, seviye(1-8), egitimOgretimYili, sutunlar:[baslikId,...], satirlar:[{ay,hafta,tarihBaslangic,tarihBitis,saat,degerler:{baslikId:metin}}]}
+  ogretmenYillikPlanSecimleri:'oy_ogretmenYillikPlanSecimleri', // belge ID = ogretmenId; {ogretmenId, planIdler:[planId,...]}
+  yillikPlanNotlari:'oy_yillikPlanNotlari',       // belge ID = `${ogretmenId}_${planId}`; {ogretmenId, planId, notlar:{haftaIndex:metin}}
 };
 
 let db = null;
