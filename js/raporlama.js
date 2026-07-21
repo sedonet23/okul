@@ -159,7 +159,7 @@ function _raporPenceresiniAc(htmlIcerik, baslik, secenekler) {
     ${logoHtml}
     <div class="rapor-header-text">
       ${ustBaslik
-        ? `<h2 style="font-size:10px;color:#555;font-weight:400;margin-bottom:2px;">${ustBaslik}</h2><h1 style="text-transform:uppercase;">${baslik}</h1>`
+        ? `<h2 style="font-size:15px;color:#333;font-weight:700;margin-bottom:2px;">${ustBaslik}</h2><h1 style="text-transform:uppercase;">${baslik}</h1>`
         : (servisRaporu
           ? `<h1>${baslik}</h1><h2 style="font-size:10px;color:#555;font-weight:400;">${okulAdi}</h2>`
           : `<h1>${baslik}</h1><h2>${okulAdi}</h2><div class="rapor-tarih">Oluşturulma: ${tarih}</div>`)}
@@ -247,7 +247,7 @@ function kulupOgrenciListesiYazdir(kulupId){
       return sa.localeCompare(sb,'tr') || (a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr');
     });
 
-  let html = `<span class="ozet-kutu">Toplam Öğrenci: ${ogrenciler.length}</span>`;
+  let html = '';
 
   if(!ogrenciler.length){
     html += `<p style="color:#888;font-size:11px;padding:8px 0;">Bu kulübe henüz öğrenci atanmadı.</p>`;
@@ -260,11 +260,16 @@ function kulupOgrenciListesiYazdir(kulupId){
     html += `</tbody></table>`;
   }
 
-  // Danışman öğretmen(ler) — listenin altında, imza alanı gibi ortalı bir
-  // blok: ad soyad üstte, altında "Danışman Öğretmen" etiketi.
+  // DÜZELTME: "Toplam Öğrenci" artık listenin üstünde değil, altında.
+  html += `<div style="margin-top:14px;"><span class="ozet-kutu">Toplam Öğrenci: ${ogrenciler.length}</span></div>`;
+
+  // Danışman öğretmen(ler) — listenin altında imza alanı gibi bir blok:
+  // TEK danışman solda; İKİ danışman sayfanın iki ucunda (biri sol, biri
+  // sağ); 3+ danışman ortalanmış şekilde yan yana (makul bir geri düşüş).
   const danismanlar = (Array.isArray(kulup.ogretmenIdler) ? kulup.ogretmenIdler : []).map(_ogretmenAdi).filter(ad=>ad && ad!=='—');
   if(danismanlar.length){
-    html += `<div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;margin-top:36px;">
+    const dizilim = danismanlar.length === 1 ? 'flex-start' : (danismanlar.length === 2 ? 'space-between' : 'center');
+    html += `<div style="display:flex;justify-content:${dizilim};gap:40px;flex-wrap:wrap;margin-top:36px;">
       ${danismanlar.map(ad=>`
         <div style="text-align:center;">
           <div style="font-weight:700;font-size:12px;color:#1a1a1a;">${escapeHtml(ad)}</div>
