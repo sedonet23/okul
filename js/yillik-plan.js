@@ -393,7 +393,7 @@ function _yplImzaBlogu(tanim){
 function yillikPlaniYazdir(planId, genislikOverride, fontOverride){
   const tanim = _yplTanim(planId);
   if (!tanim || typeof _raporPenceresiniAc !== 'function') return;
-  const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
+  const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || tanim.okulAdiManuel || '';
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
   const html = _yplTabloHtml(tanim, false, genislikOverride, fontOverride) + _yplImzaBlogu(tanim);
@@ -451,6 +451,10 @@ function yillikPlanTumunuGoster(planId){
       <label style="display:flex;align-items:center;gap:4px;">İmza Tarihi:
         <input type="date" id="yplImzaTarihiInput" value="${tanim.imzaTarihi || new Date().toISOString().slice(0,10)}" style="font-size:11px;padding:2px 4px;">
       </label>
+      ${(typeof okulBilgileriAyari==='undefined' || !okulBilgileriAyari || !okulBilgileriAyari.okulAdi) ? `
+      <label style="display:flex;align-items:center;gap:4px;">Okul Adı:
+        <input type="text" id="yplOkulAdiInput" value="${escapeHtml(tanim.okulAdiManuel||'')}" placeholder="Yazdırmada görünecek okul adı" style="font-size:11px;padding:2px 4px;width:150px;">
+      </label>` : ''}
     </div>
     <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
       <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;padding-bottom:16px;">
@@ -474,6 +478,14 @@ function yillikPlanTumunuGoster(planId){
       if (t) {
         YillikPlanService.goruntuAyarlariniKaydet(t.id, { imzaTarihi: e.target.value || null })
           .then(()=>toast('İmza tarihi kaydedildi.'))
+          .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
+      }
+    });
+    document.getElementById('yplOkulAdiInput')?.addEventListener('change', (e) => {
+      const t = _yplTanim(planId);
+      if (t) {
+        YillikPlanService.goruntuAyarlariniKaydet(t.id, { okulAdiManuel: e.target.value.trim() || null })
+          .then(()=>toast('Okul adı kaydedildi.'))
           .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
       }
     });
@@ -716,11 +728,50 @@ function yplMenuAc(planId){
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlanTumunuGoster('${planId}')">📖 Tüm Planı Görüntüle</button>
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlanHaftayaGit('${planId}')">🗓 Haftaya Git</button>
+      <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();_yplHaftaIcerikDuzenleAc('${planId}', _yplAcikHaftaIndex)">✏️ Bu Haftayı Düzenle</button>
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yplImzaTarihiSecModalAc('${planId}')">📅 İmza Tarihini Ayarla</button>
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlaniYazdir('${planId}')">🖨 Planı Yazdır</button>
     </div>`;
   modalAc('Seçenekler', body, null, null);
   document.getElementById('modalKaydetBtn').style.display = 'none';
+}
+/* Öğretmenin, TAKİP ETTİĞİ bir planın istediği haftasının içeriğini
+   düzenlemesi — admin'deki hafta satırı editörüyle aynı form, ama
+   goruntuAyarlariniKaydet üzerinden (sadece Görüntüle yetkisi yeterli,
+   satirlar alanı Firestore kuralında bu amaçla ayrıca serbest bırakıldı,
+   bkz. firestore.rules). Kaydedince açık olan haftalık kart tazelenir. */
+function _yplHaftaIcerikDuzenleAc(planId, haftaIndex){
+  const t = _yplTanim(planId);
+  if (!t) return;
+  const satir = (t.satirlar||[])[haftaIndex];
+  if (!satir) { toast('Bu hafta bulunamadı.'); return; }
+  const body = `
+    <div class="form-row">
+      <div class="form-group"><label>Ay</label><input id="f_yplHAy" value="${escapeHtml(satir.ay||'')}" placeholder="örn: EYLÜL"></div>
+      <div class="form-group"><label>Hafta (gün aralığı ile)</label><input id="f_yplHHafta" value="${escapeHtml(satir.hafta||'')}" placeholder="örn: 1.HAFTA(08-14)"></div>
+      <div class="form-group" style="flex:0 0 90px;"><label>Saat</label><input id="f_yplHSaat" value="${escapeHtml(satir.saat||'')}" placeholder="4 SAAT"></div>
+    </div>
+    ${(t.sutunlar||[]).map(sid=>`
+      <div class="form-group"><label>${escapeHtml(_yplBaslikAdi(sid))}</label><textarea id="f_yplH_${sid}" rows="3">${escapeHtml((satir.degerler||{})[sid]||'')}</textarea></div>
+    `).join('')}
+  `;
+  modalAc(`✏️ ${satir.ay||''} — Hafta İçeriğini Düzenle`, body, () => {
+    const yeniSatir = {
+      ay: document.getElementById('f_yplHAy').value.trim(),
+      hafta: document.getElementById('f_yplHHafta').value.trim(),
+      saat: document.getElementById('f_yplHSaat').value.trim(),
+      degerler: {},
+    };
+    (t.sutunlar||[]).forEach(sid => {
+      const val = document.getElementById(`f_yplH_${sid}`).value.trim();
+      if (val) yeniSatir.degerler[sid] = val;
+    });
+    const satirlar = (t.satirlar||[]).slice();
+    satirlar[haftaIndex] = yeniSatir;
+    YillikPlanService.goruntuAyarlariniKaydet(t.id, { satirlar })
+      .then(() => { toast('Kaydedildi.'); modalKapat(); if (typeof _yplHaftaGovdeCiz === 'function') _yplHaftaGovdeCiz(); })
+      .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
+  });
 }
 /* İmza tarihini önizlemeye hiç girmeden, doğrudan Seçenekler menüsünden
    ayarlamak için kısa yol — görüntüleme yetkili öğretmenler de kullanabilir
@@ -898,6 +949,7 @@ function yillikPlanTanimModalAc(id){
       <div class="form-group"><label>Eğitim-Öğretim Yılı</label><input id="f_yplYil" value="${t?escapeHtml(t.egitimOgretimYili||''):'2026-2027'}" placeholder="örn: 2026-2027"></div>
       <div class="form-group" style="flex:0 0 160px;"><label>İmza Tarihi (yazdırmada)</label><input type="date" id="f_yplImzaTarihi" value="${t&&t.imzaTarihi?t.imzaTarihi:new Date().toISOString().slice(0,10)}"></div>
     </div>
+    <div class="form-group"><label>Okul Adı (sistem ayarlarında yoksa yazdırmada bu kullanılır)</label><input id="f_yplOkulAdi" value="${t?escapeHtml(t.okulAdiManuel||''):''}" placeholder="örn: Koruk İlk-Ortaokulu"></div>
     <div class="form-group">
       <label>Bu Ders Hangi Ana Başlıkları Kullansın?</label>
       <div class="ogr-checkbox-liste">
@@ -919,6 +971,7 @@ function yillikPlanTanimModalAc(id){
       seviye: parseInt(document.getElementById('f_yplSeviye').value, 10),
       egitimOgretimYili: document.getElementById('f_yplYil').value.trim(),
       imzaTarihi: document.getElementById('f_yplImzaTarihi').value || null,
+      okulAdiManuel: document.getElementById('f_yplOkulAdi').value.trim() || null,
       sutunlar,
     };
     if (t){
