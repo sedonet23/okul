@@ -716,10 +716,27 @@ function yplMenuAc(planId){
     <div style="display:flex;flex-direction:column;gap:8px;">
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlanTumunuGoster('${planId}')">📖 Tüm Planı Görüntüle</button>
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlanHaftayaGit('${planId}')">🗓 Haftaya Git</button>
+      <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yplImzaTarihiSecModalAc('${planId}')">📅 İmza Tarihini Ayarla</button>
       <button class="btn btn-ghost" style="justify-content:flex-start;" onclick="modalKapat();yillikPlaniYazdir('${planId}')">🖨 Planı Yazdır</button>
     </div>`;
   modalAc('Seçenekler', body, null, null);
   document.getElementById('modalKaydetBtn').style.display = 'none';
+}
+/* İmza tarihini önizlemeye hiç girmeden, doğrudan Seçenekler menüsünden
+   ayarlamak için kısa yol — görüntüleme yetkili öğretmenler de kullanabilir
+   (bkz. YillikPlanService.goruntuAyarlariniKaydet, düzenleme şartı yok). */
+function yplImzaTarihiSecModalAc(planId){
+  const t = _yplTanim(planId);
+  if (!t) return;
+  const body = `<div class="form-group"><label>İmza Tarihi</label><input type="date" id="f_yplImzaTarihiTekil" value="${t.imzaTarihi || new Date().toISOString().slice(0,10)}"></div>
+    <p style="font-size:11px;color:var(--ink-muted);">Yazdırma çıktısındaki "Uygundur" tarihinde kullanılır.</p>`;
+  modalAc('📅 İmza Tarihini Ayarla', body, () => {
+    const tarih = document.getElementById('f_yplImzaTarihiTekil').value || null;
+    YillikPlanService.goruntuAyarlariniKaydet(t.id, { imzaTarihi: tarih })
+      .then(()=>toast('İmza tarihi kaydedildi.'))
+      .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
+    modalKapat();
+  });
 }
 function yillikPlanHaftayaGit(planId){
   const tanim = _yplTanim(planId);

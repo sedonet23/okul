@@ -616,7 +616,7 @@ const _SALT_OKUMA_ISTISNA_DESENLERI = [
   // (bkz. YillikPlanService.secimKaydet: sadece gorebilir('yillikPlan')
   // şart koşuyor, duzenleyebilir değil). /ModalAc\(/ desenine takılıp
   // sadece Görüntüle yetkili öğretmenlerde buton hiç görünmüyordu.
-  /yillikPlanSecimModalAc/,
+  /yillikPlanSecimModalAc/, /yplImzaTarihiSecModalAc/, /yplNotDuzenle\(/,
 ];
 function _saltOkumaYazmaTetikleyicisiMi(oc){
   if(!oc) return false;
