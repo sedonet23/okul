@@ -121,7 +121,7 @@ function _yplSutunGenislikleri(tanim){
   const kayitli = tanim.sutunGenislikleri || {};
   const sutunlar = tanim.sutunlar || [];
   const sonuc = {};
-  const varsayilanSistem = { _ay:8, _hafta:11, _saat:6 };
+  const varsayilanSistem = { _ay:4, _hafta:5, _saat:3.5 };
   YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || varsayilanSistem[k]; });
   const kalan = Math.max(0, 100 - sonuc._ay - sonuc._hafta - sonuc._saat);
   const esitPay = sutunlar.length ? +(kalan / sutunlar.length).toFixed(1) : 0;
@@ -165,16 +165,20 @@ const YPL_TABLO_STIL = `<style>
   }
   .ypl-resize-tutamac:hover, .ypl-resize-tutamac.ypl-surukleniyor{ background:rgba(10,110,110,0.25); }
 </style>`;
+const YPL_VARSAYILAN_FONT_PX = 9.5;
+function _yplFontBoyutu(tanim){ return tanim.fontBoyutuPx || YPL_VARSAYILAN_FONT_PX; }
+
 /* interaktif=true → ekran önizlemesi: sütun sınırlarına sürükle-bırak
    tutamaçları eklenir (bkz. _yplSurüklemeyiBagla). interaktif=false →
    yazdırma çıktısı: aynı colgroup genişlikleri, tutamaç yok. */
-function _yplTabloHtml(tanim, interaktif){
+function _yplTabloHtml(tanim, interaktif, genislikOverride, fontOverride){
   const sutunlar = tanim.sutunlar || [];
-  const genislik = _yplSutunGenislikleri(tanim);
+  const genislik = genislikOverride || _yplSutunGenislikleri(tanim);
+  const fontPx = fontOverride || _yplFontBoyutu(tanim);
   const tumAnahtarlar = YPL_SISTEM_SUTUNLARI.map(([k])=>k).concat(sutunlar);
 
   let html = YPL_TABLO_STIL;
-  html += `<table class="ypl-tablo" id="${interaktif?'yplTabloInteraktif':''}"><colgroup>`;
+  html += `<table class="ypl-tablo" id="${interaktif?'yplTabloInteraktif':''}" style="font-size:${fontPx}px;"><colgroup>`;
   tumAnahtarlar.forEach(k => { html += `<col data-col-key="${k}" style="width:${genislik[k]}%;">`; });
   html += `</colgroup><thead><tr>`;
   YPL_SISTEM_SUTUNLARI.forEach(([k, ad]) => { html += `<th class="ypl-dikey" data-col-key="${k}">${escapeHtml(ad)}</th>`; });
@@ -217,37 +221,55 @@ const YPL_SAYFA_KENAR_PX = 5 * YPL_PX_MM;               // @page margin: 5mm (ü
 const YPL_ILK_SAYFA_BASLIK_PAYI_PX = 70;                 // rapor logosu+başlığı için yaklaşık pay
 
 function _yplSayfaSonlariniCiz(){
+  const tuval = document.getElementById('yplTuval');
   const tablo = document.getElementById('yplTabloInteraktif');
   const katman = document.getElementById('yplSayfaSonuKatmani');
-  if (!tablo || !katman) return;
-  const olcek = (_yplTabanZoom * _yplManuelZoom) || 1; // offsetHeight zoom'a göre ölçekli geliyor, gerçek px'e normalize ediyoruz
+  if (!tuval || !tablo || !katman) return;
   katman.innerHTML = '';
 
+  // GÜVENİLİR ÖLÇÜM: style.zoom uygulanmışken offsetHeight'ın tam ne zaman
+  // hangi ölçekte geldiği tarayıcıya göre değişebiliyor (bir önceki sürümde
+  // buradaki "zoom'a böl" varsayımı YANLIŞ çıktı ve her satırı sayfa sonu
+  // sanıyordu). Bunun yerine zoom'u GEÇİCİ olarak 1'e çekip, layout'u
+  // zorlayıp, GERÇEK (zoom=1) yükseklikleri ölçüp eski zoom'u geri koyuyoruz
+  // — belirsizlik kalmıyor.
+  const oncekiZoom = tuval.style.zoom;
+  tuval.style.zoom = 1;
+  // eslint-disable-next-line no-unused-expressions
+  tuval.offsetHeight; // reflow'u zorla
+
   const thead = tablo.querySelector('thead');
-  const theadYukseklik = thead ? thead.offsetHeight / olcek : 0;
+  const theadYukseklik = thead ? thead.offsetHeight : 0;
   const usableTam = YPL_A4_YATAY_YUKSEKLIK_PX - (YPL_SAYFA_KENAR_PX * 2);
 
   const satirlar = Array.from(tablo.querySelectorAll('tbody tr'));
   let sayfaNo = 1;
   let kalanYukseklik = usableTam - YPL_ILK_SAYFA_BASLIK_PAYI_PX - theadYukseklik;
-  let birikenYGercek = thead ? thead.offsetHeight : 0; // GERÇEK (zoom'lu) — çizginin ekrandaki konumu için
+  let birikenY = theadYukseklik;
+  const kesimler = []; // {top, sayfaNo} — DOM'a zoom geri konduktan SONRA ekleniyor
 
   satirlar.forEach(tr => {
-    const hGercek = tr.offsetHeight;
-    const h = hGercek / olcek;
+    const h = tr.offsetHeight;
     if (h > kalanYukseklik) {
       sayfaNo++;
-      const cizgi = document.createElement('div');
-      cizgi.className = 'ypl-sayfa-sonu';
-      cizgi.style.top = birikenYGercek + 'px';
-      cizgi.innerHTML = `<span>Sayfa ${sayfaNo} →</span>`;
-      katman.appendChild(cizgi);
+      kesimler.push({ top: birikenY, sayfaNo });
       kalanYukseklik = usableTam - theadYukseklik;
     }
     kalanYukseklik -= h;
-    birikenYGercek += hGercek;
+    birikenY += h;
   });
-  katman.style.height = tablo.offsetHeight + 'px';
+  const tabloTamYukseklik = tablo.offsetHeight;
+
+  tuval.style.zoom = oncekiZoom; // gerçek zoom'u geri yükle
+
+  kesimler.forEach(k => {
+    const cizgi = document.createElement('div');
+    cizgi.className = 'ypl-sayfa-sonu';
+    cizgi.style.top = k.top + 'px';
+    cizgi.innerHTML = `<span>Sayfa ${k.sayfaNo} →</span>`;
+    katman.appendChild(cizgi);
+  });
+  katman.style.height = tabloTamYukseklik + 'px';
 }
 
 /* Sürükle-bırak ile sütun genişliği ayarlama — sadece "Tüm Planı Görüntüle"
@@ -289,7 +311,11 @@ function _yplSurüklemeyiBagla(planId){
     if (!tut) return;
     e.preventDefault();
     const i = parseInt(tut.dataset.colIndex, 10);
-    surukleme = { index: i, baslangicX: e.clientX, saricGenislik: sarici.clientWidth, baslangicYuzde: parseFloat(cols[i].style.width) };
+    surukleme = {
+      index: i, baslangicX: e.clientX, saricGenislik: sarici.clientWidth,
+      solBaslangic: parseFloat(cols[i].style.width),
+      sagBaslangic: parseFloat(cols[i+1].style.width),
+    };
     tut.classList.add('ypl-surukleniyor');
     tut.setPointerCapture(e.pointerId);
   });
@@ -297,8 +323,12 @@ function _yplSurüklemeyiBagla(planId){
     if (!surukleme) return;
     const deltaPx = e.clientX - surukleme.baslangicX;
     const deltaYuzde = (deltaPx / surukleme.saricGenislik) * 100;
-    const yeniYuzde = Math.max(3, +(surukleme.baslangicYuzde + deltaYuzde).toFixed(1));
-    cols[surukleme.index].style.width = yeniYuzde + '%';
+    // Soldaki sütun büyürken sağdaki AYNI miktarda küçülür (toplam sabit
+    // kalır) — bu sayede en sağdaki sütun da komşusu üzerinden ayarlanabilir.
+    const sinir = Math.min(surukleme.solBaslangic, surukleme.sagBaslangic) - 3;
+    const sinirliDelta = Math.max(-sinir, Math.min(sinir, deltaYuzde));
+    cols[surukleme.index].style.width = +(surukleme.solBaslangic + sinirliDelta).toFixed(1) + '%';
+    cols[surukleme.index+1].style.width = +(surukleme.sagBaslangic - sinirliDelta).toFixed(1) + '%';
     tutamaclariYerlestir();
   });
   function surüklemeBitir(e){
@@ -356,14 +386,25 @@ function _yplImzaBlogu(){
    istenen 4 alan da burada, _raporPenceresiniAc'ın ustBaslik + ortaliBaslik
    seçenekleriyle birlikte kullanılıyor (raporlama.js'teki kulüp raporuyla
    aynı, halihazırda Android/Türkçe/z-index sorunları çözülmüş boru hattı). */
-function yillikPlaniYazdir(planId){
+function yillikPlaniYazdir(planId, genislikOverride, fontOverride){
   const tanim = _yplTanim(planId);
   if (!tanim || typeof _raporPenceresiniAc !== 'function') return;
   const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'Okul Yönetim Paneli';
   const seviyeMetni = `${tanim.seviye}. Sınıf`;
   const baslik = `${tanim.egitimOgretimYili||''} EĞİTİM ÖĞRETİM YILI — ${(tanim.dersAdi||'').toLocaleUpperCase('tr')} DERSİ — ${seviyeMetni} — ÜNİTELENDİRİLMİŞ YILLIK PLAN`.toLocaleUpperCase('tr');
-  const html = _yplTabloHtml(tanim, false) + _yplImzaBlogu();
+  const html = _yplTabloHtml(tanim, false, genislikOverride, fontOverride) + _yplImzaBlogu();
   _raporPenceresiniAc(html, baslik, { ortaliBaslik:true, ustBaslik: okulAdi, yon: 'yatay' });
+}
+/* Önizlemedeki 🖨 butonu BUNU çağırır — Firestore'a yazılan sütun
+   genişliğinin dinleyici üzerinden geri yansıması birkaç yüz ms sürebilir;
+   kullanıcı sürükleyip HEMEN yazdırırsa eski (stale) genişlik kullanılmasın
+   diye ekranda O AN GÖRÜNEN colgroup değerleri doğrudan okunup basılıyor. */
+function yillikPlaniOnizlemedenYazdir(planId){
+  const tablo = document.getElementById('yplTabloInteraktif');
+  if (!tablo) { yillikPlaniYazdir(planId); return; }
+  const genislik = {};
+  tablo.querySelectorAll('colgroup col').forEach(c => { genislik[c.dataset.colKey] = parseFloat(c.style.width); });
+  yillikPlaniYazdir(planId, genislik, _yplMevcutFontPx);
 }
 
 /* "Tüm Planı Görüntüle" — ekranda kaydırılabilir tam tablo önizlemesi,
@@ -374,6 +415,7 @@ function yillikPlaniYazdir(planId){
    — böylece sütun genişlikleri/dikey başlıklar telefon ekranında da yazdırma
    çıktısıyla BİREBİR aynı görünür (reflow yok). */
 let _yplTabanZoom = 1, _yplManuelZoom = 1;
+let _yplMevcutFontPx = YPL_VARSAYILAN_FONT_PX;
 
 function yillikPlanTumunuGoster(planId){
   const tanim = _yplTanim(planId);
@@ -390,15 +432,18 @@ function yillikPlanTumunuGoster(planId){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--bg-sidebar);color:#fff;">
       <button class="btn btn-ghost btn-sm" onclick="yillikPlanOnizlemeKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="font-weight:700;font-size:12.5px;text-align:center;flex:1;min-width:140px;">${escapeHtml(tanim.dersAdi)} — A4 Yatay Önizleme</div>
-      <div style="display:flex;gap:4px;">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" id="yplFontAzalt" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazıyı küçült (sayfa boşluğunu azaltır)">Aa➖</button>
+        <button class="btn btn-ghost btn-sm" id="yplFontArtir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazıyı büyüt">Aa➕</button>
         <button class="btn btn-ghost btn-sm" id="yplZoomAzalt" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Uzaklaştır">➖</button>
         <button class="btn btn-ghost btn-sm" id="yplZoomSigdir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Ekrana sığdır">🔍 Sığdır</button>
         <button class="btn btn-ghost btn-sm" id="yplZoomArtir" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yakınlaştır">➕</button>
-        <button class="btn btn-ghost btn-sm" onclick="yillikPlaniYazdir('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;">🖨</button>
+        <button class="btn btn-ghost btn-sm" id="yplKaydetBtn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">💾 Kaydet</button>
+        <button class="btn btn-ghost btn-sm" onclick="yillikPlaniOnizlemedenYazdir('${planId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">🖨 Yazdır</button>
       </div>
     </div>
     <div style="font-size:11px;color:var(--ink-muted);text-align:center;padding:4px 10px;background:var(--bg-app);border-bottom:1px solid var(--border);">
-      Bu, A4 yatay sayfada GERÇEKTE nasıl görüneceğinin birebir önizlemesidir. Sütun sınırlarını sürükleyerek genişliği ayarlayın — anında kaydedilir.
+      Bu, A4 yatay sayfada GERÇEKTE nasıl görüneceğinin birebir önizlemesidir. Sütun sınırlarını sürükleyin, yazı boyutunu ayarlayın — değişiklikler anında kaydedilir, "💾 Kaydet" ile emin olabilirsiniz.
     </div>
     <div id="yplTuvalKaydirma" style="flex:1;overflow:auto;background:#dcdfe1;padding:20px;">
       <div id="yplTuval" style="width:${YPL_A4_YATAY_PX}px;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.25);margin:0 auto;position:relative;">
@@ -406,10 +451,13 @@ function yillikPlanTumunuGoster(planId){
       </div>
     </div>
   `;
+  _yplMevcutFontPx = _yplFontBoyutu(tanim);
   requestAnimationFrame(() => {
     _yplZoomBagla();
     _yplSurüklemeyiBagla(planId);
     _yplSayfaSonlariniCiz();
+    _yplFontKontrolleriBagla(planId);
+    document.getElementById('yplKaydetBtn')?.addEventListener('click', () => _yplTumunuKaydet(planId, true));
   });
 }
 function yillikPlanOnizlemeKapat(){
@@ -439,6 +487,38 @@ function _yplZoomBagla(){
   document.getElementById('yplZoomAzalt')?.addEventListener('click', () => { _yplManuelZoom = Math.max(0.3, +(_yplManuelZoom-0.2).toFixed(2)); _yplZoomUygula(); });
   document.getElementById('yplZoomSigdir')?.addEventListener('click', _yplEkraniSigdir);
   _yplEkraniSigdir();
+}
+
+/* Yazı boyutu — sayfa boşluğunu azaltmanın en etkili yolu genellikle budur
+   (satır sayısı aynı kalır ama her satır daha az yer kaplar). Değiştikçe
+   satır yükseklikleri değişir, bu yüzden sayfa sonu çizgileri de yeniden
+   hesaplanıyor. */
+function _yplFontKontrolleriBagla(planId){
+  const uygula = (yeniPx) => {
+    _yplMevcutFontPx = Math.max(6, Math.min(14, +yeniPx.toFixed(1)));
+    const tablo = document.getElementById('yplTabloInteraktif');
+    if (tablo) tablo.style.fontSize = _yplMevcutFontPx + 'px';
+    if (_yplTutamaclariYerlestir) requestAnimationFrame(_yplTutamaclariYerlestir);
+    requestAnimationFrame(_yplSayfaSonlariniCiz);
+  };
+  document.getElementById('yplFontArtir')?.addEventListener('click', () => uygula(_yplMevcutFontPx + 0.5));
+  document.getElementById('yplFontAzalt')?.addEventListener('click', () => uygula(_yplMevcutFontPx - 0.5));
+}
+
+/* Açık "Kaydet" butonu — sürükleyerek/font değiştirerek yapılan ayarlar
+   zaten anında Firestore'a yazılıyor (bkz. sürükleme bitince ve font
+   tuşuna her basışta OTOMATİK kaydetme yok, sadece DOM güncelleniyor —
+   bu fonksiyon o an ekrandaki TÜM ayarları TEK seferde, kullanıcının
+   "kaydedildi" diye net bir onay görmesi için kaydeder). */
+function _yplTumunuKaydet(planId, bildirimGoster){
+  const t = _yplTanim(planId);
+  const tablo = document.getElementById('yplTabloInteraktif');
+  if (!t || !tablo) return;
+  const genislik = {};
+  tablo.querySelectorAll('colgroup col').forEach(c => { genislik[c.dataset.colKey] = parseFloat(c.style.width); });
+  YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: genislik, fontBoyutuPx: _yplMevcutFontPx })
+    .then(() => { if (bildirimGoster) toast('Kaydedildi.'); })
+    .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 
 /* ================================================================
