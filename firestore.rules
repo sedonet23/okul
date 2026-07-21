@@ -34,6 +34,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/oy_kullanicilar/$(request.auth.uid)).data.admin == true;
     }
 
+    // Çağıranın KENDİ öğretmen kaydının ID'si (oy_kullanicilar/{uid}.bagliOgretmenId) —
+    // yıllık plan seçim/not belgeleri Auth UID'i değil bu ID'yi kullanıyor.
+    function kendiOgretmenIdsi() {
+      return kendiBelgemVarMi()
+        ? get(/databases/$(database)/documents/oy_kullanicilar/$(request.auth.uid)).data.bagliOgretmenId
+        : null;
+    }
+
     // ========== VARSAYILAN KURAL ==========
     // Varsayılan: sadece giriş yapmış (ve uygulamada hesabı olan) kullanıcılar
     // okuyup yazabilir.
@@ -76,6 +84,34 @@ service cloud.firestore {
     match /oy_ogrenciler/{ogrenciId} {
       allow read: if girisYapmis();
       allow create, update, delete: if girisYapmis();
+    }
+
+    // ========== YILLIK PLAN ==========
+    // Başlık havuzu + plan tanımları (içerik): herkes okur, sadece admin yazar.
+    match /oy_yillikPlanBasliklari/{id} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
+    match /oy_yillikPlanTanimlari/{id} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
+    // Öğretmenin "hangi planı takip ediyorum" seçimi: belge ID = kendi
+    // ÖĞRETMEN kaydı ID'si (bkz. kendiOgretmenIdsi()) — Auth UID değil.
+    // Herkes okuyabilir (başkasının seçimini görmek zararsız), ama SADECE
+    // kendi belgesini oluşturabilir/güncelleyebilir — silme kapalı (seçim
+    // listesi boşaltılarak güncellenir, belge silinmez).
+    match /oy_ogretmenYillikPlanSecimleri/{ogretmenId} {
+      allow read: if girisYapmis();
+      allow create, update: if girisYapmis() && kendiOgretmenIdsi() == ogretmenId;
+      allow delete: if false;
+    }
+    // Haftalık kişisel notlar: belge ID = `${ogretmenId}_${planId}` — SADECE
+    // kendi öğretmen ID'siyle başlayan belgeyi oluşturabilir/güncelleyebilir.
+    match /oy_yillikPlanNotlari/{docId} {
+      allow read: if girisYapmis();
+      allow create, update: if girisYapmis() && kendiOgretmenIdsi() == docId.split('_')[0];
+      allow delete: if false;
     }
   }
 }
