@@ -111,10 +111,35 @@ function _yplTanim(id){ return yillikPlanTanimlari.find(t=>t.id===id); }
    ORTAK TABLO HTML — hem "Tüm Planı Görüntüle" ekran önizlemesinde
    hem de yazdırma çıktısında AYNI fonksiyon kullanılır (tekrar yok).
    ================================================================ */
+/* Sütun genişlikleri — admin özelleştirmediyse makul varsayılanlar
+   kullanılır (Ay/Hafta/Saat dar, içerik sütunları eşit paylaşır). */
+const YPL_SISTEM_SUTUNLARI = [ ['_ay','Ay'], ['_hafta','Hafta'], ['_saat','Saat'] ];
+function _yplSutunGenislikleri(tanim){
+  const kayitli = tanim.sutunGenislikleri || {};
+  const sutunlar = tanim.sutunlar || [];
+  const sonuc = {};
+  const varsayilanSistem = { _ay:8, _hafta:11, _saat:6 };
+  YPL_SISTEM_SUTUNLARI.forEach(([k]) => { sonuc[k] = kayitli[k] || varsayilanSistem[k]; });
+  const kalan = Math.max(0, 100 - sonuc._ay - sonuc._hafta - sonuc._saat);
+  const esitPay = sutunlar.length ? +(kalan / sutunlar.length).toFixed(1) : 0;
+  sutunlar.forEach(sid => { sonuc[sid] = kayitli[sid] || esitPay; });
+  return sonuc;
+}
+/* Yazdırma ve ekran önizlemesinde ortak tam-kenarlıklı tablo görünümü —
+   raporlama.js'in genel table/th/td kuralları sadece alt-çizgi verdiği
+   için (diğer raporları etkilememesi adına) burada .ypl-tablo ile
+   SINIRLANDIRILMIŞ ayrı bir stil bloğu ekleniyor. */
+const YPL_TABLO_STIL = `<style>
+  .ypl-tablo{ border-collapse:collapse; width:100%; table-layout:fixed; }
+  .ypl-tablo th, .ypl-tablo td{ border:1px solid #999 !important; padding:5px 6px; word-wrap:break-word; }
+  .ypl-tablo thead th{ background:#0A6E6E; color:#fff; }
+</style>`;
 function _yplTabloHtml(tanim){
   const sutunlar = tanim.sutunlar || [];
-  let html = `<table><thead><tr><th>Ay</th><th>Hafta</th><th>Saat</th>`;
-  sutunlar.forEach(sid => { html += `<th>${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
+  const genislik = _yplSutunGenislikleri(tanim);
+  let html = YPL_TABLO_STIL + `<table class="ypl-tablo"><thead><tr>
+    <th style="width:${genislik._ay}%;">Ay</th><th style="width:${genislik._hafta}%;">Hafta</th><th style="width:${genislik._saat}%;">Saat</th>`;
+  sutunlar.forEach(sid => { html += `<th style="width:${genislik[sid]}%;">${escapeHtml(_yplBaslikAdi(sid))}</th>`; });
   html += `</tr></thead><tbody>`;
   (tanim.satirlar||[]).forEach(satir => {
     html += `<tr><td>${escapeHtml(satir.ay||'')}</td><td>${escapeHtml(_yplTarihMetni(satir, tanim.egitimOgretimYili))}</td><td>${escapeHtml(satir.saat||'')}</td>`;
@@ -138,13 +163,21 @@ function _yplImzaBlogu(){
   const mudurAdi = mudur ? `${mudur.ad||''} ${mudur.soyad||''}`.trim() : '';
   const mudurUnvan = (mudur && mudur.unvan) ? mudur.unvan : 'Okul Müdürü';
   if (!benAdi && !mudurAdi) return '';
+  const tarihMetni = new Date().toLocaleDateString('tr-TR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  // Müdür tarafı iki satır daha (tarih + "Uygundur") uzun olduğu için,
+  // öğretmen tarafına aynı yükseklikte GÖRÜNMEZ bir doldurucu ekleniyor —
+  // böylece iki ad-soyad satırı da aynı hizada kalıyor (bkz. referans görsel).
   return `<div style="display:flex;justify-content:space-between;gap:40px;flex-wrap:wrap;margin-top:36px;">
     <div style="text-align:center;">
-      <div style="font-weight:700;font-size:12px;color:#1a1a1a;">${escapeHtml(benAdi||'—')}</div>
+      <div style="visibility:hidden;font-size:10px;">${escapeHtml(tarihMetni)}</div>
+      <div style="visibility:hidden;font-weight:700;font-size:11px;">Uygundur</div>
+      <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-top:2px;">${escapeHtml(benAdi||'—')}</div>
       <div style="font-size:10px;color:#666;margin-top:2px;">${escapeHtml(benBrans||'Öğretmen')}</div>
     </div>
     <div style="text-align:center;">
-      <div style="font-weight:700;font-size:12px;color:#1a1a1a;">${escapeHtml(mudurAdi||'—')}</div>
+      <div style="font-size:10px;color:#1a1a1a;">${escapeHtml(tarihMetni)}</div>
+      <div style="font-weight:700;font-size:11px;color:#1a1a1a;margin-top:4px;">Uygundur</div>
+      <div style="font-weight:700;font-size:12px;color:#1a1a1a;margin-top:2px;">${escapeHtml(mudurAdi||'—')}</div>
       <div style="font-size:10px;color:#666;margin-top:2px;">${escapeHtml(mudurUnvan)}</div>
     </div>
   </div>`;
@@ -521,7 +554,10 @@ function yillikPlanTanimModalAc(id){
       </div>
       <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Sadece işaretlediğiniz başlıklar bu derste gösterilir; veri girilmeyen hafta+başlık kombinasyonu otomatik atlanır.</p>
     </div>
-    ${t ? `<button type="button" class="btn btn-ghost btn-sm" onclick="modalKapat();yillikPlanHaftaSatirlariniDuzenle('${t.id}')">📋 Hafta Satırlarını Düzenle (${(t.satirlar||[]).length})</button>` : ''}
+    ${t ? `<div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="modalKapat();yillikPlanHaftaSatirlariniDuzenle('${t.id}')">📋 Hafta Satırlarını Düzenle (${(t.satirlar||[]).length})</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="modalKapat();yillikPlanSutunGenislikleriAc('${t.id}')">📐 Sütun Genişlikleri</button>
+    </div>` : ''}
   `;
   modalAc(t?'Plan Tanımını Düzenle':'Yeni Plan Tanımı', body, () => {
     const dersAdi = document.getElementById('f_yplDers').value.trim();
@@ -646,6 +682,41 @@ function _yplSatirSil(planId, index){
   YillikPlanService.tanimGuncelle(t.id, { satirlar })
     .then(()=>{ toast('Silindi.'); setTimeout(()=>yillikPlanHaftaSatirlariniDuzenle(planId), 250); })
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+}
+
+/* ================================================================
+   ADMİN — Sütun Genişlikleri (yazdırma/önizleme tablosu için, %)
+   ================================================================ */
+function yillikPlanSutunGenislikleriAc(planId){
+  const t = _yplTanim(planId);
+  if (!t) return;
+  const genislik = _yplSutunGenislikleri(t);
+  const satirlar = YPL_SISTEM_SUTUNLARI.map(([k,ad])=>({k, ad}))
+    .concat((t.sutunlar||[]).map(sid=>({k:sid, ad:_yplBaslikAdi(sid)})));
+  const body = `
+    <p style="font-size:12px;color:var(--ink-muted);margin-bottom:10px;">Her sütun için yüzde (%) genişlik girin — toplamın 100 olması önerilir, şu an <span id="yplGenislikToplam" style="font-weight:700;">${satirlar.reduce((s,r)=>s+genislik[r.k],0).toFixed(1)}</span>.</p>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;">
+      ${satirlar.map(r=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span style="font-size:12.5px;">${escapeHtml(r.ad)}</span>
+          <input type="number" min="1" max="80" step="0.5" class="ypl-genislik-input" data-key="${r.k}" value="${genislik[r.k]}" style="width:70px;" oninput="_yplGenislikToplamGuncelle()">
+        </div>`).join('')}
+    </div>`;
+  modalAc(`📐 ${t.dersAdi} — Sütun Genişlikleri`, body, () => {
+    const yeniGenislik = {};
+    document.querySelectorAll('.ypl-genislik-input').forEach(inp => { yeniGenislik[inp.dataset.key] = parseFloat(inp.value) || 1; });
+    YillikPlanService.tanimGuncelle(t.id, { sutunGenislikleri: yeniGenislik })
+      .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+    modalKapat();
+  });
+}
+function _yplGenislikToplamGuncelle(){
+  const toplamEl = document.getElementById('yplGenislikToplam');
+  if (!toplamEl) return;
+  let toplam = 0;
+  document.querySelectorAll('.ypl-genislik-input').forEach(inp => { toplam += parseFloat(inp.value) || 0; });
+  toplamEl.textContent = toplam.toFixed(1);
+  toplamEl.style.color = Math.abs(toplam-100) > 2 ? '#c0392b' : '';
 }
 
 /* ================================================================
