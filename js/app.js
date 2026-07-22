@@ -2023,7 +2023,7 @@ const TEMBEL_MODUL_TABLOSU = {
   yaziliSinavlar:   () => { sinavBaglantilariKur(); },
   denemeSinavlari:  () => { sinavBaglantilariKur(); },
   // yillikPlan: artık burada değil — koşulsuz olarak baglantilariKur() içinde başlatılıyor (bkz. yukarıdaki not).
-  dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
+  dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); if(typeof akademikTakvimBaglantisiKur === 'function') akademikTakvimBaglantisiKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   },

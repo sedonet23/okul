@@ -635,6 +635,7 @@
     // asılı kalıp hiçbir şey olmamış gibi görünüyordu.
     if(document.getElementById('yplHaftaOverlay') && typeof yillikPlanHaftaKapat === 'function') yillikPlanHaftaKapat();
     if(document.getElementById('yplOnizlemeOverlay') && typeof yillikPlanOnizlemeKapat === 'function') yillikPlanOnizlemeKapat();
+    if(document.getElementById('akademikTakvimOverlay') && typeof akademikTakvimKapat === 'function') akademikTakvimKapat();
   }
 
   const AltNav = {
