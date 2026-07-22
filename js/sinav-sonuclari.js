@@ -14,9 +14,11 @@ function _ssServis(tur){ return tur==='deneme' ? DenemeSonuclariService : TestSo
 function _ssListe(tur){ return tur==='deneme' ? denemeSinavListesi : testSinavListesi; }
 function _ssBaslik(tur){ return tur==='deneme' ? '📊 Deneme Sonuçları' : '📝 Test Sonuçları'; }
 function _ssSinav(tur, id){ return _ssListe(tur).find(s=>s.id===id); }
-function _ssNetHesapla(dogru, yanlis){
+function _ssNetHesapla(dogru, yanlis, yanlisKatsayisi){
   const d = parseFloat(dogru)||0, y = parseFloat(yanlis)||0;
-  return parseFloat((d - y/3).toFixed(3));
+  const k = yanlisKatsayisi===undefined || yanlisKatsayisi===null ? 3 : yanlisKatsayisi;
+  if (!k) return d; // "Yanlış etkisi yok" seçeneği
+  return parseFloat((d - y/k).toFixed(3));
 }
 
 function sinavSonuclariBaglantisiniKur(){
@@ -82,7 +84,17 @@ function _ssListeCiz(){
     </div>`;
   }).join('') : '<p class="empty-state">Henüz sınav eklenmemiş.</p>';
 }
+const SS_YANLIS_KATSAYI_SECENEKLERI = [
+  { deger:0, ad:'Yanlış etkisi yok (Net = Doğru)' },
+  { deger:3, ad:'3 Yanlış 1 Doğruyu Götürür' },
+  { deger:4, ad:'4 Yanlış 1 Doğruyu Götürür' },
+];
+function _ssDersSecimSatiriToggle(cb){
+  const satir = document.getElementById('f_ssSoruSayisi_'+cb.value);
+  if (satir) satir.style.display = cb.checked ? 'flex' : 'none';
+}
 function _ssYeniSinavOlustur(tur){
+  const dersler2 = (typeof dersListesi!=='undefined' ? dersListesi : []).slice().sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
   const body = `
     <div class="form-group"><label>Sınav Adı</label><input id="f_ssAd" placeholder="örn: 1. Deneme Sınavı"></div>
     <div class="form-row">
@@ -91,16 +103,36 @@ function _ssYeniSinavOlustur(tur){
         <select id="f_ssSeviye"><option value="">—</option>${[1,2,3,4,5,6,7,8].map(n=>`<option value="${n}">${n}</option>`).join('')}</select>
       </div>
     </div>
-    <div class="form-group"><label>Ölçülen Dersler (virgülle ayırın)</label><textarea id="f_ssDersler" rows="2" placeholder="Türkçe, Matematik, Fen Bilimleri, İnkılap Tarihi, Din Kültürü, İngilizce"></textarea></div>
+    <div class="form-group"><label>Net Hesabı</label>
+      <select id="f_ssYanlisKatsayi">${SS_YANLIS_KATSAYI_SECENEKLERI.map(o=>`<option value="${o.deger}" ${o.deger===3?'selected':''}>${o.ad}</option>`).join('')}</select>
+    </div>
+    <div class="form-group">
+      <label>Ölçülen Dersler ve Soru Sayıları</label>
+      <div class="ogr-checkbox-liste" style="max-height:40vh;overflow-y:auto;">
+        ${dersler2.map(d=>`
+          <div>
+            <label class="ogr-cb-row"><input type="checkbox" class="ss-ders-cb" value="${escapeHtml(d.ad)}" onchange="_ssDersSecimSatiriToggle(this)"><span>${escapeHtml(d.ad)}</span></label>
+            <div id="f_ssSoruSayisi_${escapeHtml(d.ad)}" style="display:none;align-items:center;gap:6px;padding:2px 0 8px 26px;">
+              <span style="font-size:11.5px;color:var(--ink-muted);">Soru sayısı:</span>
+              <input type="number" min="1" class="ss-soru-sayisi" data-ders="${escapeHtml(d.ad)}" value="20" style="width:64px;">
+            </div>
+          </div>`).join('') || '<p class="empty-state">Önce Ders Listesi\'ne ders ekleyin.</p>'}
+      </div>
+    </div>
   `;
   modalAc(`➕ Yeni ${tur==='deneme'?'Deneme':'Test'}`, body, () => {
     const ad = document.getElementById('f_ssAd').value.trim();
-    const dersler = document.getElementById('f_ssDersler').value.split(',').map(s=>s.trim()).filter(Boolean);
+    const secilenler = Array.from(document.querySelectorAll('.ss-ders-cb:checked'));
     if (!ad){ toast('Sınav adı zorunludur.'); return; }
-    if (!dersler.length){ toast('En az bir ders girmelisiniz.'); return; }
+    if (!secilenler.length){ toast('En az bir ders seçmelisiniz.'); return; }
+    const dersler = secilenler.map(cb => {
+      const soruInp = document.querySelector(`.ss-soru-sayisi[data-ders="${CSS.escape(cb.value)}"]`);
+      return { ad: cb.value, soruSayisi: soruInp ? (parseInt(soruInp.value,10)||1) : 1 };
+    });
     const veri = {
       ad, tarih: document.getElementById('f_ssTarih').value,
       sinifSeviyesi: document.getElementById('f_ssSeviye').value ? parseInt(document.getElementById('f_ssSeviye').value,10) : null,
+      yanlisKatsayisi: parseInt(document.getElementById('f_ssYanlisKatsayi').value,10),
       dersler, sonuclar: [],
       olusturanAdi: (typeof _hesapKimligi==='function' ? (_hesapKimligi().ad||'') : ''),
       olusturmaTarihi: new Date().toISOString(),
@@ -175,15 +207,17 @@ function _ssDetayCiz(){
     govde.innerHTML = '<p class="empty-state">Henüz öğrenci eklenmedi — "Sınıftan Öğrenci Ekle" ile başlayın.</p>';
     return;
   }
+  const katsayiEtiketi = !s.yanlisKatsayisi ? 'Net = Doğru' : `${s.yanlisKatsayisi} Yanlış = 1 Doğru götürür`;
   govde.innerHTML = `
-    <table class="table" style="min-width:${300+dersler.length*140}px;">
+    <p style="font-size:11px;color:var(--ink-muted);margin-bottom:6px;">Net hesabı: ${katsayiEtiketi} · Boş, soru sayısından otomatik hesaplanır.</p>
+    <table class="table" style="min-width:${300+dersler.length*170}px;">
       <thead><tr>
         <th style="position:sticky;left:0;background:var(--bg-app);">Öğrenci</th>
-        ${dersler.map(d=>`<th colspan="2" style="text-align:center;">${escapeHtml(d)}</th>`).join('')}
+        ${dersler.map(d=>`<th colspan="3" style="text-align:center;">${escapeHtml(d.ad)}<br><span style="font-weight:400;font-size:9.5px;">${d.soruSayisi} soru</span></th>`).join('')}
         <th>Toplam Net</th><th></th>
       </tr>
       <tr><th style="position:sticky;left:0;background:var(--bg-app);"></th>
-        ${dersler.map(()=>`<th style="font-size:10px;">D</th><th style="font-size:10px;">Y</th>`).join('')}
+        ${dersler.map(()=>`<th style="font-size:10px;">D</th><th style="font-size:10px;">Y</th><th style="font-size:10px;">Boş</th>`).join('')}
         <th></th><th></th>
       </tr></thead>
       <tbody>
@@ -191,9 +225,10 @@ function _ssDetayCiz(){
           <tr data-ogrenci-id="${o.ogrenciId}">
             <td style="position:sticky;left:0;background:var(--bg-app);font-weight:600;white-space:nowrap;cursor:pointer;color:var(--brand);" onclick="if(typeof ogrenciSinavSonuclariGoster==='function') ogrenciSinavSonuclariGoster('${o.ogrenciId}')">${escapeHtml(o.ogrenciAdi)}</td>
             ${dersler.map(d => {
-              const ds = (o.dersSonuclari||{})[d] || {};
-              return `<td><input type="number" min="0" class="ss-d" data-ders="${escapeHtml(d)}" value="${ds.dogru??''}" style="width:52px;" oninput="_ssSatirNetGuncelle(${ri})"></td>
-                      <td><input type="number" min="0" class="ss-y" data-ders="${escapeHtml(d)}" value="${ds.yanlis??''}" style="width:52px;" oninput="_ssSatirNetGuncelle(${ri})"></td>`;
+              const ds = (o.dersSonuclari||{})[d.ad] || {};
+              return `<td><input type="number" min="0" max="${d.soruSayisi}" class="ss-d" data-ders="${escapeHtml(d.ad)}" data-soru-sayisi="${d.soruSayisi}" value="${ds.dogru??''}" style="width:48px;" oninput="_ssSatirNetGuncelle(${ri})"></td>
+                      <td><input type="number" min="0" max="${d.soruSayisi}" class="ss-y" data-ders="${escapeHtml(d.ad)}" value="${ds.yanlis??''}" style="width:48px;" oninput="_ssSatirNetGuncelle(${ri})"></td>
+                      <td><span class="ss-bos" data-ders="${escapeHtml(d.ad)}" style="color:var(--ink-muted);">${ds.bos ?? d.soruSayisi}</span></td>`;
             }).join('')}
             <td><strong id="ssToplamNet_${ri}">${(o.toplamNet??0).toFixed(2)}</strong></td>
             <td><button class="btn btn-ghost btn-sm" onclick="_ssOgrenciSilOnay(${ri})" style="color:#c0392b;">✕</button></td>
@@ -204,13 +239,19 @@ function _ssDetayCiz(){
   `;
 }
 function _ssSatirNetGuncelle(satirIndex){
+  const s = _ssSinav(_ssAcikTur, _ssAcikSinavId);
   const tr = document.querySelectorAll('#ssDetayGovde tbody tr')[satirIndex];
-  if (!tr) return;
+  if (!s || !tr) return;
   let toplam = 0;
   tr.querySelectorAll('.ss-d').forEach(inp => {
     const ders = inp.dataset.ders;
-    const y = tr.querySelector(`.ss-y[data-ders="${CSS.escape(ders)}"]`);
-    toplam += _ssNetHesapla(inp.value, y ? y.value : 0);
+    const soruSayisi = parseInt(inp.dataset.soruSayisi,10) || 0;
+    const yInp = tr.querySelector(`.ss-y[data-ders="${CSS.escape(ders)}"]`);
+    const bosEl = tr.querySelector(`.ss-bos[data-ders="${CSS.escape(ders)}"]`);
+    const dogru = parseInt(inp.value,10) || 0;
+    const yanlis = yInp ? (parseInt(yInp.value,10) || 0) : 0;
+    if (bosEl) bosEl.textContent = Math.max(0, soruSayisi - dogru - yanlis);
+    toplam += _ssNetHesapla(dogru, yanlis, s.yanlisKatsayisi);
   });
   const el = document.getElementById('ssToplamNet_'+satirIndex);
   if (el) el.textContent = toplam.toFixed(2);
@@ -237,12 +278,13 @@ function _ssSonuclariKaydet(tur, sinavId){
     const dersSonuclari = {};
     let toplamNet = 0;
     dersler.forEach(d => {
-      const dInp = tr.querySelector(`.ss-d[data-ders="${CSS.escape(d)}"]`);
-      const yInp = tr.querySelector(`.ss-y[data-ders="${CSS.escape(d)}"]`);
+      const dInp = tr.querySelector(`.ss-d[data-ders="${CSS.escape(d.ad)}"]`);
+      const yInp = tr.querySelector(`.ss-y[data-ders="${CSS.escape(d.ad)}"]`);
       const dogru = dInp && dInp.value !== '' ? parseInt(dInp.value,10) : 0;
       const yanlis = yInp && yInp.value !== '' ? parseInt(yInp.value,10) : 0;
-      const net = _ssNetHesapla(dogru, yanlis);
-      dersSonuclari[d] = { dogru, yanlis, net };
+      const bos = Math.max(0, d.soruSayisi - dogru - yanlis);
+      const net = _ssNetHesapla(dogru, yanlis, s.yanlisKatsayisi);
+      dersSonuclari[d.ad] = { dogru, yanlis, bos, net };
       toplamNet += net;
     });
     return { ogrenciId, ogrenciAdi: mevcut.ogrenciAdi, sinif: mevcut.sinif, dersSonuclari, toplamNet: +toplamNet.toFixed(2) };
@@ -292,12 +334,12 @@ function _ssExcelSablonIndir(tur, sinavId){
   if (!s) return;
   const dersler = s.dersler||[];
   const basliklar = ['Öğrenci No','Öğrenci Adı Soyadı'];
-  dersler.forEach(d => { basliklar.push(`${d} Doğru`); basliklar.push(`${d} Yanlış`); });
+  dersler.forEach(d => { basliklar.push(`${d.ad} Doğru`); basliklar.push(`${d.ad} Yanlış`); });
   const satirlar = [basliklar];
   (s.sonuclar||[]).forEach(o => {
     const row = [ (typeof veliler!=='undefined' ? (veliler.find(v=>v.id===o.ogrenciId)||{}).ogrenciNo : '') || '', o.ogrenciAdi || '' ];
     dersler.forEach(d => {
-      const ds = (o.dersSonuclari||{})[d] || {};
+      const ds = (o.dersSonuclari||{})[d.ad] || {};
       row.push(ds.dogru ?? ''); row.push(ds.yanlis ?? '');
     });
     satirlar.push(row);
@@ -319,9 +361,9 @@ async function _ssExcelIceAktar(tur, sinavId, file){
     const cNo = header.indexOf(normBaslik('Öğrenci No'));
     const cAd = header.findIndex(h => h.includes(normBaslik('Öğrenci Adı')));
     const dersKolonlari = (s.dersler||[]).map(d => ({
-      ders: d,
-      cD: header.indexOf(normBaslik(`${d} Doğru`)),
-      cY: header.indexOf(normBaslik(`${d} Yanlış`)),
+      ders: d.ad, soruSayisi: d.soruSayisi,
+      cD: header.indexOf(normBaslik(`${d.ad} Doğru`)),
+      cY: header.indexOf(normBaslik(`${d.ad} Yanlış`)),
     }));
 
     const ogrenciler = (typeof veliler!=='undefined' ? veliler : []);
@@ -337,11 +379,12 @@ async function _ssExcelIceAktar(tur, sinavId, file){
       if (!ogrenci){ eslesmeyen++; continue; }
       eslesen++;
       const dersSonuclari = {}; let toplamNet = 0;
-      dersKolonlari.forEach(({ders,cD,cY}) => {
+      dersKolonlari.forEach(({ders,soruSayisi,cD,cY}) => {
         const dogru = cD!==-1 ? parseInt(row[cD],10)||0 : 0;
         const yanlis = cY!==-1 ? parseInt(row[cY],10)||0 : 0;
-        const net = _ssNetHesapla(dogru, yanlis);
-        dersSonuclari[ders] = { dogru, yanlis, net };
+        const bos = Math.max(0, soruSayisi - dogru - yanlis);
+        const net = _ssNetHesapla(dogru, yanlis, s.yanlisKatsayisi);
+        dersSonuclari[ders] = { dogru, yanlis, bos, net };
         toplamNet += net;
       });
       const mevcutIdx = sonuclar.findIndex(o=>o.ogrenciId===ogrenci.id);
@@ -471,12 +514,12 @@ function _ssSinavRaporuYazdir(tur, sinavId){
   const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
   let html = SS_RAPOR_STIL + `<table class="ss-rapor-tablo"><thead><tr>
     <th>Sıra</th><th>Öğrenci</th><th>Sınıf</th>
-    ${dersler.map(d=>`<th>${escapeHtml(d)}<br>Net</th>`).join('')}
+    ${dersler.map(d=>`<th>${escapeHtml(d.ad)}<br>Net</th>`).join('')}
     <th>Toplam Net</th>
   </tr></thead><tbody>`;
   siralı.forEach((o,i) => {
     html += `<tr><td>${i+1}</td><td class="ss-ad">${escapeHtml(o.ogrenciAdi)}</td><td>${escapeHtml(o.sinif||'')}</td>
-      ${dersler.map(d=>`<td>${((o.dersSonuclari||{})[d]||{}).net?.toFixed(2) ?? '—'}</td>`).join('')}
+      ${dersler.map(d=>`<td>${((o.dersSonuclari||{})[d.ad]||{}).net?.toFixed(2) ?? '—'}</td>`).join('')}
       <td style="font-weight:700;">${o.toplamNet.toFixed(2)}</td></tr>`;
   });
   html += `</tbody></table>`;
