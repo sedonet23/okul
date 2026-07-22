@@ -2526,9 +2526,14 @@ const SABLON_TANIMLARI = {
   },
   dersler: {
     baslik: 'DERS LİSTESİ — İçe Aktarma Şablonu',
-    not: 'Kısaltma: çarşaf raporda kullanılır (MAT, TÜR, FEN...)',
-    kolonlar: [{ad:'Ders Adı', gen:25, zon:true}, {ad:'Kısaltma', gen:12}, {ad:'Not', gen:25}],
-    ornek: ['Matematik','MAT','']
+    not: 'Kısaltma: çarşaf raporda kullanılır (MAT, TÜR...). 1-8 sütunları: o sınıf seviyesindeki haftalık ders saati — okutulmuyorsa boş/"-" bırakın. Norm hesabı bu saatleri kullanır.',
+    kolonlar: [
+      {ad:'Ders Adı', gen:22, zon:true}, {ad:'Kısaltma', gen:10},
+      {ad:'1', gen:6}, {ad:'2', gen:6}, {ad:'3', gen:6}, {ad:'4', gen:6},
+      {ad:'5', gen:6}, {ad:'6', gen:6}, {ad:'7', gen:6}, {ad:'8', gen:6},
+      {ad:'Not', gen:25}
+    ],
+    ornek: ['Matematik','MAT','5','5','5','5','5','5','5','5','']
   },
   branslar: {
     baslik: 'BRANŞ LİSTESİ — İçe Aktarma Şablonu',

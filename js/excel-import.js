@@ -600,31 +600,100 @@ async function siniflarExceliIceAktar(file){
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
 
-/* ============== DERS / BRANŞ LİSTESİ (Veri sekmesi) ============== */
+/* ============== DERS / BRANŞ LİSTESİ (Veri sekmesi) ==============
+   Ders adı + kısaltma + (varsa) sınıf seviyesine göre haftalık ders saati
+   sütunlarını (1..8) okur. MEB müfredat tablolarında olduğu gibi başlık
+   satırında "1","2",...,"8" ya da "1.Sınıf" gibi sütunlar varsa bunlar
+   otomatik tanınır ve haftalikSaatler alanına yazılır — bu alan norm
+   hesabında (bkz. ogretmen-detay.js) zaten kullanılıyor, sadece toplu
+   içe aktarma bugüne kadar bu sütunları okumuyordu.
+   Ders zaten listede varsa saatler ÜZERİNE YAZILIR/BİRLEŞTİRİLİR (var olan
+   ama dosyada geçmeyen seviyeler korunur), yoksa yeni kayıt oluşturulur. */
+function _dersSaatHucreCoz(deger){
+  if (deger === null || deger === undefined) return null;
+  if (typeof deger === 'number') return (Number.isFinite(deger) && deger > 0) ? Math.round(deger) : null;
+  const s = String(deger).trim();
+  if (!s || s === '-' || s === '—') return null;
+  const sayilar = s.match(/\d+/g);
+  // "1 veya 2" gibi birden çok sayı içeren belirsiz hücreler elle karar
+  // verilsin diye atlanır (norm hesabını yanlış yönlendirmemek için).
+  if (!sayilar || sayilar.length !== 1) return null;
+  const n = parseInt(sayilar[0], 10);
+  return (n > 0 && n <= 10) ? n : null;
+}
 async function dersListesiExceliIceAktar(file){
   if(!file) return;
+  if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
   try{
     const wb = await workbookOku(file);
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
     if(!aoa){ toast('Sayfa okunamadı.'); return; }
-    const headerIdx = aoa.findIndex(r=>r.some(c=>['DERS','BRANŞ','BRANS','DERS/BRANŞ','AD'].includes(normBaslik(c))));
-    const cAd = headerIdx!==-1 ? aoa[headerIdx].map(normBaslik).findIndex(h=>['DERS','BRANŞ','BRANS','DERS/BRANŞ','AD'].includes(h)) : 0;
+    const AD_BASLIKLARI = ['DERS','BRANŞ','BRANS','DERS/BRANŞ','DERS ADI','AD'];
+    const headerIdx = aoa.findIndex(r=>r.some(c=>AD_BASLIKLARI.includes(normBaslik(c))));
+    const header = headerIdx!==-1 ? aoa[headerIdx].map(normBaslik) : [];
+    const cAd = headerIdx!==-1 ? header.findIndex(h=>AD_BASLIKLARI.includes(h)) : 0;
+    const cKisaltma = headerIdx!==-1 ? header.findIndex(h=>['KISALTMA','KISALTMASI'].includes(h)) : -1;
     const baslangic = headerIdx!==-1 ? headerIdx+1 : 0;
 
-    let eklenen=0, atlanan=0;
+    // Sınıf seviyesi (1-8) sütunlarını başlıktan bul: "5", "5 SINIF", "5.Sınıf" vb.
+    const seviyeKolonlari = {};
+    header.forEach((h, i) => {
+      const m = h.match(/^(\d)\s*(SINIFI?)?$/);
+      if (m) { const sv = parseInt(m[1], 10); if (sv >= 1 && sv <= 8) seviyeKolonlari[sv] = i; }
+    });
+    const seviyeVarMi = Object.keys(seviyeKolonlari).length > 0;
+
+    let eklenen=0, guncellenen=0, atlanan=0, belirsiz=0;
     for(let i=baslangic;i<aoa.length;i++){
       const row = aoa[i]; if(!row) continue;
       const ad = String(row[cAd]||'').trim();
       if(!ad) continue;
-      if(dersListesi.some(d=>(d.ad||'').localeCompare(ad,'tr',{sensitivity:'base'})===0)){ atlanan++; continue; }
-      const kisaltmaHam = (cAd < header.length - 1) ? String(aoa[i][cAd+1]||'').trim().toUpperCase() : '';
-      const veriObj = { ad };
-      if (kisaltmaHam) veriObj.kisaltma = kisaltmaHam;
-      await db.collection(COL.dersListesi).add(veriObj);
-      dersListesi.push({ ad }); // aynı dosyada tekrar geçen aynı isim ikinci kez eklenmesin
-      eklenen++;
+
+      let saatler = null;
+      if (seviyeVarMi) {
+        saatler = {};
+        Object.entries(seviyeKolonlari).forEach(([sv, ci]) => {
+          const hamDeger = row[ci];
+          const cozulmus = _dersSaatHucreCoz(hamDeger);
+          if (cozulmus !== null) saatler[sv] = cozulmus;
+          else if (hamDeger !== null && hamDeger !== undefined && String(hamDeger).trim() && !['-','—'].includes(String(hamDeger).trim())) belirsiz++;
+        });
+        if (!Object.keys(saatler).length) saatler = null;
+      }
+
+      // Kısaltma: açık bir "Kısaltma" sütunu varsa onu kullan; sütun yoksa ve
+      // seviye sütunları da yoksa (eski, iki kolonlu basit şablon) ders adının
+      // yanındaki sütuna bak. Seviye sütunları varken bu geri-uyumluluğu
+      // uygulamıyoruz — yoksa 1. sınıf saatini kısaltma sanabilir.
+      let kisaltma = '';
+      if (cKisaltma !== -1) kisaltma = String(row[cKisaltma]||'').trim().toUpperCase();
+      else if (!seviyeVarMi && cAd + 1 < row.length) kisaltma = String(row[cAd+1]||'').trim().toUpperCase();
+
+      const mevcut = dersListesi.find(d=>(d.ad||'').localeCompare(ad,'tr',{sensitivity:'base'})===0);
+      if (mevcut) {
+        const guncelVeri = {};
+        if (kisaltma && kisaltma !== (mevcut.kisaltma||'')) guncelVeri.kisaltma = kisaltma;
+        if (saatler) {
+          const birlesikSaatler = { ...(mevcut.haftalikSaatler||{}), ...saatler };
+          if (JSON.stringify(birlesikSaatler) !== JSON.stringify(mevcut.haftalikSaatler||{})) guncelVeri.haftalikSaatler = birlesikSaatler;
+        }
+        if (Object.keys(guncelVeri).length) {
+          await db.collection(COL.dersListesi).doc(mevcut.id).update(guncelVeri);
+          Object.assign(mevcut, guncelVeri); // aynı dosyada aynı ders tekrar geçerse güncel veriyle kıyaslansın
+          guncellenen++;
+        } else atlanan++;
+      } else {
+        const veriObj = { ad };
+        if (kisaltma) veriObj.kisaltma = kisaltma;
+        if (saatler) veriObj.haftalikSaatler = saatler;
+        const ref = await db.collection(COL.dersListesi).add(veriObj);
+        dersListesi.push({ id: ref.id, ...veriObj }); // aynı dosyada tekrar geçen aynı isim ikinci kez eklenmesin
+        eklenen++;
+      }
     }
-    toast(`Ders/Branş listesi güncellendi: ${eklenen} eklendi, ${atlanan} zaten listede olduğu için atlandı.`);
+    let mesaj = `Ders/Branş listesi güncellendi: ${eklenen} eklendi, ${guncellenen} güncellendi, ${atlanan} değişiklik yok.`;
+    if (belirsiz) mesaj += ` ${belirsiz} hücrede birden fazla sayı bulundu (ör. "1 veya 2") — bunlar atlandı, elle girin.`;
+    toast(mesaj);
   }catch(err){ console.error(err); toast('İçe aktarma hatası: '+err.message); }
 }
 
