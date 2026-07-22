@@ -2090,6 +2090,7 @@ function baglantilariKur(){
   // koşulsuz başlamalı yoksa yükleme başarılı olsa bile ekran hiç
   // güncellenmez (gözlemlenen hata).
   if(typeof akademikTakvimBaglantisiKur === 'function') akademikTakvimBaglantisiKur();
+  if(typeof kontrolListeleriBaglantisiniKur === 'function') kontrolListeleriBaglantisiniKur();
 
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:

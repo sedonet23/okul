@@ -125,6 +125,7 @@
       {ad:'Mevzuat', ikon:'mevzuat', modul:'mevzuat', aksiyon:git('mevzuat')},
       {ad:'Aylık İşler', ikon:'saat', modul:'periyodikIsler', aksiyon:git('periyodikIsler')},
       {ad:'Akademik Takvim', ikon:'takvim', modul:'akademikTakvim', aksiyon:function(){ if(typeof akademikTakvimAc==='function') akademikTakvimAc(); }},
+      {ad:'Kontrol Listeleri', ikon:'liste', modul:'kontrolListeleri', aksiyon:function(){ if(typeof kontrolListeleriAc==='function') kontrolListeleriAc(); }},
     ], altGrup:{ ad:'Raporlar', ikon:'rapor', ogeler:[
       {ad:'Maarif Model', ikon:'odul', modul:'maarifRapor', aksiyon:git('maarifRapor')},
       {ad:'Belirli Gün ve Haftalar', ikon:'takvim', modul:'belirliGunler', aksiyon:git('belirliGunler')},
@@ -637,6 +638,8 @@
     if(document.getElementById('yplHaftaOverlay') && typeof yillikPlanHaftaKapat === 'function') yillikPlanHaftaKapat();
     if(document.getElementById('yplOnizlemeOverlay') && typeof yillikPlanOnizlemeKapat === 'function') yillikPlanOnizlemeKapat();
     if(document.getElementById('akademikTakvimOverlay') && typeof akademikTakvimKapat === 'function') akademikTakvimKapat();
+    if(document.getElementById('kontrolListeleriOverlay') && typeof kontrolListeleriKapat === 'function') kontrolListeleriKapat();
+    if(document.getElementById('klDetayOverlay') && typeof _klDetayKapat === 'function') _klDetayKapat(false);
   }
 
   const AltNav = {
