@@ -616,18 +616,12 @@ function ogrDetayAc(sonucId) {
     // Resim (doğru/yanlış baloncuk renklendirmeli)
     ogrDetayResimCiz(sonuc);
 
-    // YENİ: teşhis uyarılarını göster (varsa) — köşe tutarlılık artıkları,
-    // dışlanan köşe uyarısı vb. Eski kayıtlarda (bu güncellemeden önce
-    // taranmış) sonuc.uyarilar alanı yok, o durumda kutu gizli kalır.
+    // Teşhis uyarıları kutusu artık kullanıcıya gösterilmiyor (sadece iç
+    // teşhis amaçlıydı) — sonuc.uyarilar verisi hâlâ kaydediliyor, sadece
+    // ekranda gizli tutuluyor.
     const uyariKutusu = document.getElementById('ogrDetayUyarilar');
-    if (uyariKutusu) {
-        if (Array.isArray(sonuc.uyarilar) && sonuc.uyarilar.length) {
-            uyariKutusu.textContent = sonuc.uyarilar.join('\n');
-            uyariKutusu.style.display = 'block';
-        } else {
-            uyariKutusu.style.display = 'none';
-        }
-    }
+    if (uyariKutusu) uyariKutusu.style.display = 'none';
+
 
     // Ders listesi
     _ogrDetayDersler = formDersleriniGetir(_aktifSinavId);
@@ -764,6 +758,14 @@ function ogrDetayResimBuyutAc(kaynakUrl) {
     let surukleniyor = false, panBaslX = 0, panBaslY = 0;
     let pinchBaslangic = 0, zoomBaslangic = 1;
     const govdeEl = ov.querySelector('#orbGovde');
+    // DÜZELTME: pinch bitip iki parmak art arda kalkınca (her biri kendi
+    // touchend'ini "changedTouches.length===1" ile tetikler) bu YANLIŞLIKLA
+    // çift-dokunuş sanılıp zoom sıfırlanıyordu (yakınlaştırıp bırakınca eski
+    // haline dönme hatası). Artık çift-dokunuş SADECE tüm temas süresince
+    // tek parmak kalmış VE neredeyse hiç hareket etmemiş gerçek bir
+    // dokunuşta değerlendiriliyor.
+    let dokunmaBirDegdi = false, dokunmaBasX = 0, dokunmaBasY = 0, coklu = false;
+    let sonDokunma = 0;
 
     function mesafe(t1, t2) {
         const dx = t1.clientX - t2.clientX, dy = t1.clientY - t2.clientY;
@@ -772,42 +774,55 @@ function ogrDetayResimBuyutAc(kaynakUrl) {
 
     govdeEl.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
+            coklu = true;
             pinchBaslangic = mesafe(e.touches[0], e.touches[1]);
             zoomBaslangic = zoom;
             surukleniyor = false;
-        } else if (e.touches.length === 1 && zoom > 1.02) {
-            surukleniyor = true;
-            baslangicX = e.touches[0].clientX;
-            baslangicY = e.touches[0].clientY;
-            panBaslX = panX; panBaslY = panY;
+        } else if (e.touches.length === 1) {
+            coklu = false;
+            dokunmaBirDegdi = true;
+            dokunmaBasX = e.touches[0].clientX; dokunmaBasY = e.touches[0].clientY;
+            if (zoom > 1.02) {
+                surukleniyor = true;
+                baslangicX = e.touches[0].clientX;
+                baslangicY = e.touches[0].clientY;
+                panBaslX = panX; panBaslY = panY;
+            }
         }
     }, { passive: true });
 
     govdeEl.addEventListener('touchmove', (e) => {
         if (e.touches.length === 2) {
             const m = mesafe(e.touches[0], e.touches[1]);
+            // Pinch bittiğinde otomatik sıfırlama YOK — kullanıcı elini
+            // çekene kadar yakınlaşmış halde kalır.
             zoom = Math.min(4, Math.max(1, zoomBaslangic * (m / pinchBaslangic)));
-            if (zoom <= 1.02) { panX = 0; panY = 0; }
             transformUygula();
-        } else if (e.touches.length === 1 && surukleniyor) {
-            panX = panBaslX + (e.touches[0].clientX - baslangicX);
-            panY = panBaslY + (e.touches[0].clientY - baslangicY);
-            transformUygula();
+        } else if (e.touches.length === 1) {
+            if (Math.abs(e.touches[0].clientX-dokunmaBasX) > 10 || Math.abs(e.touches[0].clientY-dokunmaBasY) > 10) dokunmaBirDegdi = false;
+            if (surukleniyor) {
+                panX = panBaslX + (e.touches[0].clientX - baslangicX);
+                panY = panBaslY + (e.touches[0].clientY - baslangicY);
+                transformUygula();
+            }
         }
     }, { passive: true });
 
-    govdeEl.addEventListener('touchend', () => { surukleniyor = false; });
-
-    // Çift dokunma: yakınlaştır/eski haline döndür.
-    let sonDokunma = 0;
     govdeEl.addEventListener('touchend', (e) => {
-        const simdi = Date.now();
-        if (simdi - sonDokunma < 300 && e.changedTouches.length === 1) {
-            zoom = zoom > 1.02 ? 1 : 2.2;
-            panX = 0; panY = 0;
-            transformUygula();
+        surukleniyor = false;
+        if (e.touches.length > 0) return; // hâlâ parmak varsa (pinch'ten tek parmağa geçiş), değerlendirme sonraya
+        if (dokunmaBirDegdi && !coklu) {
+            const simdi = Date.now();
+            if (simdi - sonDokunma < 300) {
+                zoom = zoom > 1.02 ? 1 : 2.2;
+                panX = 0; panY = 0;
+                transformUygula();
+                sonDokunma = 0;
+            } else {
+                sonDokunma = simdi;
+            }
         }
-        sonDokunma = simdi;
+        coklu = false;
     });
 }
 
