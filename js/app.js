@@ -2028,14 +2028,8 @@ const TEMBEL_MODUL_TABLOSU = {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   },
   ayarlar: () => {
-    db.collection(COL.dersListesi).onSnapshot(s=>{
-      dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
-      renderDersListesiYonetim();
-    }, hataGoster);
-    db.collection(COL.bransListesi).onSnapshot(s=>{
-      bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
-      renderBransListesiYonetim();
-    }, hataGoster);
+    // dersListesi/bransListesi dinleyicileri artık burada değil — yukarıdaki
+    // DÜZELTME notuna bkz. — koşulsuz olarak baglantilariKur() içinde başlıyor.
     if(typeof renderOptikAyarlari === 'function') renderOptikAyarlari();
   },
 };
@@ -2051,6 +2045,20 @@ function baglantilariKur(){
   baglantilarKuruldu = true;
   db.collection(COL.ogretmenler).onSnapshot(s=>{ ogretmenler = s.docs.map(d=>({id:d.id,...d.data()})); renderOgretmenler(); renderDersGrid(); renderDashboard(); renderOkulBilgileriSayfasi(); if(typeof aktifKullaniciyiGuncelle==='function') aktifKullaniciyiGuncelle(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); _ilkAcilistaKullaniciSor(); if(typeof renderBugunIzinliOgretmenler==='function') renderBugunIzinliOgretmenler(); if(typeof sidebarHesapGuncelle==='function' && typeof auth!=='undefined' && auth && auth.currentUser) sidebarHesapGuncelle(auth.currentUser); }, hataGoster);
   db.collection(COL.dersProgrami).onSnapshot(s=>{ dersProgrami = s.docs.map(d=>({id:d.id,...d.data()})); renderDersGrid(); renderDashboard(); if(detaySinifId){ const sn=siniflar.find(x=>x.id===detaySinifId); if(sn) sinifDetayDersRender(sn); } if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500); if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500); }, hataGoster);
+  // DÜZELTME: dersListesi/bransListesi eskiden yalnızca Ayarlar sekmesi ilk
+  // açıldığında (tembel modül) yükleniyordu. Ama Ders Programı (ders ekle
+  // açılır listesi), Sınav İşlemleri, Kriter Dağıtım, Raporlama ve Öğretmen
+  // Detay (norm hesabı) da bu listeye ihtiyaç duyuyor — Ayarlar sekmesi hiç
+  // açılmadan da çalışmalı. Aynı gerekçeyle personelIzin/sosyalKulupler/
+  // yillikPlan için yapıldığı gibi burada koşulsuz başlatılıyor.
+  db.collection(COL.dersListesi).onSnapshot(s=>{
+    dersListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+    renderDersListesiYonetim();
+  }, hataGoster);
+  db.collection(COL.bransListesi).onSnapshot(s=>{
+    bransListesi = s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+    renderBransListesiYonetim();
+  }, hataGoster);
   sinifBaglantilariKur();
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
