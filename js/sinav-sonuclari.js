@@ -48,7 +48,10 @@ function sinavSonuclariAc(tur){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-sidebar);color:var(--ink-on-dark);position:sticky;top:0;z-index:2;">
       <button class="btn btn-ghost btn-sm" onclick="sinavSonuclariKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="font-weight:700;font-size:14px;">${_ssBaslik(tur)}</div>
-      <button class="btn btn-ghost btn-sm" onclick="_ssYeniSinavOlustur('${tur}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">➕ Yeni</button>
+      <div style="display:flex;gap:6px;">
+        ${tur==='deneme' ? `<button class="btn btn-ghost btn-sm" onclick="_ssSinifRaporuModalAc()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Sınıf bazlı tüm deneme raporu">🖨 Sınıf Raporu</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="_ssYeniSinavOlustur('${tur}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">➕ Yeni</button>
+      </div>
     </div>
     <div id="ssListeGovde" style="padding:16px 16px 90px;"></div>
   `;
@@ -142,6 +145,7 @@ function _ssDetayAc(tur, sinavId){
     </div>
     <div style="padding:12px 16px 4px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="_ssSinifOgrencileriEkleModalAc('${tur}','${sinavId}')">➕ Sınıftan Öğrenci Ekle</button>
+      <button class="btn btn-ghost btn-sm" onclick="_ssSinavRaporuYazdir('${tur}','${sinavId}')">🖨 Sonuç Raporu</button>
       <button class="btn btn-ghost btn-sm" onclick="_ssExcelSablonIndir('${tur}','${sinavId}')">📥 Excel Şablonu İndir</button>
       <input type="file" id="ssExcelInput" accept=".xlsx,.xls" style="display:none;" onchange="_ssExcelIceAktar('${tur}','${sinavId}', this.files[0]); this.value='';">
       <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ssExcelInput').click()">📤 Excel'den İçe Aktar</button>
@@ -185,7 +189,7 @@ function _ssDetayCiz(){
       <tbody>
         ${sonuclar.map((o,ri) => `
           <tr data-ogrenci-id="${o.ogrenciId}">
-            <td style="position:sticky;left:0;background:var(--bg-app);font-weight:600;white-space:nowrap;">${escapeHtml(o.ogrenciAdi)}</td>
+            <td style="position:sticky;left:0;background:var(--bg-app);font-weight:600;white-space:nowrap;cursor:pointer;color:var(--brand);" onclick="if(typeof ogrenciSinavSonuclariGoster==='function') ogrenciSinavSonuclariGoster('${o.ogrenciId}')">${escapeHtml(o.ogrenciAdi)}</td>
             ${dersler.map(d => {
               const ds = (o.dersSonuclari||{})[d] || {};
               return `<td><input type="number" min="0" class="ss-d" data-ders="${escapeHtml(d)}" value="${ds.dogru??''}" style="width:52px;" oninput="_ssSatirNetGuncelle(${ri})"></td>
@@ -373,7 +377,7 @@ function ogrenciSinavSonuclariGoster(ogrenciId){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-sidebar);color:var(--ink-on-dark);position:sticky;top:0;z-index:2;">
       <button class="btn btn-ghost btn-sm" onclick="_ssOgrenciSonucKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Kapat</button>
       <div style="font-weight:700;font-size:13px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📊 ${escapeHtml(ogrenci.ogrenciAdi)}</div>
-      <div style="width:70px;"></div>
+      <button class="btn btn-ghost btn-sm" onclick="_ssOgrenciRaporuYazdir('${ogrenciId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;">🖨</button>
     </div>
     <div style="padding:16px 16px 90px;">
       <div class="card" style="margin-bottom:14px;"><canvas id="ssOgrenciGrafikCanvas" height="180"></canvas></div>
@@ -445,4 +449,115 @@ function _ssOgrenciSonuclariCiz(ogrenciId){
       plugins: { legend:{ position:'bottom' } },
     },
   });
+}
+
+/* ================================================================
+   RAPORLAR — üçü de mevcut _raporPenceresiniAc boru hattını kullanır
+   (okul logosu/başlığı, Android yazdırma vb. zaten çözülmüş).
+   ================================================================ */
+const SS_RAPOR_STIL = `<style>
+  .ss-rapor-tablo{ border-collapse:collapse; width:100%; }
+  .ss-rapor-tablo th, .ss-rapor-tablo td{ border:1px solid #999; padding:4px 6px; font-size:10.5px; text-align:center; }
+  .ss-rapor-tablo thead th{ background:#0A6E6E; color:#fff; }
+  .ss-rapor-tablo td.ss-ad{ text-align:left; font-weight:600; }
+</style>`;
+
+/* ---- 1) Bir sınavın tüm öğrenci sonuçları (sıralı) ---- */
+function _ssSinavRaporuYazdir(tur, sinavId){
+  const s = _ssSinav(tur, sinavId);
+  if (!s || typeof _raporPenceresiniAc !== 'function') return;
+  const dersler = s.dersler||[];
+  const siralı = (s.sonuclar||[]).slice().sort((a,b)=>b.toplamNet-a.toplamNet);
+  const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
+  let html = SS_RAPOR_STIL + `<table class="ss-rapor-tablo"><thead><tr>
+    <th>Sıra</th><th>Öğrenci</th><th>Sınıf</th>
+    ${dersler.map(d=>`<th>${escapeHtml(d)}<br>Net</th>`).join('')}
+    <th>Toplam Net</th>
+  </tr></thead><tbody>`;
+  siralı.forEach((o,i) => {
+    html += `<tr><td>${i+1}</td><td class="ss-ad">${escapeHtml(o.ogrenciAdi)}</td><td>${escapeHtml(o.sinif||'')}</td>
+      ${dersler.map(d=>`<td>${((o.dersSonuclari||{})[d]||{}).net?.toFixed(2) ?? '—'}</td>`).join('')}
+      <td style="font-weight:700;">${o.toplamNet.toFixed(2)}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  _raporPenceresiniAc(html, `${s.ad} — Sonuç Raporu`.toLocaleUpperCase('tr'), { ortaliBaslik:true, ustBaslik: okulAdi, yon:'yatay' });
+}
+
+/* ---- 2) Bir öğrencinin tüm deneme+test geçmişi ---- */
+function _ssOgrenciRaporuYazdir(ogrenciId){
+  const ogrenci = (typeof veliler!=='undefined' ? veliler : []).find(v=>v.id===ogrenciId);
+  if (!ogrenci || typeof _raporPenceresiniAc !== 'function') return;
+  const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
+  const tumKayitlar = [
+    ...denemeSinavListesi.map(s=>({s, tur:'Deneme'})),
+    ...testSinavListesi.map(s=>({s, tur:'Test'})),
+  ].map(({s,tur}) => ({ s, tur, sonuc:(s.sonuclar||[]).find(o=>o.ogrenciId===ogrenciId) }))
+   .filter(x=>x.sonuc)
+   .sort((a,b)=>(a.s.tarih||'').localeCompare(b.s.tarih||''));
+
+  let html = SS_RAPOR_STIL + `<table class="ss-rapor-tablo"><thead><tr>
+    <th>Tarih</th><th>Tür</th><th>Sınav Adı</th><th>Ders Netleri</th><th>Toplam Net</th>
+  </tr></thead><tbody>`;
+  tumKayitlar.forEach(({s,tur,sonuc}) => {
+    const dersMetni = Object.keys(sonuc.dersSonuclari||{}).map(d=>`${d}: ${sonuc.dersSonuclari[d].net.toFixed(1)}`).join(' · ');
+    html += `<tr><td>${escapeHtml(s.tarih||'')}</td><td>${tur}</td><td class="ss-ad">${escapeHtml(s.ad)}</td><td style="text-align:left;font-size:9.5px;">${escapeHtml(dersMetni)}</td><td style="font-weight:700;">${sonuc.toplamNet.toFixed(2)}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  _raporPenceresiniAc(html, `${ogrenci.ogrenciAdi} — Sınav Sonuçları Raporu`.toLocaleUpperCase('tr'), { ortaliBaslik:true, ustBaslik: okulAdi, yon:'yatay' });
+}
+
+/* ---- 3) Sınıf bazlı TÜM deneme sonuçları (net + basitleştirilmiş puan) ----
+   Puan: gerçek LGS puanı değil — her SINAVIN KENDİ katılımcılarından
+   hesaplanan ortalama/std sapmaya göre T-skoru (50 ortalama, 10 sapma).
+   LgsPuanHesapla.standartPuanHesapla ile aynı, optik sistemle tutarlı. */
+function _ssSinifRaporuModalAc(){
+  const siniflarListesi = (typeof siniflar!=='undefined' ? siniflar : []).slice().sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr'));
+  const body = `
+    <div style="display:flex;flex-direction:column;gap:2px;max-height:55vh;overflow-y:auto;">
+      ${siniflarListesi.map(sn=>`
+        <button class="btn btn-ghost btn-sm" style="justify-content:space-between;text-align:left;" onclick="modalKapat();_ssSinifRaporuYazdir('${sn.id}')">
+          <span>${escapeHtml(sn.ad)}</span><span>›</span>
+        </button>`).join('') || '<p class="empty-state">Sınıf bulunamadı.</p>'}
+    </div>`;
+  modalAc('Sınıf Seçin — Tüm Deneme Raporu', body, null, null);
+  document.getElementById('modalKaydetBtn').style.display = 'none';
+}
+function _ssSinifRaporuYazdir(sinifId){
+  const sn = (typeof siniflar!=='undefined' ? siniflar : []).find(x=>x.id===sinifId);
+  if (!sn || typeof _raporPenceresiniAc !== 'function') return;
+  const sinifOgrencileri = (typeof veliler!=='undefined' ? veliler : []).filter(v=>v.sinifId===sinifId);
+  // Bu sınıftan en az bir öğrencinin katıldığı denemeler, tarihe göre
+  const denemeler = denemeSinavListesi
+    .filter(s => (s.sonuclar||[]).some(o => sinifOgrencileri.some(og=>og.id===o.ogrenciId)))
+    .sort((a,b)=>(a.tarih||'').localeCompare(b.tarih||''));
+  if (!denemeler.length){ toast('Bu sınıfa ait deneme sonucu bulunamadı.'); return; }
+
+  // Her deneme için (TÜM katılımcılarından, sadece bu sınıftan değil) ortalama/std sapma
+  const istatistik = {};
+  denemeler.forEach(s => {
+    const netler = (s.sonuclar||[]).map(o=>o.toplamNet);
+    const ort = LgsPuanHesapla.ortalamaHesapla(netler);
+    const sapma = LgsPuanHesapla.stdSapmaHesapla(netler, ort);
+    istatistik[s.id] = { ort, sapma };
+  });
+
+  const okulAdi = (typeof okulBilgileriAyari!=='undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi) || '';
+  let html = SS_RAPOR_STIL + `<table class="ss-rapor-tablo"><thead><tr>
+    <th rowspan="2">Öğrenci</th>
+    ${denemeler.map(s=>`<th colspan="2">${escapeHtml(s.ad)}<br><span style="font-weight:400;font-size:9px;">${escapeHtml(s.tarih||'')}</span></th>`).join('')}
+  </tr><tr>${denemeler.map(()=>`<th style="font-size:9px;">Net</th><th style="font-size:9px;">Puan*</th>`).join('')}</tr></thead><tbody>`;
+  sinifOgrencileri.slice().sort((a,b)=>(a.ogrenciAdi||'').localeCompare(b.ogrenciAdi||'','tr')).forEach(og => {
+    html += `<tr><td class="ss-ad">${escapeHtml(og.ogrenciAdi)}</td>`;
+    denemeler.forEach(s => {
+      const sonuc = (s.sonuclar||[]).find(o=>o.ogrenciId===og.id);
+      if (!sonuc){ html += `<td>—</td><td>—</td>`; return; }
+      const { ort, sapma } = istatistik[s.id];
+      const puan = LgsPuanHesapla.standartPuanHesapla(sonuc.toplamNet, ort, sapma);
+      html += `<td>${sonuc.toplamNet.toFixed(2)}</td><td>${puan.toFixed(1)}</td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>
+    <p style="font-size:9px;color:#666;margin-top:6px;">* Puan, gerçek LGS puanı değildir — bu sınavın kendi katılımcılarına göre hesaplanan basitleştirilmiş standart puandır (ortalama 50, standart sapma 10).</p>`;
+  _raporPenceresiniAc(html, `${sn.ad} — Tüm Deneme Sonuçları`.toLocaleUpperCase('tr'), { ortaliBaslik:true, ustBaslik: okulAdi, yon:'yatay' });
 }
