@@ -12,6 +12,76 @@ let _klAcikListeId = null;
 let _klTamamlanan = new Set();     // açık listede, GİRİŞ YAPAN öğretmenin işaretlediği madde ID'leri
 let _klTumTamamlamaAboneligi = null; // admin özet ekranı açıkken aktif dinleyici (kapatılabilsin diye saklanıyor)
 
+/* ================================================================
+   SİMGE (İKON) PAKETİ ve RENK PAKETİ — madde ekle/düzenle formlarında
+   kullanılan hazır seçim grid'leri.
+   ================================================================ */
+const KL_IKON_PAKETI = [
+  '📌','📋','📝','📑','📖','📚','📔','📕','📗','📘','📙','💻',
+  '📊','📈','📉','✅','❌','🗂️','🗓️','📅','⏰','🔔','👨‍👩‍👧','👨‍👩‍👧‍👦',
+  '👥','🧑‍🏫','🧑‍🤝‍🧑','🤝','💬','📢','📣','🖊️','✏️','📎','🔒','🔑',
+  '🎓','🏫','📮','📤','📥','🧾','📐','🧮','🎯','🏆','⭐','🚩'
+];
+const KL_RENK_PAKETI = ['#1E88E5','#43A047','#FB8C00','#8E24AA','#00897B','#D81B60','#FFB300','#7E57C2'];
+
+function _klSeciciGridHtml(inputId, tip, secili){
+  const secenekler = tip==='ikon' ? KL_IKON_PAKETI : KL_RENK_PAKETI;
+  const grid = secenekler.map(deger => {
+    const aktifMi = deger === secili;
+    if (tip==='ikon'){
+      return `<button type="button" class="kl-secici-btn" data-inputid="${inputId}" data-tip="ikon" data-deger="${deger}"
+        onclick="_klSecimYap(this)"
+        style="width:34px;height:34px;font-size:17px;border-radius:8px;border:2px solid ${aktifMi?'var(--brand)':'transparent'};background:${aktifMi?'rgba(0,0,0,0.06)':'transparent'};cursor:pointer;">${deger}</button>`;
+    }
+    return `<button type="button" class="kl-secici-btn" data-inputid="${inputId}" data-tip="renk" data-deger="${deger}"
+      onclick="_klSecimYap(this)"
+      style="width:30px;height:30px;border-radius:50%;background:${deger};border:3px solid ${aktifMi?'#000':'transparent'};box-shadow:0 0 0 1px rgba(0,0,0,0.15);cursor:pointer;"></button>`;
+  }).join('');
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;padding:6px;border:1px solid var(--border-soft);border-radius:8px;">${grid}</div>`;
+}
+function _klSecimYap(btn){
+  const inputId = btn.getAttribute('data-inputid');
+  const deger = btn.getAttribute('data-deger');
+  const input = document.getElementById(inputId);
+  if (input) input.value = deger;
+  const onizlemeId = inputId + '_onizleme';
+  const onizleme = document.getElementById(onizlemeId);
+  if (onizleme){
+    if (btn.getAttribute('data-tip')==='ikon') onizleme.textContent = deger;
+    else onizleme.style.background = deger;
+  }
+  // aynı grid içindeki diğer butonların aktif görünümünü kaldır
+  const grid = btn.parentElement;
+  if (grid) Array.from(grid.children).forEach(b => {
+    const aktif = b === btn;
+    if (b.getAttribute('data-tip')==='ikon'){
+      b.style.border = aktif ? '2px solid var(--brand)' : '2px solid transparent';
+      b.style.background = aktif ? 'rgba(0,0,0,0.06)' : 'transparent';
+    } else {
+      b.style.border = aktif ? '3px solid #000' : '3px solid transparent';
+    }
+  });
+}
+function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin){
+  const ikon = mevcutIkon || '📌';
+  const renk = mevcutRenk || KL_RENK_PAKETI[0];
+  return `
+    <input type="hidden" id="f_klMIkon" value="${ikon}">
+    <input type="hidden" id="f_klMRenk" value="${renk}">
+    <div class="form-row" style="gap:14px;">
+      <div style="flex-shrink:0;text-align:center;">
+        <div id="f_klMIkon_onizleme" style="width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 4px;">${ikon}</div>
+        <div id="f_klMRenk_onizleme" style="width:20px;height:20px;border-radius:50%;background:${renk};margin:0 auto;border:1px solid rgba(0,0,0,0.2);"></div>
+      </div>
+      <div style="flex:1;">
+        <div class="form-group"><label>Simge Seç</label>${_klSeciciGridHtml('f_klMIkon','ikon',ikon)}</div>
+      </div>
+    </div>
+    <div class="form-group"><label>Renk Seç</label>${_klSeciciGridHtml('f_klMRenk','renk',renk)}</div>
+    <div class="form-group"><label>Madde Metni</label><textarea id="f_klMMetin" rows="3" placeholder="Yapılacak işin açıklaması">${escapeHtml(mevcutMetin||'')}</textarea></div>
+  `;
+}
+
 function kontrolListeleriBaglantisiniKur(){
   KontrolListeleriService.listeleriDinle(v => {
     kontrolListeleri = v;
@@ -38,7 +108,7 @@ function kontrolListeleriAc(){
       <div style="font-weight:700;font-size:14px;">📋 Kontrol Listeleri</div>
       <div>${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="kontrolListesiYeniOlustur()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">➕ Yeni Liste</button>` : ''}</div>
     </div>
-    <div id="klAnaGovde" style="padding:16px;"></div>
+    <div id="klAnaGovde" style="padding:16px 16px calc(16px + env(safe-area-inset-bottom, 0px) + 90px);"></div>
   `;
   _klAnaEkraniCiz();
 }
@@ -101,7 +171,7 @@ function _klDetayAc(listeId){
       ` : ''}
     </div>
     <div id="klDetayOzet" style="padding:10px 16px 0;"></div>
-    <div id="klDetayGovde" style="padding:12px 16px 24px;"></div>
+    <div id="klDetayGovde" style="padding:12px 16px calc(24px + env(safe-area-inset-bottom, 0px) + 90px);"></div>
   `;
 
   const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
@@ -147,7 +217,8 @@ function _klDetayCiz(){
       <label style="flex-shrink:0;display:flex;align-items:center;">
         <input type="checkbox" ${tamamMi?'checked':''} onchange="_klMaddeIsaretle('${m.id}', this.checked)" style="width:22px;height:22px;accent-color:var(--brand);">
       </label>
-      ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeSilOnay('${liste.id}','${m.id}')" style="flex-shrink:0;color:#c0392b;padding:4px 8px;">✕</button>` : ''}
+      ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeDuzenleModalAc('${liste.id}','${m.id}')" style="flex-shrink:0;color:var(--brand);padding:4px 8px;" title="Düzenle">✏️</button>` : ''}
+      ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeSilOnay('${liste.id}','${m.id}')" style="flex-shrink:0;color:#c0392b;padding:4px 8px;" title="Sil">✕</button>` : ''}
     </div>`;
   }).join('') || '<p class="empty-state">Bu listede henüz madde yok.</p>';
 }
@@ -196,16 +267,7 @@ function _klListeSilOnay(listeId){
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function _klMaddeEkleModalAc(listeId){
-  const RENKLER = ['#1E88E5','#43A047','#FB8C00','#8E24AA','#00897B','#D81B60','#FFB300','#7E57C2'];
-  const body = `
-    <div class="form-row">
-      <div class="form-group" style="flex:0 0 80px;"><label>İkon</label><input id="f_klMIkon" value="📌" style="font-size:20px;text-align:center;"></div>
-      <div class="form-group"><label>Renk</label>
-        <select id="f_klMRenk">${RENKLER.map(r=>`<option value="${r}" style="background:${r};">${r}</option>`).join('')}</select>
-      </div>
-    </div>
-    <div class="form-group"><label>Madde Metni</label><textarea id="f_klMMetin" rows="3" placeholder="Yapılacak işin açıklaması"></textarea></div>
-  `;
+  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '');
   modalAc('➕ Yeni Madde', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
@@ -214,6 +276,23 @@ function _klMaddeEkleModalAc(listeId){
     maddeler.push({ id:_klMaddeIdUret(), sira:maddeler.length, ikon:document.getElementById('f_klMIkon').value.trim()||'📌', renk:document.getElementById('f_klMRenk').value, metin });
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+    modalKapat();
+  });
+}
+function _klMaddeDuzenleModalAc(listeId, maddeId){
+  const liste = kontrolListeleri.find(l=>l.id===listeId);
+  if (!liste) return;
+  const madde = (liste.maddeler||[]).find(m=>m.id===maddeId);
+  if (!madde) return;
+  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin);
+  modalAc('✏️ Maddeyi Düzenle', body, () => {
+    const metin = document.getElementById('f_klMMetin').value.trim();
+    if (!metin){ toast('Madde metni zorunludur.'); return; }
+    const ikon = document.getElementById('f_klMIkon').value.trim()||'📌';
+    const renk = document.getElementById('f_klMRenk').value;
+    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin } : m);
+    KontrolListeleriService.listeGuncelle(listeId, { maddeler })
+      .then(()=>toast('Madde güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   });
 }
