@@ -204,6 +204,7 @@ function _klDetayAc(listeId){
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-sidebar);color:var(--ink-on-dark);position:sticky;top:0;z-index:2;gap:6px;">
       <button class="btn btn-ghost btn-sm" onclick="_klDetayKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Geri</button>
       <div style="font-weight:700;font-size:13px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(liste.ad)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="_klYazdir('${listeId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazdır">🖨️</button>
       ${yetkiVar ? `
         <button class="btn btn-ghost btn-sm" onclick="_klOzetGosterModalAc('${listeId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Tamamlama özeti">📊</button>
         <button class="btn btn-ghost btn-sm" onclick="_klMaddeEkleModalAc('${listeId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">➕</button>
@@ -269,6 +270,65 @@ function _klMaddeIsaretle(maddeId, isaretli){
   KontrolListeleriService.tamamlamaKaydet(ben.id, _klAcikListeId, Array.from(_klTamamlanan))
     .catch(err => { if (err.message!=='yetkisiz') toast('Hata: '+err.message); });
   _klDetayCiz();
+}
+
+/* ================================================================
+   YAZDIRMA — liste, A4 dikey formatta okul adı başlığıyla yazdırılır.
+   Diğer modüllerdeki ortak yazdırma alt yapısı (_raporOverlayOlustur +
+   uygulamaHtmlYazdir) kullanılıyor: önizleme overlay'i iframe(srcdoc)
+   ile açılır, "Yazdır" tuşuna basınca native (Android/Capacitor) ise
+   PrintPlugin, değilse tarayıcı blob penceresi + window.print() devreye
+   girer — böylece hem Android hem web'de çalışır.
+   ================================================================ */
+function _klYazdir(listeId){
+  const liste = kontrolListeleri.find(l=>l.id===listeId);
+  if (!liste) { toast('Liste bulunamadı.'); return; }
+  if (typeof _raporOverlayOlustur !== 'function'){ toast('Yazdırma bileşeni yüklenemedi.'); return; }
+
+  const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
+    ? okulBilgileriAyari.okulAdi : 'Koruk İlk-Ortaokulu';
+  const tarih = new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const maddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
+  const toplam = maddeler.length;
+  const tamam = maddeler.filter(m=>_klTamamlanan.has(m.id)).length;
+
+  const satirlar = maddeler.map((m,i) => {
+    const tamamMi = _klTamamlanan.has(m.id);
+    return `
+      <div class="kl-yzd-satir" style="border-left-color:${m.renk||'#0A7A7A'};">
+        <span class="kl-yzd-no">${i+1}</span>
+        <span class="kl-yzd-ikon">${m.ikon||'📌'}</span>
+        <span class="kl-yzd-metin${tamamMi?' tamam':''}">${escapeHtml(m.metin||'')}</span>
+        <span class="kl-yzd-kutu">${tamamMi?'☑':'☐'}</span>
+      </div>`;
+  }).join('') || '<p style="color:#777;">Bu listede henüz madde yok.</p>';
+
+  const html = `<!DOCTYPE html><html lang="tr"><head>
+    <meta charset="UTF-8">
+    <title>${escapeHtml(liste.ad)}</title>
+    <style>
+      @page{ size:A4 portrait; margin:16mm 14mm; }
+      *{box-sizing:border-box;}
+      body{font-family:'Segoe UI',Arial,sans-serif;font-size:12.5px;color:#111;margin:0;padding:20px;}
+      h1{font-size:17px;margin:0 0 2px;text-align:center;}
+      .kl-yzd-alt{font-size:11.5px;color:#555;text-align:center;margin-bottom:4px;}
+      .kl-yzd-ozet{font-size:12px;font-weight:700;color:#0A7A7A;text-align:center;margin-bottom:16px;}
+      .kl-yzd-satir{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid #ddd;border-left-width:5px;border-left-style:solid;border-radius:4px;margin-bottom:8px;break-inside:avoid;}
+      .kl-yzd-no{width:22px;height:22px;border-radius:50%;background:#0A7A7A;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+      .kl-yzd-ikon{font-size:16px;flex-shrink:0;}
+      .kl-yzd-metin{flex:1;line-height:1.4;}
+      .kl-yzd-metin.tamam{text-decoration:line-through;color:#777;}
+      .kl-yzd-kutu{font-size:18px;flex-shrink:0;}
+      @media print{ body{padding:0;} }
+    </style>
+  </head><body>
+    <h1>${escapeHtml(okulAdi)}</h1>
+    <div class="kl-yzd-alt">${escapeHtml(liste.ad)}${liste.aciklama?' · '+escapeHtml(liste.aciklama):''} · ${tarih}</div>
+    ${toplam ? `<div class="kl-yzd-ozet">${tamam} / ${toplam} tamamlandı</div>` : ''}
+    ${satirlar}
+  </body></html>`;
+
+  _raporOverlayOlustur(liste.ad, html);
 }
 
 /* ================================================================
