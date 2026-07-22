@@ -127,5 +127,19 @@ service cloud.firestore {
       allow read: if girisYapmis();
       allow write: if adminMi();
     }
+
+    // Kontrol Listeleri: içerik (ad/madde) sadece admin; herkes okur.
+    match /oy_kontrolListeleri/{id} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
+    // Öğretmenin kendi tamamlama işaretlemesi — belge ID = `${ogretmenId}_${listeId}`.
+    // Admin özet için herkesin kaydını okuyabilmeli (read: girisYapmis),
+    // ama SADECE kendi öğretmen ID'siyle başlayan belgeyi yazabilir.
+    match /oy_kontrolListeTamamlama/{docId} {
+      allow read: if girisYapmis();
+      allow create, update: if girisYapmis() && kendiOgretmenIdsi() == docId.split('_')[0];
+      allow delete: if false;
+    }
   }
 }
