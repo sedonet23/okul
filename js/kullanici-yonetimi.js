@@ -38,6 +38,8 @@ const MODUL_LISTESI = [
   {grup:'Genel', modul:'yillikPlan', ad:'Yıllık Plan'},
   {grup:'Genel', modul:'akademikTakvim', ad:'Akademik Takvim'},
   {grup:'Genel', modul:'kontrolListeleri', ad:'Kontrol Listeleri'},
+  {grup:'Genel', modul:'denemeSonuclari', ad:'Deneme Sonuçları'},
+  {grup:'Genel', modul:'testSonuclari', ad:'Test Sonuçları'},
   {grup:'Genel', modul:'optikOkuma', ad:'Optik Okuma (OMR)'},
   {grup:'Genel', modul:'dokumanlar', ad:'Dökümanlar'},
   {grup:'Genel', modul:'haberler', ad:'Haberler'},

@@ -414,6 +414,7 @@ function ogrenciDetayModalAc(id){
       <button class="btn btn-success btn-sm" onclick="telefonAra('${(v.telefon1||v.telefon||'').replace(/'/g,'')}')">📞 Ara</button>
       <button class="btn btn-ghost btn-sm" onclick="whatsappGonder('${(v.telefon1||v.telefon||'').replace(/'/g,'')}', 'Merhaba')">💬 WhatsApp</button>
       <button class="btn btn-ghost btn-sm" onclick="modalKapat(); sinifVeliModalAc('${id}')">📝 Düzenle</button>
+      <button class="btn btn-ghost btn-sm" onclick="modalKapat(); if(typeof ogrenciSinavSonuclariGoster==='function') ogrenciSinavSonuclariGoster('${id}')">📊 Sınav Sonuçları</button>
     </div>
   `;
 

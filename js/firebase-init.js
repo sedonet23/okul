@@ -98,6 +98,8 @@ const COL = {
   akademikTakvim:'oy_akademikTakvim', // belge ID = 'aktif'; {gorselUrl, storagePath, guncellenmeTarihi, yukleyenAdi}
   kontrolListeleri:'oy_kontrolListeleri', // {ad, aciklama, sira, olusturmaTarihi, maddeler:[{id,sira,ikon,renk,metin}]}
   kontrolListeTamamlama:'oy_kontrolListeTamamlama', // belge ID = `${ogretmenId}_${listeId}`; {ogretmenId, listeId, tamamlananMaddeIdler:[...]}
+  denemeSonuclari:'oy_denemeSonuclari', // {ad, tarih, sinifSeviyesi, dersler:[...], sonuclar:[{ogrenciId, ogrenciAdi, sinif, dersSonuclari:{}, toplamNet}]}
+  testSonuclari:'oy_testSonuclari',     // aynı şema, TAMAMEN AYRI koleksiyon (deneme ile karışmasın diye)
   // --- YENİ: Yıllık Plan modülü ---
   yillikPlanBasliklari:'oy_yillikPlanBasliklari', // {ad, sira} — tüm derslerin ortak kullandığı "ana başlık" havuzu (Tema, Kazanım, Etkinlik vb.)
   yillikPlanTanimlari:'oy_yillikPlanTanimlari',   // {dersAdi, seviye(1-8), egitimOgretimYili, sutunlar:[baslikId,...], satirlar:[{ay,hafta,tarihBaslangic,tarihBitis,saat,degerler:{baslikId:metin}}]}

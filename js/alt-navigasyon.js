@@ -96,6 +96,8 @@
     { ad:'Sınavlar ve Not İşlemleri', renk:'#1F6FD1', ikon:I.yazili, ogeler:[
       {ad:'Yazılı Sınavlar', ikon:'yazili', modul:'sinavIslemleri', aksiyon:git('yaziliSinavlar')},
       {ad:'Deneme Sınavları', ikon:'deneme', modul:'sinavIslemleri', aksiyon:git('denemeSinavlari')},
+      {ad:'Deneme Sonuçları', ikon:'odul', modul:'denemeSonuclari', aksiyon:function(){ if(typeof sinavSonuclariAc==='function') sinavSonuclariAc('deneme'); }},
+      {ad:'Test Sonuçları', ikon:'liste', modul:'testSonuclari', aksiyon:function(){ if(typeof sinavSonuclariAc==='function') sinavSonuclariAc('test'); }},
       {ad:'Ders Et. Kat. Puan Dağıtımı', ikon:'puan', modul:'sinavIslemleri', aksiyon:cagir('KriterDagitimAraci','ac')},
       {ad:'Proje Değerlendirme Ölçeği', ikon:'olcek', modul:'sinavIslemleri', aksiyon:cagir('ProjeDegerlendirmeAraci','ac')},
       {ad:'Optik Okuma (OMR)', ikon:'tarama', modul:'optikOkuma', aksiyon:cagir('OptikSistemi','ac')},
@@ -640,6 +642,9 @@
     if(document.getElementById('akademikTakvimOverlay') && typeof akademikTakvimKapat === 'function') akademikTakvimKapat();
     if(document.getElementById('kontrolListeleriOverlay') && typeof kontrolListeleriKapat === 'function') kontrolListeleriKapat();
     if(document.getElementById('klDetayOverlay') && typeof _klDetayKapat === 'function') _klDetayKapat(false);
+    if(document.getElementById('ssListeOverlay') && typeof sinavSonuclariKapat === 'function') sinavSonuclariKapat();
+    if(document.getElementById('ssDetayOverlay') && typeof _ssDetayKapat === 'function') _ssDetayKapat(false);
+    if(document.getElementById('ssOgrenciOverlay') && typeof _ssOgrenciSonucKapat === 'function') _ssOgrenciSonucKapat();
   }
 
   const AltNav = {
