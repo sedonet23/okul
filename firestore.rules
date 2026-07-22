@@ -121,5 +121,11 @@ service cloud.firestore {
       allow create, update: if girisYapmis() && kendiOgretmenIdsi() == docId.split('_')[0];
       allow delete: if false;
     }
+
+    // Akademik takvim posteri: herkes görebilir, sadece admin değiştirebilir.
+    match /oy_akademikTakvim/{id} {
+      allow read: if girisYapmis();
+      allow write: if adminMi();
+    }
   }
 }
