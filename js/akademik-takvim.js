@@ -6,6 +6,39 @@
    görseli değiştirebilir (bkz. AkademikTakvimService).
    ============================================================= */
 let _akademikTakvimVeri = null; // {gorselUrl, storagePath, guncellenmeTarihi, yukleyenAdi} | null
+const AKADEMIK_TAKVIM_ONBELLEK_ANAHTARI = 'akademikTakvimOnbellek';
+
+/* Görseli tarayıcının kendi localStorage'ına base64 olarak kaydeder —
+   bir sonraki açılışta AĞ BEKLEMEDEN anında gösterilebilsin diye. Sadece
+   storagePath değiştiğinde (admin yeni görsel yüklediğinde) yeniden
+   indirip önbelleği güncelliyoruz; aynı görsel için tekrar tekrar
+   indirmiyoruz. Depolama kotası dolarsa (büyük görsel + zaten dolu
+   localStorage) sessizce vazgeçiyor — önbellek olmasa da uygulama normal
+   (ağdan) çalışmaya devam eder. */
+function _akademikTakvimOnbellekOku(){
+  try {
+    const ham = localStorage.getItem(AKADEMIK_TAKVIM_ONBELLEK_ANAHTARI);
+    return ham ? JSON.parse(ham) : null;
+  } catch (e) { return null; }
+}
+function _akademikTakvimOnbellegeYaz(storagePath, dataUri){
+  try {
+    localStorage.setItem(AKADEMIK_TAKVIM_ONBELLEK_ANAHTARI, JSON.stringify({ storagePath, dataUri }));
+  } catch (e) { /* kota dolu vb. — sessizce vazgeç */ }
+}
+function _akademikTakvimGorseliOnbellekleAl(veri){
+  if (!veri || !veri.gorselUrl || !veri.storagePath) return;
+  fetch(veri.gorselUrl)
+    .then(r => r.blob())
+    .then(blob => new Promise((resolve, reject) => {
+      const okuyucu = new FileReader();
+      okuyucu.onloadend = () => resolve(okuyucu.result);
+      okuyucu.onerror = reject;
+      okuyucu.readAsDataURL(blob);
+    }))
+    .then(dataUri => _akademikTakvimOnbellegeYaz(veri.storagePath, dataUri))
+    .catch(() => { /* önbellekleme başarısız olsa da görsel zaten ağdan gösteriliyor */ });
+}
 
 function akademikTakvimBaglantisiKur(){
   AkademikTakvimService.dinle(v => {
@@ -51,9 +84,14 @@ function _akademikTakvimIcerigiCiz(){
     el.innerHTML = '<p class="empty-state" style="color:#fff;">Henüz bir akademik takvim görseli yüklenmemiş.</p>';
     return;
   }
+  const onbellek = _akademikTakvimOnbellekOku();
+  const kaynak = (onbellek && onbellek.storagePath === _akademikTakvimVeri.storagePath)
+    ? onbellek.dataUri  // önbellekte var — AĞ BEKLENMEDEN anında gösterilir
+    : _akademikTakvimVeri.gorselUrl; // önbellekte yok/eski — ağdan göster + arka planda önbellekle
+  if (kaynak === _akademikTakvimVeri.gorselUrl) _akademikTakvimGorseliOnbellekleAl(_akademikTakvimVeri);
   // object-fit:contain + max-width/height:100% → sığdırılmış (fit-to-screen)
   // başlangıç görünümü; pinch-zoom/pan bundan sonra devreye giriyor.
-  el.innerHTML = `<img id="akademikTakvimGorsel" src="${_akademikTakvimVeri.gorselUrl}" alt="Akademik Takvim" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;will-change:transform;">`;
+  el.innerHTML = `<img id="akademikTakvimGorsel" src="${kaynak}" alt="Akademik Takvim" style="max-width:100%;max-height:100%;object-fit:contain;transform-origin:center center;will-change:transform;">`;
   _akademikTakvimJestBagla();
 }
 
@@ -68,44 +106,64 @@ function _akademikTakvimJestBagla(){
   let baslangicMesafe = 0, baslangicZoom = 1;
   let surukleniyor = false, surukleBasX = 0, surukleBasY = 0, panBasX = 0, panBasY = 0;
   let sonTapZamani = 0;
+  // DÜZELTME: eskiden pinch bitip iki parmak art arda kalkınca (her biri
+  // kendi touchend'ini tetikler) bu YANLIŞLIKLA "çift dokunuş" sanılıp
+  // zoom sıfırlanıyordu. Artık bir dokunuşun ÇİFT-DOKUNUŞ ADAYI sayılması
+  // için: TÜM temas süresince tek parmak kalmış olmalı (hiç 2 parmağa
+  // çıkmamış) VE parmak neredeyse hiç hareket etmemiş olmalı.
+  let dokunmaBirDegdi = false, dokunmaBasX = 0, dokunmaBasY = 0, coklu = false;
 
   function uygula(){ img.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`; }
   function mesafe(t1, t2){ const dx=t1.clientX-t2.clientX, dy=t1.clientY-t2.clientY; return Math.sqrt(dx*dx+dy*dy); }
-  function sinirla(){
-    if (zoom <= 1.02){ zoom = 1; panX = 0; panY = 0; }
-  }
 
   govde.addEventListener('touchstart', (e) => {
     if (e.touches.length === 2){
+      coklu = true;
       baslangicMesafe = mesafe(e.touches[0], e.touches[1]);
       baslangicZoom = zoom;
       surukleniyor = false;
-    } else if (e.touches.length === 1 && zoom > 1.02){
-      surukleniyor = true;
-      surukleBasX = e.touches[0].clientX; surukleBasY = e.touches[0].clientY;
-      panBasX = panX; panBasY = panY;
+    } else if (e.touches.length === 1){
+      coklu = false;
+      dokunmaBirDegdi = true;
+      dokunmaBasX = e.touches[0].clientX; dokunmaBasY = e.touches[0].clientY;
+      if (zoom > 1.02){
+        surukleniyor = true;
+        surukleBasX = e.touches[0].clientX; surukleBasY = e.touches[0].clientY;
+        panBasX = panX; panBasY = panY;
+      }
     }
   }, { passive:true });
   govde.addEventListener('touchmove', (e) => {
     if (e.touches.length === 2){
+      // Zoom SINIRLI AŞAĞI 1'de duruyor — pinch bittiğinde otomatik
+      // sıfırlama YOK, kullanıcı elini çekene kadar (ya da tekrar
+      // uzaklaştırana kadar) yakınlaşmış halde KALIR.
       zoom = Math.min(6, Math.max(1, baslangicZoom * (mesafe(e.touches[0], e.touches[1]) / baslangicMesafe)));
-      sinirla(); uygula();
-    } else if (e.touches.length === 1 && surukleniyor){
-      panX = panBasX + (e.touches[0].clientX - surukleBasX);
-      panY = panBasY + (e.touches[0].clientY - surukleBasY);
       uygula();
+    } else if (e.touches.length === 1){
+      if (Math.abs(e.touches[0].clientX-dokunmaBasX) > 10 || Math.abs(e.touches[0].clientY-dokunmaBasY) > 10) dokunmaBirDegdi = false;
+      if (surukleniyor){
+        panX = panBasX + (e.touches[0].clientX - surukleBasX);
+        panY = panBasY + (e.touches[0].clientY - surukleBasY);
+        uygula();
+      }
     }
   }, { passive:true });
   govde.addEventListener('touchend', (e) => {
     surukleniyor = false;
-    // Çift dokunuşla hızlı zoom aç/kapa
-    if (e.changedTouches.length === 1){
+    if (e.touches.length > 0) return; // hâlâ parmak varsa (pinch'ten tek parmağa geçiş) tap değerlendirme
+    // Çift dokunuşla hızlı zoom aç/kapa — SADECE gerçek, tek-parmaklı,
+    // neredeyse hareketsiz bir dokunuşta değerlendirilir.
+    if (dokunmaBirDegdi && !coklu){
       const simdi = Date.now();
       if (simdi - sonTapZamani < 300){
         zoom = zoom > 1.02 ? 1 : 2.2; panX = 0; panY = 0; uygula();
+        sonTapZamani = 0; // üçüncü dokunuşun tekrar tetiklenmesini önle
+      } else {
+        sonTapZamani = simdi;
       }
-      sonTapZamani = simdi;
     }
+    coklu = false;
   });
 }
 async function akademikTakvimDosyaSecildi(dosya){
