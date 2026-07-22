@@ -629,8 +629,14 @@ async function dersListesiExceliIceAktar(file){
     const aoa = sayfayiDiziyeCevir(wb, wb.SheetNames[0]);
     if(!aoa){ toast('Sayfa okunamadı.'); return; }
     const AD_BASLIKLARI = ['DERS','BRANŞ','BRANS','DERS/BRANŞ','DERS ADI','AD'];
-    const headerIdx = aoa.findIndex(r=>r.some(c=>AD_BASLIKLARI.includes(normBaslik(c))));
-    const header = headerIdx!==-1 ? aoa[headerIdx].map(normBaslik) : [];
+    // "Şablon İndir" ile üretilen dosyalarda zorunlu sütun başlıklarının
+    // sonuna " *" ekleniyor (örn. "Ders Adı *") — bu yüzden ham başlığı
+    // kıyaslamadan önce sondaki yıldız işaretini temizliyoruz. Bu düzeltme
+    // öncesinde başlık satırı hiç tanınmıyor, "baslangic" 0'a düşüyor ve
+    // şablonun kendi başlık/not satırları ders diye içe aktarılıyordu.
+    const yildizTemizle = s => s.replace(/\*+\s*$/,'').trim();
+    const headerIdx = aoa.findIndex(r=>r.some(c=>AD_BASLIKLARI.includes(yildizTemizle(normBaslik(c)))));
+    const header = headerIdx!==-1 ? aoa[headerIdx].map(c=>yildizTemizle(normBaslik(c))) : [];
     const cAd = headerIdx!==-1 ? header.findIndex(h=>AD_BASLIKLARI.includes(h)) : 0;
     const cKisaltma = headerIdx!==-1 ? header.findIndex(h=>['KISALTMA','KISALTMASI'].includes(h)) : -1;
     const baslangic = headerIdx!==-1 ? headerIdx+1 : 0;
@@ -643,11 +649,16 @@ async function dersListesiExceliIceAktar(file){
     });
     const seviyeVarMi = Object.keys(seviyeKolonlari).length > 0;
 
+    // Güvenlik ağı: başlık satırı yine de bulunamazsa (beklenmedik bir dosya
+    // biçimi), en azından "Şablon İndir" dosyasının kendi başlık/not/dosya
+    // adı metinlerinin yanlışlıkla ders diye eklenmesini engelle.
+    const SABLON_METIN_DESENI = /^(DERS LİSTESİ|⚠|İÇE AKTARMA ŞABLONU)/i;
+
     let eklenen=0, guncellenen=0, atlanan=0, belirsiz=0;
     for(let i=baslangic;i<aoa.length;i++){
       const row = aoa[i]; if(!row) continue;
       const ad = String(row[cAd]||'').trim();
-      if(!ad) continue;
+      if(!ad || SABLON_METIN_DESENI.test(ad)) continue;
 
       let saatler = null;
       if (seviyeVarMi) {

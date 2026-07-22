@@ -222,6 +222,57 @@ function renderDersListesiYonetim(){
     </div>`;
   }).join('') : '<p class="empty-state">Henüz ders eklenmedi.</p>';
 }
+/* Aynı ders adının (büyük/küçük harf duyarsız) birden fazla kez listede
+   bulunması — genelde aynı Excel dosyasının, dersListesi henüz yüklenmeden
+   (bkz. baglantilariKur düzeltmesi) art arda içe aktarılmasından kaynaklanır.
+   Bu fonksiyon her grup için: en çok haftalikSaatler verisine sahip kaydı
+   "asıl" seçer, diğerlerinin kısaltma/saatlerini onun üzerine birleştirir,
+   fazla kayıtları siler. Silmeden önce kullanıcıya özet gösterip onay ister. */
+function dersListesiYinelenenleriTemizle(){
+  if(!duzenleyebilir('sistemAyarlari')){ toast('Bu işlem için yetkiniz yok.'); return; }
+  const gruplar = {};
+  dersListesi.forEach(d=>{
+    const anahtar = (d.ad||'').toLocaleLowerCase('tr').trim();
+    if(!anahtar) return;
+    (gruplar[anahtar] = gruplar[anahtar] || []).push(d);
+  });
+  const yinelenenGruplar = Object.values(gruplar).filter(g=>g.length>1);
+  if(!yinelenenGruplar.length){ toast('Yinelenen ders kaydı bulunamadı.'); return; }
+
+  const ozet = yinelenenGruplar.map(g=>`• ${g[0].ad} (${g.length} kayıt)`).join('\n');
+  const toplamSilinecek = yinelenenGruplar.reduce((t,g)=>t+g.length-1, 0);
+  if(!confirm(`Şu dersler birden fazla kez listede:\n\n${ozet}\n\nHer grupta bir kayıt tutulup diğerleri (${toplamSilinecek} kayıt) silinecek, kısaltma/haftalık saatler tutulan kayda birleştirilecek. Devam edilsin mi?`)) return;
+
+  (async ()=>{
+    let birlesenGrup = 0, silinen = 0;
+    try{
+      for(const grup of yinelenenGruplar){
+        // En çok seviye bilgisi olan (en "dolu") kaydı asıl kayıt seç.
+        const asil = [...grup].sort((a,b)=>
+          Object.keys(b.haftalikSaatler||{}).length - Object.keys(a.haftalikSaatler||{}).length
+        )[0];
+        let birlesikSaatler = { ...(asil.haftalikSaatler||{}) };
+        let kisaltma = asil.kisaltma || '';
+        grup.forEach(d=>{
+          if(d.id===asil.id) return;
+          if(!kisaltma && d.kisaltma) kisaltma = d.kisaltma;
+          birlesikSaatler = { ...(d.haftalikSaatler||{}), ...birlesikSaatler }; // asıl kayıttaki değerler öncelikli
+        });
+        const guncelVeri = {};
+        if(kisaltma !== (asil.kisaltma||'')) guncelVeri.kisaltma = kisaltma;
+        if(JSON.stringify(birlesikSaatler) !== JSON.stringify(asil.haftalikSaatler||{})) guncelVeri.haftalikSaatler = birlesikSaatler;
+        if(Object.keys(guncelVeri).length) await db.collection(COL.dersListesi).doc(asil.id).update(guncelVeri);
+        for(const d of grup){
+          if(d.id===asil.id) continue;
+          await db.collection(COL.dersListesi).doc(d.id).delete();
+          silinen++;
+        }
+        birlesenGrup++;
+      }
+      toast(`${birlesenGrup} ders grubu birleştirildi, ${silinen} yinelenen kayıt silindi.`);
+    }catch(err){ toast('Hata: '+err.message); }
+  })();
+}
 function dersSelectHtml(id, seciliDeger){
   const secili = seciliDeger || '';
   const varMi = !secili || dersListesi.some(d=>d.ad===secili);
