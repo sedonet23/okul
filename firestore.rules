@@ -141,5 +141,14 @@ service cloud.firestore {
       allow create, update: if girisYapmis() && kendiOgretmenIdsi() == docId.split('_')[0];
       allow delete: if false;
     }
+
+    // Deneme/Test Sonuçları: "tüm öğretmenler girebilsin" kararı gereği
+    // herkese açık — modülü rolden gizlemek admin'in elinde.
+    match /oy_denemeSonuclari/{id} {
+      allow read, write: if girisYapmis();
+    }
+    match /oy_testSonuclari/{id} {
+      allow read, write: if girisYapmis();
+    }
   }
 }
