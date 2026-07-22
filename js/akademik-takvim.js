@@ -114,10 +114,12 @@ async function akademikTakvimDosyaSecildi(dosya){
   const oncekiVeri = _akademikTakvimVeri;
   if (el) el.innerHTML = `<p class="empty-state">Yükleniyor… <span id="akademikTakvimYuzde">%0</span></p>`;
   try {
-    await AkademikTakvimService.gorselYukle(dosya, (yuzde) => {
+    const yeniVeri = await AkademikTakvimService.gorselYukle(dosya, (yuzde) => {
       const y = document.getElementById('akademikTakvimYuzde');
       if (y) y.textContent = `%${yuzde}`;
     }, oncekiVeri);
+    _akademikTakvimVeri = yeniVeri;
+    _akademikTakvimIcerigiCiz();
     toast('Akademik takvim güncellendi.');
   } catch (e) {
     if (e.message !== 'yetkisiz') toast('Yükleme hatası: ' + e.message);

@@ -2023,7 +2023,7 @@ const TEMBEL_MODUL_TABLOSU = {
   yaziliSinavlar:   () => { sinavBaglantilariKur(); },
   denemeSinavlari:  () => { sinavBaglantilariKur(); },
   // yillikPlan: artık burada değil — koşulsuz olarak baglantilariKur() içinde başlatılıyor (bkz. yukarıdaki not).
-  dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); if(typeof akademikTakvimBaglantisiKur === 'function') akademikTakvimBaglantisiKur(); },
+  dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
   evrak: () => {
     db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   },
@@ -2085,6 +2085,11 @@ function baglantilariKur(){
   // bulmak için yillikPlanTanimlari'na ihtiyaç duyuyor, Yıllık Plan
   // sekmesi hiç açılmamış olsa bile bu veri hazır olmalı.
   if(typeof yillikPlanBaglantilariniKur === 'function') yillikPlanBaglantilariniKur();
+  // Aynı gerekçe: Akademik Takvim artık kendi menü öğesinden doğrudan
+  // açılıyor, Dökümanlar sekmesi hiç açılmamış olabilir — dinleyici
+  // koşulsuz başlamalı yoksa yükleme başarılı olsa bile ekran hiç
+  // güncellenmez (gözlemlenen hata).
+  if(typeof akademikTakvimBaglantisiKur === 'function') akademikTakvimBaglantisiKur();
 
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
