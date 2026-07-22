@@ -1131,7 +1131,7 @@
 
   <div class="card" style="margin-bottom:14px;">
     <h3>📚 Dersler</h3>
-    <p class="detay-row-muted">Ders Adı ve Kısaltma sütunları (Kısaltma: çarşaf ders programı raporunda kullanılır, örn: MAT, TÜR, FEN). Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.</p>
+    <p class="detay-row-muted">Ders Adı, Kısaltma (çarşaf ders programı raporunda kullanılır, örn: MAT, TÜR, FEN) ve isteğe bağlı "1".."8" sütunları (sınıf seviyesine göre haftalık ders saati — norm hesabında kullanılır). Ders zaten listedeyse saatler güncellenir/birleştirilir. Ders Programı ve Sınav İşlemleri'nde açılır listeden seçilebilir.</p>
     <button class="btn btn-ghost btn-sm" onclick="sablonIndir('dersler')" style="margin-right:6px;">📋 Şablon İndir</button>
     <input type="file" id="veriDersListesiInput" accept=".xlsx,.xls" style="display:none;" onchange="dersListesiExceliIceAktar(this.files[0]); this.value='';">
     <button class="btn btn-amber btn-sm" onclick="document.getElementById('veriDersListesiInput').click()">📥 Excel Yükle</button>
