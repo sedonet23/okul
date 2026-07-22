@@ -17,10 +17,24 @@ let _klTumTamamlamaAboneligi = null; // admin özet ekranı açıkken aktif dinl
    kullanılan hazır seçim grid'leri.
    ================================================================ */
 const KL_IKON_PAKETI = [
+  // Ofis & Belgeler
   '📌','📋','📝','📑','📖','📚','📔','📕','📗','📘','📙','💻',
-  '📊','📈','📉','✅','❌','🗂️','🗓️','📅','⏰','🔔','👨‍👩‍👧','👨‍👩‍👧‍👦',
-  '👥','🧑‍🏫','🧑‍🤝‍🧑','🤝','💬','📢','📣','🖊️','✏️','📎','🔒','🔑',
-  '🎓','🏫','📮','📤','📥','🧾','📐','🧮','🎯','🏆','⭐','🚩'
+  '📊','📈','📉','✅','❌','🗂️','🗓️','📅','⏰','🔔','📮','📤',
+  '📥','🧾','📐','🧮','📎','🖊️','✏️','🖨️','🗃️','🗄️','📦','📫',
+  // İletişim & Kişiler
+  '👨‍👩‍👧','👨‍👩‍👧‍👦','👥','🧑‍🏫','🧑‍🤝‍🧑','🤝','💬','📢','📣','🙋','🙋‍♂️','👤',
+  '👩‍💼','👨‍💼','🧑‍💻','📞','📟','📠',
+  // Okul & Eğitim
+  '🎓','🏫','📒','🔬','🔭','🎨','🎭','🎵','🎤','🏋️','🏃','🧪',
+  '🖥️','⌨️','🖱️','💡','📡','🔌','🔋',
+  // Güvenlik & Yönetim
+  '🔒','🔑','🔓','🛡️','⚙️','🔧','🔨','🪛','🧰','📋','🗝️','🚪',
+  // Başarı & Durum
+  '🎯','🏆','⭐','🚩','🏅','🥇','🎖️','🎀','🎗️','💯','✔️','☑️',
+  // Takvim & Zaman
+  '📆','🗒️','⌛','⏳','🕐','📇','🗑️','♻️',
+  // Diğer
+  '🚀','💎','🔍','🌟','💪','🤔','📍','🌐','🏠','🚗','✈️','🌈'
 ];
 const KL_RENK_PAKETI = ['#1E88E5','#43A047','#FB8C00','#8E24AA','#00897B','#D81B60','#FFB300','#7E57C2'];
 
@@ -37,7 +51,33 @@ function _klSeciciGridHtml(inputId, tip, secili){
       onclick="_klSecimYap(this)"
       style="width:30px;height:30px;border-radius:50%;background:${deger};border:3px solid ${aktifMi?'#000':'transparent'};box-shadow:0 0 0 1px rgba(0,0,0,0.15);cursor:pointer;"></button>`;
   }).join('');
-  return `<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;padding:6px;border:1px solid var(--border-soft);border-radius:8px;">${grid}</div>`;
+  const ozelSatir = tip==='ikon' ? `
+    <div style="display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border-soft);">
+      <input id="${inputId}_ozel" type="text" maxlength="2" placeholder="Emoji gir…"
+        style="width:60px;height:34px;font-size:20px;text-align:center;border:1px solid var(--border-soft);border-radius:8px;background:var(--bg-card,#fff);">
+      <button type="button" onclick="_klOzelEmojiEkle('${inputId}')"
+        style="height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--border-soft);background:var(--brand,#1E88E5);color:#fff;font-size:13px;cursor:pointer;">Ekle</button>
+      <span style="font-size:11.5px;color:var(--ink-muted);">Listede olmayan bir emoji kullanabilirsin.</span>
+    </div>` : '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:160px;overflow-y:auto;padding:6px;border:1px solid var(--border-soft);border-radius:8px;">${grid}</div>${ozelSatir}`;
+}
+function _klOzelEmojiEkle(inputId){
+  const inp = document.getElementById(inputId + '_ozel');
+  if (!inp) return;
+  const deger = inp.value.trim();
+  if (!deger){ toast('Bir emoji gir.'); return; }
+  const input = document.getElementById(inputId);
+  if (input) input.value = deger;
+  const onizleme = document.getElementById(inputId + '_onizleme');
+  if (onizleme) onizleme.textContent = deger;
+  // grid'deki seçim vurgularını temizle
+  const grid = document.querySelector(`[data-inputid="${inputId}"]`)?.parentElement;
+  if (grid) Array.from(grid.querySelectorAll('.kl-secici-btn')).forEach(b => {
+    b.style.border = '2px solid transparent';
+    b.style.background = 'transparent';
+  });
+  inp.value = '';
+  toast('Simge seçildi: ' + deger);
 }
 function _klSecimYap(btn){
   const inputId = btn.getAttribute('data-inputid');
@@ -96,7 +136,7 @@ function kontrolListeleriBaglantisiniKur(){
 function kontrolListeleriAc(){
   const ov = document.createElement('div');
   ov.id = 'kontrolListeleriOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;overscroll-behavior:contain;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;overscroll-behavior:none;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
@@ -154,7 +194,7 @@ function _klDetayAc(listeId){
 
   const ov = document.createElement('div');
   ov.id = 'klDetayOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;overscroll-behavior:contain;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9400;background:var(--bg-app);overflow-y:auto;overscroll-behavior:none;';
   document.body.appendChild(ov);
   document.body.classList.add('modal-open');
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(false);
