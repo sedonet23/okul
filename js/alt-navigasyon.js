@@ -124,6 +124,7 @@
       {ad:'Evrak Takibi', ikon:'evrak', modul:'evrak', aksiyon:git('evrak')},
       {ad:'Mevzuat', ikon:'mevzuat', modul:'mevzuat', aksiyon:git('mevzuat')},
       {ad:'Aylık İşler', ikon:'saat', modul:'periyodikIsler', aksiyon:git('periyodikIsler')},
+      {ad:'Akademik Takvim', ikon:'takvim', modul:'akademikTakvim', aksiyon:function(){ if(typeof akademikTakvimAc==='function') akademikTakvimAc(); }},
     ], altGrup:{ ad:'Raporlar', ikon:'rapor', ogeler:[
       {ad:'Maarif Model', ikon:'odul', modul:'maarifRapor', aksiyon:git('maarifRapor')},
       {ad:'Belirli Gün ve Haftalar', ikon:'takvim', modul:'belirliGunler', aksiyon:git('belirliGunler')},
