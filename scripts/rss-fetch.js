@@ -69,16 +69,23 @@ function parseFeedItems(xml){
       const hrefMatch = blok.match(/<link[^>]*href=["']([^"']+)["']/i);
       link = hrefMatch ? hrefMatch[1] : '';
     }
+    // YENİ: <guid> (RSS 2.0) / <id> (Atom) — bazı kaynaklarda <link> her
+    // taramada değişen bir yönlendirme/oturum parametresi taşıyabiliyor,
+    // ama guid/id kalıcı bir kimliktir. Varsa dedup'ta linkten önce bunu
+    // kullanıyoruz (bkz. main() içindeki guidAnahtari kontrolü).
+    const guidHam = etiketAl(blok, 'guid') || etiketAl(blok, 'id') || '';
     const tarihHam = etiketAl(blok, 'pubDate') || etiketAl(blok, 'updated') || etiketAl(blok, 'published') || '';
     const ozetHam = etiketAl(blok, 'description') || etiketAl(blok, 'summary') || etiketAl(blok, 'content') || '';
 
     const baslik = stripTags(baslikHam);
     const linkTemiz = xmlDecode(link).trim().split('?')[0]; // utm parametrelerini at, dedup daha sağlıklı olsun
+    const guid = xmlDecode(guidHam).trim();
     if(!baslik || !linkTemiz) continue;
 
     items.push({
       baslik,
       link: linkTemiz,
+      guid,
       tarih: tarihiIsoYap(tarihHam),
       ozet: stripTags(ozetHam).slice(0, 400),
       resimUrl: gorselAl(blok)
@@ -152,6 +159,12 @@ async function main(){
   // (bkz. haberler.repository.js) tutarlı olacak şekilde artırıldı.
   const mevcutSnap = await db.collection('oy_haberler').orderBy('tarih', 'desc').limit(600).get();
   const mevcutLinkler = new Set(mevcutSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
+  // YENİ: guid varsa en güvenilir dedup anahtarı odur (linkten bağımsız,
+  // kalıcı kimlik). Kaynak+guid olarak saklıyoruz — iki farklı kaynak aynı
+  // guid'i kullanabilir diye kaynak adıyla birlikte anahtarlıyoruz.
+  const mevcutGuidler = new Set(
+    mevcutSnap.docs.map(d => d.data().guid ? `${d.data().kaynakAdi || ''}|${d.data().guid}` : '').filter(Boolean)
+  );
   // DÜZELTME: Bazı kaynaklar aynı haberi her taramada FARKLI bir link ile
   // veriyor (yönlendirme/oturum parametresi linkin kendisine, "?" öncesine
   // de karışabiliyor). Sadece linke bakan dedup bu durumda aynı haberi
@@ -177,8 +190,10 @@ async function main(){
 
       let yeniSayisi = 0;
       for(const it of items){
+        const guidAnahtari = it.guid ? `${kaynak.ad}|${it.guid}` : '';
         const baslikAnahtari = baslikAnahtariUret(kaynak.ad, it.baslik);
-        if(mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
+        if((guidAnahtari && mevcutGuidler.has(guidAnahtari)) || mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
+        if(guidAnahtari) mevcutGuidler.add(guidAnahtari);
         mevcutLinkler.add(it.link); // aynı çalışma içinde tekrar eklenmesin
         mevcutBaslikAnahtarlari.add(baslikAnahtari);
         yeniHaberler.push({ kaynak, item: it });
@@ -205,6 +220,7 @@ async function main(){
         baslik: item.baslik,
         ozet: item.ozet,
         link: item.link,
+        guid: item.guid || '',
         kaynakAdi: kaynak.ad,
         kategori: kaynak.kategori || 'Genel',
         tarih: item.tarih,
