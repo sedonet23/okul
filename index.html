@@ -238,6 +238,9 @@
         <!-- Zil + Hava: renderZilSayaci hero-bell'i, topbarRenderEt ise hero-hava-satir'ı dolduruyor. Tıklayınca hava detay sayfası açılıyor. -->
         <div class="dash-hero-bell" id="zilWidget" onclick="zilTiklandi()" style="cursor:pointer;"></div>
         <div class="dash-hero-hava-satir" id="heroHavaSatir" onclick="havaDurumuDetayAc()" style="display:none; cursor:pointer;"></div>
+        <!-- YENİ: Okulun Instagram / X / Web linkleri — sadece dolu olanlar
+             gösterilir (bkz. js/app.js renderSosyalMedyaIkonlari). -->
+        <div class="dash-hero-sosyal" id="heroSosyalMedya" style="display:none;"></div>
       </div>
 
       <!-- Bugün İzinli/Raporlu Öğretmenler -->
@@ -993,6 +996,16 @@
           <div class="form-group"><label>İlçe</label><input id="f_okulIlce" placeholder="örn:  Merkez" style="text-transform:uppercase;"></div>
         </div>
         <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Elazığ İl Millî Eğitim Müdürlüğü"></div>
+      </div>
+
+      <!-- YENİ: Sosyal Medya ve Web Adresi — ana sayfa hero kartında ve bu
+           sayfada ikon olarak gösterilir (bkz. js/app.js renderSosyalMedyaIkonlari). -->
+      <div class="card" style="margin-bottom:18px;">
+        <h3>Sosyal Medya ve Web Adresi</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">Boş bırakılan linkler hiçbir yerde gösterilmez.</p>
+        <div class="form-group"><label>Instagram</label><input id="f_okulInstagram" placeholder="https://instagram.com/kullaniciadi"></div>
+        <div class="form-group"><label>X (Twitter)</label><input id="f_okulX" placeholder="https://x.com/kullaniciadi"></div>
+        <div class="form-group"><label>Web Sitesi</label><input id="f_okulWeb" placeholder="https://korukortaokulu.meb.k12.tr"></div>
       </div>
 
       <!-- YENİ: İki okul bir arada (Koruk İlkokulu + Koruk Ortaokulu) — evrak
