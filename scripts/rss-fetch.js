@@ -190,10 +190,18 @@ async function main(){
       // kaydı, ya da benzeri) olup olmadığını görmek için ayrıntılı log.
       console.log(`--- [TEŞHİS] Kaynak: id=${kaynak.id} ad=${JSON.stringify(kaynak.ad)} url=${kaynak.url}`);
 
+      // DÜZELTME (kök sebep #2): Bu sorgu daha önce .limit(200) ile
+      // sınırlıydı. Elazığ Meb Duyurular gibi devlet siteleri RSS'inde
+      // Mayıs/Haziran gibi ESKİ duyurular da "son 20 madde" içinde sabit
+      // kalabiliyor. Kaynağın toplam kayıt sayısı 200'ü geçtiğinde, bu eski
+      // (ama beslemede hâlâ görünen) maddeler dedup penceresinin dışına
+      // düşüyor ve script onları "hiç görmedim" sanıp SONSUZ DÖNGÜ halinde
+      // tekrar tekrar ekleyip bildirim gönderiyordu. Artık limit yok —
+      // kaynağın TÜM geçmişine bakılıyor, böylece hiçbir kayıt pencereden
+      // "düşerek" yanlışlıkla yeni sayılamıyor.
       const mevcutKaynakSnap = await db.collection('oy_haberler')
         .where('kaynakAdi', '==', kaynak.ad)
         .orderBy('tarih', 'desc')
-        .limit(200)
         .get();
       console.log(`[TEŞHİS] "${kaynak.ad}" için Firestore'da bulunan mevcut kayıt sayısı: ${mevcutKaynakSnap.size}`);
       if(mevcutKaynakSnap.size > 0){
