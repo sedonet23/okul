@@ -1650,26 +1650,33 @@ function renderZilSayaci(bugunGun){
     // Okul açılış sayacı
     const acilisTarihi = ayar.okulAcilisTarihi;
     const tatilNotu = tatilModuNotuOlustur(ayar);
-    let sayacHTML = '';
+    // YENİ: Tatil modu kartı artık normal zil sayacıyla AYNI sol-ikon/sağ-sayaç
+    // düzenini (zil-sol/zil-sag) kullanıyor — cam efekti (.dash-hero-bell) ve
+    // büyük geri sayım (.zil-sayac-buyuk, ~60px) bu sayede tutarlı geliyor.
+    let solAltHTML = tatilNotu ? `<div class="zil-alt">${escapeHtml(tatilNotu)}</div>` : '';
+    let sagHTML = '';
     if(acilisTarihi){
       const acilis = new Date(acilisTarihi + 'T00:00:00');
       const bugun = new Date(); bugun.setHours(0,0,0,0);
       const fark = Math.ceil((acilis - bugun) / (1000*60*60*24));
       if(fark > 0){
-        sayacHTML = `<div style="display:flex;align-items:center;justify-content:space-between;">
-          <div><div class="zil-etiket">🏖️ Tatil Modu — Okul kapalı</div><div class="zil-alt">${escapeHtml(tatilNotu||'Okulun açılmasına kalan süre')}</div></div>
-          <div class="zil-sayac">${fark} <span>gün</span></div>
-        </div>`;
+        sagHTML = `<div class="zil-sayac zil-sayac-buyuk">${fark} <span>gün</span></div>`;
       } else if(fark === 0){
-        sayacHTML = `<div class="zil-durum">🎉 Bugün okul açılıyor!</div>`;
-      } else {
-        sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${tatilNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(tatilNotu)+'</div>':''}</div>`;
+        solAltHTML = '<div class="zil-alt">🎉 Bugün okul açılıyor!</div>';
       }
-    } else {
-      sayacHTML = `<div class="zil-durum">🏖️ Tatil Modu Aktif${tatilNotu?'<div style="margin-top:6px;font-size:13px;color:var(--ink-muted);font-weight:400;">'+escapeHtml(tatilNotu)+'</div>':''}</div>`;
     }
+    zilEl.innerHTML = `
+      <div class="zil-sol">
+        <div class="zil-ikon-daire zil-ikon-daire-tatil">🏖️</div>
+        <div>
+          <div class="zil-baslik-kucuk">Tatil Modu</div>
+          <div class="zil-etiket">Okul Kapalı</div>
+          ${solAltHTML}
+        </div>
+      </div>
+      <div class="zil-sag">${sagHTML}</div>
+    `;
     zilDurumSinifAyarla('tatil');
-    zilEl.innerHTML = sayacHTML;
     return;
   }
   if(!GUNLER.includes(bugunGun)){
