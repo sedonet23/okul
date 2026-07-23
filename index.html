@@ -381,9 +381,14 @@
       </div>
       <div class="card">
         <input type="text" id="ogretmenArama" placeholder="Ada veya branşa göre ara..." oninput="renderOgretmenler()" style="margin-bottom:16px;max-width:320px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+          <button class="btn btn-ghost btn-sm filtre-btn active" data-f="" onclick="ogretmenKademeFiltreSec('')">Tümü</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="ilkokul" onclick="ogretmenKademeFiltreSec('ilkokul')">İlkokul</button>
+          <button class="btn btn-ghost btn-sm filtre-btn" data-f="ortaokul" onclick="ogretmenKademeFiltreSec('ortaokul')">Ortaokul</button>
+        </div>
         <div style="overflow-x:auto;">
           <table class="table">
-            <thead><tr><th>Ad Soyad</th><th>Ünvan</th><th>Branş</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
+            <thead><tr><th>Ad Soyad</th><th>Ünvan</th><th>Branş</th><th>Okul</th><th>Telefon</th><th>E-posta</th><th>Sorumlu Sınıf</th><th></th></tr></thead>
             <tbody id="ogretmenlerTablo"></tbody>
           </table>
         </div>
