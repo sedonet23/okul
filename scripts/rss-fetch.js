@@ -152,6 +152,17 @@ async function main(){
   // (bkz. haberler.repository.js) tutarlı olacak şekilde artırıldı.
   const mevcutSnap = await db.collection('oy_haberler').orderBy('tarih', 'desc').limit(600).get();
   const mevcutLinkler = new Set(mevcutSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
+  // DÜZELTME: Bazı kaynaklar aynı haberi her taramada FARKLI bir link ile
+  // veriyor (yönlendirme/oturum parametresi linkin kendisine, "?" öncesine
+  // de karışabiliyor). Sadece linke bakan dedup bu durumda aynı haberi
+  // saatte bir "yeni" sanıp tekrar tekrar bildirim gönderiyordu. Şimdi
+  // kaynak+başlık eşleşmesi de ikinci bir güvenlik katmanı olarak kontrol
+  // ediliyor.
+  const baslikAnahtariUret = (kaynakAdi, baslik) =>
+    `${kaynakAdi || ''}|${(baslik || '').toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim()}`;
+  const mevcutBaslikAnahtarlari = new Set(
+    mevcutSnap.docs.map(d => baslikAnahtariUret(d.data().kaynakAdi, d.data().baslik))
+  );
 
   const yeniHaberler = []; // {kaynak, item}
 
@@ -166,8 +177,10 @@ async function main(){
 
       let yeniSayisi = 0;
       for(const it of items){
-        if(mevcutLinkler.has(it.link)) continue;
+        const baslikAnahtari = baslikAnahtariUret(kaynak.ad, it.baslik);
+        if(mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
         mevcutLinkler.add(it.link); // aynı çalışma içinde tekrar eklenmesin
+        mevcutBaslikAnahtarlari.add(baslikAnahtari);
         yeniHaberler.push({ kaynak, item: it });
         yeniSayisi++;
       }
