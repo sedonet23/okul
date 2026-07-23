@@ -1,0 +1,25 @@
+name: RSS Tekrar Kayıt Temizliği (Tek Seferlik)
+
+# Sadece elle tetiklenir (GitHub Actions sekmesinden "Run workflow" butonu ile,
+# telefondan GitHub uygulaması/mobil siteden de yapılabilir). Zamanlanmış
+# (schedule) çalışmaz — bu bir bakım betiğidir, düzenli iş değildir.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  rss-cleanup-duplicates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Bağımlılıkları kur
+        run: npm install
+
+      - name: Tekrar eden haber kayıtlarını temizle
+        run: node scripts/rss-cleanup-duplicates.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
