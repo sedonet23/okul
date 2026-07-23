@@ -54,6 +54,16 @@ const NobetService = {
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
     return NobetRepository.atamaSil(id);
   },
+  /* YENİ: Hatırlatma sistemi için — nöbetçi öğretmen kendi "nöbet
+     defterini doldurdum" işaretini koyabilir. Genel nöbet düzenleme
+     yetkisine (admin/duzenleyebilir) BAKILMAZ — sadece atamanın kendisine
+     ait olması (ya da admin olması) yeterlidir. */
+  defterDolduToggle(atama, deger){
+    const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
+    const adminMi = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin;
+    if(!adminMi && (!ben || atama.ogretmenId !== ben.id)) return Promise.reject(new Error('sahip-degil'));
+    return NobetRepository.atamaGuncelle(atama.id, { defterDolduruldu: !!deger });
+  },
   amirKaydet(mevcutId, veri){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
     return mevcutId ? NobetRepository.amirGuncelle(mevcutId, veri) : NobetRepository.amirEkle(veri);
