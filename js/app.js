@@ -1340,8 +1340,14 @@ function renderDashboard(){
   const ilkokulOgrenciErkek = _ilkokulSiniflari.reduce((t,s)=>t+(parseInt(s.erkekSayisi)||0),0);
   const ortaokulOgrenciKiz = _ortaokulSiniflari.reduce((t,s)=>t+(parseInt(s.kizSayisi)||0),0);
   const ortaokulOgrenciErkek = _ortaokulSiniflari.reduce((t,s)=>t+(parseInt(s.erkekSayisi)||0),0);
-  const _ilkokulOgretmenler = ogretmenler.filter(o=>kademeFiiliListesi(o).includes('ilkokul'));
-  const _ortaokulOgretmenler = ogretmenler.filter(o=>kademeFiiliListesi(o).includes('ortaokul'));
+  // DÜZELTME: İstatistikler'deki Personel kartı sayıları artık kişinin FİİLEN
+  // çalıştığı yere göre değil, KADROSUNUN olduğu okula göre hesaplanıyor
+  // (Sedat'ın isteği — görevlendirmeyle geçici olarak diğer okulda çalışan
+  // biri, istatistiklerde yine kendi kadrosunun bağlı olduğu okulda sayılsın).
+  // Öğretmenler listesindeki filtre/rozet fiili görev yerini göstermeye devam
+  // ediyor; sadece bu sayım kadroya göre.
+  const _ilkokulOgretmenler = ogretmenler.filter(o=>(o.kadroKademesi||'')==='ilkokul');
+  const _ortaokulOgretmenler = ogretmenler.filter(o=>(o.kadroKademesi||'')==='ortaokul');
   const ilkokulOgretmenSayisi = _ilkokulOgretmenler.length;
   const ortaokulOgretmenSayisi = _ortaokulOgretmenler.length;
   const ilkokulOgretmenKadin = _ilkokulOgretmenler.filter(o=>o.cinsiyet==='kadin').length;
