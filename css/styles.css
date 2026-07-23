@@ -2395,11 +2395,12 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
   color:#fff; text-decoration:none; flex:1 1 0; min-width:52px; max-width:96px;
 }
 #tab-panel.dash-modern .hero-sosyal-ikon{
-  width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.16);
-  border:1px solid rgba(255,255,255,.28); display:flex; align-items:center;
-  justify-content:center; transition:background .15s ease, transform .15s ease; flex-shrink:0;
+  width:36px; height:36px; border-radius:50%; background:#fff;
+  border:1px solid rgba(255,255,255,.5); display:flex; align-items:center;
+  justify-content:center; transition:transform .15s ease, box-shadow .15s ease; flex-shrink:0;
+  box-shadow:0 2px 6px rgba(0,0,0,.18);
 }
-#tab-panel.dash-modern .hero-sosyal-link:hover .hero-sosyal-ikon{ background:rgba(255,255,255,.32); transform:translateY(-1px); }
+#tab-panel.dash-modern .hero-sosyal-link:hover .hero-sosyal-ikon{ transform:translateY(-2px); box-shadow:0 4px 10px rgba(0,0,0,.26); }
 #tab-panel.dash-modern .hero-sosyal-etiket{
   font-family:'Inter'; font-size:10.5px; font-weight:600; color:rgba(255,255,255,.85);
   text-align:center; line-height:1.25; max-width:100%; overflow:hidden; text-overflow:ellipsis;
@@ -2411,6 +2412,11 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
    sosyalLinkSatiriHtml). */
 .sosyal-link-satir{
   display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap;
+}
+.sosyal-link-ikon-onizleme{
+  flex:0 0 auto; width:32px; height:32px; border-radius:50%; background:#fff;
+  border:1px solid var(--border,#e2e2e2); display:flex; align-items:center;
+  justify-content:center; box-shadow:0 1px 3px rgba(0,0,0,.12);
 }
 .sosyal-link-satir .sosyal-link-ikon-sec{
   flex:0 0 auto; min-width:130px; padding:8px 10px; border-radius:10px;
