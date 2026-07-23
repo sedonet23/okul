@@ -2346,8 +2346,8 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
   border:none; padding:20px; box-shadow:0 12px 32px -8px rgba(37,99,235,.45);
 }
 #tab-panel.dash-modern .dash-hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
-#tab-panel.dash-modern .dash-hero-hi{ font-family:'Inter'; font-size:19px; font-weight:800; color:#fff; text-shadow:0 2px 6px rgba(0,40,90,.25); }
-#tab-panel.dash-modern .dash-hero-greet .page-sub{ font-family:'Inter'; color:rgba(255,255,255,.78); font-size:12.5px; padding-left:0; margin-top:2px; text-shadow:0 1px 4px rgba(0,40,90,.2); }
+#tab-panel.dash-modern .dash-hero-hi{ font-family:'Inter'; font-size:19px; font-weight:800; color:#fff; }
+#tab-panel.dash-modern .dash-hero-greet .page-sub{ font-family:'Inter'; color:rgba(255,255,255,.78); font-size:12.5px; padding-left:0; margin-top:2px; }
 /* YENİ: hero içi kompakt hava durumu (heroHava — js/hava-durumu.js dolduruyor) */
 #tab-panel.dash-modern .dash-hero-weather-mini{
   align-items:center; gap:6px; background:rgba(255,255,255,.16); border-radius:99px; padding:7px 14px;
@@ -2357,25 +2357,17 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-sicaklik{ font-size:16px; font-weight:800; }
 #tab-panel.dash-modern .dash-hero-weather-mini .hero-hava-aciklama{ font-size:11.5px; color:rgba(255,255,255,.75); display:block; width:100%; text-align:right; }
 
-/* Zil sayacı / Tatil Modu kartı — renderZilSayaci() içeriği aynen buraya
-   basılıyor. Glassmorphism: yarı saydam beyaz + güçlü blur + ince kenarlık,
-   Hava Durumu kartıyla (aşağıda .dash-hero-hava-satir) birebir aynı stil. */
+/* Zil sayacı bloğu — renderZilSayaci() içeriği aynen buraya basılıyor */
 #tab-panel.dash-modern .dash-hero-bell{
-  background:rgba(255,255,255,.13);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border:1px solid rgba(255,255,255,.35); border-radius:28px;
-  box-shadow: 0 8px 24px -6px rgba(10,40,80,.16), inset 0 1px 0 rgba(255,255,255,.25);
-  padding:18px; margin-top:18px;
+  background:rgba(255,255,255,.12); border-radius:16px; padding:16px;
   display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
-  cursor:pointer;
+  border:1px solid rgba(255,255,255,.18); cursor:pointer;
 }
 #tab-panel.dash-modern .zil-sol{ display:flex; align-items:center; gap:12px; flex:1; min-width:160px; }
 #tab-panel.dash-modern .zil-ikon-daire{
   width:46px; height:46px; border-radius:50%; background:rgba(255,255,255,.22); border:1px solid rgba(255,255,255,.3);
   display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
 }
-/* Tatil modu ikonu: spesifikasyon gereği daha büyük ve belirgin */
-#tab-panel.dash-modern .zil-ikon-daire-tatil{ width:58px; height:58px; font-size:28px; }
 #tab-panel.dash-modern .zil-baslik-kucuk{ font-family:'Inter'; font-size:11.5px; color:rgba(255,255,255,.72); font-weight:600; }
 #tab-panel.dash-modern .zil-baslik-sag{ text-align:right; }
 #tab-panel.dash-modern .zil-etiket{ font-family:'Inter'; font-size:14px; color:#fff; font-weight:700; margin:1px 0 6px; }
@@ -2386,8 +2378,6 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .zil-sag{ text-align:right; }
 #tab-panel.dash-modern .zil-sayac{ font-family:'Inter'; font-size:34px; font-weight:800; color:#fff; line-height:1; white-space:nowrap; }
 #tab-panel.dash-modern .zil-sayac span{ font-size:13px; font-weight:600; color:rgba(255,255,255,.78); }
-/* Tatil modu geri sayımı: spesifikasyon gereği ~60px, belirgin şekilde büyük */
-#tab-panel.dash-modern .zil-sayac-buyuk{ font-size:60px; }
 #tab-panel.dash-modern .zil-durum{ font-family:'Inter'; font-size:14.5px; font-weight:700; color:#fff; }
 #tab-panel.dash-modern .zil-progress{ margin:8px 0 4px; height:6px; border-radius:99px; background:rgba(255,255,255,.25); overflow:hidden; max-width:160px; margin-left:auto; }
 #tab-panel.dash-modern .zil-progress-fill{ height:100%; background:#fff; border-radius:99px; transition:width .6s ease; }
@@ -2778,115 +2768,59 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .renk-paketi-nokta{ width:18px; height:18px; border-radius:50%; flex-shrink:0; box-shadow:0 0 0 2px rgba(0,0,0,0.06); }
 
 /* =========================================================================
-   YENİ TASARIM (Temmuz 2026): Hero kartı — iOS/Apple HIG tarzı, premium.
-   Sabit gökyüzü manzarası (saat/tatil moduna göre DEĞİŞMİYOR, her zaman
-   aynı): gradient mavi gökyüzü, sağ üstte parıldayan güneş, hafif bulanık
-   sürüklenen bulut, 3 katmanlı (arka/orta/ön) tepeler + farklı boyda
-   ağaçlarla derinlik hissi, altta ince çim dokusu. İçerik kartları
-   (zil/tatil + hava durumu) glassmorphism.
+   YENİ: HERO KARTI — GÜN İÇİ SAHNELER
+   .sahne-gundogumu / .sahne-ogle / .sahne-gunbatimi / .sahne-gece sınıfları
+   js/app.js > renderZilSayaci() içinde saate göre otomatik eklenir/değiştirilir.
+   Güneş/ay/yıldızlar tamamen CSS (radial-gradient) ile çizilir, ekstra
+   görsel dosyası gerekmez.
    ========================================================================= */
-#tab-panel.dash-modern .dash-hero{
-  position:relative; overflow:hidden; border-radius:32px !important;
-  animation: heroFadeSlideUp .7s cubic-bezier(.22,.9,.32,1) both;
-  transition: transform .25s ease, box-shadow .25s ease;
+#tab-panel.dash-modern .dash-hero{ position:relative; overflow:hidden; transition: background 1.2s ease; }
+#tab-panel.dash-modern .dash-hero::before{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  transition: opacity .8s ease;
 }
-#tab-panel.dash-modern .dash-hero:hover,
-#tab-panel.dash-modern .dash-hero:active{ transform: scale(1.02); }
-@keyframes heroFadeSlideUp{
-  from{ opacity:0; transform:translateY(18px); }
-  to{ opacity:1; transform:translateY(0); }
-}
-#tab-panel.dash-modern .dash-hero::before{ content:none; }
-/* Üstten alta hafif karartma — metin okunurluğu her zaman korunsun */
+/* DÜZELTME: Açık renkli sahnelerde (özellikle gündoğumunun soluk sarı alt
+   kısmı, #FFE3A3) beyaz yazı okunurluğu çok düşüyordu. Sahne rengi ne
+   olursa olsun, üstten alta doğru artan hafif bir karartma katmanı
+   ekleniyor — üstte neredeyse görünmez, altta (hava durumu/"Detaylar"
+   satırının olduğu yer) yeterince koyu, böylece metin her sahnede
+   okunabilir kalıyor. */
 #tab-panel.dash-modern .dash-hero::after{
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 45%, rgba(0,0,0,.14) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.08) 35%, rgba(0,0,0,.32) 100%);
 }
 #tab-panel.dash-modern .dash-hero > *{ position:relative; z-index:1; }
 
-#tab-panel.dash-modern .dash-hero,
-#tab-panel.dash-modern .dash-hero.sahne-gundogumu,
-#tab-panel.dash-modern .dash-hero.sahne-ogle,
-#tab-panel.dash-modern .dash-hero.sahne-gunbatimi,
-#tab-panel.dash-modern .dash-hero.sahne-gece{
-  background: linear-gradient(170deg, #1E6FD9 0%, #4B9BEB 38%, #8FCDEE 66%, #CDEFD3 100%);
+/* Gün doğumu: 05:00–08:00 — sıcak turuncu/pembe gökyüzü + yükselen güneş */
+#tab-panel.dash-modern .dash-hero.sahne-gundogumu{ background:linear-gradient(180deg,#FF9A6C 0%,#FFC371 45%,#FFE3A3 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gundogumu::before{
+  background: radial-gradient(circle 70px at 18% 92%, #FFF3C4 0%, #FFD66B 55%, rgba(255,214,107,0) 75%);
 }
 
-/* Manzara illüstrasyonu: gökyüzündeki içerik (metin, zil, hava) her zaman
-   üstte kalsın diye z-index bilinçli olarak 0'da tutuluyor. */
-#tab-panel.dash-modern .dash-hero .hero-manzara{
-  position:absolute; inset:0; overflow:hidden; z-index:0 !important; pointer-events:none;
+/* Öğle / güneşli: 08:00–17:00 — canlı mavi gökyüzü + parlak güneş köşede */
+#tab-panel.dash-modern .dash-hero.sahne-ogle{ background:linear-gradient(135deg,#2E8FE0 0%,#4FA8F0 50%,#8AD0F7 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-ogle::before{
+  background: radial-gradient(circle 60px at 88% 12%, #FFF7D6 0%, #FFE69A 55%, rgba(255,230,154,0) 75%);
 }
 
-/* --- Güneş: gökyüzüne gömülü, hafif nabız/parıltı animasyonlu --- */
-#tab-panel.dash-modern .dash-hero .hero-gunes{
-  position:absolute; top:7%; right:9%; width:110px; height:110px; border-radius:50%;
-  background: radial-gradient(circle, #FFFBEA 0%, #FFEDA8 45%, #FFDD7A 68%, rgba(255,221,122,0) 80%);
-  animation: gunesParilti 4.5s ease-in-out infinite;
-}
-@keyframes gunesParilti{
-  0%,100%{ box-shadow:0 0 46px 14px rgba(255,225,150,.42); opacity:.96; }
-  50%{ box-shadow:0 0 62px 20px rgba(255,225,150,.62); opacity:1; }
+/* Gün batımı: 17:00–20:00 — turuncu/mor alacakaranlık */
+#tab-panel.dash-modern .dash-hero.sahne-gunbatimi{ background:linear-gradient(180deg,#FF7E5F 0%,#E85C8A 45%,#6B4AA8 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gunbatimi::before{
+  background: radial-gradient(circle 65px at 80% 85%, #FFD7A8 0%, #FF9D6C 55%, rgba(255,157,108,0) 75%);
 }
 
-/* --- Bulut: yumuşak, hafif bulanık, çok yavaş sağa-sola süzülüyor --- */
-#tab-panel.dash-modern .dash-hero .hero-bulut{
-  position:absolute; background:#fff; border-radius:50px; opacity:.9;
-  filter: blur(1.5px) drop-shadow(0 6px 8px rgba(20,60,110,.12));
-}
-#tab-panel.dash-modern .dash-hero .hero-bulut::before,
-#tab-panel.dash-modern .dash-hero .hero-bulut::after{
-  content:""; position:absolute; background:inherit; border-radius:50%;
-}
-#tab-panel.dash-modern .dash-hero .hero-bulut-1{
-  top:16%; left:auto; right:30%; width:78px; height:28px;
-  animation: bulutSuzul 22s ease-in-out infinite;
-}
-#tab-panel.dash-modern .dash-hero .hero-bulut-1::before{ width:38px; height:38px; top:-18px; left:8px; }
-#tab-panel.dash-modern .dash-hero .hero-bulut-1::after{ width:28px; height:28px; top:-10px; left:40px; }
-#tab-panel.dash-modern .dash-hero .hero-bulut-2{
-  top:11%; left:6%; width:50px; height:19px; opacity:.7;
-  animation: bulutSuzul 28s ease-in-out infinite reverse;
-}
-#tab-panel.dash-modern .dash-hero .hero-bulut-2::before{ width:24px; height:24px; top:-11px; left:6px; }
-#tab-panel.dash-modern .dash-hero .hero-bulut-2::after{ width:17px; height:17px; top:-7px; left:26px; }
-@keyframes bulutSuzul{
-  0%,100%{ transform:translateX(0); }
-  50%{ transform:translateX(-16px); }
-}
-
-/* --- Tepeler: DÜZELTME — artık kartın ALTINDA tam genişlikte 3 şerit değil,
-   referans görseldeki gibi SAĞ ÜST köşeden başlayıp çapraz aşağı süzülen,
-   köşeye gömülü, büyük yuvarlak/iç içe kütleler. Bu sayede alt kısımdaki
-   sosyal medya ikon satırıyla asla çakışmıyor (eski tasarımdaki hata buydu). */
-#tab-panel.dash-modern .dash-hero .hero-tepe{ position:absolute; border-radius:50%; }
-#tab-panel.dash-modern .dash-hero .hero-tepe-arka{ width:280px; height:280px; top:-100px; right:-90px; background:#A9D9A0; opacity:.65; }
-#tab-panel.dash-modern .dash-hero .hero-tepe-orta{ width:210px; height:210px; top:-30px; right:-70px; background:#7FC46E; opacity:.8; }
-#tab-panel.dash-modern .dash-hero .hero-tepe-on{ width:190px; height:190px; top:60px; right:-90px; background:#57A648; opacity:.95; }
-
-/* --- Ağaçlar: tepe kütlesinin görünür kavisi üzerine, yukarıdan aşağı
-   küçülen bir dizilim — hepsi üst %55'lik alanda, ikon satırına değmiyor --- */
-#tab-panel.dash-modern .dash-hero .hero-agac{ position:absolute; width:0; height:0; }
-#tab-panel.dash-modern .hero-agac-arka-1{ top:2%; right:26%; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:15px solid #6FBB5E; opacity:.7; }
-#tab-panel.dash-modern .hero-agac-arka-2{ top:9%; right:16%; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:12px solid #6FBB5E; opacity:.65; }
-#tab-panel.dash-modern .hero-agac-arka-3{ top:5%; right:8%; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:14px solid #6FBB5E; opacity:.7; }
-#tab-panel.dash-modern .hero-agac-orta-1{ top:16%; right:20%; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:19px solid #4FA23F; opacity:.85; }
-#tab-panel.dash-modern .hero-agac-orta-2{ top:20%; right:6%; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:17px solid #4FA23F; opacity:.85; }
-#tab-panel.dash-modern .hero-agac-on-1{ top:29%; right:12%; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:26px solid #388A2E; }
-#tab-panel.dash-modern .hero-agac-on-2{ top:33%; right:1%; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:22px solid #388A2E; opacity:.95; }
-#tab-panel.dash-modern .hero-agac-on-3{ top:24%; right:24%; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:17px solid #388A2E; opacity:.9; }
-
-/* Çim dokusu artık kullanılmıyor (tepe köşeye taşındığı için altta ayrı bir
-   şeride gerek kalmadı) — element DOM'da kalsa da görünmez. */
-#tab-panel.dash-modern .dash-hero .hero-cim{ display:none; }
-
-/* Erişilebilirlik: hareket azaltma tercihi olan kullanıcılarda dekoratif
-   animasyonlar (giriş, güneş parıltısı, bulut süzülmesi) kapatılır. */
-@media (prefers-reduced-motion: reduce){
-  #tab-panel.dash-modern .dash-hero{ animation:none; }
-  #tab-panel.dash-modern .dash-hero .hero-gunes{ animation:none; }
-  #tab-panel.dash-modern .dash-hero .hero-bulut-1,
-  #tab-panel.dash-modern .dash-hero .hero-bulut-2{ animation:none; }
+/* Gece: 20:00–05:00 — koyu lacivert gökyüzü + ay + yıldızlar */
+#tab-panel.dash-modern .dash-hero.sahne-gece{ background:linear-gradient(160deg,#0B1E4A 0%,#1B2D6B 55%,#2C3E8C 100%); }
+#tab-panel.dash-modern .dash-hero.sahne-gece::before{
+  background:
+    radial-gradient(circle 36px at 85% 14%, #F2F4FF 0%, #D9DEFF 60%, rgba(217,222,255,0) 75%),
+    radial-gradient(2px 2px at 20% 30%, #fff, transparent),
+    radial-gradient(2px 2px at 40% 65%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 65% 20%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 75% 55%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 30% 80%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 55% 40%, #fff, transparent);
+  opacity:.85;
 }
 
 /* =========================================================================
@@ -2943,19 +2877,15 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 .btn:active, .btn-ghost:active, .btn-amber:active, .btn-danger:active{ box-shadow:none !important; transform:scale(.98); }
 
 /* =========================================================================
-   HERO KART İÇİ HAVA SATIRI — Tatil/Zil kartıyla (.dash-hero-bell) BİREBİR
-   aynı cam (glassmorphism) stil: bg/blur/border/radius/shadow/padding hepsi
-   ortak. İki kart arasındaki boşluk margin-top:18px ile sağlanıyor.
+   YENİ: HERO KART İÇİ HAVA SATIRI
    ========================================================================= */
 .dash-hero-hava-satir{
-  display:flex; align-items:center; gap:10px; margin-top:18px;
-  background:rgba(255,255,255,.13);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border:1px solid rgba(255,255,255,.35); border-radius:28px; padding:18px;
-  box-shadow: 0 8px 24px -6px rgba(10,40,80,.16), inset 0 1px 0 rgba(255,255,255,.25);
+  display:flex; align-items:center; gap:10px; margin-top:10px;
+  background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22);
+  border-radius:14px; padding:10px 14px;
   font-family:'Inter',sans-serif; transition:background .2s ease;
 }
-.dash-hero-hava-satir:hover{ background:rgba(255,255,255,.20); }
+.dash-hero-hava-satir:hover{ background:rgba(255,255,255,.22); }
 .dash-hero-hava-satir .hero-hava-sicaklik{ font-size:17px; font-weight:800; color:#fff; }
 .dash-hero-hava-satir .hero-hava-aciklama{ font-size:13px; color:rgba(255,255,255,.75); flex:1; }
 .dash-hero-hava-satir .hero-hava-detay-ok{ font-size:12px; color:rgba(255,255,255,.85); margin-left:auto; text-shadow:0 1px 2px rgba(0,0,0,.25); }
@@ -3469,10 +3399,9 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    sistemiyle zaten birebir örtüşüyor.
    ========================================================================= */
 
-/* ---- 1) Genel Bakış hero kartı: gölge markaya uyumlu (arkaplan artık sabit
-   manzara illüstrasyonu — bkz. yukarıdaki ".hero-manzara" bloğu, burada
-   ezilmiyor) ---- */
+/* ---- 1) Genel Bakış hero kartı: mavi gradyan -> marka (yeşil) gradyanı ---- */
 #tab-panel.dash-modern .dash-hero{
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 55%, var(--brand-mid) 100%);
   box-shadow: 0 12px 32px -8px rgba(22,163,74,.45); /* eski tarayıcı yedek gölgesi */
   box-shadow: 0 12px 32px -8px color-mix(in srgb, var(--brand) 45%, transparent);
 }
@@ -3512,9 +3441,9 @@ body.nav-collapsed .nav-tab.active::before{ left:-2px; }
   background: rgba(225,29,72,0.20); color:#FB7185;
 }
 
-/* ---- 6) Kart köşeleri: squircle hissi — artık yukarıdaki yeni tasarım
-   bloğunda (32px hero, 28px cam kartlar) ele alınıyor, burada tekrar
-   ezilmiyor. ---- */
+/* ---- 6) Kart köşeleri: referans tasarımdaki daha yuvarlak "squircle" hissi ---- */
+#tab-panel.dash-modern .dash-hero,
+#tab-panel.dash-modern .dash-hero-bell{ border-radius: 22px; }
 
 /* =========================================================================
    YENİ — FAZ 2: LUCIDE İKONLARI İÇİN BOYUT/DOLGU AYARI
