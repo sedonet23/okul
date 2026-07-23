@@ -218,6 +218,7 @@ function ogretmenDetayAc(id){
       <div class="detay-row">E-posta: ${escapeHtml(o.eposta||'—')}</div>
       ${o.sorumluSinif?`<div class="detay-row">Sorumlu Sınıf: ${escapeHtml(o.sorumluSinif)}</div>`:''}
       ${o.kariyerBasamagi && o.kariyerBasamagi!=='Öğretmen' ? `<div class="detay-row">Kariyer Basamağı: <span class="status-badge status-${kariyerBasamagiRengi(o.kariyerBasamagi)}">${escapeHtml(o.kariyerBasamagi)}</span></div>` : ''}
+      ${(o.kadroKademesi||o.gorevYeriKademesi)?`<div class="detay-row">Okul: ${ogretmenKademeHucresi(o)}${o.kadroKademesi && o.gorevYeriKademesi && o.kadroKademesi!==o.gorevYeriKademesi ? ` <span class="detay-row-muted">(Kadrosu: ${ogretmenKademeEtiket(o.kadroKademesi)})</span>` : ''}</div>`:''}
       ${(o.derece||o.kademe)?`<div class="detay-row">${o.derece?'Derece: '+o.derece:''}${o.derece&&o.kademe?' · ':''}${o.kademe?'Kademe: '+o.kademe:''}</div>`:''}
       ${o.notlar?`<div class="detay-row detay-row-muted">${escapeHtml(o.notlar)}</div>`:''}
     </div>

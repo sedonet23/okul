@@ -695,21 +695,49 @@ function modalKapat(){
 }
 
 /* ============== ÖĞRETMENLER ============== */
+/* YENİ: İki okul (Koruk İlkokulu / Koruk Ortaokulu) tek panelden yönetiliyor.
+   Bir öğretmenin "kadrosu" (resmi olarak bağlı olduğu okul) ile "fiilen
+   çalıştığı okul" (görevlendirme ile geçici olarak çalıştığı yer) farklı
+   olabilir — istatistiklerde ve listede FİİLİ görev yeri esas alınır. */
+const OGRETMEN_KADEME_SECENEKLERI = [
+  { key:'',         ad:'— Belirtilmedi —' },
+  { key:'ilkokul',  ad:'İlkokul' },
+  { key:'ortaokul', ad:'Ortaokul' }
+];
+function ogretmenKademeEtiket(k){ return k==='ilkokul' ? 'İlkokul' : (k==='ortaokul' ? 'Ortaokul' : '—'); }
+/* Fiili görev yeri boşsa kadrosu esas alınır (görevlendirme yoksa ikisi aynıdır). */
+function ogretmenFiiliKademe(o){ return (o && (o.gorevYeriKademesi || o.kadroKademesi)) || ''; }
+function ogretmenKademeHucresi(o){
+  const fiili = ogretmenFiiliKademe(o);
+  const kadro = (o && o.kadroKademesi) || '';
+  const farkli = kadro && fiili && kadro !== fiili;
+  return `${ogretmenKademeEtiket(fiili)}${farkli ? ` <span class="badge badge-amber" title="Kadrosu: ${ogretmenKademeEtiket(kadro)}">Görevlendirme</span>` : ''}`;
+}
+
+let _ogretmenKademeFiltre = '';
+function ogretmenKademeFiltreSec(k){
+  _ogretmenKademeFiltre = k;
+  document.querySelectorAll('#tab-ogretmenler .filtre-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===k));
+  renderOgretmenler();
+}
+
 function renderOgretmenler(){
   const aramaEl = document.getElementById('ogretmenArama');
   const arama = (aramaEl ? aramaEl.value : '').toLocaleLowerCase('tr');
   let liste = ogretmenler.filter(o => !arama || (o.ad+' '+o.soyad+' '+(o.brans||'')+' '+(o.unvan||'')).toLocaleLowerCase('tr').includes(arama));
+  if(_ogretmenKademeFiltre) liste = liste.filter(o=>ogretmenFiiliKademe(o)===_ogretmenKademeFiltre);
   liste.sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
   document.getElementById('ogretmenlerTablo').innerHTML = liste.length ? liste.map(o=>`
     <tr class="row-clickable" onclick="ogretmenDetayAc('${o.id}')">
       <td>${escapeHtml(o.ad+' '+o.soyad)}${typeof ogretmenIzinRozeti==='function' ? ogretmenIzinRozeti(o.id) : ''}</td>
       <td>${escapeHtml(o.unvan||'Öğretmen')}${o.kariyerBasamagi && o.kariyerBasamagi!=='Öğretmen' ? ` <span class="status-badge status-${kariyerBasamagiRengi(o.kariyerBasamagi)}">${escapeHtml(o.kariyerBasamagi)}</span>` : ''}</td>
       <td>${escapeHtml(o.brans||'—')}</td>
+      <td>${ogretmenKademeHucresi(o)}</td>
       <td>${escapeHtml(o.telefon||'—')}</td>
       <td>${escapeHtml(o.eposta||'—')}</td>
       <td>${escapeHtml(o.sorumluSinif||'—')}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); ogretmenModalAc('${o.id}')">Düzenle</button></td>
-    </tr>`).join('') : `<tr><td colspan="7" class="empty-state">Henüz öğretmen eklenmedi.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="8" class="empty-state">Henüz öğretmen eklenmedi.</td></tr>`;
 }
 const OGRETMEN_UNVANLARI = ['Öğretmen','Müdür','Müdür Yardımcısı','Rehber Öğretmen','İdari Personel'];
 const OGRETMEN_KARIYER_BASAMAKLARI = ['Öğretmen','Uzman Öğretmen','Başöğretmen'];
@@ -733,6 +761,16 @@ function ogretmenModalAc(id, varsayilanUnvan){
       <select id="f_kariyerBasamagi">${OGRETMEN_KARIYER_BASAMAKLARI.map(k=>`<option value="${k}" ${o&&o.kariyerBasamagi===k?'selected':''}>${k}</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>Branş</label>${bransSelectHtml('f_brans', o?o.brans||'':'')}</div>
+    <div class="form-row">
+      <div class="form-group"><label>Kadrosu</label><select id="f_kadroKademesi">
+        ${OGRETMEN_KADEME_SECENEKLERI.map(k=>`<option value="${k.key}" ${o&&(o.kadroKademesi||'')===k.key?'selected':''}>${k.ad}</option>`).join('')}
+      </select></div>
+      <div class="form-group"><label>Fiilen Çalıştığı Okul</label><select id="f_gorevYeriKademesi">
+        <option value="" ${!o||!o.gorevYeriKademesi?'selected':''}>— Kadrosuyla aynı —</option>
+        <option value="ilkokul" ${o&&o.gorevYeriKademesi==='ilkokul'?'selected':''}>İlkokul (görevlendirme)</option>
+        <option value="ortaokul" ${o&&o.gorevYeriKademesi==='ortaokul'?'selected':''}>Ortaokul (görevlendirme)</option>
+      </select></div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Derece</label><select id="f_derece"><option value="">—</option>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${o&&o.derece===n?'selected':''}>${n}</option>`).join('')}</select></div>
       <div class="form-group"><label>Kademe</label><select id="f_kademe"><option value="">—</option>${[1,2,3,4].map(n=>`<option value="${n}" ${o&&o.kademe===n?'selected':''}>${n}</option>`).join('')}</select></div>
@@ -761,6 +799,8 @@ function ogretmenModalAc(id, varsayilanUnvan){
       unvan: document.getElementById('f_unvan').value.trim(),
       kariyerBasamagi: document.getElementById('f_kariyerBasamagi').value,
       brans: document.getElementById('f_brans').value.trim(),
+      kadroKademesi: document.getElementById('f_kadroKademesi').value,
+      gorevYeriKademesi: document.getElementById('f_gorevYeriKademesi').value,
       derece: dereceVal ? parseInt(dereceVal) : null,
       kademe: kademeVal ? parseInt(kademeVal) : null,
       tcNo: document.getElementById('f_tcNo').value.trim(),
@@ -776,6 +816,26 @@ function ogretmenModalAc(id, varsayilanUnvan){
 
 /* ============== OKUL BİLGİLERİ ============== */
 let okulBilgileriAyari = null;
+
+/* YENİ: İki okul (Koruk İlkokulu 1-4 / Koruk Ortaokulu 5-8) tek panelden
+   yönetiliyor. Bir sınıfın hangi okula ait olduğu, mevcut 'seviye' alanından
+   (1-8) türetilir — ayrı bir alan eklemeye gerek yok. Bazı başlıklarda/
+   yazdırmalarda sadece İlkokul, bazılarında sadece Ortaokul adı kullanılması
+   gerektiğinde bu yardımcılar üzerinden okulBilgileriAyari.ilkokulAdi /
+   ortaokulAdi'na erişilir (Okul Bilgileri sayfasında girilir); ikisi de
+   boşsa genel okulAdi'na düşülür. */
+function sinifKademesi(sinif){
+  const s = parseInt(sinif && sinif.seviye);
+  if(isNaN(s)) return '';
+  return s <= 4 ? 'ilkokul' : 'ortaokul';
+}
+function okulAdiKademeye(kademe){
+  const genel = (okulBilgileriAyari && okulBilgileriAyari.okulAdi) || 'KORUK İLK - ORTAOKULU';
+  if(!okulBilgileriAyari) return genel;
+  if(kademe === 'ilkokul') return okulBilgileriAyari.ilkokulAdi || genel;
+  if(kademe === 'ortaokul') return okulBilgileriAyari.ortaokulAdi || genel;
+  return genel;
+}
 
 /* YENİ: Sosyal medya / web linkleri artık sabit 3 alan değil, serbest bir
    liste (sosyalLinkler dizisi). sosyalLinklerTaslak, Okul Bilgileri sayfası
@@ -1221,6 +1281,13 @@ function renderDashboard(){
   }
   const bugunGun = GUNADI[new Date().getDay()];
   const toplamOgrenci = siniflar.reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
+  // YENİ: İki okul (İlkokul 1-4 / Ortaokul 5-8) tek panelden yönetildiği için
+  // istatistiklerde ayrı ayrı öğrenci/öğretmen sayıları da gösteriliyor.
+  // Sınıfın kademesi 'seviye' alanından türetilir (yeni alan eklemeye gerek yok).
+  const ilkokulOgrenciSayisi = siniflar.filter(s=>parseInt(s.seviye)>=1 && parseInt(s.seviye)<=4).reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
+  const ortaokulOgrenciSayisi = siniflar.filter(s=>parseInt(s.seviye)>=5 && parseInt(s.seviye)<=8).reduce((t,s)=>t+(parseInt(s.ogrenciSayisi)||0),0);
+  const ilkokulOgretmenSayisi = ogretmenler.filter(o=>ogretmenFiiliKademe(o)==='ilkokul').length;
+  const ortaokulOgretmenSayisi = ogretmenler.filter(o=>ogretmenFiiliKademe(o)==='ortaokul').length;
   const kadinOgretmen = ogretmenler.filter(o=>o.cinsiyet==='kadin').length;
   const erkekOgretmen = ogretmenler.filter(o=>o.cinsiyet==='erkek').length;
   const kadinPersonel = ogretmenler.filter(o=>o.cinsiyet==='kadin'||o.cinsiyet==='Kadın').length
@@ -1325,6 +1392,48 @@ function renderDashboard(){
       <div class="stat-card-ico-lg stat-card-ico-purple">📚</div>
       <div class="stat-card-num">${dersProgrami.filter(d=>d.ogretmenId===_statBenOgretmen.id && d.gun===GUNADI[new Date().getDay()]).length}</div>
       <div class="stat-card-label">Bugünkü Ders Sayım</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
+    </div>` : '',
+    // YENİ: İlkokul/Ortaokul ayrımı — Sedat'ın isteğiyle eklendi (iki okul
+    // tek panelden yönetiliyor, istatistiklerde ayrı ayrı görünmesi istendi).
+    ilkokulOgrenci: gorebilir('ogrenciler') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
+      <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
+      <div class="stat-card-num">${ilkokulOgrenciSayisi}</div>
+      <div class="stat-card-label">İlkokul Öğrenci</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
+    </div>` : '',
+    ortaokulOgrenci: gorebilir('ogrenciler') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogrenciler')">
+      <div class="stat-card-ico-lg stat-card-ico-green">🧑‍🎓</div>
+      <div class="stat-card-num">${ortaokulOgrenciSayisi}</div>
+      <div class="stat-card-label">Ortaokul Öğrenci</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
+    </div>` : '',
+    ilkokulOgretmen: gorebilir('ogretmenler') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
+      <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
+      <div class="stat-card-num">${ilkokulOgretmenSayisi}</div>
+      <div class="stat-card-label">İlkokul Öğretmen</div>
+      <div class="stat-card-footer">
+        <span></span>
+        <span class="stat-card-tumu-bottom">Tümü ›</span>
+      </div>
+    </div>` : '',
+    ortaokulOgretmen: gorebilir('ogretmenler') ? `
+    <div class="stat-card stat-card-clickable" onclick="sekmeAc('ogretmenler')">
+      <div class="stat-card-ico-lg stat-card-ico-blue">👨‍🏫</div>
+      <div class="stat-card-num">${ortaokulOgretmenSayisi}</div>
+      <div class="stat-card-label">Ortaokul Öğretmen</div>
       <div class="stat-card-footer">
         <span></span>
         <span class="stat-card-tumu-bottom">Tümü ›</span>
