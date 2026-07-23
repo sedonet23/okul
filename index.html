@@ -1320,6 +1320,18 @@
 
       <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
         <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>🔔 Hatırlatma Sistemi</span><span class="arrow">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">
+            Öğretmenlere, kendilerine atanmış işler/evraklar, aylık kulüp-rehberlik-maarif raporları, nöbet defteri, kontrol listeleri ve yazılı sınavlar için son tarih yaklaşınca/geçince uygulama açılışında hatırlatma penceresi gösterilir. Tamamlanan işler (ilgili modülde işaretlenince) otomatik olarak listeden düşer.
+          </p>
+          <div id="hatirlatmaAyarForm"></div>
+        </div>
+      </div>
+
+      <div class="accordion-item" style="margin-bottom:18px;" data-yetki-modul="sistemAyarlari">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
           <span>💾 Depolama Sınırları</span><span class="arrow">▼</span>
         </div>
         <div class="accordion-content">
@@ -1635,6 +1647,7 @@
 <script src="js/dokumanlar.js"></script>
 <script src="js/akademik-takvim.js"></script>
 <script src="js/kontrol-listeleri.js"></script>
+<script src="js/hatirlatmalar.js"></script>
 <script src="js/kontrol-listeleri-tohum-veri.js"></script>
 <script src="js/sinav-sonuclari.js"></script>
 <script src="js/dokuman-okuyucu.js"></script>
