@@ -188,16 +188,12 @@ const DASHBOARD_ALT_KATALOG = {
     {id:'hatirlatici',  ad:'⏰ Hatırlatıcı Sayısı'},
     {id:'sinavlarim',   ad:'📝 Sınavlarım / Sınav Sayısı'},
   ]},
-  istatistikSeridi: { limit:6, ogeler:[
-    {id:'personel',   ad:'👨‍🏫 Personel Sayısı'},
-    {id:'ogrenciler', ad:'🧑‍🎓 Öğrenci Sayısı'},
+  istatistikSeridi: { limit:5, ogeler:[
+    {id:'personel',   ad:'👨‍🏫 Personel Sayısı (İlkokul/Ortaokul bölünmüş)'},
+    {id:'ogrenciler', ad:'🧑‍🎓 Öğrenci Sayısı (İlkokul/Ortaokul bölünmüş)'},
     {id:'servis',     ad:'🚌 Servis Sayısı'},
     {id:'evrak',      ad:'📄 Bekleyen Evrak Sayısı'},
     {id:'sinif',      ad:'🏫 Sınıf Sayısı'},
-    {id:'ilkokulOgrenci',   ad:'🧑‍🎓 İlkokul Öğrenci Sayısı'},
-    {id:'ortaokulOgrenci',  ad:'🧑‍🎓 Ortaokul Öğrenci Sayısı'},
-    {id:'ilkokulOgretmen',  ad:'👨‍🏫 İlkokul Öğretmen Sayısı'},
-    {id:'ortaokulOgretmen', ad:'👨‍🏫 Ortaokul Öğretmen Sayısı'},
   ]},
   hizliIslemler: { limit:8, ogeler:[
     {id:'personel',       ad:'👥 Personel'},

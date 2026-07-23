@@ -59,8 +59,12 @@
   }
 
   function _getOkulBilgisi() {
-    const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
+    // YENİ: Kişinin fiilen çalıştığı okula göre (İlkokul/Ortaokul) doğru okul
+    // adı kullanılır; her iki okulda da çalışıyorsa ya da belirtilmemişse
+    // birleşik okul adına düşülür (bkz. js/app.js kisiyeGoreOkulAdi()).
+    let okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
       ? okulBilgileriAyari.okulAdi : 'KORUK İLK - ORTAOKULU';
+    if (_personel && typeof kisiyeGoreOkulAdi === 'function') okulAdi = kisiyeGoreOkulAdi(_personel);
     let mudurAd = '';
     if (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && typeof ogretmenler !== 'undefined') {
       const mudur = ogretmenler.find(o => o.id === okulBilgileriAyari.mudurId);

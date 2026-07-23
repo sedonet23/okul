@@ -81,6 +81,7 @@ function personelDetayAc(id){
       <div class="detay-card">
         <h4>👤 Personel Bilgileri</h4>
         <div class="detay-row">Görev: <span class="badge badge-blue">${escapeHtml(p.gorev||'—')}</span></div>
+        ${(p.kadroKademesi||(p.gorevYeriKademeleri&&p.gorevYeriKademeleri.length))?`<div class="detay-row">Okul: ${kademeHucresi(p)}</div>`:''}
         <div class="detay-row">TC Kimlik No: ${escapeHtml(p.tc||'—')}</div>
         <div class="detay-row">📞 Telefon: ${escapeHtml(p.telefon||'—')}</div>
         <div class="detay-row">🏠 Adres: ${escapeHtml(p.adres||'—')}</div>
@@ -120,6 +121,7 @@ function personelModalAc(id){
     <div class="form-group"><label>Görev</label>
       <select id="f_pGorev">${personelGorevSecenekleriHtml(p?p.gorev:'')}</select>
     </div>
+    ${kademeAlanlariHtml(p, 'fp')}
     <div class="form-group"><label>Adres</label><textarea id="f_pAdres" rows="2" placeholder="örn: Fevzi Çakmak Mh. Tekağaç Sk. No:34/5 Merkez / Elazığ">${p?escapeHtml(p.adres||''):''}</textarea></div>
     <div class="form-group"><label>Notlar</label><textarea id="f_pNotlar" rows="2">${p?escapeHtml(p.notlar||''):''}</textarea></div>
   `;
@@ -128,11 +130,14 @@ function personelModalAc(id){
     if(!adSoyad){ toast('Ad Soyad zorunludur.'); return; }
     const tc = document.getElementById('f_pTc').value.trim();
     if(!PersonelService.tcGecerliMi(tc)){ toast('TC Kimlik No 11 haneli rakamlardan oluşmalıdır.'); return; }
+    const _kademeAlanlari = kademeAlanlariniOku('fp');
     PersonelService.personelKaydet(p?p.id:null, {
       adSoyad,
       tc,
       telefon: document.getElementById('f_pTel').value.trim(),
       gorev: document.getElementById('f_pGorev').value,
+      kadroKademesi: _kademeAlanlari.kadroKademesi,
+      gorevYeriKademeleri: _kademeAlanlari.gorevYeriKademeleri,
       adres: document.getElementById('f_pAdres').value.trim(),
       notlar: document.getElementById('f_pNotlar').value.trim(),
     }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });

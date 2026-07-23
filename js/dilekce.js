@@ -55,8 +55,11 @@
   // --- Yardımcılar ---
 
   function _getOkulBilgisi() {
-    const okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
+    // YENİ: Kişinin (personel) fiilen çalıştığı okula göre doğru okul adı
+    // kullanılır — bkz. js/app.js kisiyeGoreOkulAdi()/js/puantaj.js aynı desen.
+    let okulAdi = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.okulAdi)
       ? okulBilgileriAyari.okulAdi : 'KORUK ORTAOKULU';
+    if (_personel && typeof kisiyeGoreOkulAdi === 'function') okulAdi = kisiyeGoreOkulAdi(_personel);
     const il = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.il) || '';
     const ilce = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.ilce) || '';
     const mebMudurlugu = (typeof okulBilgileriAyari !== 'undefined' && okulBilgileriAyari && okulBilgileriAyari.mebMudurlugu) || '';
