@@ -152,35 +152,35 @@ async function main(){
     return;
   }
 
-  // Tekrar eklememek için mevcut haberlerin linklerini çek
-  // DÜZELTME: limit(500) de aynı "sık yayın yapan kaynak azınlık kaynağı
-  // pencereden atar" riskini taşıyordu — bu sefer TEKRAR EKLEME riskiyle
-  // (dedup kontrolü bu pencereyi kullanıyor). Görüntüleme limitiyle
-  // (bkz. haberler.repository.js) tutarlı olacak şekilde artırıldı.
-  const mevcutSnap = await db.collection('oy_haberler').orderBy('tarih', 'desc').limit(600).get();
-  const mevcutLinkler = new Set(mevcutSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
-  // YENİ: guid varsa en güvenilir dedup anahtarı odur (linkten bağımsız,
-  // kalıcı kimlik). Kaynak+guid olarak saklıyoruz — iki farklı kaynak aynı
-  // guid'i kullanabilir diye kaynak adıyla birlikte anahtarlıyoruz.
-  const mevcutGuidler = new Set(
-    mevcutSnap.docs.map(d => d.data().guid ? `${d.data().kaynakAdi || ''}|${d.data().guid}` : '').filter(Boolean)
-  );
-  // DÜZELTME: Bazı kaynaklar aynı haberi her taramada FARKLI bir link ile
-  // veriyor (yönlendirme/oturum parametresi linkin kendisine, "?" öncesine
-  // de karışabiliyor). Sadece linke bakan dedup bu durumda aynı haberi
-  // saatte bir "yeni" sanıp tekrar tekrar bildirim gönderiyordu. Şimdi
-  // kaynak+başlık eşleşmesi de ikinci bir güvenlik katmanı olarak kontrol
-  // ediliyor.
+  // DÜZELTME (kök sebep): Dedup kontrolü eskiden TÜM kaynaklar birleşik
+  // "en yeni 600 haber" penceresine bakıyordu. Sık/güncel tarihli yayın
+  // yapan bir kaynak bu pencereyi doldurunca, nadiren güncellenen bir
+  // kaynağın (ör. yaz tatilinde haber üretmeyen bir okul/il MEB sitesi)
+  // haftalar önce eklenmiş haberleri pencereden düşüyor, kod bunları
+  // "daha önce görmedim" sanıp TEKRAR ekliyor ve TEKRAR bildirim
+  // gönderiyordu (aynı ~15 haber saatte bir "yeni" görünüyordu). Artık her
+  // kaynağın "daha önce eklendi mi" kontrolü SADECE KENDİ geçmişine bakıyor.
   const baslikAnahtariUret = (kaynakAdi, baslik) =>
     `${kaynakAdi || ''}|${(baslik || '').toLocaleLowerCase('tr').replace(/\s+/g, ' ').trim()}`;
-  const mevcutBaslikAnahtarlari = new Set(
-    mevcutSnap.docs.map(d => baslikAnahtariUret(d.data().kaynakAdi, d.data().baslik))
-  );
 
   const yeniHaberler = []; // {kaynak, item}
 
   for(const kaynak of kaynaklar){
     try{
+      const mevcutKaynakSnap = await db.collection('oy_haberler')
+        .where('kaynakAdi', '==', kaynak.ad)
+        .orderBy('tarih', 'desc')
+        .limit(200)
+        .get();
+      const mevcutLinkler = new Set(mevcutKaynakSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
+      // guid varsa en güvenilir dedup anahtarıdır (linkten bağımsız, kalıcı kimlik).
+      const mevcutGuidler = new Set(mevcutKaynakSnap.docs.map(d => d.data().guid || '').filter(Boolean));
+      // Bazı kaynaklar aynı haberi her taramada FARKLI bir link ile verebiliyor
+      // (yönlendirme/oturum parametresi); başlık eşleşmesi ek güvenlik katmanı.
+      const mevcutBaslikAnahtarlari = new Set(
+        mevcutKaynakSnap.docs.map(d => baslikAnahtariUret(d.data().kaynakAdi, d.data().baslik))
+      );
+
       const res = await fetch(kaynak.url, {
         headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KorukOkulRSSBot/1.0)' }
       });
@@ -190,10 +190,9 @@ async function main(){
 
       let yeniSayisi = 0;
       for(const it of items){
-        const guidAnahtari = it.guid ? `${kaynak.ad}|${it.guid}` : '';
         const baslikAnahtari = baslikAnahtariUret(kaynak.ad, it.baslik);
-        if((guidAnahtari && mevcutGuidler.has(guidAnahtari)) || mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
-        if(guidAnahtari) mevcutGuidler.add(guidAnahtari);
+        if((it.guid && mevcutGuidler.has(it.guid)) || mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
+        if(it.guid) mevcutGuidler.add(it.guid);
         mevcutLinkler.add(it.link); // aynı çalışma içinde tekrar eklenmesin
         mevcutBaslikAnahtarlari.add(baslikAnahtari);
         yeniHaberler.push({ kaynak, item: it });
