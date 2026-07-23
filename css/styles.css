@@ -2934,6 +2934,28 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   font-size:10.5px; font-weight:600; color:var(--dm-ink-muted);
 }
 
+/* YENİ: Personel/Öğrenciler kartlarını ortadan ikiye bölen İlkokul/Ortaokul
+   düzeni — ayrı kart yok, aynı kartın içinde dikey bir çizgiyle ayrılıyor. */
+#tab-panel.dash-modern .stat-card-split{
+  display:flex; align-items:stretch; width:100%; margin-top:8px;
+}
+#tab-panel.dash-modern .stat-card-split-yari{
+  flex:1 1 0; display:flex; flex-direction:column; align-items:center; padding:0 6px; min-width:0;
+}
+#tab-panel.dash-modern .stat-card-split-ayrac{
+  width:1px; background:var(--border); flex-shrink:0; margin:2px 0;
+}
+#tab-panel.dash-modern .stat-card-split-baslik{
+  font-family:'Inter'; font-size:10px; font-weight:700; color:var(--dm-ink-muted);
+  text-transform:uppercase; letter-spacing:.02em;
+}
+#tab-panel.dash-modern .stat-card-split-sayi{
+  font-family:'Inter'; font-size:18px; font-weight:800; color:var(--dm-ink); margin-top:2px; letter-spacing:-0.02em;
+}
+#tab-panel.dash-modern .stat-card-split-cinsiyet{
+  font-size:10px; font-weight:600; color:var(--dm-ink-muted); margin-top:2px;
+}
+
 /* =========================================================================
    İÇERİK ALT MENÜNÜN ALTINDA KALMAZ
    Bottom-nav artık tüm ekran genişliklerinde göründüğü için bu boşluklar
