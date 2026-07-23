@@ -2393,10 +2393,18 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .hero-sosyal-link{
   display:flex; flex-direction:column; align-items:center; gap:5px;
   color:#fff; text-decoration:none; flex:1 1 0; min-width:52px; max-width:96px;
+  position:relative;
+}
+/* İkonlar arasında ince, dikey beyaz ayraç çizgisi (ikon hizasında, etiket
+   yazısının üstünde biter) */
+#tab-panel.dash-modern .hero-sosyal-link:not(:first-child)::before{
+  content:""; position:absolute; left:0; top:3px; width:1px; height:30px;
+  background:rgba(255,255,255,.35);
 }
 #tab-panel.dash-modern .hero-sosyal-ikon{
-  width:44px; height:44px; display:flex; align-items:center;
+  width:36px; height:36px; display:flex; align-items:center;
   justify-content:center; transition:transform .15s ease; flex-shrink:0;
+  background:rgba(255,255,255,.20); border-radius:50%; padding:7px; box-sizing:border-box;
 }
 #tab-panel.dash-modern .hero-sosyal-ikon svg{ width:100%; height:100%; }
 #tab-panel.dash-modern .hero-sosyal-link:hover .hero-sosyal-ikon{ transform:translateY(-2px); }
