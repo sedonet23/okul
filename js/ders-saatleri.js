@@ -44,6 +44,29 @@ function dersSaatleriBaglantisiKur(){
     if(_dsrSenkronUyariZamanlayici) clearTimeout(_dsrSenkronUyariZamanlayici);
     if(typeof _senkronUyariGizle === 'function') _senkronUyariGizle();
   });
+
+  // DÜZELTME (kök sebep): Yukarıdaki gerçek zamanlı dinleyici bazı cihazlarda
+  // (IndexedDB'de takılı kalmış eski bir kopya yüzünden) tatil modu gibi
+  // kritik bir alanda süresiz olarak BAYAT veri gösterebiliyor ve kendi
+  // kendine asla düzelmeyebiliyordu ("web sürümü tatil modunda değil" hatası
+  // — Sedat'ın bildirdiği, önbellek temizlenince ortaya çıkan sorun). Buna
+  // ek olarak, sayfa her açıldığında SUNUCUDAN (önbellek atlanarak) bir kez
+  // daha zorla okuma yapılır; sonuç dinleyicinin elindekinden farklıysa
+  // üzerine yazılır — böylece kullanıcı elle önbellek temizlemek zorunda
+  // kalmaz, hata kendiliğinden düzelir.
+  DersSaatleriRepository.ayarlariSunucudanOku().then(v=>{
+    if(JSON.stringify(v) === JSON.stringify(dersSaatleriAyarlari)) return; // zaten aynı, dokunma
+    console.warn('[Ders Saatleri] Gerçek zamanlı dinleyici ile sunucudaki güncel veri UYUŞMUYORDU (bayat önbellek şüphesi) — sunucudaki esas alınıp ekran güncellendi.');
+    dersSaatleriYuklendi = true;
+    dersSaatleriAyarlari = v;
+    renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
+    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
+    if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
+  }).catch(err=>{
+    // Sunucuya hiç ulaşılamıyorsa (tamamen offline) sessizce geç — dinleyici
+    // zaten elindeki en iyi veriyle (önbellek) çalışmaya devam eder.
+    console.warn('[Ders Saatleri] Sunucudan doğrulama okuması başarısız (muhtemelen tamamen offline):', err.message);
+  });
 }
 
 function pad2(n){ return n.toString().padStart(2,'0'); }
