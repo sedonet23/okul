@@ -998,14 +998,15 @@
         <div class="form-group"><label>Bağlı Olduğu Milli Eğitim Müdürlüğü</label><input id="f_okulMeb" placeholder="örn: Elazığ İl Millî Eğitim Müdürlüğü"></div>
       </div>
 
-      <!-- YENİ: Sosyal Medya ve Web Adresi — ana sayfa hero kartında ve bu
-           sayfada ikon olarak gösterilir (bkz. js/app.js renderSosyalMedyaIkonlari). -->
+      <!-- YENİ: Sosyal Medya ve Web Adresleri — istenildiği kadar link
+           eklenebilir (Instagram, X, İlkokul/Ortaokul web sitesi, vb.).
+           Ana sayfa hero kartında ikon+etiket olarak gösterilir
+           (bkz. js/app.js renderSosyalMedyaIkonlari). -->
       <div class="card" style="margin-bottom:18px;">
-        <h3>Sosyal Medya ve Web Adresi</h3>
-        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">Boş bırakılan linkler hiçbir yerde gösterilmez.</p>
-        <div class="form-group"><label>Instagram</label><input id="f_okulInstagram" placeholder="https://instagram.com/kullaniciadi"></div>
-        <div class="form-group"><label>X (Twitter)</label><input id="f_okulX" placeholder="https://x.com/kullaniciadi"></div>
-        <div class="form-group"><label>Web Sitesi</label><input id="f_okulWeb" placeholder="https://korukortaokulu.meb.k12.tr"></div>
+        <h3>Sosyal Medya ve Web Adresleri</h3>
+        <p style="color:var(--ink-muted);font-size:13px;margin-bottom:10px;">İstediğiniz kadar link ekleyebilirsiniz. Her linkin ana sayfada gösterilecek bir etiketi olur (örn: "İlkokul Web Sitesi").</p>
+        <div id="sosyalLinklerListesi"></div>
+        <button type="button" class="btn btn-ghost btn-sm" style="margin-top:10px;" onclick="sosyalLinkEkle()">+ Yeni Link Ekle</button>
       </div>
 
       <!-- YENİ: İki okul bir arada (Koruk İlkokulu + Koruk Ortaokulu) — evrak
