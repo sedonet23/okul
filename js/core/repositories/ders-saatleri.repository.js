@@ -20,5 +20,15 @@ const DersSaatleriRepository = {
       hataCb || hataGoster
     );
   },
+  // YENİ: Gerçek zamanlı dinleyici bazı cihazlarda (IndexedDB'de takılı kalmış
+  // eski bir kopya yüzünden) süresiz olarak bayat veri gösterebiliyor — özellikle
+  // "tatil modu" gibi nadiren değişen ama kritik bir alanda bu fark edilmesi zor
+  // bir hataya yol açıyordu. Bu, önbelleği BİLİNÇLİ olarak atlayıp doğrudan
+  // sunucudan tek seferlik okuma yapar (bkz. ders-saatleri.js
+  // dersSaatleriBaglantisiKur — dinleyiciyle çelişirse bunun sonucu esas alınır).
+  ayarlariSunucudanOku(){
+    return db.collection(COL.dersSaatleri).doc('ayarlar').get({ source: 'server' })
+      .then(doc => doc.exists ? doc.data() : null);
+  },
   ayarlariKaydet(veri){ return db.collection(COL.dersSaatleri).doc('ayarlar').set(veri); }
 };
