@@ -22,12 +22,12 @@
    saat boyunca tekrar göstermez (yerel, cihaza özel).
    ================================================================ */
 
-let hatirlatmaAyarlariGuncel = { gunSayisi: 3 };
+let hatirlatmaAyarlariGuncel = { gunSayisi: 3, erteleSaat: 4 };
 let _hatirlatmaGosterildi = false; // bu oturumda (sayfa tam yüklemesinde) zaten gösterildi mi?
 
 function hatirlatmaAyarlariBaglantisiniKur(){
   db.collection(COL.hatirlatmaAyarlari).doc('ayarlar').onSnapshot(doc=>{
-    if(doc.exists) hatirlatmaAyarlariGuncel = { gunSayisi: 3, ...doc.data() };
+    if(doc.exists) hatirlatmaAyarlariGuncel = { gunSayisi: 3, erteleSaat: 4, ...doc.data() };
     renderHatirlatmaAyarForm();
   }, err=>console.warn('Hatırlatma ayarları dinlenemedi:', err));
 }
@@ -36,18 +36,27 @@ function renderHatirlatmaAyarForm(){
   const kutu = document.getElementById('hatirlatmaAyarForm');
   if(!kutu) return;
   kutu.innerHTML = `
-    <div class="form-group" style="max-width:220px;">
-      <label>Kaç gün kala hatırlatma başlasın?</label>
-      <input type="number" id="hatirlatmaGunSayisiInput" min="1" step="1" value="${hatirlatmaAyarlariGuncel.gunSayisi}">
+    <div class="form-row">
+      <div class="form-group" style="max-width:220px;">
+        <label>Kaç gün kala hatırlatma başlasın?</label>
+        <input type="number" id="hatirlatmaGunSayisiInput" min="1" step="1" value="${hatirlatmaAyarlariGuncel.gunSayisi}">
+      </div>
+      <div class="form-group" style="max-width:220px;">
+        <label>"Ertele" kaç saat gizlesin?</label>
+        <input type="number" id="hatirlatmaErteleSaatInput" min="1" step="1" value="${hatirlatmaAyarlariGuncel.erteleSaat}">
+      </div>
     </div>
     <button class="btn btn-ghost btn-sm" onclick="hatirlatmaGunSayisiKaydet()">💾 Kaydet</button>`;
 }
 function hatirlatmaGunSayisiKaydet(){
-  const el = document.getElementById('hatirlatmaGunSayisiInput');
-  const n = parseInt(el.value);
-  if(!n || n < 1){ toast('Geçerli bir gün sayısı girin.'); return; }
+  const gunEl = document.getElementById('hatirlatmaGunSayisiInput');
+  const erteleEl = document.getElementById('hatirlatmaErteleSaatInput');
+  const gun = parseInt(gunEl.value);
+  const ertele = parseInt(erteleEl.value);
+  if(!gun || gun < 1){ toast('Geçerli bir gün sayısı girin.'); return; }
+  if(!ertele || ertele < 1){ toast('Geçerli bir saat değeri girin.'); return; }
   if(!(typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin)){ toast('Bu işlem için yetkiniz yok.'); return; }
-  db.collection(COL.hatirlatmaAyarlari).doc('ayarlar').set({ gunSayisi: n }, { merge:true })
+  db.collection(COL.hatirlatmaAyarlari).doc('ayarlar').set({ gunSayisi: gun, erteleSaat: ertele }, { merge:true })
     .then(()=>toast('Kaydedildi.')).catch(err=>toast('Hata: '+err.message));
 }
 
@@ -201,15 +210,14 @@ async function hatirlatmalariTopla(){
 }
 
 /* ---------- Pop-up UI ---------- */
-const HT_ERTELE_SAAT = 4; // "Ertele" ne kadar süreyle tekrar göstermesin
-
 function _htErtelemeAktifMi(){
   const t = localStorage.getItem('hatirlatmaErteleZamani');
   if(!t) return false;
   return Date.now() < parseInt(t);
 }
 function hatirlatmaPopupErtele(){
-  localStorage.setItem('hatirlatmaErteleZamani', String(Date.now() + HT_ERTELE_SAAT*60*60*1000));
+  const saat = hatirlatmaAyarlariGuncel.erteleSaat || 4;
+  localStorage.setItem('hatirlatmaErteleZamani', String(Date.now() + saat*60*60*1000));
   const ov = document.getElementById('hatirlatmaPopupOverlay');
   if(ov) ov.remove();
   document.body.classList.remove('modal-open');
@@ -237,9 +245,9 @@ async function hatirlatmalariKontrolEtVeGoster(){
 
   const ov = document.createElement('div');
   ov.id = 'hatirlatmaPopupOverlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9800;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
   ov.innerHTML = `
-    <div style="background:var(--bg-card,#fff);width:100%;max-width:520px;border-radius:20px 20px 0 0;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 -8px 30px rgba(0,0,0,.25);">
+    <div style="background:var(--bg-card,#fff);width:100%;max-width:520px;height:90vh;border-radius:20px;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden;">
       <div style="padding:16px 18px 8px;border-bottom:1px solid var(--border);">
         <div style="font-weight:800;font-size:16px;">🔔 Hatırlatmalarınız</div>
         <div style="font-size:12.5px;color:var(--ink-muted);margin-top:2px;">${maddeler.length} bekleyen madde — işi tamamlayınca burada görünmeyecek</div>
@@ -258,7 +266,7 @@ async function hatirlatmalariKontrolEtVeGoster(){
         }).join('')}
       </div>
       <div style="display:flex;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);">
-        <button class="btn btn-ghost" style="flex:1;" onclick="hatirlatmaPopupErtele()">⏰ Ertele (${HT_ERTELE_SAAT} saat)</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="hatirlatmaPopupErtele()">⏰ Ertele (${hatirlatmaAyarlariGuncel.erteleSaat||4} saat)</button>
         <button class="btn btn-primary" style="flex:1;" onclick="hatirlatmaPopupKapat()">Tamam</button>
       </div>
     </div>`;
