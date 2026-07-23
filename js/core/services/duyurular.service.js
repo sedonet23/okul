@@ -37,7 +37,9 @@ const DuyurularService = {
     // belge silme işlemi engellenmesin — yetim bir dosya, silinmiş bir
     // duyurudan daha az sorunlu).
     const gorselSilmeler = (resimler || []).map(r =>
-      DuyurularRepository.resimSil(r.storagePath).catch(() => {})
+      DuyurularRepository.resimSil(r.storagePath).catch(() => {}).then(()=>{
+        if(r.boyut && typeof IstatistikService !== 'undefined') IstatistikService.depolamaKullanimCikar('duyuru', r.boyut);
+      })
     );
     return Promise.all(gorselSilmeler).then(() => DuyurularRepository.duyuruSil(id));
   },
@@ -57,12 +59,19 @@ const DuyurularService = {
   },
 
   /* ---------- Görsel duyuru desteği (YENİ) ---------- */
-  resimYukle(dosya, ilerlemeCb){
+  async resimYukle(dosya, ilerlemeCb){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
-    return DuyurularRepository.resimYukle(dosya, ilerlemeCb);
+    if(typeof DepolamaSinirService !== 'undefined'){
+      const izin = await DepolamaSinirService.yuklemeIzniVarMi('duyuru', dosya.size);
+      if(!izin.izinVar) return Promise.reject(new Error('depolama-siniri:' + izin.mesaj));
+    }
+    const sonuc = await DuyurularRepository.resimYukle(dosya, ilerlemeCb);
+    if(typeof IstatistikService !== 'undefined') IstatistikService.depolamaKullanimEkle('duyuru', dosya.size);
+    return { ...sonuc, boyut: dosya.size };
   },
-  resimSil(storagePath){
+  resimSil(storagePath, boyut){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
+    if(boyut && typeof IstatistikService !== 'undefined') IstatistikService.depolamaKullanimCikar('duyuru', boyut);
     return DuyurularRepository.resimSil(storagePath);
   },
 

@@ -57,6 +57,30 @@ const IstatistikService = {
     this._guncelle({ dosyaYuklemeSayisi: firebase.firestore.FieldValue.increment(1) });
   },
 
+  /* ---------- YENİ: Depolama sınırları (kategori bazlı kota) ----------
+     Kategori: 'mesaj' | 'duyuru' | 'dokuman' | 'takvim'. Kullanım verisi
+     depolamaKullanimi.{kategori} alanında bayt cinsinden tutulur. Bkz.
+     js/core/services/depolama-sinir.service.js (kota kontrolü burada
+     DEĞİL, orada yapılır — bu servis sadece sayaç tutar). */
+  depolamaKullanimEkle(kategori, bayt){
+    if(!bayt || !kategori) return;
+    this._guncelle({ [`depolamaKullanimi.${kategori}`]: firebase.firestore.FieldValue.increment(bayt) });
+  },
+  depolamaKullanimCikar(kategori, bayt){
+    if(!bayt || !kategori) return;
+    this._guncelle({ [`depolamaKullanimi.${kategori}`]: firebase.firestore.FieldValue.increment(-bayt) });
+  },
+  /* Toplu silme gibi durumlarda (ör. bir konuşmanın TÜM mesajları silinirken)
+     dosyalar İSTEĞİ YAPAN kişiden BAŞKA birine ait olabilir — bu yüzden
+     _guncelle()'in aksine (her zaman "şu an giriş yapmış kişi" varsayar) bu
+     fonksiyon hedef uid'i açıkça alır. */
+  depolamaKullanimCikarUid(uid, kategori, bayt){
+    if(!bayt || !kategori || !uid || !db) return;
+    db.collection(COL.kullaniciIstatistikleri).doc(uid).set({
+      [`depolamaKullanimi.${kategori}`]: firebase.firestore.FieldValue.increment(-bayt)
+    }, { merge:true }).catch(e => console.warn('İstatistik (depolama) güncellenemedi (yoksayıldı):', e));
+  },
+
   notEklemeKaydet(){
     this._guncelle({ notEklemeSayisi: firebase.firestore.FieldValue.increment(1) });
   },

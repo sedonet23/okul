@@ -150,7 +150,13 @@ const MesajlasmaService = {
     const ben = this._kendiKimlik();
     if(!ben.uid) throw new Error('kimlik-yok');
 
+    if(typeof DepolamaSinirService !== 'undefined'){
+      const izin = await DepolamaSinirService.yuklemeIzniVarMi('mesaj', dosya.size);
+      if(!izin.izinVar) throw new Error('depolama-siniri:' + izin.mesaj);
+    }
+
     const { url, storagePath } = await MesajlasmaRepository.dosyaYukle(konusmaId, dosya, ilerlemeCb);
+    if(typeof IstatistikService !== 'undefined') IstatistikService.depolamaKullanimEkle('mesaj', dosya.size);
 
     await MesajlasmaRepository.mesajEkle({
       konusmaId, gonderenUid: ben.uid, gonderenAdi: ben.ad, metin: '',
@@ -192,6 +198,9 @@ const MesajlasmaService = {
     if(!this.mesajSilinebilirMi(mesaj)) throw new Error('sahip-degil');
     if(mesaj.dosya && mesaj.dosya.storagePath){
       await MesajlasmaRepository.dosyaSil(mesaj.dosya.storagePath).catch(()=>{});
+      if(mesaj.dosya.boyut && typeof IstatistikService !== 'undefined'){
+        IstatistikService.depolamaKullanimCikarUid(mesaj.gonderenUid, 'mesaj', mesaj.dosya.boyut);
+      }
     }
     return MesajlasmaRepository.mesajSil(mesaj.id);
   },
@@ -205,7 +214,10 @@ const MesajlasmaService = {
     const katilimciMi = mevcutKonusma && (mevcutKonusma.katilimciUidler||[]).includes(ben.uid);
     const adminMi = typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI && AKTIF_KULLANICI.admin;
     if(!katilimciMi && !adminMi) throw new Error('sahip-degil');
-    await MesajlasmaRepository.mesajlariTopluSil(konusmaId);
+    const { kullaniciBazliBayt } = await MesajlasmaRepository.mesajlariTopluSil(konusmaId);
+    if(kullaniciBazliBayt && typeof IstatistikService !== 'undefined'){
+      Object.entries(kullaniciBazliBayt).forEach(([uid, bayt]) => IstatistikService.depolamaKullanimCikarUid(uid, 'mesaj', bayt));
+    }
     return MesajlasmaRepository.konusmaSil(konusmaId);
   }
 };

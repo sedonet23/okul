@@ -86,8 +86,13 @@ const DokumanlarService = {
     const gorunurluk = ben.adminMi && metaTaban.gorunurluk === 'herkes' ? 'herkes' : 'kisisel';
     let meta = { ...metaTaban, gorunurluk, olusturanUid: ben.uid, olusturanAdi: ben.ad };
     if(dosya){
+      if(typeof DepolamaSinirService !== 'undefined'){
+        const izin = await DepolamaSinirService.yuklemeIzniVarMi('dokuman', dosya.size);
+        if(!izin.izinVar) throw new Error('depolama-siniri:' + izin.mesaj);
+      }
       const { url, storagePath } = await DokumanlarRepository.dosyaYukle(dosya, ilerlemeCb);
       meta = { ...meta, dosyaUrl: url, storagePath, dosyaAdi: dosya.name, dosyaBoyutu: dosya.size, dosyaTipi: dosya.type };
+      if(typeof IstatistikService !== 'undefined') IstatistikService.depolamaKullanimEkle('dokuman', dosya.size);
     }
     if(typeof IstatistikService !== 'undefined') IstatistikService.dosyaYuklemeKaydet();
     return DokumanlarRepository.dokumanEkle(meta);
@@ -95,6 +100,9 @@ const DokumanlarService = {
   async dokumanSil(id, storagePath, mevcutDokuman){
     if(!this.dokumanSilinebilirMi(mevcutDokuman)) return Promise.reject(new Error('sahip-degil'));
     if(storagePath) await DokumanlarRepository.dosyaSil(storagePath).catch(()=>{});
+    if(mevcutDokuman && mevcutDokuman.dosyaBoyutu && typeof IstatistikService !== 'undefined'){
+      IstatistikService.depolamaKullanimCikar('dokuman', mevcutDokuman.dosyaBoyutu);
+    }
     return DokumanlarRepository.dokumanSil(id);
   }
 };
