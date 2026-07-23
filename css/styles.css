@@ -2383,6 +2383,15 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
 #tab-panel.dash-modern .zil-progress-fill{ height:100%; background:#fff; border-radius:99px; transition:width .6s ease; }
 #tab-panel.dash-modern .zil-saat-araligi{ font-family:'Inter'; font-size:11px; color:rgba(255,255,255,.7); }
 
+/* YENİ: Hero kartı sosyal medya ikonları (Instagram/X/Web) — heroSosyalMedya */
+#tab-panel.dash-modern .dash-hero-sosyal{ display:flex; gap:10px; margin-top:12px; }
+#tab-panel.dash-modern .hero-sosyal-link{
+  width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.16);
+  border:1px solid rgba(255,255,255,.28); color:#fff; display:flex; align-items:center;
+  justify-content:center; transition:background .15s ease, transform .15s ease;
+}
+#tab-panel.dash-modern .hero-sosyal-link:hover{ background:rgba(255,255,255,.32); transform:translateY(-1px); }
+
 /* Durum renkleri: ders=yeşil, teneffüs=turuncu, bitti=gri, başlamadı=mavi, tatil=mor */
 /* Ders durumu artık hero arkaplanını değil, sadece durum rozetini (zil-pill) renklendirir; arkaplan gün saati sahnesine göre değişir (aşağıda .sahne-* kuralları) */
 #tab-panel.dash-modern .dash-hero.durum-ders .zil-pill{ background:rgba(34,197,94,.85); }
