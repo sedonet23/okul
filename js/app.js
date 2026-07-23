@@ -776,6 +776,30 @@ function ogretmenModalAc(id, varsayilanUnvan){
 
 /* ============== OKUL BİLGİLERİ ============== */
 let okulBilgileriAyari = null;
+
+/* YENİ: Sosyal medya / web linkleri artık sabit 3 alan değil, serbest bir
+   liste (sosyalLinkler dizisi). sosyalLinklerTaslak, Okul Bilgileri sayfası
+   açıkken düzenlenen geçici (henüz kaydedilmemiş) kopyadır. */
+let sosyalLinklerTaslak = [];
+const SOSYAL_IKON_SECENEKLERI = [
+  { key:'globe',     ad:'🔗 Web Sitesi' },
+  { key:'instagram', ad:'📷 Instagram' },
+  { key:'x',         ad:'✖️ X (Twitter)' },
+  { key:'facebook',  ad:'📘 Facebook' },
+  { key:'youtube',   ad:'▶️ YouTube' },
+  { key:'whatsapp',  ad:'💬 WhatsApp' },
+  { key:'email',     ad:'✉️ E-posta' }
+];
+const SOSYAL_IKON_SVG = {
+  globe:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  instagram:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+  x:'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  facebook:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.51 1.49-3.9 3.77-3.9 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.91h-2.34V22c4.78-.76 8.44-4.92 8.44-9.94z"/></svg>',
+  youtube:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.4 3.5 12 3.5 12 3.5s-7.4 0-9.4.6A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c2 .6 9.4.6 9.4.6s7.4 0 9.4-.6a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4l6.3 3.6z"/></svg>',
+  whatsapp:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.7.8-.8 1-.2.2-.3.2-.5.1-.2-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.6-1.5-1.8-.2-.2 0-.4.1-.5l.4-.4c.1-.1.2-.2.3-.4.1-.2 0-.3 0-.5s-.6-1.5-.8-2c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.2-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 2 3.1 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3z"/></svg>',
+  email:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/></svg>'
+};
+function sosyalIkonAdi(key){ return (SOSYAL_IKON_SECENEKLERI.find(o=>o.key===key)||{}).ad || '🔗 Web Sitesi'; }
 function renderMuduYardimcilariListesi(){
   const hedef = document.getElementById('muduYardimcilariListesi');
   if(!hedef) return;
@@ -797,6 +821,51 @@ function muduYardimcisiListedenCikar(id){
   if(!confirm('Bu kişiyi Müdür Yardımcıları listesinden çıkarmak istiyor musunuz? (Öğretmen kaydı silinmez, sadece ünvanı "Öğretmen" olarak güncellenir.)')) return;
   db.collection(COL.ogretmenler).doc(id).update({unvan:'Öğretmen'}).then(()=>toast('Listeden çıkarıldı.')).catch(err=>toast('Hata: '+err.message));
 }
+
+/* --- Sosyal medya / web linkleri: serbest liste editörü --- */
+function sosyalLinkSatiriHtml(link, index){
+  return `
+    <div class="sosyal-link-satir" data-index="${index}">
+      <select id="sl_ikon_${index}" class="sosyal-link-ikon-sec">
+        ${SOSYAL_IKON_SECENEKLERI.map(o=>`<option value="${o.key}" ${link.ikon===o.key?'selected':''}>${o.ad}</option>`).join('')}
+      </select>
+      <input type="text" id="sl_etiket_${index}" placeholder="Etiket (örn: İlkokul Web Sitesi)" value="${escapeHtml(link.etiket||'')}">
+      <input type="url" id="sl_url_${index}" placeholder="https://..." value="${escapeHtml(link.url||'')}">
+      <button type="button" class="btn btn-ghost btn-sm sosyal-link-sil-btn" onclick="sosyalLinkSatiriSil(${index})" title="Sil">🗑️</button>
+    </div>`;
+}
+function renderSosyalLinklerFormu(){
+  const kutu = document.getElementById('sosyalLinklerListesi');
+  if(!kutu) return;
+  kutu.innerHTML = sosyalLinklerTaslak.length
+    ? sosyalLinklerTaslak.map((l,i)=>sosyalLinkSatiriHtml(l,i)).join('')
+    : '<p class="empty-state">Henüz link eklenmedi.</p>';
+}
+function sosyalLinkEkle(){
+  sosyalLinklerTaslak.push({ etiket:'', ikon:'globe', url:'' });
+  renderSosyalLinklerFormu();
+  // Yeni eklenen satırın etiket alanına odaklan.
+  const yeniIndex = sosyalLinklerTaslak.length - 1;
+  const etiketEl = document.getElementById(`sl_etiket_${yeniIndex}`);
+  if(etiketEl) etiketEl.focus();
+}
+function sosyalLinkSatiriSil(index){
+  sosyalLinklerTaslak.splice(index, 1);
+  renderSosyalLinklerFormu();
+}
+/* Eski sürümde instagram/x/web sabit alanları vardı; okulBilgileriAyari'nde
+   sosyalLinkler dizisi yoksa ama eski alanlar varsa, onlardan otomatik
+   bir liste üretir (geriye dönük uyumluluk). */
+function sosyalLinklerVeriyeCevir(veri){
+  if(!veri) return [];
+  if(Array.isArray(veri.sosyalLinkler)) return veri.sosyalLinkler.map(l=>({...l}));
+  const eskiListe = [];
+  if(veri.instagram) eskiListe.push({ etiket:'Instagram', ikon:'instagram', url:veri.instagram });
+  if(veri.x) eskiListe.push({ etiket:'X (Twitter)', ikon:'x', url:veri.x });
+  if(veri.web) eskiListe.push({ etiket:'Web Sitesi', ikon:'globe', url:veri.web });
+  return eskiListe;
+}
+
 function renderOkulBilgileriSayfasi(){
   try {
     const adEl = document.getElementById('f_okulAdi');
@@ -817,12 +886,8 @@ function renderOkulBilgileriSayfasi(){
     if(ilkokulKodEl) ilkokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilkokulKurumKodu) || '';
     if(ortaokulAdEl) ortaokulAdEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulAdi) || '';
     if(ortaokulKodEl) ortaokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulKurumKodu) || '';
-    const instagramEl = document.getElementById('f_okulInstagram');
-    const xEl = document.getElementById('f_okulX');
-    const webEl = document.getElementById('f_okulWeb');
-    if(instagramEl) instagramEl.value = (okulBilgileriAyari && okulBilgileriAyari.instagram) || '';
-    if(xEl) xEl.value = (okulBilgileriAyari && okulBilgileriAyari.x) || '';
-    if(webEl) webEl.value = (okulBilgileriAyari && okulBilgileriAyari.web) || '';
+    sosyalLinklerTaslak = sosyalLinklerVeriyeCevir(okulBilgileriAyari);
+    renderSosyalLinklerFormu();
     if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
     // DÜZELTME: Bu fonksiyon Firestore onSnapshot ile SIK SIK yeniden
     // çağrılıyor ve "Çıkar" gibi butonları innerHTML ile SIFIRDAN
@@ -843,41 +908,46 @@ function okulBilgileriKaydet(){
   const ilkokulKurumKodu = (document.getElementById('f_okulIlkokulKurumKodu')?.value || '').trim();
   const ortaokulAdi = (document.getElementById('f_okulOrtaokulAdi')?.value || '').trim();
   const ortaokulKurumKodu = (document.getElementById('f_okulOrtaokulKurumKodu')?.value || '').trim();
-  const instagram = (document.getElementById('f_okulInstagram')?.value || '').trim();
-  const x = (document.getElementById('f_okulX')?.value || '').trim();
-  const web = (document.getElementById('f_okulWeb')?.value || '').trim();
-  // Boş olmayan linklerin http(s):// ile başladığından emin ol, aksi halde
-  // <a href> tıklanınca sayfa göreli yol olarak açmaya çalışıp hataya düşer.
-  for(const [etiket, deger] of [['Instagram', instagram], ['X', x], ['Web Sitesi', web]]){
-    if(deger && !/^https?:\/\/.+/i.test(deger)){
-      toast(`${etiket} linki http:// veya https:// ile başlamalı.`);
+
+  // Sosyal medya / web linklerini DOM'daki satırlardan topla. Boş URL'li
+  // satırlar (kullanıcı satırı ekleyip doldurmadıysa) sessizce atlanır.
+  const sosyalLinkler = [];
+  for(let i=0; i<sosyalLinklerTaslak.length; i++){
+    const url = (document.getElementById(`sl_url_${i}`)?.value || '').trim();
+    if(!url) continue;
+    const ikon = document.getElementById(`sl_ikon_${i}`)?.value || 'globe';
+    const etiket = (document.getElementById(`sl_etiket_${i}`)?.value || '').trim() || sosyalIkonAdi(ikon).replace(/^\S+\s/, '');
+    if(!/^https?:\/\/.+/i.test(url)){
+      toast(`"${etiket}" linki http:// veya https:// ile başlamalı.`);
       return;
     }
+    sosyalLinkler.push({ id: sosyalLinklerTaslak[i].id || `sl_${Date.now()}_${i}`, etiket, ikon, url });
   }
+
   db.collection(COL.okulBilgileri).doc('ayarlar').set({
     okulAdi, mudurId, il, ilce, mebMudurlugu,
     ilkokulAdi, ilkokulKurumKodu, ortaokulAdi, ortaokulKurumKodu,
-    instagram, x, web
+    sosyalLinkler
   })
     .then(()=>toast('Okul bilgileri kaydedildi.'))
     .catch(err=>toast('Hata: '+err.message));
 }
 
-/* YENİ: Ana sayfa hero kartında Instagram/X/Web ikonlarını gösterir.
-   okulBilgileriAyari her güncellendiğinde (onSnapshot) çağrılır. */
+/* YENİ: Ana sayfa hero kartında sosyal medya / web linklerini ikon+etiket
+   olarak gösterir. Link sayısı ne olursa olsun, kutunun genişliğine göre
+   aralarında eşit boşluk bırakılır (bkz. css .dash-hero-sosyal). */
 function renderSosyalMedyaIkonlari(){
   const kutu = document.getElementById('heroSosyalMedya');
   if(!kutu) return;
-  const veri = okulBilgileriAyari || {};
-  const linkler = [
-    { anahtar:'instagram', etiket:'Instagram', url:veri.instagram, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>' },
-    { anahtar:'x', etiket:'X (Twitter)', url:veri.x, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' },
-    { anahtar:'web', etiket:'Web Sitesi', url:veri.web, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' }
-  ].filter(l=>l.url);
+  const linkler = sosyalLinklerVeriyeCevir(okulBilgileriAyari).filter(l=>l.url);
 
   if(!linkler.length){ kutu.style.display='none'; kutu.innerHTML=''; return; }
 
-  kutu.innerHTML = linkler.map(l=>`<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="hero-sosyal-link" title="${escapeHtml(l.etiket)}" aria-label="${escapeHtml(l.etiket)}">${l.svg}</a>`).join('');
+  kutu.innerHTML = linkler.map(l=>`
+    <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="hero-sosyal-link" title="${escapeHtml(l.etiket||'')}">
+      <span class="hero-sosyal-ikon">${SOSYAL_IKON_SVG[l.ikon] || SOSYAL_IKON_SVG.globe}</span>
+      <span class="hero-sosyal-etiket">${escapeHtml(l.etiket||'')}</span>
+    </a>`).join('');
   kutu.style.display = 'flex';
 }
 
