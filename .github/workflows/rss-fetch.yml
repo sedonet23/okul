@@ -6,6 +6,16 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch: {}
 
+# DÜZELTME: İki çalıştırma yakın zamanda üst üste tetiklenirse (örn. saatlik
+# cron ile elle "workflow_dispatch" çakışırsa), ikinci çalıştırma birincinin
+# Firestore'a yazmasını beklemeden aynı "yeni" haberleri görüp tekrar
+# ekliyor ve tekrar bildirim gönderiyordu — dedup mantığından bağımsız bir
+# yarış durumu. Artık aynı anda sadece TEK bir çalıştırma izin veriliyor;
+# biri sürerken diğeri tetiklenirse kuyruğa alınır (iptal edilmez).
+concurrency:
+  group: rss-fetch
+  cancel-in-progress: false
+
 jobs:
   rss-fetch:
     runs-on: ubuntu-latest
