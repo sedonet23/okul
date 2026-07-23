@@ -152,22 +152,31 @@ function _htSinavTaramalari(ogretmenId, gunSayisi){
     .filter(x => x.gunFarki >= 0 && x.gunFarki <= gunSayisi); // geçmiş sınavlar için hatırlatmaya gerek yok
 }
 
-/* ---------- Kontrol Listeleri (ASENKRON — her liste için ayrı bir tamamlama okuması gerekir) ---------- */
+/* ---------- Kontrol Listeleri (ASENKRON — her liste için ayrı bir tamamlama okuması gerekir) ----------
+   DÜZELTME: Tarih artık LİSTE seviyesinde değil, her MADDENİN kendi
+   "tarih" alanında (bkz. js/kontrol-listeleri.js _klMaddeFormBody) —
+   Sedat'ın isteğiyle liste bazlı tarih kaldırıldı. Bu yüzden her liste
+   için tamamlama kaydı bir kez okunur, sonra o listenin İÇİNDEKİ her
+   maddenin kendi tarihine göre ayrı ayrı değerlendirilir. */
 async function _htKontrolListesiTaramalari(ogretmenId, gunSayisi){
   const sonuc = [];
   const listeler = (typeof kontrolListeleri!=='undefined'?kontrolListeleri:[])
-    .filter(l => l.yayinda !== false && l.bitisTarihi && (l.maddeler||[]).length);
+    .filter(l => l.yayinda !== false && (l.maddeler||[]).some(m=>m.tarih));
   for(const liste of listeler){
-    const fark = _htGunFarki(liste.bitisTarihi);
-    if(fark > gunSayisi) continue;
+    let tamamlanan;
     try{
       const doc = await KontrolListeleriService.tamamlamaGetir(ogretmenId, liste.id);
-      const tamamlanan = new Set((doc.exists && doc.data().tamamlananMaddeIdler) || []);
-      const hepsiTamamMi = liste.maddeler.every(m => tamamlanan.has(m.id));
-      if(!hepsiTamamMi){
-        sonuc.push({ kaynak:'kontrolListesi', baslik:`Kontrol Listesi: ${liste.ad}`, altBaslik:`${liste.maddeler.filter(m=>tamamlanan.has(m.id)).length}/${liste.maddeler.length} tamamlandı`, gunFarki:fark, git: ()=>{ if(typeof kontrolListeleriAc==='function'){ kontrolListeleriAc(); setTimeout(()=>_klListeyeGit(liste.id), 300); } } });
-      }
-    }catch(e){ console.warn('Kontrol listesi taraması başarısız:', liste.ad, e); }
+      tamamlanan = new Set((doc.exists && doc.data().tamamlananMaddeIdler) || []);
+    }catch(e){ console.warn('Kontrol listesi taraması başarısız:', liste.ad, e); continue; }
+    (liste.maddeler||[]).forEach(madde=>{
+      if(!madde.tarih || tamamlanan.has(madde.id)) return;
+      const fark = _htGunFarki(madde.tarih);
+      if(fark > gunSayisi) return;
+      sonuc.push({
+        kaynak:'kontrolListesi', baslik:`Kontrol Listesi: ${liste.ad}`, altBaslik:madde.metin||'',
+        gunFarki:fark, git: ()=>{ if(typeof kontrolListeleriAc==='function'){ kontrolListeleriAc(); setTimeout(()=>_klListeyeGit(liste.id), 300); } }
+      });
+    });
   }
   return sonuc;
 }

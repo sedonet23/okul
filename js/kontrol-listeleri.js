@@ -192,7 +192,7 @@ function _klSecimYap(btn){
     }
   });
 }
-function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin){
+function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih){
   const ikon = mevcutIkon || '📌';
   const renk = mevcutRenk || KL_RENK_PAKETI[0];
   return `
@@ -209,6 +209,7 @@ function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin){
     </div>
     <div class="form-group"><label>Renk Seç</label>${_klSeciciGridHtml('f_klMRenk','renk',renk)}</div>
     <div class="form-group"><label>Madde Metni</label><textarea id="f_klMMetin" rows="3" placeholder="Yapılacak işin açıklaması">${escapeHtml(mevcutMetin||'')}</textarea></div>
+    <div class="form-group"><label>Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)</label><input type="date" id="f_klMTarih" value="${mevcutTarih||''}"></div>
   `;
 }
 
@@ -267,7 +268,7 @@ function _klAnaEkraniCiz(){
     <div class="card dash-card-clickable" style="margin-bottom:10px;display:flex;align-items:center;gap:10px;" onclick="_klListeyeGit('${l.id}')">
       <span style="font-size:22px;">📋</span>
       <div style="flex:1;"><strong>${escapeHtml(l.ad)}</strong>${(yetkiVar && l.yayinda===false)?' <span class="badge badge-amber">Taslak</span>':''}
-        <div style="font-size:12px;color:var(--ink-muted);">${(l.maddeler||[]).length} madde${l.aciklama?' · '+escapeHtml(l.aciklama):''}${l.bitisTarihi?' · Bitiş: '+formatTarih(l.bitisTarihi):''}</div>
+        <div style="font-size:12px;color:var(--ink-muted);">${(l.maddeler||[]).length} madde${l.aciklama?' · '+escapeHtml(l.aciklama):''}</div>
       </div>
       ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); _klAyarlarModalAc('${l.id}')" title="Liste Ayarları">⚙️</button>` : ''}
       <span style="color:var(--ink-muted);">›</span>
@@ -347,11 +348,15 @@ function _klDetayCiz(){
 
   govde.innerHTML = maddeler.map((m,i) => {
     const tamamMi = _klTamamlanan.has(m.id);
+    const gecikmisMi = !tamamMi && m.tarih && new Date(m.tarih) < new Date(todayISO());
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;border-left:5px solid ${m.renk||'var(--brand)'};${tamamMi?'opacity:.55;':''}">
       <div style="width:36px;height:36px;border-radius:50%;background:${m.renk||'var(--brand)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
       <div style="font-size:22px;flex-shrink:0;">${m.ikon||'📌'}</div>
-      <div style="flex:1;font-size:13.5px;line-height:1.4;${tamamMi?'text-decoration:line-through;':''}">${escapeHtml(m.metin||'')}</div>
+      <div style="flex:1;font-size:13.5px;line-height:1.4;${tamamMi?'text-decoration:line-through;':''}">
+        ${escapeHtml(m.metin||'')}
+        ${m.tarih ? `<div style="font-size:11px;margin-top:2px;${gecikmisMi?'color:var(--red-danger,#dc2626);font-weight:700;':'color:var(--ink-muted);'}">📅 Son Tarih: ${formatTarih(m.tarih)}${gecikmisMi?' (gecikti)':''}</div>` : ''}
+      </div>
       <label style="flex-shrink:0;display:flex;align-items:center;">
         <input type="checkbox" ${tamamMi?'checked':''} onchange="_klMaddeIsaretle('${m.id}', this.checked)" style="width:22px;height:22px;accent-color:var(--brand);">
       </label>
@@ -436,40 +441,31 @@ function _klMaddeIdUret(){ return 'm' + Date.now().toString(36) + Math.random().
 function kontrolListesiYeniOlustur(){
   const body = `<div class="form-group"><label>Liste Adı</label><input id="f_klAd" placeholder="örn: Yıl Başı İşlemleri"></div>
     <div class="form-group"><label>Açıklama (opsiyonel)</label><input id="f_klAciklama" placeholder="kısa açıklama"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Başlangıç Tarihi (opsiyonel)</label><input type="date" id="f_klBaslangic"></div>
-      <div class="form-group"><label>Bitiş Tarihi (opsiyonel — hatırlatma için)</label><input type="date" id="f_klBitis"></div>
-    </div>
     <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:400;"><input type="checkbox" id="f_klYayinda"> Diğer kullanıcılara hemen aç (işaretlemezseniz taslak olarak kalır, sadece siz görürsünüz — istediğiniz zaman "Ayarlar"dan açabilirsiniz)</label></div>`;
   modalAc('➕ Yeni Kontrol Listesi', body, () => {
     const ad = document.getElementById('f_klAd').value.trim();
     if (!ad){ toast('Liste adı zorunludur.'); return; }
     KontrolListeleriService.listeEkle({
       ad, aciklama: document.getElementById('f_klAciklama').value.trim(),
-      baslangicTarihi: document.getElementById('f_klBaslangic').value || null,
-      bitisTarihi: document.getElementById('f_klBitis').value || null,
       yayinda: document.getElementById('f_klYayinda').checked,
       sira: kontrolListeleri.length, maddeler: [],
     }).then(()=>toast('Liste oluşturuldu.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   });
 }
-/* YENİ: Liste oluşturulduktan sonra tarih/görünürlük değiştirmek için. */
+/* YENİ: Liste oluşturulduktan sonra açıklama/görünürlük değiştirmek için.
+   DÜZELTME: Tarih alanları artık LİSTE seviyesinde değil — her MADDENİN
+   kendi "Son Tarih" alanı var (bkz. _klMaddeFormBody), Sedat'ın isteğiyle
+   buradan kaldırıldı. */
 function _klAyarlarModalAc(listeId){
   const liste = kontrolListeleri.find(l=>l.id===listeId);
   if(!liste) return;
   const body = `
     <div class="form-group"><label>Açıklama</label><input id="f_klAciklama2" value="${escapeHtml(liste.aciklama||'')}"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Başlangıç Tarihi</label><input type="date" id="f_klBaslangic2" value="${liste.baslangicTarihi||''}"></div>
-      <div class="form-group"><label>Bitiş Tarihi (hatırlatma için)</label><input type="date" id="f_klBitis2" value="${liste.bitisTarihi||''}"></div>
-    </div>
     <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:400;"><input type="checkbox" id="f_klYayinda2" ${liste.yayinda?'checked':''}> Diğer kullanıcılara açık (kapatırsanız sadece siz görürsünüz — taslağa döner)</label></div>`;
   modalAc('⚙️ Liste Ayarları', body, () => {
     KontrolListeleriService.listeGuncelle(listeId, {
       aciklama: document.getElementById('f_klAciklama2').value.trim(),
-      baslangicTarihi: document.getElementById('f_klBaslangic2').value || null,
-      bitisTarihi: document.getElementById('f_klBitis2').value || null,
       yayinda: document.getElementById('f_klYayinda2').checked,
     }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
@@ -493,13 +489,13 @@ function _klListeSilOnay(listeId){
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function _klMaddeEkleModalAc(listeId){
-  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '');
+  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '', '');
   modalAc('➕ Yeni Madde', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
     const liste = kontrolListeleri.find(l=>l.id===listeId);
     const maddeler = (liste.maddeler||[]).slice();
-    maddeler.push({ id:_klMaddeIdUret(), sira:maddeler.length, ikon:document.getElementById('f_klMIkon').value.trim()||'📌', renk:document.getElementById('f_klMRenk').value, metin });
+    maddeler.push({ id:_klMaddeIdUret(), sira:maddeler.length, ikon:document.getElementById('f_klMIkon').value.trim()||'📌', renk:document.getElementById('f_klMRenk').value, metin, tarih:document.getElementById('f_klMTarih').value||null });
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
@@ -510,13 +506,14 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
   if (!liste) return;
   const madde = (liste.maddeler||[]).find(m=>m.id===maddeId);
   if (!madde) return;
-  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin);
+  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin, madde.tarih);
   modalAc('✏️ Maddeyi Düzenle', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
     const ikon = document.getElementById('f_klMIkon').value.trim()||'📌';
     const renk = document.getElementById('f_klMRenk').value;
-    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin } : m);
+    const tarih = document.getElementById('f_klMTarih').value||null;
+    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin, tarih } : m);
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
