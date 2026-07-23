@@ -147,6 +147,23 @@ async function main(){
   });
   const kaynaklar = tumKaynaklar.filter(k => k.aktif !== false && k.url);
 
+  // YENİ (teşhis): Ders Listesi'nde yaşadığımız "aynı kayıt yanlışlıkla iki
+  // kez eklenmiş" sorununun bir benzeri Kaynak Yönetimi'nde de olabilir mi
+  // diye kontrol — aynı ad veya aynı URL'e sahip birden fazla aktif kaynak
+  // varsa açıkça uyar (ikisi de aynı haberleri ayrı ayrı işleyip birbirini
+  // "yeni" sanmasına yol açabilir).
+  const adSayaci = {}, urlSayaci = {};
+  kaynaklar.forEach(k => {
+    adSayaci[k.ad] = (adSayaci[k.ad] || 0) + 1;
+    urlSayaci[k.url] = (urlSayaci[k.url] || 0) + 1;
+  });
+  Object.entries(adSayaci).forEach(([ad, sayi]) => {
+    if(sayi > 1) console.warn(`⚠️ "${ad}" adında AKTİF ${sayi} ayrı kaynak kaydı var — Kaynak Yönetimi'nden kontrol edin.`);
+  });
+  Object.entries(urlSayaci).forEach(([url, sayi]) => {
+    if(sayi > 1) console.warn(`⚠️ Aynı URL'e (${url}) sahip AKTİF ${sayi} ayrı kaynak kaydı var — Kaynak Yönetimi'nden kontrol edin.`);
+  });
+
   if(kaynaklar.length === 0){
     console.log('Aktif kaynak yok (Kaynak Yönetimi ekranından ekleyin).');
     return;
@@ -167,11 +184,23 @@ async function main(){
 
   for(const kaynak of kaynaklar){
     try{
+      // YENİ (teşhis): "Elazığ Meb Duyurular" gibi bazı kaynaklarda dedup
+      // hâlâ başarısız oluyor — kaynak adı ile ilgili görünmeyen bir
+      // uyuşmazlık (fazladan boşluk/karakter, aynı isimde iki ayrı kaynak
+      // kaydı, ya da benzeri) olup olmadığını görmek için ayrıntılı log.
+      console.log(`--- [TEŞHİS] Kaynak: id=${kaynak.id} ad=${JSON.stringify(kaynak.ad)} url=${kaynak.url}`);
+
       const mevcutKaynakSnap = await db.collection('oy_haberler')
         .where('kaynakAdi', '==', kaynak.ad)
         .orderBy('tarih', 'desc')
         .limit(200)
         .get();
+      console.log(`[TEŞHİS] "${kaynak.ad}" için Firestore'da bulunan mevcut kayıt sayısı: ${mevcutKaynakSnap.size}`);
+      if(mevcutKaynakSnap.size > 0){
+        const ornek = mevcutKaynakSnap.docs[0].data();
+        console.log(`[TEŞHİS] Örnek mevcut kayıt: kaynakAdi=${JSON.stringify(ornek.kaynakAdi)} link=${ornek.link} tarih=${ornek.tarih}`);
+      }
+
       const mevcutLinkler = new Set(mevcutKaynakSnap.docs.map(d => (d.data().link || '').split('?')[0]).filter(Boolean));
       // guid varsa en güvenilir dedup anahtarıdır (linkten bağımsız, kalıcı kimlik).
       const mevcutGuidler = new Set(mevcutKaynakSnap.docs.map(d => d.data().guid || '').filter(Boolean));
@@ -191,7 +220,13 @@ async function main(){
       let yeniSayisi = 0;
       for(const it of items){
         const baslikAnahtari = baslikAnahtariUret(kaynak.ad, it.baslik);
-        if((it.guid && mevcutGuidler.has(it.guid)) || mevcutLinkler.has(it.link) || mevcutBaslikAnahtarlari.has(baslikAnahtari)) continue;
+        const guidEslesti = it.guid && mevcutGuidler.has(it.guid);
+        const linkEslesti = mevcutLinkler.has(it.link);
+        const baslikEslesti = mevcutBaslikAnahtarlari.has(baslikAnahtari);
+        if(guidEslesti || linkEslesti || baslikEslesti) continue;
+        // YENİ (teşhis): "yeni" sayılan her madde için linki logla — bir
+        // sonraki run'da bu link mevcutLinkler'de neden yokmuş görebilelim.
+        console.log(`[TEŞHİS] YENİ sayıldı -> link=${it.link} guid=${it.guid || '(yok)'} baslik=${JSON.stringify(it.baslik)}`);
         if(it.guid) mevcutGuidler.add(it.guid);
         mevcutLinkler.add(it.link); // aynı çalışma içinde tekrar eklenmesin
         mevcutBaslikAnahtarlari.add(baslikAnahtari);
