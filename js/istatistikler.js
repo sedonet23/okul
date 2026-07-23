@@ -30,6 +30,32 @@ function _istEnCokZiyaretEdilen(sayfaZiyaretleri){
   return `${sayfa} (${sayi})`;
 }
 
+/* YENİ: Bayt değerini okunaklı MB metnine çevirir (depolama sınırları
+   özelliği için — bkz. js/core/services/depolama-sinir.service.js). */
+function _istMbFormat(bayt){
+  if(!bayt) return '0 MB';
+  return (bayt / (1024*1024)).toFixed(1) + ' MB';
+}
+
+/* Bir kullanıcının 4 kategorideki depolama kullanımını tek satırda,
+   kompakt şekilde gösterir. */
+function _istDepolamaKullanimHucresi(depolamaKullanimi){
+  const d = depolamaKullanimi || {};
+  return DEPOLAMA_KATEGORILERI.map(k => {
+    const kisaAd = { mesaj:'Mesaj', duyuru:'Duyuru', dokuman:'Dök.', takvim:'Takv.' }[k] || k;
+    return `<div style="white-space:nowrap;">${kisaAd}: ${_istMbFormat(d[k])}</div>`;
+  }).join('');
+}
+
+function istKullaniciMuafDegistir(uid, checkboxEl){
+  if(typeof KullaniciYonetimiService === 'undefined') return;
+  const yeniDeger = checkboxEl.checked;
+  const kendiUid = (typeof AKTIF_KULLANICI !== 'undefined' && AKTIF_KULLANICI) ? AKTIF_KULLANICI.uid : null;
+  KullaniciYonetimiService.kullaniciKaydet(uid, { depolamaMuaf: yeniDeger }, kendiUid)
+    .then(()=> toast(yeniDeger ? 'Kullanıcı depolama sınırlarından muaf tutuldu.' : 'Muafiyet kaldırıldı.'))
+    .catch(err=>{ checkboxEl.checked = !yeniDeger; if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+}
+
 async function renderIstatistikler(){
   if(typeof kullaniciYonetimiYetkisiVar === 'function' && !kullaniciYonetimiYetkisiVar()){
     toast('Bu sayfayı görüntüleme yetkiniz yok.');
@@ -42,9 +68,17 @@ async function renderIstatistikler(){
 
   try{
     const liste = await IstatistikService.tumIstatistikleriGetir();
+    // YENİ: depolamaMuaf bayrağı oy_kullanicilar'da tutulur (istatistik
+    // belgesinde değil) — burada tek seferlik ayrı bir okuma ile alınıp
+    // uid'e göre eşleniyor.
+    let muafHaritasi = {};
+    try{
+      const kulSnap = await db.collection(COL.kullanicilar).get();
+      kulSnap.docs.forEach(d => { muafHaritasi[d.id] = !!d.data().depolamaMuaf; });
+    }catch(e){ console.warn('Kullanıcı muafiyet bilgisi alınamadı:', e); }
 
     if(!liste.length){
-      govde.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--ink-muted);padding:20px;">Henüz kayıtlı istatistik yok. Kullanıcılar uygulamayı kullandıkça burada birikecek.</td></tr>';
+      govde.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--ink-muted);padding:20px;">Henüz kayıtlı istatistik yok. Kullanıcılar uygulamayı kullandıkça burada birikecek.</td></tr>';
       if(ozetKutu) ozetKutu.innerHTML = '';
       return;
     }
@@ -76,11 +110,18 @@ async function renderIstatistikler(){
         <td>${k.notEklemeSayisi || 0}</td>
         <td>${_istSureFormat(k.toplamSureSaniye)}</td>
         <td>${_istEnCokZiyaretEdilen(k.sayfaZiyaretleri)}</td>
+        <td>${_istDepolamaKullanimHucresi(k.depolamaKullanimi)}</td>
+        <td style="text-align:center;">
+          <label style="display:flex;align-items:center;gap:5px;justify-content:center;white-space:nowrap;cursor:pointer;">
+            <input type="checkbox" ${muafHaritasi[k.uid] ? 'checked' : ''} onchange="istKullaniciMuafDegistir('${k.uid}', this)">
+            <span style="font-size:11px;color:var(--ink-muted);">Muaf</span>
+          </label>
+        </td>
       </tr>
     `).join('');
 
   }catch(e){
     console.error('İstatistikler yüklenemedi:', e);
-    govde.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger,#d33);padding:20px;">İstatistikler yüklenirken hata oluştu: ' + (e.message||'') + '</td></tr>';
+    govde.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger,#d33);padding:20px;">İstatistikler yüklenirken hata oluştu: ' + (e.message||'') + '</td></tr>';
   }
 }

@@ -42,6 +42,8 @@ const COL = {
   resmiTatiller:'oy_resmiTatiller',     // {tarih:'YYYY-MM-DD', aciklama}
   periyodikIsler:'oy_periyodikIsler',   // {isAdi, baslangic, bitis, tamamlandi, not, bildirimGonderildi}
   dersSaatleri:'oy_dersSaatleri',       // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
+  // --- YENİ: Depolama sınırları (kategori bazlı kota) ---
+  depolamaAyarlari:'oy_depolamaAyarlari', // tek doküman (id:'ayarlar'): {mesaj:{aktif,MB}, duyuru:{aktif,MB}, dokuman:{aktif,MB}, takvim:{aktif,MB}}
   // --- YENİ: Sınıflar modülü ---
   siniflar:'oy_siniflar',               // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
   veliler:'oy_veliler',                 // {sinifId, ogrenciAdi, veliAdi, telefon, not}
@@ -83,7 +85,7 @@ const COL = {
   haberler:'oy_haberler',               // {baslik, ozet, link, kaynakAdi, kategori, tarih:ISO, manuel:true|false}
   haberKaynaklari:'oy_haberKaynaklari', // {ad, url, kategori, aktif:true|false} — RSS kaynağı, admin panelinden dinamik yönetilir
   // --- YENİ: Çok kullanıcılı erişim / Google girişi (Aşama 1) ---
-  kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, rolId, bagliOgretmenId}
+  kullanicilar:'oy_kullanicilar',       // {uid, email, ad, fotoUrl, admin:bool, aktif:bool, rolId, bagliOgretmenId, depolamaMuaf:bool (kategori bazlı depolama sınırlarından muaf mı)}
   // --- YENİ: Rol tabanlı yetkilendirme (Aşama 2) ---
   roller:'oy_roller',                   // {ad, kullaniciYonetimi:bool, yetkiler:{modulAdi:'gizle'|'goruntule'|'duzenle'}}
   // --- YENİ: Uygulama İçi Mesajlaşma (v9.0) ---
@@ -94,7 +96,7 @@ const COL = {
   // --- YENİ: Anketler ---
   anketler:'oy_anketler',               // {soru, secenekler:[{id,metin}], coklu:bool, aktif:bool, olusturanUid, olusturanAdi, olusturmaTarihi, oylar:{uid:{adlar:[secenekId,...], ad, tarih}}}
   // --- YENİ: Kullanıcı İstatistikleri (v11.0) ---
-  kullaniciIstatistikleri:'oy_kullaniciIstatistikleri', // belge ID = uid; {ad, girisSayisi, sonGiris, dosyaYuklemeSayisi, notEklemeSayisi, toplamSureSaniye, sayfaZiyaretleri:{sayfaAdi:sayi}, guncellenmeTarihi}
+  kullaniciIstatistikleri:'oy_kullaniciIstatistikleri', // belge ID = uid; {ad, girisSayisi, sonGiris, dosyaYuklemeSayisi, notEklemeSayisi, toplamSureSaniye, sayfaZiyaretleri:{sayfaAdi:sayi}, guncellenmeTarihi, depolamaKullanimi:{mesaj,duyuru,dokuman,takvim} (bayt)}
   akademikTakvim:'oy_akademikTakvim', // belge ID = 'aktif'; {gorselUrl, storagePath, guncellenmeTarihi, yukleyenAdi}
   kontrolListeleri:'oy_kontrolListeleri', // {ad, aciklama, sira, olusturmaTarihi, maddeler:[{id,sira,ikon,renk,metin}]}
   kontrolListeTamamlama:'oy_kontrolListeTamamlama', // belge ID = `${ogretmenId}_${listeId}`; {ogretmenId, listeId, tamamlananMaddeIdler:[...]}

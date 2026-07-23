@@ -180,7 +180,8 @@ async function akademikTakvimDosyaSecildi(dosya){
     _akademikTakvimIcerigiCiz();
     toast('Akademik takvim güncellendi.');
   } catch (e) {
-    if (e.message !== 'yetkisiz') toast('Yükleme hatası: ' + e.message);
+    if(e.message && e.message.startsWith('depolama-siniri:')){ toast(e.message.slice('depolama-siniri:'.length)); }
+    else if (e.message !== 'yetkisiz') toast('Yükleme hatası: ' + e.message);
     _akademikTakvimIcerigiCiz();
   }
 }

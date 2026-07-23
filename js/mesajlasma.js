@@ -416,13 +416,25 @@ function _dosyaBalonuHtml(dosya, kendisiMi){
   </div>`;
 }
 
-function mesajDosyaSecildi(dosya){
+async function mesajDosyaSecildi(dosya){
   if(!dosya || !_aktifKonusmaId) return;
   const turBilgisi = MesajlasmaService.dosyaTuruBilgisi(dosya.type);
   if(!turBilgisi){ toast('Desteklenmeyen dosya türü. Sadece PDF, Word, Excel ve resim gönderebilirsiniz.'); return; }
-  if(dosya.size > MesajlasmaService._MAKS_DOSYA_BOYUTU){ toast('Dosya çok büyük (maks. 10 MB).'); return; }
 
   const durumEl = document.getElementById('mesajYuklemeDurumu');
+
+  // YENİ: Görseller yüklenmeden önce otomatik küçültülüp sıkıştırılıyor
+  // (uzun kenar max 1600px, JPEG %80 kalite) — hem depolama kullanımını
+  // hem de kullanıcının mobil veri tüketimini azaltır. GIF hariç (animasyon
+  // bozulmasın diye); PDF/Word/Excel zaten sıkıştırılmıyor.
+  if(turBilgisi.gorselMi && dosya.type !== 'image/gif'){
+    if(durumEl){ durumEl.style.display=''; durumEl.textContent = `${turBilgisi.ikon} ${dosya.name} küçültülüyor…`; }
+    try{ dosya = await resimKucult(dosya, 1600, 0.80); }
+    catch(e){ /* küçültme başarısız olursa orijinal dosyayla devam et */ }
+  }
+
+  if(dosya.size > MesajlasmaService._MAKS_DOSYA_BOYUTU){ toast('Dosya çok büyük (maks. 10 MB).'); if(durumEl) durumEl.style.display='none'; return; }
+
   if(durumEl){ durumEl.style.display=''; durumEl.textContent = `${turBilgisi.ikon} ${dosya.name} yükleniyor… %0`; }
 
   const k = konusmalar.find(x=>x.id===_aktifKonusmaId);
@@ -434,6 +446,7 @@ function mesajDosyaSecildi(dosya){
     if(durumEl) durumEl.style.display='none';
     if(err.message==='desteklenmeyen-tur'){ toast('Desteklenmeyen dosya türü.'); return; }
     if(err.message==='dosya-cok-buyuk'){ toast('Dosya çok büyük (maks. 10 MB).'); return; }
+    if(err.message && err.message.startsWith('depolama-siniri:')){ toast(err.message.slice('depolama-siniri:'.length)); return; }
     if(err.message!=='yetkisiz') toast('Yükleme hatası: '+err.message);
   });
 }

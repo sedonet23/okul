@@ -286,7 +286,8 @@ async function dokumanKaydet() {
     toast(`"${ad}" kaydedildi.`);
     modalKapat();
   } catch (e) {
-    toast('Kayıt hatası: ' + (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message));
+    const temizMesaj = e.message && e.message.startsWith('depolama-siniri:') ? e.message.slice('depolama-siniri:'.length) : null;
+    toast('Kayıt hatası: ' + (temizMesaj || (e.message==='yetkisiz' ? 'Bu işlem için yetkiniz yok.' : e.message)));
     if (kaydetBtn) { kaydetBtn.disabled = false; kaydetBtn.textContent = '💾 Kaydet'; }
     if (durumEl) durumEl.style.display = 'none';
   }

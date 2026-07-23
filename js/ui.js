@@ -314,3 +314,42 @@ function aktifKullaniciyiGuncelle(){
 document.addEventListener('DOMContentLoaded', ()=>{
   if(typeof aktifKullaniciyiGuncelle === 'function') aktifKullaniciyiGuncelle();
 });
+
+/* ================================================================
+   YENİ: Genel görsel sıkıştırma yardımcı fonksiyonu.
+   Önceden sadece js/duyurular.js içinde (_duyuruResimKucult adıyla) vardı;
+   artık Mesajlaşma'da gönderilen görseller için de kullanılıyor (depolama
+   kullanımını azaltmak için — bkz. Ayarlar > Depolama Sınırları).
+   Uzun kenarı maksKenar'ı aşan görseller orantılı küçültülür ve (PNG hariç)
+   JPEG'e çevrilip sıkıştırılır. ================================================================ */
+function resimKucult(dosya, maksKenar, kalite){
+  maksKenar = maksKenar || 1600;
+  kalite = kalite === undefined ? 0.85 : kalite;
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(dosya);
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > maksKenar || height > maksKenar){
+        if(width >= height){ height = Math.round(height * maksKenar / width); width = maksKenar; }
+        else { width = Math.round(width * maksKenar / height); height = maksKenar; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      // PNG şeffaflığı korunsun diye PNG kaynaklar PNG olarak kalır;
+      // diğerleri (JPEG, WEBP vb.) daha küçük dosya boyutu için JPEG'e çevrilir.
+      const pngMi = dosya.type === 'image/png';
+      const cikisTipi = pngMi ? 'image/png' : 'image/jpeg';
+      const uzanti = pngMi ? '.png' : '.jpg';
+      const kaliteDegeri = pngMi ? undefined : kalite; // PNG kayıpsızdır, kalite parametresi anlamsız
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => {
+        URL.revokeObjectURL(url);
+        if(!blob){ reject(new Error('Görsel işlenemedi.')); return; }
+        resolve(new File([blob], dosya.name.replace(/\.[^.]+$/, '') + uzanti, { type: cikisTipi }));
+      }, cikisTipi, kaliteDegeri);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Görsel okunamadı.')); };
+    img.src = url;
+  });
+}

@@ -196,37 +196,11 @@ function duyuruLightboxAcById(duyuruId, index){
 
 /* Yüklemeden önce görseli makul bir boyuta küçültür (uzun kenar max 1600px,
    JPEG %85 kalite) — telefon kameraları genelde 4000px+ ürettiği için,
-   hâlâ net/okunaklı ama Storage/veri kullanımını mantıklı tutar. */
-function _duyuruResimKucult(dosya){
-  return new Promise((resolve, reject) => {
-    const MAKS_KENAR = 1600;
-    const url = URL.createObjectURL(dosya);
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      if(width > MAKS_KENAR || height > MAKS_KENAR){
-        if(width >= height){ height = Math.round(height * MAKS_KENAR / width); width = MAKS_KENAR; }
-        else { width = Math.round(width * MAKS_KENAR / height); height = MAKS_KENAR; }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = width; canvas.height = height;
-      // PNG şeffaflığı korunsun diye PNG kaynaklar PNG olarak kalır;
-      // diğerleri (JPEG, WEBP vb.) daha küçük dosya boyutu için JPEG'e çevrilir.
-      const pngMi = dosya.type === 'image/png';
-      const cikisTipi = pngMi ? 'image/png' : 'image/jpeg';
-      const uzanti = pngMi ? '.png' : '.jpg';
-      const kalite = pngMi ? undefined : 0.85; // PNG kayıpsızdır, kalite parametresi anlamsız
-      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      canvas.toBlob(blob => {
-        URL.revokeObjectURL(url);
-        if(!blob){ reject(new Error('Görsel işlenemedi.')); return; }
-        resolve(new File([blob], dosya.name.replace(/\.[^.]+$/, '') + uzanti, { type: cikisTipi }));
-      }, cikisTipi, kalite);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Görsel okunamadı.')); };
-    img.src = url;
-  });
-}
+   hâlâ net/okunaklı ama Storage/veri kullanımını mantıklı tutar.
+   NOT: gerçek işi artık js/ui.js > resimKucult() yapıyor — Mesajlaşma'da
+   gönderilen görseller için de aynı fonksiyon kullanılıyor, kod tekrarı
+   olmasın diye buradaki eski implementasyon kaldırıldı. */
+function _duyuruResimKucult(dosya){ return resimKucult(dosya, 1600, 0.85); }
 
 function duyuruOkunduIsaretleTikla(id){
   DuyurularService.okunduIsaretle(id).catch(err=>{ if(err.message!=='kimlik-yok') toast('Hata: '+err.message); });
@@ -295,7 +269,10 @@ function duyuruModalAc(id){
         _duyuruModalResimler.push(sonuc);
         const galeriEl = document.getElementById('f_duyuruResimGaleri');
         if(galeriEl) galeriEl.innerHTML = _duyuruModalGaleriHtml();
-      }catch(err){ toast('Görsel yüklenemedi: ' + err.message); }
+      }catch(err){
+        if(err.message && err.message.startsWith('depolama-siniri:')){ toast(err.message.slice('depolama-siniri:'.length)); }
+        else toast('Görsel yüklenemedi: ' + err.message);
+      }
     }
     if(durumEl) durumEl.textContent = '';
     e.target.value = '';

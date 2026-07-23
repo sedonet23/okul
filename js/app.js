@@ -2394,6 +2394,7 @@ function baglantilariKur(){
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
   if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur(); // dashboard zil sayacı buna bağlı, tembel kalamaz
+  if(typeof depolamaSinirlariBaglantisiKur === 'function') depolamaSinirlariBaglantisiKur();
   if(typeof notlarBaglantilariKur === 'function') notlarBaglantilariKur();
   if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur(); // anlık bildirim gerektiği için hep açık
 
