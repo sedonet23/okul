@@ -1201,6 +1201,33 @@ function hatirlaticiModalAc(id){
   }, h ? ()=>{ if(confirm('Bu hatırlatıcıyı silmek istiyor musunuz?')){ TakvimService.hatirlaticiSil(h.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); }); modalKapat(); } } : null);
 }
 
+/* YENİ: Görev/Evrak gibi kayıtlarda birden fazla öğretmene BİRDEN atama
+   yapılabilmesi için ortak çoklu seçim bileşeni. İlkokul/Ortaokul hızlı
+   seçim butonları, kademeFiiliListesi() (fiili görev yeri) kullanır —
+   "bu görevi tüm ilkokul öğretmenlerine ata" gibi toplu atamalar içindir. */
+function sorumluOgretmenSeciciHtml(seciliIdler, inputId){
+  const sec = Array.isArray(seciliIdler) ? seciliIdler : (seciliIdler ? [seciliIdler] : []);
+  const liste = (typeof ogretmenler!=='undefined'?ogretmenler:[]).slice().sort((a,b)=>a.ad.localeCompare(b.ad,'tr'));
+  return `
+    <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_sorumluKademeHizliSec('${inputId}','ilkokul')">🧒 Tüm İlkokul</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_sorumluKademeHizliSec('${inputId}','ortaokul')">🎓 Tüm Ortaokul</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="_sorumluKademeHizliSec('${inputId}',null)">✕ Temizle</button>
+    </div>
+    <div class="ogr-checkbox-liste" id="${inputId}">${liste.map(o=>`<label class="ogr-cb-row"><input type="checkbox" value="${o.id}" ${sec.includes(o.id)?'checked':''}><span>${escapeHtml(o.ad+' '+o.soyad)}</span></label>`).join('')}</div>
+    <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Hiç kimse seçilmezse bu genel bir kayıt olur (hatırlatma sistemine dahil edilmez).</p>`;
+}
+function _sorumluKademeHizliSec(inputId, kademe){
+  document.querySelectorAll(`#${inputId} input[type=checkbox]`).forEach(cb=>{
+    if(kademe===null){ cb.checked=false; return; }
+    const o = (typeof ogretmenler!=='undefined'?ogretmenler:[]).find(x=>x.id===cb.value);
+    if(o && typeof kademeFiiliListesi==='function' && kademeFiiliListesi(o).includes(kademe)) cb.checked = true;
+  });
+}
+function _sorumluOgretmenSecili(inputId){
+  return Array.from(document.querySelectorAll(`#${inputId} input[type=checkbox]:checked`)).map(el=>el.value);
+}
+
 /* ============== GÖREVLER ============== */
 function renderGorevler(){
   const kolonlar = { yapilacak: document.getElementById('kolonYapilacak'), yapiliyor: document.getElementById('kolonYapiliyor'), tamamlandi: document.getElementById('kolonTamamlandi') };
@@ -1222,6 +1249,7 @@ function renderGorevler(){
       <div class="task-meta">
         <span class="badge badge-${oncelikRengi(g.oncelik)}">${escapeHtml(g.oncelik||'Orta')}</span>
         ${g.sonTarih?`<span class="task-due ${gecikmis?'overdue':''}">${formatTarih(g.sonTarih)}</span>`:''}
+        ${(g.sorumluOgretmenIdler&&g.sorumluOgretmenIdler.length) ? `<span class="badge badge-blue">${_ogretmenAdlari(g.sorumluOgretmenIdler)}</span>` : ''}
       </div>
       <div class="task-actions"><button class="btn btn-ghost btn-sm" onclick="gorevModalAc('${g.id}')">Düzenle</button></div>
     `;
@@ -1243,6 +1271,9 @@ function gorevModalAc(id){
     <div class="form-group"><label>Başlık</label><input id="f_baslik" value="${g?escapeHtml(g.baslik):''}"></div>
     <div class="form-group"><label>Açıklama</label><textarea id="f_aciklama" rows="2">${g?escapeHtml(g.aciklama||''):''}</textarea></div>
     <div class="form-group"><label>Son Tarih (opsiyonel)</label><input type="date" id="f_sonTarih" value="${g&&g.sonTarih?g.sonTarih:''}"></div>
+    <div class="form-group"><label>Sorumlu Öğretmen(ler) (opsiyonel — hatırlatma sistemine dahil edilir)</label>
+      ${sorumluOgretmenSeciciHtml(g?g.sorumluOgretmenIdler||[]:[], 'f_gorevSorumlu')}
+    </div>
     <div class="form-group"><label>Öncelik</label><select id="f_oncelik">${ONCELIKLER.map(o=>`<option ${o===(g?g.oncelik:'Orta')?'selected':''}>${o}</option>`).join('')}</select></div>
     <div class="form-group"><label>Durum</label><select id="f_durum">${durumlar.map(([v,l])=>`<option value="${v}" ${v===(g?g.durum:'yapilacak')?'selected':''}>${l}</option>`).join('')}</select></div>
   `;
@@ -1255,6 +1286,7 @@ function gorevModalAc(id){
       baslik, aciklama: document.getElementById('f_aciklama').value.trim(),
       sonTarih, oncelik: document.getElementById('f_oncelik').value,
       durum: document.getElementById('f_durum').value,
+      sorumluOgretmenIdler: _sorumluOgretmenSecili('f_gorevSorumlu'),
       bildirimGonderildi: g ? (sonTarihDegisti ? false : !!g.bildirimGonderildi) : false
     }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
@@ -1274,7 +1306,7 @@ function renderEvrakTakibi(){
   document.getElementById('evrakListesi').innerHTML = liste.length ? liste.map(e=>`
     <div class="evrak-row">
       <div class="evrak-body">
-        <div class="evrak-title">${escapeHtml(e.evrakAdi)} <span class="badge badge-gray">${escapeHtml(e.tur||'Diğer')}</span></div>
+        <div class="evrak-title">${escapeHtml(e.evrakAdi)} <span class="badge badge-gray">${escapeHtml(e.tur||'Diğer')}</span>${(e.sorumluOgretmenIdler&&e.sorumluOgretmenIdler.length)?` <span class="badge badge-blue">${_ogretmenAdlari(e.sorumluOgretmenIdler)}</span>`:''}</div>
         <div class="evrak-meta">${formatTarih(e.tarih)}${e.aciklama?' · '+escapeHtml(e.aciklama):''}${e.dosyaLinki?` · <a href="${escapeHtml(e.dosyaLinki)}" target="_blank" rel="noopener">Dosyayı Aç ↗</a>`:''}</div>
       </div>
       <span class="badge badge-${evrakRengi(e.durum)}">${escapeHtml(e.durum)}</span>
@@ -1289,6 +1321,9 @@ function evrakModalAc(id){
     <div class="form-group"><label>Tür</label><select id="f_tur">${EVRAK_TURLERI.map(t=>`<option ${t===(e?e.tur:'Diğer')?'selected':''}>${t}</option>`).join('')}</select></div>
     <div class="form-group"><label>Tarih</label><input type="date" id="f_tarih" value="${e?e.tarih:todayISO()}"></div>
     <div class="form-group"><label>Durum</label><select id="f_durum">${EVRAK_DURUMLARI.map(d=>`<option ${d===(e?e.durum:'Beklemede')?'selected':''}>${d}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Sorumlu Öğretmen(ler) (opsiyonel — hatırlatma sistemine dahil edilir)</label>
+      ${sorumluOgretmenSeciciHtml(e?e.sorumluOgretmenIdler||[]:[], 'f_evrakSorumlu')}
+    </div>
     <div class="form-group"><label>Dosya Linki (opsiyonel — Drive/OneDrive vb.)</label><input id="f_dosyaLinki" value="${e?escapeHtml(e.dosyaLinki||''):''}" placeholder="https://..."></div>
     <div class="form-group"><label>Açıklama</label><textarea id="f_aciklama" rows="2">${e?escapeHtml(e.aciklama||''):''}</textarea></div>
   `;
@@ -1299,6 +1334,7 @@ function evrakModalAc(id){
       evrakAdi, tur: document.getElementById('f_tur').value,
       tarih: document.getElementById('f_tarih').value,
       durum: document.getElementById('f_durum').value,
+      sorumluOgretmenIdler: _sorumluOgretmenSecili('f_evrakSorumlu'),
       dosyaLinki: document.getElementById('f_dosyaLinki').value.trim(),
       aciklama: document.getElementById('f_aciklama').value.trim()
     });
@@ -2332,16 +2368,15 @@ async function yedektenGeriYukle(file){
    tekrarlanıyor.
    ============================================================ */
 const TEMBEL_MODUL_TABLOSU = {
-  // Çizelgeler grubu — 7 alt sekme tek bir dinleyici setini paylaşır.
-  // NOT: sosyalKulupler burada YOK — artık öğrenci formu/arama/raporlama
-  // bağımlılığı yüzünden baglantilariKur() içinde koşulsuz başlatılıyor.
-  belirliGunler:  () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  zumre:          () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  sok:            () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  bepPlani:       () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  rehberlik:      () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  maarifRapor:    () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
-  digerEvrak:     () => { if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur(); },
+  // Çizelgeler grubu — DÜZELTME: sok/zumre/bepPlani/rehberlik/maarifRapor/
+  // belirliGunler/digerEvrak eskiden burada, sadece "Çizelgeler" sekmesi
+  // ilk açıldığında yükleniyordu. Ama yeni Hatırlatma Sistemi (bkz.
+  // js/hatirlatmalar.js) uygulama açılışında bu verilere ihtiyaç duyuyor —
+  // Çizelgeler sekmesi hiç açılmamış olsa bile çalışmalı. sosyalKulupler'de
+  // daha önce yapılan aynı düzeltme deseniyle, cizelgelerBaglantilariKur()
+  // artık baglantilariKur() içinde koşulsuz başlatılıyor; burada tekrar
+  // çağrılırsa aynı dinleyiciler İKİNCİ KEZ kurulur (çift render/gereksiz
+  // okuma) — bu yüzden tembel tablodan tamamen çıkarıldı.
   odevTakip:      () => { if(typeof odevNotCizelgeleriBaglantilariKur === 'function') odevNotCizelgeleriBaglantilariKur(); },
   notCizelgesi:   () => { if(typeof odevNotCizelgeleriBaglantilariKur === 'function') odevNotCizelgeleriBaglantilariKur(); },
   anket:          () => { if(typeof anketlerBaglantisiKur === 'function') anketlerBaglantisiKur(); },
@@ -2350,14 +2385,12 @@ const TEMBEL_MODUL_TABLOSU = {
   // (yerleşim editörü) verisi birlikte hazır olsun diye ikisi de burada.
   tasima:         () => { tasimaBaglantilariKur(); if(typeof servisOturmaBaglantisiKur === 'function') servisOturmaBaglantisiKur(); },
   // "Sınav İşlemleri" iki ayrı sekmeye bölündü (bkz. kullanici-yonetimi.js
-  // MODUL_ALIAS) — ikisi de aynı sinavlar+denemeSinavlari dinleyicisini kurar.
-  yaziliSinavlar:   () => { sinavBaglantilariKur(); },
-  denemeSinavlari:  () => { sinavBaglantilariKur(); },
+  // MODUL_ALIAS) — DÜZELTME: eskiden ikisi de burada, sekme ilk açıldığında
+  // tembel başlıyordu. Artık Hatırlatma Sistemi (yaklaşan sınav hatırlatması)
+  // sınav verisine sekme hiç açılmadan da ihtiyaç duyduğu için
+  // sinavBaglantilariKur() baglantilariKur() içinde koşulsuz çağrılıyor.
   // yillikPlan: artık burada değil — koşulsuz olarak baglantilariKur() içinde başlatılıyor (bkz. yukarıdaki not).
   dokumanlar:     () => { if(typeof dokumanlarBaglantisiKur === 'function') dokumanlarBaglantisiKur(); },
-  evrak: () => {
-    db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
-  },
   ayarlar: () => {
     // dersListesi/bransListesi dinleyicileri artık burada değil — yukarıdaki
     // DÜZELTME notuna bkz. — koşulsuz olarak baglantilariKur() içinde başlıyor.
@@ -2393,8 +2426,13 @@ function baglantilariKur(){
   sinifBaglantilariKur();
   nobetBaglantilariKur();
   if(typeof takvimBaglantilariKur === 'function') takvimBaglantilariKur();
+  // DÜZELTME: evrak (Evrak Takibi) eskiden sadece o sekme ilk açıldığında
+  // tembel yükleniyordu. Hatırlatma Sistemi bu veriye sekme hiç açılmadan
+  // da ihtiyaç duyduğu için koşulsuz başlatılıyor.
+  db.collection(COL.evrak).onSnapshot(s=>{ evrakTakibi = s.docs.map(d=>({id:d.id,...d.data()})); renderEvrakTakibi(); renderDashboard(); if(typeof globalAramaYap==='function') globalAramaYap(); onbellekKaydet(); }, hataGoster);
   if(typeof dersSaatleriBaglantisiKur === 'function') dersSaatleriBaglantisiKur(); // dashboard zil sayacı buna bağlı, tembel kalamaz
   if(typeof depolamaSinirlariBaglantisiKur === 'function') depolamaSinirlariBaglantisiKur();
+  if(typeof hatirlatmaAyarlariBaglantisiniKur === 'function') hatirlatmaAyarlariBaglantisiniKur();
   if(typeof notlarBaglantilariKur === 'function') notlarBaglantilariKur();
   if(typeof mesajlasmaBaglantilariKur === 'function') mesajlasmaBaglantilariKur(); // anlık bildirim gerektiği için hep açık
 
@@ -2421,6 +2459,12 @@ function baglantilariKur(){
   // ihtiyaç duyuyor; Çizelgeler sekmesi hiç açılmadan da çalışmalı. Bu
   // yüzden personelIzin ile aynı gerekçeyle burada koşulsuz başlatılıyor.
   if(typeof sosyalKuluplerBaglantisiniKur === 'function') sosyalKuluplerBaglantisiniKur();
+  // DÜZELTME: sok/zumre/bepPlani/rehberlik/maarifRapor/belirliGunler/
+  // digerEvrak de aynı gerekçeyle (bkz. TEMBEL_MODUL_TABLOSU'ndaki not)
+  // artık koşulsuz — yeni Hatırlatma Sistemi bu verilere Çizelgeler
+  // sekmesi hiç açılmadan da ihtiyaç duyuyor.
+  if(typeof cizelgelerBaglantilariKur === 'function') cizelgelerBaglantilariKur();
+  if(typeof sinavBaglantilariKur === 'function') sinavBaglantilariKur();
   // DÜZELTME: yillikPlan de aynı gerekçeyle koşulsuz — anasayfadaki zil
   // widget'ı (zilTiklandi()) tıklanınca hangi yıllık planın açılacağını
   // bulmak için yillikPlanTanimlari'na ihtiyaç duyuyor, Yıllık Plan
@@ -2434,11 +2478,16 @@ function baglantilariKur(){
   if(typeof kontrolListeleriBaglantisiniKur === 'function') kontrolListeleriBaglantisiniKur();
   if(typeof sinavSonuclariBaglantisiniKur === 'function') sinavSonuclariBaglantisiniKur();
 
+  // YENİ: Hatırlatma Sistemi — tüm kaynaklar (görevler, evrak, nöbet,
+  // çizelgeler, kontrol listeleri, sınavlar) yukarıda koşulsuz başlatıldığı
+  // için birkaç saniye içinde ilk verilerini alır. Pop-up'ı, veriler
+  // oturması için kısa bir gecikmeyle tetikliyoruz (bkz. js/hatirlatmalar.js).
+  if(typeof hatirlatmalariKontrolEtVeGoster === 'function') setTimeout(hatirlatmalariKontrolEtVeGoster, 4000);
+
   // Aşağıdakiler artık burada DEĞİL — ilgili sekme ilk açıldığında
   // sekmeAc() içinden _tembelModulBaslat() ile tetiklenir:
-  // Çizelgeler grubu (sosyalKulupler/belirliGunler/zumre/sok/bepPlani/
-  // rehberlik/maarifRapor/digerEvrak), anket, periyodikIsler, tasima,
-  // yaziliSinavlar, denemeSinavlari, dokumanlar, evrak, ayarlar(ders/branş listesi)
+  // anket, periyodikIsler, tasima, dokumanlar, evrak, ayarlar(ders/branş listesi)
+  // (Çizelgeler grubu ve sınavlar artık koşulsuz — bkz. yukarısı.)
 }
 
 /* ============== UYGULAMA BAŞLATMA / GEZİNME ============== */

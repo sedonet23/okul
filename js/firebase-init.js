@@ -37,13 +37,15 @@ const COL = {
   digerEvrak:'oy_digerEvrak',
   // --- YENİ: Nöbet modülü + Periyodik İşler + Ders Saatleri ---
   nobetYerleri:'oy_nobetYerleri',       // {ad, sira}
-  nobetAtamalari:'oy_nobetAtamalari',   // {tarih:'YYYY-MM-DD', yerId, ogretmenAdi}
+  nobetAtamalari:'oy_nobetAtamalari',   // {tarih:'YYYY-MM-DD', yerId, ogretmenAdi, ogretmenId, defterDolduruldu:bool}
   nobetciAmirleri:'oy_nobetciAmirleri', // {tarih:'YYYY-MM-DD', ad, telefon}
   resmiTatiller:'oy_resmiTatiller',     // {tarih:'YYYY-MM-DD', aciklama}
   periyodikIsler:'oy_periyodikIsler',   // {isAdi, baslangic, bitis, tamamlandi, not, bildirimGonderildi}
   dersSaatleri:'oy_dersSaatleri',       // tek doküman (id:'ayarlar'): {dersler:[{baslangic,bitis}], ogleArasindanSonraDers, ogleArasiSuresi}
   // --- YENİ: Depolama sınırları (kategori bazlı kota) ---
   depolamaAyarlari:'oy_depolamaAyarlari', // tek doküman (id:'ayarlar'): {mesaj:{aktif,MB}, duyuru:{aktif,MB}, dokuman:{aktif,MB}, takvim:{aktif,MB}}
+  // --- YENİ: Hatırlatma sistemi ayarları ---
+  hatirlatmaAyarlari:'oy_hatirlatmaAyarlari', // tek doküman (id:'ayarlar'): {gunSayisi: number} — kaç gün kala hatırlatma başlasın
   // --- YENİ: Sınıflar modülü ---
   siniflar:'oy_siniflar',               // {ad, seviye, sube, ogrenciSayisi, kizSayisi, erkekSayisi, sinifOgretmeniId, derslik, notlar}
   veliler:'oy_veliler',                 // {sinifId, ogrenciAdi, veliAdi, telefon, not}

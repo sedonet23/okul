@@ -8,7 +8,7 @@
 
    Veri modeli (bkz. firebase-init.js COL):
      nobetYerleri    : {ad, sira}                                  — dinamik nöbet konumları (sütunlar)
-     nobetAtamalari  : {tarih:'YYYY-MM-DD', yerId, ogretmenAdSoyad} — bir hücre = bir atama
+     nobetAtamalari  : {tarih:'YYYY-MM-DD', yerId, ogretmenAdSoyad, ogretmenId, defterDolduruldu:bool} — bir hücre = bir atama
      nobetciAmirleri : {tarih:'YYYY-MM-DD', ad, telefon}            — günün nöbetçi amiri (serbest metin)
      resmiTatiller   : {tarih:'YYYY-MM-DD', aciklama}               — silinebilir/eklenebilir tatil listesi
    ==================================================================== */
@@ -26,6 +26,15 @@ let nobetGoruntulenenYil, nobetGoruntulenenAy; // 0-11
 
 /* ---------- yardımcılar (saf mantık NobetService'e devredilir, imzalar korunur) ---------- */
 function nobetTarihISO(y,m,d){ return NobetService.tarihISO(y,m,d); }
+/* YENİ: Nöbetçi öğretmen kendi atamasının "nöbet defterini doldurdum"
+   kutucuğunu işaretler/kaldırır (bkz. NobetService.defterDolduToggle). */
+function nobetDefterToggle(atamaId, deger, checkboxEl){
+  const atama = nobetAtamalari.find(x=>x.id===atamaId);
+  if(!atama) return;
+  NobetService.defterDolduToggle(atama, deger)
+    .then(()=> toast(deger ? 'Nöbet defteri işaretlendi.' : 'İşaret kaldırıldı.'))
+    .catch(err=>{ if(checkboxEl) checkboxEl.checked = !deger; if(err.message!=='sahip-degil') toast('Hata oluştu.'); });
+}
 function nobetHaftasonuMu(y,m,d){ return NobetService.haftasonuMu(y,m,d); }
 function nobetTatilMi(iso){ return NobetService.tatilMi(resmiTatiller, iso); }
 function nobetAyAdiUzun(y,m){ return `${AYLAR[m]} ${y}`; }
@@ -240,11 +249,21 @@ function renderNobetBugunVeHafta(){
 
   const bugunISO = todayISO();
   const ozet = nobetGununOzeti(bugunISO);
+  // YENİ: Hatırlatma sistemi — bugün nöbetçi olan giriş yapmış öğretmen,
+  // kendi atamasının yanında "Nöbet defterini doldurdum" kutucuğunu görür
+  // ve işaretleyebilir (bkz. NobetService.defterDolduToggle).
+  const ben = (typeof bagliOgretmenimGetir === 'function') ? bagliOgretmenimGetir() : null;
   const bugunHTML = ozet.haftasonu ? '<p class="empty-state">🌤️ Bugün hafta sonu.</p>'
     : ozet.tatil ? `<p class="empty-state">🎉 Bugün resmi tatil${ozet.tatil.aciklama?' — '+escapeHtml(ozet.tatil.aciklama):''}.</p>`
     : (ozet.atamalar.length ? ozet.atamalar.map(a=>{
         const yer = nobetYerleri.find(y=>y.id===a.yerId);
-        return `<div class="dash-row">${nobetYeriIkon(yer?yer.ad:'')} ${escapeHtml(yer?yer.ad:'?')} — <strong>👤 ${escapeHtml(a.ogretmenAdSoyad)}</strong></div>`;
+        const kendiAtamamMi = ben && a.ogretmenId === ben.id;
+        return `<div class="dash-row">${nobetYeriIkon(yer?yer.ad:'')} ${escapeHtml(yer?yer.ad:'?')} — <strong>👤 ${escapeHtml(a.ogretmenAdSoyad)}</strong>
+          ${kendiAtamamMi ? `<label style="margin-left:auto;display:flex;align-items:center;gap:5px;font-size:12px;font-weight:400;cursor:pointer;">
+            <input type="checkbox" ${a.defterDolduruldu?'checked':''} onchange="nobetDefterToggle('${a.id}', this.checked, this)">
+            📔 Defteri doldurdum
+          </label>` : ''}
+        </div>`;
       }).join('') + (ozet.amir?`<div class="dash-row">👮 Nöbetçi Amir — <strong>${escapeHtml(ozet.amir.ad)}</strong>${(()=>{ const ogr=ogretmenler.find(o=>o.id===ozet.amir.ogretmenId); const tel=ogr?ogr.telefon:ozet.amir.telefon; return tel?' (📞 '+escapeHtml(tel)+')':''; })()}</div>`:'')
       : '<p class="empty-state">📭 Bugün için nöbet ataması yok.</p>');
 
