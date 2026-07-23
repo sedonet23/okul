@@ -2361,10 +2361,10 @@ body:has(#tab-asistan.active) .asistan-fab{display:none;}
    basılıyor. Glassmorphism: yarı saydam beyaz + güçlü blur + ince kenarlık,
    Hava Durumu kartıyla (aşağıda .dash-hero-hava-satir) birebir aynı stil. */
 #tab-panel.dash-modern .dash-hero-bell{
-  background:rgba(255,255,255,.20);
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  background:rgba(255,255,255,.13);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   border:1px solid rgba(255,255,255,.35); border-radius:28px;
-  box-shadow: 0 8px 24px -6px rgba(10,40,80,.18), inset 0 1px 0 rgba(255,255,255,.25);
+  box-shadow: 0 8px 24px -6px rgba(10,40,80,.16), inset 0 1px 0 rgba(255,255,255,.25);
   padding:18px; margin-top:18px;
   display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
   cursor:pointer;
@@ -2800,7 +2800,7 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 /* Üstten alta hafif karartma — metin okunurluğu her zaman korunsun */
 #tab-panel.dash-modern .dash-hero::after{
   content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.06) 40%, rgba(0,0,0,.24) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.03) 45%, rgba(0,0,0,.14) 100%);
 }
 #tab-panel.dash-modern .dash-hero > *{ position:relative; z-index:1; }
 
@@ -2809,7 +2809,7 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 #tab-panel.dash-modern .dash-hero.sahne-ogle,
 #tab-panel.dash-modern .dash-hero.sahne-gunbatimi,
 #tab-panel.dash-modern .dash-hero.sahne-gece{
-  background: linear-gradient(180deg, #1E6FD9 0%, #3E93EA 32%, #6FB6F3 62%, #B9E1FB 100%);
+  background: linear-gradient(170deg, #1E6FD9 0%, #4B9BEB 38%, #8FCDEE 66%, #CDEFD3 100%);
 }
 
 /* Manzara illüstrasyonu: gökyüzündeki içerik (metin, zil, hava) her zaman
@@ -2820,7 +2820,7 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
 
 /* --- Güneş: gökyüzüne gömülü, hafif nabız/parıltı animasyonlu --- */
 #tab-panel.dash-modern .dash-hero .hero-gunes{
-  position:absolute; top:10%; right:8%; width:104px; height:104px; border-radius:50%;
+  position:absolute; top:7%; right:9%; width:110px; height:110px; border-radius:50%;
   background: radial-gradient(circle, #FFFBEA 0%, #FFEDA8 45%, #FFDD7A 68%, rgba(255,221,122,0) 80%);
   animation: gunesParilti 4.5s ease-in-out infinite;
 }
@@ -2839,13 +2839,13 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   content:""; position:absolute; background:inherit; border-radius:50%;
 }
 #tab-panel.dash-modern .dash-hero .hero-bulut-1{
-  top:24%; left:auto; right:26%; width:78px; height:28px;
+  top:16%; left:auto; right:30%; width:78px; height:28px;
   animation: bulutSuzul 22s ease-in-out infinite;
 }
 #tab-panel.dash-modern .dash-hero .hero-bulut-1::before{ width:38px; height:38px; top:-18px; left:8px; }
 #tab-panel.dash-modern .dash-hero .hero-bulut-1::after{ width:28px; height:28px; top:-10px; left:40px; }
 #tab-panel.dash-modern .dash-hero .hero-bulut-2{
-  top:16%; left:8%; width:50px; height:19px; opacity:.7;
+  top:11%; left:6%; width:50px; height:19px; opacity:.7;
   animation: bulutSuzul 28s ease-in-out infinite reverse;
 }
 #tab-panel.dash-modern .dash-hero .hero-bulut-2::before{ width:24px; height:24px; top:-11px; left:6px; }
@@ -2855,37 +2855,30 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
   50%{ transform:translateX(-16px); }
 }
 
-/* --- Tepeler: 3 katman (arka/orta/ön), atmosferik perspektif (arkadan öne
-   doğru koyulaşan, doygunluğu artan yeşil) ile derinlik hissi --- */
-#tab-panel.dash-modern .dash-hero .hero-tepe{
-  position:absolute; left:-15%; width:130%; border-radius:50% 50% 0 0 / 100% 100% 0 0;
-}
-#tab-panel.dash-modern .dash-hero .hero-tepe-arka{ bottom:-22%; height:92px; background:#A9D9A0; opacity:.75; }
-#tab-panel.dash-modern .dash-hero .hero-tepe-orta{ bottom:-18%; height:74px; background:#7FC46E; opacity:.88; }
-#tab-panel.dash-modern .dash-hero .hero-tepe-on{ bottom:-16%; height:56px; background:#57A648; }
+/* --- Tepeler: DÜZELTME — artık kartın ALTINDA tam genişlikte 3 şerit değil,
+   referans görseldeki gibi SAĞ ÜST köşeden başlayıp çapraz aşağı süzülen,
+   köşeye gömülü, büyük yuvarlak/iç içe kütleler. Bu sayede alt kısımdaki
+   sosyal medya ikon satırıyla asla çakışmıyor (eski tasarımdaki hata buydu). */
+#tab-panel.dash-modern .dash-hero .hero-tepe{ position:absolute; border-radius:50%; }
+#tab-panel.dash-modern .dash-hero .hero-tepe-arka{ width:280px; height:280px; top:-100px; right:-90px; background:#A9D9A0; opacity:.65; }
+#tab-panel.dash-modern .dash-hero .hero-tepe-orta{ width:210px; height:210px; top:-30px; right:-70px; background:#7FC46E; opacity:.8; }
+#tab-panel.dash-modern .dash-hero .hero-tepe-on{ width:190px; height:190px; top:60px; right:-90px; background:#57A648; opacity:.95; }
 
-/* --- Ağaçlar: farklı katmanlarda farklı boy/opaklık = perspektif hissi --- */
-#tab-panel.dash-modern .dash-hero .hero-agac{
-  position:absolute; width:0; height:0;
-}
-/* Arka plan ağaçları: küçük, soluk, uzak hissi */
-#tab-panel.dash-modern .dash-hero .hero-agac-arka-1{ right:32%; bottom:14%; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:12px solid #8FCB80; opacity:.65; }
-#tab-panel.dash-modern .dash-hero .hero-agac-arka-2{ right:20%; bottom:15%; border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:10px solid #8FCB80; opacity:.6; }
-#tab-panel.dash-modern .dash-hero .hero-agac-arka-3{ right:44%; bottom:13%; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:11px solid #8FCB80; opacity:.6; }
-/* Orta plan ağaçları: orta boy */
-#tab-panel.dash-modern .dash-hero .hero-agac-orta-1{ right:26%; bottom:9%; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:17px solid #5FAE4F; opacity:.85; }
-#tab-panel.dash-modern .dash-hero .hero-agac-orta-2{ right:11%; bottom:10%; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:15px solid #5FAE4F; opacity:.8; }
-/* Ön plan ağaçları: en büyük, en koyu/net — en yakın hissi */
-#tab-panel.dash-modern .dash-hero .hero-agac-on-1{ right:6%; bottom:5%; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:26px solid #3E8E36; }
-#tab-panel.dash-modern .dash-hero .hero-agac-on-2{ right:16%; bottom:4%; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:20px solid #3E8E36; opacity:.92; }
-#tab-panel.dash-modern .dash-hero .hero-agac-on-3{ right:1%; bottom:3%; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:21px solid #3E8E36; opacity:.9; }
+/* --- Ağaçlar: tepe kütlesinin görünür kavisi üzerine, yukarıdan aşağı
+   küçülen bir dizilim — hepsi üst %55'lik alanda, ikon satırına değmiyor --- */
+#tab-panel.dash-modern .dash-hero .hero-agac{ position:absolute; width:0; height:0; }
+#tab-panel.dash-modern .hero-agac-arka-1{ top:2%; right:26%; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:15px solid #6FBB5E; opacity:.7; }
+#tab-panel.dash-modern .hero-agac-arka-2{ top:9%; right:16%; border-left:5px solid transparent; border-right:5px solid transparent; border-bottom:12px solid #6FBB5E; opacity:.65; }
+#tab-panel.dash-modern .hero-agac-arka-3{ top:5%; right:8%; border-left:6px solid transparent; border-right:6px solid transparent; border-bottom:14px solid #6FBB5E; opacity:.7; }
+#tab-panel.dash-modern .hero-agac-orta-1{ top:16%; right:20%; border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:19px solid #4FA23F; opacity:.85; }
+#tab-panel.dash-modern .hero-agac-orta-2{ top:20%; right:6%; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:17px solid #4FA23F; opacity:.85; }
+#tab-panel.dash-modern .hero-agac-on-1{ top:29%; right:12%; border-left:11px solid transparent; border-right:11px solid transparent; border-bottom:26px solid #388A2E; }
+#tab-panel.dash-modern .hero-agac-on-2{ top:33%; right:1%; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:22px solid #388A2E; opacity:.95; }
+#tab-panel.dash-modern .hero-agac-on-3{ top:24%; right:24%; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:17px solid #388A2E; opacity:.9; }
 
-/* --- Çim dokusu: en altta ince, tekrarlayan diyagonal doku şeridi --- */
-#tab-panel.dash-modern .dash-hero .hero-cim{
-  position:absolute; left:0; right:0; bottom:0; height:18px;
-  background: repeating-linear-gradient(115deg, rgba(255,255,255,.10) 0 3px, transparent 3px 9px), #3E8E36;
-  opacity:.9;
-}
+/* Çim dokusu artık kullanılmıyor (tepe köşeye taşındığı için altta ayrı bir
+   şeride gerek kalmadı) — element DOM'da kalsa da görünmez. */
+#tab-panel.dash-modern .dash-hero .hero-cim{ display:none; }
 
 /* Erişilebilirlik: hareket azaltma tercihi olan kullanıcılarda dekoratif
    animasyonlar (giriş, güneş parıltısı, bulut süzülmesi) kapatılır. */
@@ -2956,13 +2949,13 @@ html[data-accent="kirmizi"]{ --icon-shape:16px; --icon-ring:2px solid var(--bran
    ========================================================================= */
 .dash-hero-hava-satir{
   display:flex; align-items:center; gap:10px; margin-top:18px;
-  background:rgba(255,255,255,.20);
-  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  background:rgba(255,255,255,.13);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
   border:1px solid rgba(255,255,255,.35); border-radius:28px; padding:18px;
-  box-shadow: 0 8px 24px -6px rgba(10,40,80,.18), inset 0 1px 0 rgba(255,255,255,.25);
+  box-shadow: 0 8px 24px -6px rgba(10,40,80,.16), inset 0 1px 0 rgba(255,255,255,.25);
   font-family:'Inter',sans-serif; transition:background .2s ease;
 }
-.dash-hero-hava-satir:hover{ background:rgba(255,255,255,.28); }
+.dash-hero-hava-satir:hover{ background:rgba(255,255,255,.20); }
 .dash-hero-hava-satir .hero-hava-sicaklik{ font-size:17px; font-weight:800; color:#fff; }
 .dash-hero-hava-satir .hero-hava-aciklama{ font-size:13px; color:rgba(255,255,255,.75); flex:1; }
 .dash-hero-hava-satir .hero-hava-detay-ok{ font-size:12px; color:rgba(255,255,255,.85); margin-left:auto; text-shadow:0 1px 2px rgba(0,0,0,.25); }
