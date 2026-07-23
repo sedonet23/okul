@@ -15,18 +15,58 @@ let dersSaatleriAyarlari = null; // Firestore'dan gelen { donemler:[...], ogleAr
 // anlamına gelebildiği için, ilk yükleme anındaki yanlış "varsayılan ders programı" görünümünü
 // (asıl veri tatil modu iken bile) önlemek adına bu bayrak eklendi.)
 let dersSaatleriYuklendi = false;
+// DÜZELTME (kök sebep): En az bir kez SUNUCUDAN (fromCache:false) onaylı veri
+// geldi mi? Geldiyse, bundan sonra gelecek ÖNBELLEK kaynaklı (fromCache:true)
+// eski bir kopya artık kabul edilmez — aksi halde tatil modu gibi kritik bir
+// alanda, sunucudan doğru veri geldikten SONRA bile eski bir önbellek anlık
+// görüntüsü araya girip ekranı sessizce yanlış (eski) haline geri
+// döndürebiliyordu. Bu tam olarak Sedat'ın bildirdiği "web sürümü tatil
+// modunda değil, önbellek temizlenince böyle oluyor" hatasının kök sebebiydi.
+let _dersSaatleriSunucuOnaylandi = false;
 
 /* ---------- Firestore bağlantısı (app.js baglantilariKur içinden çağrılır) ----------
    Artık doğrudan db.collection() çağrılmıyor — DersSaatleriRepository üzerinden dinleniyor. */
 let _dsrSenkronUyariZamanlayici = null;
+let _dsrPeriyodikDogrulamaTimer = null;
+
+function _dersSaatleriUygula(v){
+  dersSaatleriYuklendi = true;
+  dersSaatleriAyarlari = v;
+  renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
+  if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
+  if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
+}
+
+/* Sunucudan (önbellek atlanarak) bir kez daha zorla okur; mevcut veriden
+   farklıysa üzerine yazar. Hem bağlantı kurulurken, hem periyodik olarak,
+   hem de sekme/uygulama tekrar öne geldiğinde çağrılır — gerçek zamanlı
+   kanal tamamen tıkalıysa bile en geç bu yolla kendiliğinden düzelir. */
+function _dersSaatleriSunucudanDogrula(){
+  DersSaatleriRepository.ayarlariSunucudanOku().then(v=>{
+    _dersSaatleriSunucuOnaylandi = true;
+    if(JSON.stringify(v) === JSON.stringify(dersSaatleriAyarlari)) return; // zaten aynı, dokunma
+    console.warn('[Ders Saatleri] Sunucudaki güncel veri elde tutulanla UYUŞMUYORDU (bayat önbellek şüphesi) — sunucudaki esas alınıp ekran güncellendi.');
+    _dersSaatleriUygula(v);
+  }).catch(err=>{
+    // Sunucuya hiç ulaşılamıyorsa (tamamen offline) sessizce geç — dinleyici
+    // zaten elindeki en iyi veriyle (önbellek) çalışmaya devam eder.
+    console.warn('[Ders Saatleri] Sunucudan doğrulama okuması başarısız (muhtemelen tamamen offline):', err.message);
+  });
+}
 
 function dersSaatleriBaglantisiKur(){
   DersSaatleriRepository.ayarlariDinle((v, metadata)=>{
-    dersSaatleriYuklendi = true;
-    dersSaatleriAyarlari = v;
-    renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
-    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
-    if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
+    const sunucudanGeldi = !metadata || !metadata.fromCache;
+    // DÜZELTME (kök sebep): sunucudan en az bir kez onay aldıktan sonra,
+    // önbellek kaynaklı (fromCache:true) bir kopya gelirse artık YOK SAYILIR
+    // — sadece henüz hiç sunucu onayı alınmamışken (ilk açılış anı, ekranı
+    // hemen bir şeyle doldurmak için) önbellek verisi geçici olarak kabul
+    // edilir. Bu, eski bir önbellek kaydının doğru veriyi geri almasını
+    // (bu hatanın asıl kök sebebiydi) kalıcı olarak engeller.
+    if(!sunucudanGeldi && _dersSaatleriSunucuOnaylandi) return;
+    if(sunucudanGeldi) _dersSaatleriSunucuOnaylandi = true;
+
+    _dersSaatleriUygula(v);
 
     // TEŞHİS: bu veri gerçekten sunucudan mı geldi, yoksa cihazın ESKİ yerel
     // önbelleğinden mi okunuyor? Web'de bazen tarayıcı uzantısı/ağ filtresi
@@ -45,28 +85,20 @@ function dersSaatleriBaglantisiKur(){
     if(typeof _senkronUyariGizle === 'function') _senkronUyariGizle();
   });
 
-  // DÜZELTME (kök sebep): Yukarıdaki gerçek zamanlı dinleyici bazı cihazlarda
-  // (IndexedDB'de takılı kalmış eski bir kopya yüzünden) tatil modu gibi
-  // kritik bir alanda süresiz olarak BAYAT veri gösterebiliyor ve kendi
-  // kendine asla düzelmeyebiliyordu ("web sürümü tatil modunda değil" hatası
-  // — Sedat'ın bildirdiği, önbellek temizlenince ortaya çıkan sorun). Buna
-  // ek olarak, sayfa her açıldığında SUNUCUDAN (önbellek atlanarak) bir kez
-  // daha zorla okuma yapılır; sonuç dinleyicinin elindekinden farklıysa
-  // üzerine yazılır — böylece kullanıcı elle önbellek temizlemek zorunda
-  // kalmaz, hata kendiliğinden düzelir.
-  DersSaatleriRepository.ayarlariSunucudanOku().then(v=>{
-    if(JSON.stringify(v) === JSON.stringify(dersSaatleriAyarlari)) return; // zaten aynı, dokunma
-    console.warn('[Ders Saatleri] Gerçek zamanlı dinleyici ile sunucudaki güncel veri UYUŞMUYORDU (bayat önbellek şüphesi) — sunucudaki esas alınıp ekran güncellendi.');
-    dersSaatleriYuklendi = true;
-    dersSaatleriAyarlari = v;
-    renderDersSaatleriForm(); renderDersGrid(); renderDashboard(); tatilModuKartlariniUygula();
-    if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
-    if(typeof dersZiliWidgetGuncelle==='function') setTimeout(dersZiliWidgetGuncelle,500);
-  }).catch(err=>{
-    // Sunucuya hiç ulaşılamıyorsa (tamamen offline) sessizce geç — dinleyici
-    // zaten elindeki en iyi veriyle (önbellek) çalışmaya devam eder.
-    console.warn('[Ders Saatleri] Sunucudan doğrulama okuması başarısız (muhtemelen tamamen offline):', err.message);
-  });
+  // DÜZELTME (kök sebep): sayfa her açıldığında SUNUCUDAN (önbellek atlanarak)
+  // bir kez daha zorla okuma yapılır. Ayrıca gerçek zamanlı kanal tamamen
+  // tıkalı kalırsa (bazı ağlarda WebChannel/uzun-yoklama engellenebiliyor,
+  // düz HTTPS istekleri ise geçebiliyor) diye periyodik olarak (2 dakikada
+  // bir) ve sekme/uygulama tekrar öne geldiğinde de tekrarlanır.
+  _dersSaatleriSunucudanDogrula();
+  if(_dsrPeriyodikDogrulamaTimer) clearInterval(_dsrPeriyodikDogrulamaTimer);
+  _dsrPeriyodikDogrulamaTimer = setInterval(_dersSaatleriSunucudanDogrula, 120000);
+  if(!window._dsrGorunurlukDinleyiciEklendi){
+    window._dsrGorunurlukDinleyiciEklendi = true;
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState === 'visible') _dersSaatleriSunucudanDogrula();
+    });
+  }
 }
 
 function pad2(n){ return n.toString().padStart(2,'0'); }
