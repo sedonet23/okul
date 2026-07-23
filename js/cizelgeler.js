@@ -244,6 +244,7 @@ const CIZELGE_META={
       {key:'ogretmenId', etiket:'Öğretmen',         tip:'ogretmen'},
       {key:'brans',      etiket:'Branş/Ders',        tip:'brans'},
       {key:'sinif',      etiket:'Sınıf (opsiyonel)', tip:'sinif', opsiyonel:true},
+      {key:'tarih',      etiket:'Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)', tip:'tarih', opsiyonel:true},
       {key:'aciklama',   etiket:'Notlar',             tip:'textarea', opsiyonel:true}
     ],
     kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
@@ -253,6 +254,7 @@ const CIZELGE_META={
       {key:'ogretmenId', etiket:'Öğretmen', tip:'ogretmen'},
       {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
       {key:'konu',       etiket:'Konu',     tip:'metin'},
+      {key:'tarih',      etiket:'Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)', tip:'tarih', opsiyonel:true},
       {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
     ],
     kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
@@ -290,7 +292,7 @@ function _renderDonemTablosu(el,tip,veri){
     html+=`<div class="belge-ogretmen-grup"><div class="belge-ogretmen-baslik"><span class="belge-ogretmen-adi">${escapeHtml(ogAdi)}</span>${_ilerlemeHtml(tamam,toplam)}</div>`;
     kayitlar.forEach(k=>{
       const kArr=[...(k.kontroller||[])]; while(kArr.length<kontrolSayisi) kArr.push(false);
-      const ozet=meta.alanlar?meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama').map(a=>{let v=k[a.key]||'';return v?escapeHtml(String(v)):'';}).filter(Boolean).join(' · '):'';
+      const ozet=meta.alanlar?meta.alanlar.filter(a=>a.key!=='ogretmenId'&&a.key!=='aciklama').map(a=>{let v=k[a.key]||'';if(!v)return'';return a.tip==='tarih'?('📅 '+formatTarih(v)):escapeHtml(String(v));}).filter(Boolean).join(' · '):'';
       const mt=kArr.filter(Boolean).length;
       html+=`<div class="belge-kayit" id="belge-${k.id}">
         <div class="belge-kayit-baslik">
@@ -331,6 +333,8 @@ function cizelgeSatirModalAc(tip,id){
       bodyHtml+=`<select id="f_${alan.key}"><option value="">— Seçiniz —</option>${(alan.secenekler||[]).map(s=>`<option ${s===val?'selected':''}>${s}</option>`).join('')}</select>`;
     } else if(alan.tip==='textarea'){
       bodyHtml+=`<textarea id="f_${alan.key}" rows="2">${escapeHtml(val)}</textarea>`;
+    } else if(alan.tip==='tarih'){
+      bodyHtml+=`<input type="date" id="f_${alan.key}" value="${escapeHtml(val)}">`;
     } else {
       bodyHtml+=`<input id="f_${alan.key}" value="${escapeHtml(val)}">`;
     }

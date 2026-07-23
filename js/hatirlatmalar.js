@@ -2,7 +2,7 @@
    js/hatirlatmalar.js
    HATIRLATMA SİSTEMİ — giriş yapan öğretmene, son tarihi yaklaşan/geçmiş
    ve HENÜZ TAMAMLANMAMIŞ işlerini/evraklarını uygulama her açıldığında
-   bir pop-up ile hatırlatır. 9 kaynak taranır:
+   bir pop-up ile hatırlatır. 10 kaynak taranır:
 
      1. Görevler          (sorumluOgretmenIdler, sonTarih, durum)
      2. Evrak Takibi      (sorumluOgretmenIdler, tarih, durum)
@@ -10,10 +10,12 @@
      4. Sosyal Kulüp      (aylık tik, ogretmenIdler)
      5. Rehberlik         (aylık tik, ogretmenId)
      6. Maarif Model      (aylık tik, ogretmenId)
-     7. Belirli Gün/Hafta (tarihBaslangic, ogretmenIdler, kontroller[0])
-     8. Kontrol Listeleri (admin girdiği başlangıç/bitiş tarihi, yayinda,
-                           her öğretmenin kendi tamamlama kaydı)
-     9. Yazılı Sınav      (ogretmenId, tarih — yaklaşan sınav hatırlatması)
+     7. Zümre / ŞÖK       (kendi kaydındaki "tarih" alanı, 3 dönem tiki)
+     8. Belirli Gün/Hafta (tarihBaslangic, ogretmenIdler, kontroller[0])
+     9. Kontrol Listeleri (her MADDENİN kendi tarihi, yayinda, her
+                           öğretmenin kendi tamamlama kaydı — BEP/Yıllık
+                           Plan gibi tarihi olmayan diğer işler için kullanılır)
+    10. Yazılı Sınav      (ogretmenId, tarih — yaklaşan sınav hatırlatması)
 
    Tamamlanma HER ZAMAN kendi modülünde işaretlenir (bu dosya hiçbir
    yerde "tamamlandı" YAZMAZ) — bir madde tamamlanınca bir sonraki
@@ -128,6 +130,30 @@ function _htBelirliGunTaramalari(ogretmenId, gunSayisi){
     .filter(x => x.gunFarki <= gunSayisi);
 }
 
+/* ---------- Zümre / ŞÖK — YENİ: kendi kayıtlarındaki "tarih" alanı
+   (Sedat'ın isteğiyle Kontrol Listeleri yerine doğrudan bu ekranlara
+   eklendi, bkz. js/cizelgeler.js CIZELGE_META). Kaydın 3 dönem tikinden
+   (1.Dönem/2.Dönem/Yıl Sonu) HEPSİ işaretlenmemişse ve tarih yaklaşıyorsa/
+   geçtiyse hatırlatma üretir. ---------- */
+const HT_ZUMRE_SOK_ADLARI = { zumre:'Zümre Toplantısı', sok:'ŞÖK' };
+function _htZumreSokTaramalari(ogretmenId, gunSayisi){
+  const sonuc = [];
+  ['zumre','sok'].forEach(tip=>{
+    (cizelgeVerileri[tip] || []).forEach(kayit=>{
+      if(kayit.ogretmenId !== ogretmenId || !kayit.tarih) return;
+      const hepsiTamamMi = (kayit.kontroller||[]).filter(Boolean).length >= 3;
+      if(hepsiTamamMi) return;
+      const fark = _htGunFarki(kayit.tarih);
+      if(fark > gunSayisi) return;
+      sonuc.push({
+        kaynak:tip, baslik:`${HT_ZUMRE_SOK_ADLARI[tip]}: ${kayit.brans||kayit.konu||kayit.sinif||''}`.trim(),
+        altBaslik:kayit.sinif&&kayit.brans?kayit.sinif:'', gunFarki:fark, git: ()=>{ if(typeof sekmeAc==='function') sekmeAc(tip); }
+      });
+    });
+  });
+  return sonuc;
+}
+
 /* ---------- Görevler ve Evrak (genel atanmış işler) ---------- */
 function _htGorevTaramalari(ogretmenId, gunSayisi){
   return (typeof gorevler!=='undefined'?gorevler:[])
@@ -200,6 +226,7 @@ async function hatirlatmalariTopla(){
     ..._htEvrakTaramalari(ben.id, gunSayisi),
     ..._htNobetTaramalari(ben.id),
     ..._htAylikTaramalar(ben.id, gunSayisi),
+    ..._htZumreSokTaramalari(ben.id, gunSayisi),
     ..._htBelirliGunTaramalari(ben.id, gunSayisi),
     ..._htSinavTaramalari(ben.id, gunSayisi),
   ];
