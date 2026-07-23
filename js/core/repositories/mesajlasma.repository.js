@@ -37,17 +37,32 @@ const MesajlasmaRepository = {
   mesajEkle(veri){ return db.collection(COL.mesajlar).add({ ...veri, tarih: new Date().toISOString() }); },
   mesajSil(id){ return db.collection(COL.mesajlar).doc(id).delete(); },
   /* Bir konuşmaya ait TÜM mesajları (ve varsa dosya eklerini) toplu siler
-     (konuşma silinirken kullanılır). */
+     (konuşma silinirken kullanılır).
+     DÜZELTME: Bu fonksiyon önceden bu dosyada İKİ KEZ tanımlanmıştı — JS'de
+     bir obje literal'inde aynı isim tekrar edince SONUNCUSU geçerli olur,
+     yani dosya temizleyen (Storage silen) İLK tanım hiç çalışmıyordu; tüm
+     mesaj ekleri konuşma silindiğinde Storage'da YETİM kalıyordu. Tekrar
+     eden ikinci (temizlik yapmayan) tanım kaldırıldı. Silinen dosyaların
+     toplam boyutu da döndürülür — depolama kullanım sayacından düşülebilsin
+     diye (bkz. mesajlasma.service.js). */
   async mesajlariTopluSil(konusmaId){
     const snap = await db.collection(COL.mesajlar).where('konusmaId', '==', konusmaId).get();
-    if(snap.empty) return;
+    if(snap.empty) return { kullaniciBazliBayt: {} };
+    // NOT: bir konuşmadaki dosyalar BİRDEN FAZLA farklı gönderene ait
+    // olabilir — depolama sayacından doğru kişiden düşülebilsin diye
+    // gönderen uid'sine göre gruplanıyor (bkz. mesajlasma.service.js).
+    const kullaniciBazliBayt = {};
     await Promise.all(snap.docs.map(d=>{
       const veri = d.data();
+      if(veri.dosya && veri.dosya.boyut && veri.gonderenUid){
+        kullaniciBazliBayt[veri.gonderenUid] = (kullaniciBazliBayt[veri.gonderenUid]||0) + veri.dosya.boyut;
+      }
       return veri.dosya && veri.dosya.storagePath ? this.dosyaSil(veri.dosya.storagePath).catch(()=>{}) : Promise.resolve();
     }));
     const batch = db.batch();
     snap.docs.forEach(d => batch.delete(d.ref));
-    return batch.commit();
+    await batch.commit();
+    return { kullaniciBazliBayt };
   },
 
   /* ---------- Dosya eki (Firebase Storage) ----------
@@ -72,14 +87,6 @@ const MesajlasmaRepository = {
     });
   },
   dosyaSil(storagePath){ return storage.ref().child(storagePath).delete(); },
-  /* Bir konuşmaya ait TÜM mesajları toplu siler (konuşma silinirken kullanılır). */
-  async mesajlariTopluSil(konusmaId){
-    const snap = await db.collection(COL.mesajlar).where('konusmaId', '==', konusmaId).get();
-    if(snap.empty) return;
-    const batch = db.batch();
-    snap.docs.forEach(d => batch.delete(d.ref));
-    return batch.commit();
-  },
 
   /* ---------- Kullanıcı dizini (mesajlaşılacak kişiyi bulmak için) ----------
      Not: Bu tek seferlik (canlı dinleme değil) bir sorgu — herkesin TÜM
