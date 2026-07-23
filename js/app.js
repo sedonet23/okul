@@ -817,6 +817,12 @@ function renderOkulBilgileriSayfasi(){
     if(ilkokulKodEl) ilkokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ilkokulKurumKodu) || '';
     if(ortaokulAdEl) ortaokulAdEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulAdi) || '';
     if(ortaokulKodEl) ortaokulKodEl.value = (okulBilgileriAyari && okulBilgileriAyari.ortaokulKurumKodu) || '';
+    const instagramEl = document.getElementById('f_okulInstagram');
+    const xEl = document.getElementById('f_okulX');
+    const webEl = document.getElementById('f_okulWeb');
+    if(instagramEl) instagramEl.value = (okulBilgileriAyari && okulBilgileriAyari.instagram) || '';
+    if(xEl) xEl.value = (okulBilgileriAyari && okulBilgileriAyari.x) || '';
+    if(webEl) webEl.value = (okulBilgileriAyari && okulBilgileriAyari.web) || '';
     if(typeof renderMuduYardimcilariListesi === 'function') renderMuduYardimcilariListesi();
     // DÜZELTME: Bu fonksiyon Firestore onSnapshot ile SIK SIK yeniden
     // çağrılıyor ve "Çıkar" gibi butonları innerHTML ile SIFIRDAN
@@ -837,12 +843,42 @@ function okulBilgileriKaydet(){
   const ilkokulKurumKodu = (document.getElementById('f_okulIlkokulKurumKodu')?.value || '').trim();
   const ortaokulAdi = (document.getElementById('f_okulOrtaokulAdi')?.value || '').trim();
   const ortaokulKurumKodu = (document.getElementById('f_okulOrtaokulKurumKodu')?.value || '').trim();
+  const instagram = (document.getElementById('f_okulInstagram')?.value || '').trim();
+  const x = (document.getElementById('f_okulX')?.value || '').trim();
+  const web = (document.getElementById('f_okulWeb')?.value || '').trim();
+  // Boş olmayan linklerin http(s):// ile başladığından emin ol, aksi halde
+  // <a href> tıklanınca sayfa göreli yol olarak açmaya çalışıp hataya düşer.
+  for(const [etiket, deger] of [['Instagram', instagram], ['X', x], ['Web Sitesi', web]]){
+    if(deger && !/^https?:\/\/.+/i.test(deger)){
+      toast(`${etiket} linki http:// veya https:// ile başlamalı.`);
+      return;
+    }
+  }
   db.collection(COL.okulBilgileri).doc('ayarlar').set({
     okulAdi, mudurId, il, ilce, mebMudurlugu,
-    ilkokulAdi, ilkokulKurumKodu, ortaokulAdi, ortaokulKurumKodu
+    ilkokulAdi, ilkokulKurumKodu, ortaokulAdi, ortaokulKurumKodu,
+    instagram, x, web
   })
     .then(()=>toast('Okul bilgileri kaydedildi.'))
     .catch(err=>toast('Hata: '+err.message));
+}
+
+/* YENİ: Ana sayfa hero kartında Instagram/X/Web ikonlarını gösterir.
+   okulBilgileriAyari her güncellendiğinde (onSnapshot) çağrılır. */
+function renderSosyalMedyaIkonlari(){
+  const kutu = document.getElementById('heroSosyalMedya');
+  if(!kutu) return;
+  const veri = okulBilgileriAyari || {};
+  const linkler = [
+    { anahtar:'instagram', etiket:'Instagram', url:veri.instagram, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>' },
+    { anahtar:'x', etiket:'X (Twitter)', url:veri.x, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>' },
+    { anahtar:'web', etiket:'Web Sitesi', url:veri.web, svg:'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' }
+  ].filter(l=>l.url);
+
+  if(!linkler.length){ kutu.style.display='none'; kutu.innerHTML=''; return; }
+
+  kutu.innerHTML = linkler.map(l=>`<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener noreferrer" class="hero-sosyal-link" title="${escapeHtml(l.etiket)}" aria-label="${escapeHtml(l.etiket)}">${l.svg}</a>`).join('');
+  kutu.style.display = 'flex';
 }
 
 /* ============== DERS PROGRAMI ============== */
@@ -2123,6 +2159,7 @@ function baglantilariKur(){
   db.collection(COL.okulBilgileri).doc('ayarlar').onSnapshot(doc=>{
     okulBilgileriAyari = doc.exists ? doc.data() : null;
     renderOkulBilgileriSayfasi();
+    renderSosyalMedyaIkonlari();
     if(typeof widgetGuncelle==='function') setTimeout(widgetGuncelle,500);
   }, hataGoster);
   if(typeof personelBaglantilariKur === 'function') personelBaglantilariKur();
