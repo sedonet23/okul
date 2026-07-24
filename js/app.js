@@ -650,8 +650,25 @@ function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message
 /* Native (APK) ortamda modal/detay paneli açıkken "aşağı çekince yenile"
    jestini geçici olarak kapatır — aksi halde modal içindeki bir listeyi
    aşağı kaydırmaya çalışırken bazen sayfa yenileme jesti araya giriyordu
-   (bkz. android/.../PullToRefreshPlugin.java). Web sürümünde etkisizdir. */
+   (bkz. android/.../PullToRefreshPlugin.java). Web sürümünde etkisizdir.
+
+   DÜZELTME (kök sebep): Bir tam ekran panel (ör. Kontrol Listesi detayı)
+   açıkken, ÜSTÜNE genel modalAc() ile bir alt form (ör. "Madde Ekle")
+   açılıp kapatıldığında, modalKapat() KOŞULSUZ olarak yenileme jestini
+   tekrar AÇIYORDU — halbuki alttaki panel hâlâ açık ve jestin hâlâ kapalı
+   kalması gerekiyordu. Sonuç: alt form kapatıldıktan sonra üstteki listede
+   aşağı kaydırmaya çalışınca sayfa yenileniyordu. Artık bir "derinlik"
+   sayacı tutuluyor — sadece en dıştaki (son) "aç" çağrısı gerçekten native
+   tarafı tekrar etkinleştirir; iç içe kapatma/açma çağrıları dengeli
+   olduğu sürece bir üst panelin durumu asla erken bozulmaz. */
+let _pullToRefreshDerinlik = 0;
 function _pullToRefreshAyarla(enabled){
+  if(enabled){
+    _pullToRefreshDerinlik = Math.max(0, _pullToRefreshDerinlik - 1);
+    if(_pullToRefreshDerinlik > 0) return; // hâlâ en az bir üst panel/modal açık — gerçekten açma
+  } else {
+    _pullToRefreshDerinlik++;
+  }
   try{
     if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
        && window.Capacitor.Plugins && window.Capacitor.Plugins.PullToRefreshPlugin){
@@ -2564,6 +2581,65 @@ function geriTusuIsle(){
 
   var deo = document.getElementById('detayOverlay');
   if(deo && deo.classList.contains('active')){ detayPanelKapat(); return 'handled'; }
+
+  // DÜZELTME: Kontrol Listesi detay ekranı kendi özel (#modalOverlay/
+  // #detayOverlay DIŞINDA) tam ekran katmanını kullanıyor — geri tuşu
+  // sistemi bunu hiç bilmiyordu, bu yüzden geri tuşuna basınca ekran
+  // kapanmıyor VE _pullToRefreshAyarla derinlik sayacı hiç azalmadan
+  // (sızarak) kalıyordu.
+  var klo = document.getElementById('klDetayOverlay');
+  if(klo && typeof _klDetayKapat==='function'){ _klDetayKapat(); return 'handled'; }
+
+  // DÜZELTME (aynı desen, aynı turda bulundu): aşağıdaki araçların da
+  // kendi özel tam ekran katmanları var ve hiçbiri geri tuşu sistemine
+  // kayıtlı değildi — aynı şekilde ekran kapanmıyor ve derinlik sayacı
+  // sızıyordu. En içteki/en son açılmış olması muhtemel olandan
+  // başlanarak kontrol ediliyor.
+  var ssOg = document.getElementById('ssOgrenciOverlay');
+  if(ssOg && typeof _ssOgrenciSonucKapat==='function'){ _ssOgrenciSonucKapat(); return 'handled'; }
+  var ssDe = document.getElementById('ssDetayOverlay');
+  if(ssDe && typeof _ssDetayKapat==='function'){ _ssDetayKapat(); return 'handled'; }
+  var ssLi = document.getElementById('ssListeOverlay');
+  if(ssLi && typeof sinavSonuclariKapat==='function'){ sinavSonuclariKapat(); return 'handled'; }
+
+  var yplH = document.getElementById('yplHaftaOverlay');
+  if(yplH && typeof yillikPlanHaftaKapat==='function'){ yillikPlanHaftaKapat(); return 'handled'; }
+  var yplO = document.getElementById('yplOnizlemeOverlay');
+  if(yplO && typeof yillikPlanOnizlemeKapat==='function'){ yillikPlanOnizlemeKapat(); return 'handled'; }
+
+  var atk = document.getElementById('akademikTakvimOverlay');
+  if(atk && typeof akademikTakvimKapat==='function'){ akademikTakvimKapat(); return 'handled'; }
+
+  // dokOkuyucuOverlay/kdOverlay/pdOverlay'in kendi adlandırılmış bir
+  // Kapat fonksiyonu yok — kapatma mantığı doğrudan kapat butonunun
+  // onclick'ine bağlı; o düğmeyi tıklatmak aynı temizliği yapar.
+  var dko = document.getElementById('dokOkuyucuOverlay');
+  if(dko){ var dkoBtn = document.getElementById('dokOkuyucuKapat'); if(dkoBtn) dkoBtn.click(); else dko.remove(); return 'handled'; }
+  var kdo = document.getElementById('kdOverlay');
+  if(kdo){ var kdBtn = document.getElementById('kdKapatBtn'); if(kdBtn) kdBtn.click(); else kdo.remove(); return 'handled'; }
+  var pdo = document.getElementById('pdOverlay');
+  if(pdo){ var pdBtn = document.getElementById('pdKapatBtn'); if(pdBtn) pdBtn.click(); else pdo.remove(); return 'handled'; }
+  var dlb = document.getElementById('duyuruLightbox');
+  if(dlb){ var dlbBtn = document.getElementById('dlbKapat'); if(dlbBtn) dlbBtn.click(); else dlb.remove(); return 'handled'; }
+
+  // Aynı denetim sırasında bulunan diğerleri — hiçbirinin adlandırılmış
+  // bir Kapat fonksiyonu yok, kapat butonunu tıklatmak aynı temizliği yapar.
+  var rpo = document.getElementById('raporOverlay'); // birçok modülün ortak yazdırma önizlemesi
+  if(rpo){ var rpBtn = document.getElementById('raporCloseBtn'); if(rpBtn) rpBtn.click(); else rpo.remove(); return 'handled'; }
+  var dlko = document.getElementById('dlkOverlay'); // Dilekçe Sistemi
+  if(dlko){ var dlkBtn = document.getElementById('dlkCloseBtn'); if(dlkBtn) dlkBtn.click(); else dlko.remove(); return 'handled'; }
+  var mdfo = document.getElementById('mdfOverlay'); // Maaş Değişiklik Bildirim Formu
+  if(mdfo){ var mdfBtn = document.getElementById('mdfCloseBtn'); if(mdfBtn) mdfBtn.click(); else mdfo.remove(); return 'handled'; }
+  var tso = document.getElementById('tsOverlay'); // Tebliğ-Tebellüğ
+  if(tso){ var tsBtn = document.getElementById('tsCloseBtn'); if(tsBtn) tsBtn.click(); else tso.remove(); return 'handled'; }
+  var sso = document.getElementById('sinifOturmaOverlay'); // Sınıf Oturma Düzeni (en dıştaki katman)
+  var ssSec = document.getElementById('soSecimOverlay'); // ...içindeki eleman seçim alt-paneli (varsa önce o kapanır)
+  if(ssSec){ var ssSecBtn = document.getElementById('soSecimKapat'); if(ssSecBtn) ssSecBtn.click(); else ssSec.remove(); return 'handled'; }
+  if(sso){ var ssoBtn = document.getElementById('btnSoKapat'); if(ssoBtn) ssoBtn.click(); else sso.remove(); return 'handled'; }
+
+  // Hatırlatma pop-up'ı (bkz. js/hatirlatmalar.js) — "Tamam" ile aynı davranış.
+  var htp = document.getElementById('hatirlatmaPopupOverlay');
+  if(htp && typeof hatirlatmaPopupKapat==='function'){ hatirlatmaPopupKapat(); return 'handled'; }
 
   // YENİ GEZİNME SİSTEMİ: Menü ızgarası/alt liste/Profilim açıksa kapat —
   // bkz. js/alt-navigasyon.js > AltNav.geriTusu()
