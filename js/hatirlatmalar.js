@@ -252,9 +252,12 @@ function _htSinavTaramalari(ogretmenId, gunSayisi){
    alanlarından değil, doğrudan bağlı kayıttan okunur (tek gerçek kaynak). */
 function _htMaddeBuOgretmeniIlgilendiriyorMu(madde, ogretmenId){
   if(madde.baglıEvrak){
-    const kayit = (cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===madde.baglıEvrak.kayitId);
-    const idler = (typeof _klBagliKayitOgretmenIdleri==='function') ? _klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip, kayit) : [];
-    return idler.includes(ogretmenId);
+    const kayitIdler = madde.baglıEvrak.kayitIdler || (madde.baglıEvrak.kayitId?[madde.baglıEvrak.kayitId]:[]);
+    return kayitIdler.some(id=>{
+      const kayit = (cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===id);
+      const idler = (typeof _klBagliKayitOgretmenIdleri==='function') ? _klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip, kayit) : [];
+      return idler.includes(ogretmenId);
+    });
   }
   if(!madde.hedefTip || madde.hedefTip==='herkes') return true;
   if(madde.hedefTip==='ozel') return (madde.hedefOgretmenIdler||[]).includes(ogretmenId);
@@ -282,9 +285,15 @@ async function _htKontrolListesiTaramalari(ogretmenId, gunSayisi){
       if(!_htMaddeBuOgretmeniIlgilendiriyorMu(madde, ogretmenId)) return;
       let tarih, tamamMi;
       if(madde.baglıEvrak){
-        const kayit = (cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===madde.baglıEvrak.kayitId);
-        tarih = (typeof _klBagliEvrakTarihi==='function') ? _klBagliEvrakTarihi(madde.baglıEvrak.tip, kayit, madde.baglıEvrak.kontrolIndex) : null;
-        tamamMi = (typeof _klBagliEvrakTamamMi==='function') ? _klBagliEvrakTamamMi(madde.baglıEvrak.tip, kayit, madde.baglıEvrak.kontrolIndex) : false;
+        // DÜZELTME: Bir madde birden fazla kayda (öğretmene) bağlı
+        // olabilir — bu öğretmen için hatırlatma, TÜMÜNÜN durumuna göre
+        // değil, sadece KENDİ bağlı kaydına göre değerlendirilir (biri
+        // teslim etmemiş diye başkasına da hatırlatma gitmemeli).
+        const kayitIdler = madde.baglıEvrak.kayitIdler || (madde.baglıEvrak.kayitId?[madde.baglıEvrak.kayitId]:[]);
+        const kendiKayit = kayitIdler.map(id=>(cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean)
+          .find(k=>(typeof _klBagliKayitOgretmenIdleri==='function'?_klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip,k):[]).includes(ogretmenId));
+        tarih = (typeof _klBagliEvrakTarihi==='function') ? _klBagliEvrakTarihi(madde.baglıEvrak.tip, kendiKayit, madde.baglıEvrak.kontrolIndex) : null;
+        tamamMi = (typeof _klBagliEvrakTamamMi==='function') ? _klBagliEvrakTamamMi(madde.baglıEvrak.tip, kendiKayit, madde.baglıEvrak.kontrolIndex) : false;
       } else {
         tarih = madde.tarih;
         tamamMi = tamamlanan.has(madde.id);

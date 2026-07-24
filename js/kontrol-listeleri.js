@@ -192,33 +192,18 @@ function _klSecimYap(btn){
     }
   });
 }
-/* Bağlı Evrak — bir maddeye BİRDEN FAZLA kayıt (ör. birden fazla öğretmen)
-   bağlanabilir. Native <select> tek seçime izin verdiği için (Android'de
-   radio-liste gibi görünüyordu), checkbox listesine çevrildi. */
-function _klBagliKayitSeciciHtml(tip, seciliIdler){
-  const kayitlar = tip ? (cizelgeVerileri[tip]||[]) : [];
-  if (!kayitlar.length) return '<p style="font-size:12px;color:var(--ink-muted);padding:6px 0;">Bu tipte kayıt bulunamadı.</p>';
-  return `<div style="display:flex;flex-direction:column;max-height:220px;overflow-y:auto;border:1px solid var(--border-soft);border-radius:8px;padding:4px 6px;">
-    ${kayitlar.map(k=>`
-      <label style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--border-soft);font-weight:400;">
-        <input type="checkbox" class="kl-bagli-kayit-chk" value="${k.id}" onchange="_klBagliKayitDegisti()" ${seciliIdler.includes(k.id)?'checked':''} style="width:18px;height:18px;flex-shrink:0;">
-        <span style="flex:1;font-size:13px;">${escapeHtml(_klBagliKayitEtiketi(tip,k))}</span>
-      </label>`).join('')}
-  </div>`;
-}
-function _klBagliKayitSeciliIdler(){
-  return Array.from(document.querySelectorAll('.kl-bagli-kayit-chk:checked')).map(el=>el.value);
-}
-function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevcutHedefTip, mevcutHedefOgretmenIdler, mevcutBagliEvrak, mevcutOgretmenTikAtar){
+function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevcutHedefTip, mevcutHedefOgretmenIdler, mevcutBagliEvrak){
   const ikon = mevcutIkon || '📌';
   const renk = mevcutRenk || KL_RENK_PAKETI[0];
   const hedefTip = mevcutHedefTip || 'herkes';
-  const ogretmenTikAtar = mevcutOgretmenTikAtar !== false;
   const bgTip = mevcutBagliEvrak ? mevcutBagliEvrak.tip : '';
-  // Geriye dönük uyumluluk: eski kayıtlarda tekil "kayitId" vardı.
-  const bgKayitIdler = mevcutBagliEvrak ? (mevcutBagliEvrak.kayitIdler || (mevcutBagliEvrak.kayitId ? [mevcutBagliEvrak.kayitId] : [])) : [];
+  // DÜZELTME: Sedat'ın isteğiyle "Hangi Kayıt?" artık TEKLİ seçim (select)
+  // değil, ÇOKLU seçim (onay kutuları) — tek bir madde birden fazla
+  // öğretmenin/kaydın aynı dönemine birden bağlanabilsin diye (bkz.
+  // kayitIdler dizisi, eski tekil kayitId'nin yerine geçti).
+  const bgKayitIdler = mevcutBagliEvrak ? (mevcutBagliEvrak.kayitIdler || (mevcutBagliEvrak.kayitId?[mevcutBagliEvrak.kayitId]:[])) : [];
   const bgKontrolIndex = mevcutBagliEvrak ? mevcutBagliEvrak.kontrolIndex : '';
-  const bgKayitListesiHtml = bgTip ? _klBagliKayitSeciciHtml(bgTip, bgKayitIdler) : '';
+  const bgKayitCheckboxHtml = bgTip ? _klBagliKayitSeciciIcerik(bgTip, bgKayitIdler) : '';
   const bgDonemHtml = bgTip ? (KL_BAGLI_EVRAK_TIPLERI[bgTip].kontrolEtiketleri||[]).map((e,i)=>`<option value="${i}" ${i===bgKontrolIndex?'selected':''}>${escapeHtml(e)}</option>`).join('') : '';
   return `
     <input type="hidden" id="f_klMIkon" value="${ikon}">
@@ -240,28 +225,21 @@ function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevc
         <option value="">— Bağımsız madde (kendi tarihini/hedefini aşağıdan girin) —</option>
         ${Object.entries(KL_BAGLI_EVRAK_TIPLERI).map(([k,v])=>`<option value="${k}" ${k===bgTip?'selected':''}>${v.ad}</option>`).join('')}
       </select>
-      <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Seçilirse tarih ve tik otomatik o kayıttan alınır — Çizelgeler'den işaretlenince burası da, buradan işaretlenince Çizelgeler de otomatik güncellenir.</p>
+      <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Seçilirse tarih ve tik otomatik o kayıt(lar)dan alınır — Çizelgeler'den işaretlenince burası da, buradan işaretlenince Çizelgeler de otomatik güncellenir.</p>
     </div>
     <div class="form-group" id="f_klMBagliKayitKutu" style="display:${bgTip?'':'none'};">
-      <label>Hangi Kayıt(lar)? <span style="font-weight:400;color:var(--ink-muted);">(birden fazla seçebilirsiniz)</span></label>
-      <div id="f_klMBagliKayitListesi">${bgKayitListesiHtml}</div>
+      <label>Hangi Kayıt(lar)? <span style="font-size:11px;color:var(--ink-muted);font-weight:400;">(birden fazla seçilebilir)</span></label>
+      <div id="f_klMBagliKayitId" class="ogr-checkbox-liste">${bgKayitCheckboxHtml}</div>
     </div>
     <div class="form-group" id="f_klMBagliDonemKutu" style="display:${bgTip?'':'none'};">
       <label>Hangi Dönem / Ay?</label>
-      <select id="f_klMBagliKontrolIndex" ${bgKayitIdler.length?'':'disabled'}>
+      <select id="f_klMBagliKontrolIndex">
         <option value="">— Seçiniz —</option>${bgDonemHtml}
       </select>
     </div>
 
     <div id="f_klMBagimsizAlanlar" style="display:${bgTip?'none':''};">
       <div class="form-group"><label>Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)</label><input type="date" id="f_klMTarih" value="${mevcutTarih||''}"></div>
-      <div class="form-group">
-        <label style="display:flex;align-items:center;gap:8px;font-weight:400;">
-          <input type="checkbox" id="f_klMOgretmenTikAtar" ${ogretmenTikAtar?'checked':''} style="width:18px;height:18px;flex-shrink:0;">
-          <span>Öğretmen bu maddeyi kendisi işaretleyebilsin</span>
-        </label>
-        <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Kapatırsanız tiki sadece siz atarsınız; öğretmen sadece durumu görür, işaretleyemez.</p>
-      </div>
       <div class="form-group"><label>Bu madde kimi ilgilendiriyor?</label>
         <select id="f_klMHedefTip" onchange="document.getElementById('f_klMHedefOzelKutu').style.display = this.value==='ozel' ? '' : 'none';">
           <option value="herkes" ${hedefTip==='herkes'?'selected':''}>Herkes (tüm öğretmenler)</option>
@@ -409,14 +387,12 @@ function _klMaddeHedefEtiketi(m){
 }
 function _klMaddeBenimleIlgiliMi(m){
   if(m.baglıEvrak){
-    // Geriye dönük uyumluluk: eski kayıtlarda tekil "kayitId" vardı.
-    const kayitIdler = m.baglıEvrak.kayitIdler || (m.baglıEvrak.kayitId ? [m.baglıEvrak.kayitId] : []);
+    const kayitIdler = m.baglıEvrak.kayitIdler || (m.baglıEvrak.kayitId?[m.baglıEvrak.kayitId]:[]);
+    const kayitlar = kayitIdler.map(id=>(cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean);
+    const idler = kayitlar.reduce((acc,k)=>acc.concat(_klBagliKayitOgretmenIdleri(m.baglıEvrak.tip, k)), []);
     const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
     if(!ben) return true;
-    return kayitIdler.some(kayitId => {
-      const kayit = (cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===kayitId);
-      return _klBagliKayitOgretmenIdleri(m.baglıEvrak.tip, kayit).includes(ben.id);
-    });
+    return idler.includes(ben.id);
   }
   if(!m.hedefTip || m.hedefTip==='herkes') return true;
   const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
@@ -427,49 +403,6 @@ function _klMaddeBenimleIlgiliMi(m){
   return true;
 }
 
-/* Bir maddeyi ekranda/yazdırmada gösterilecek SATIRLARA açar. Bağımsız
-   maddede tek satır döner; bağlı maddede kayitIdler'deki HER kayıt için
-   ayrı bir satır döner (her kaydın kendi tamamlanma/tarih/öğretmen bilgisi
-   ile) — böylece aynı madde birden fazla öğretmene bağlanabilir. */
-function _klMaddeSatirlariUret(m){
-  if(m.baglıEvrak){
-    const tip = m.baglıEvrak.tip;
-    const kontrolIndex = m.baglıEvrak.kontrolIndex;
-    // Geriye dönük uyumluluk: eski kayıtlarda tekil "kayitId" vardı.
-    const kayitIdler = m.baglıEvrak.kayitIdler || (m.baglıEvrak.kayitId ? [m.baglıEvrak.kayitId] : []);
-    return kayitIdler.map(kayitId => {
-      const kayit = (cizelgeVerileri[tip]||[]).find(k=>k.id===kayitId);
-      return {
-        kayitId,
-        tamamMi: _klBagliEvrakTamamMi(tip, kayit, kontrolIndex),
-        tarih: _klBagliEvrakTarihi(tip, kayit, kontrolIndex),
-        ogretmenIdleri: _klBagliKayitOgretmenIdleri(tip, kayit),
-        etiket: `🔗 ${KL_BAGLI_EVRAK_TIPLERI[tip].ad} — ${_klBagliKayitEtiketi(tip, kayit)} (${(KL_BAGLI_EVRAK_TIPLERI[tip].kontrolEtiketleri||[])[kontrolIndex]||''})`,
-        kilitliOgretmen: true, // öğretmen bağlı evrak maddelerini işaretleyemez, sadece admin.
-      };
-    });
-  }
-  // Bağımsız madde: varsayılan olarak öğretmen kendi görünümünde işaretler
-  // (_klTamamlanan, per-öğretmen doküman). ogretmenTikAtar=false ise
-  // tamamlanma durumu doğrudan maddenin kendi "tamamMi" alanında tutulur
-  // ve sadece admin değiştirebilir.
-  const kilitli = m.ogretmenTikAtar === false;
-  return [{
-    kayitId:null,
-    tamamMi: kilitli ? !!m.tamamMi : _klTamamlanan.has(m.id),
-    tarih:m.tarih, ogretmenIdleri:null, etiket:'', kilitliOgretmen:kilitli,
-  }];
-}
-/* Satırları tarihe göre sıralar: yakın tarihten uzağa. Tarihi olmayanlar
-   sona, kendi aralarında orijinal sıra (madde.sira) korunarak eklenir. */
-function _klSatirlariTarihSirala(satirlar){
-  return satirlar.slice().sort((a,b) => {
-    if(a.tarih && b.tarih) return new Date(a.tarih) - new Date(b.tarih);
-    if(a.tarih && !b.tarih) return -1;
-    if(!a.tarih && b.tarih) return 1;
-    return (a.madde.sira||0) - (b.madde.sira||0);
-  });
-}
 function _klDetayCiz(){
   const liste = kontrolListeleri.find(l=>l.id===_klAcikListeId);
   const govde = document.getElementById('klDetayGovde');
@@ -479,83 +412,77 @@ function _klDetayCiz(){
   const baslikEl = document.getElementById('klDetayBaslik');
   if(baslikEl) baslikEl.textContent = liste.ad; // liste adı Ayarlar'dan değiştirilmiş olabilir — üstteki başlık da tazelenir
   const tumMaddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
-  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
-
-  // Her maddeyi (bağlıysa kayıt başına) satırlara aç; admin hepsini görür,
-  // sıradan öğretmen sadece kendisiyle ilgili satırları görür.
-  const satirlar = [];
-  tumMaddeler.forEach(m => {
-    _klMaddeSatirlariUret(m).forEach(s => {
-      let ilgiliMi;
-      if (m.baglıEvrak) ilgiliMi = yetkiVar ? true : (!ben ? true : (s.ogretmenIdleri||[]).includes(ben.id));
-      else ilgiliMi = yetkiVar ? true : _klMaddeBenimleIlgiliMi(m);
-      if (ilgiliMi) satirlar.push({ madde:m, ...s });
-    });
-  });
+  // Admin yönetim için hepsini görür; sıradan öğretmen sadece kendisiyle
+  // ilgili maddeleri görür.
+  const maddeler = yetkiVar ? tumMaddeler : tumMaddeler.filter(_klMaddeBenimleIlgiliMi);
 
   if (ozetEl){
-    const toplam = satirlar.length;
-    const tamam = satirlar.filter(s=>s.tamamMi).length;
+    const toplam = maddeler.length;
+    const tamam = maddeler.filter(m=>_klTamamlanan.has(m.id)).length;
     ozetEl.innerHTML = toplam ? `<div style="font-size:12.5px;font-weight:700;color:var(--brand);">${tamam} / ${toplam} tamamlandı</div>` : '';
   }
 
-  if(!satirlar.length){
+  if(!maddeler.length){
     govde.innerHTML = '<p class="empty-state">Bu listede sizinle ilgili bir madde yok.</p>';
     return;
   }
-  const siraliSatirlar = _klSatirlariTarihSirala(satirlar);
 
-  const gosterilenMaddeIdler = new Set();
-  govde.innerHTML = siraliSatirlar.map((s,i) => {
-    const m = s.madde;
-    const gecikmisMi = !s.tamamMi && s.tarih && new Date(s.tarih) < new Date(todayISO());
+  const _klBenimOgretmenim = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  govde.innerHTML = maddeler.map((m,i) => {
+    const bgKayitIdler = m.baglıEvrak ? (m.baglıEvrak.kayitIdler || (m.baglıEvrak.kayitId?[m.baglıEvrak.kayitId]:[])) : [];
+    const bagliKayitlar = m.baglıEvrak ? bgKayitIdler.map(id=>(cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean) : [];
+    // DÜZELTME: Sıradan bir öğretmen (yetkiVar=false) için bu TEK maddenin
+    // görünen durumu KENDİ kaydına göre olur, aggregate (hepsi mi tamam)
+    // değil — "benim tikim" ile "diğerlerinin tikleri" birbirinden bağımsız.
+    const kendiKayit = (m.baglıEvrak && _klBenimOgretmenim) ? bagliKayitlar.find(k=>_klBagliKayitOgretmenIdleri(m.baglıEvrak.tip,k).includes(_klBenimOgretmenim.id)) : null;
+    const kendiGoruntuMu = m.baglıEvrak && !yetkiVar && kendiKayit;
+    const tamamMi = m.baglıEvrak
+      ? (kendiGoruntuMu ? _klBagliEvrakTamamMi(m.baglıEvrak.tip, kendiKayit, m.baglıEvrak.kontrolIndex) : _klBagliEvrakTamamMiCoklu(m.baglıEvrak.tip, bagliKayitlar, m.baglıEvrak.kontrolIndex))
+      : _klTamamlanan.has(m.id);
+    const tarih = m.baglıEvrak
+      ? (kendiGoruntuMu ? _klBagliEvrakTarihi(m.baglıEvrak.tip, kendiKayit, m.baglıEvrak.kontrolIndex) : _klBagliEvrakTarihiCoklu(m.baglıEvrak.tip, bagliKayitlar, m.baglıEvrak.kontrolIndex))
+      : m.tarih;
+    const gecikmisMi = !tamamMi && tarih && new Date(tarih) < new Date(todayISO());
     const hedefEtiketi = yetkiVar ? _klMaddeHedefEtiketi(m) : '';
-    // Aynı maddenin (bağlıysa) birden çok satırı olabilir — düzenle/sil
-    // butonları maddenin TÜMÜNÜ etkilediği için sadece ilk satırda gösterilir.
-    const ilkGosterim = !gosterilenMaddeIdler.has(m.id);
-    gosterilenMaddeIdler.add(m.id);
-    const kayitIdParam = s.kayitId ? `,'${s.kayitId}'` : '';
-    // Bağlı evrak / "sadece admin işaretler" maddelerinde öğretmen tiki
-    // değiştiremez — sadece görür. Admin için hep açık.
-    const checkboxKilitli = !yetkiVar && s.kilitliOgretmen;
+    const tamamlananSayisi = m.baglıEvrak ? bagliKayitlar.filter(k=>_klBagliEvrakTamamMi(m.baglıEvrak.tip,k,m.baglıEvrak.kontrolIndex)).length : 0;
+    const bagliEtiketi = (yetkiVar && m.baglıEvrak) ? `🔗 ${KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].ad} — ${bagliKayitlar.map(k=>_klBagliKayitEtiketi(m.baglıEvrak.tip,k)).join(', ')} (${(KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].kontrolEtiketleri||[])[m.baglıEvrak.kontrolIndex]||''}) — ${tamamlananSayisi}/${bagliKayitlar.length} tamamlandı` : '';
     return `
-    <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;border-left:5px solid ${m.renk||'var(--brand)'};${s.tamamMi?'opacity:.55;':''}">
+    <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;border-left:5px solid ${m.renk||'var(--brand)'};${tamamMi?'opacity:.55;':''}">
       <div style="width:36px;height:36px;border-radius:50%;background:${m.renk||'var(--brand)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
       <div style="font-size:22px;flex-shrink:0;">${m.ikon||'📌'}</div>
-      <div style="flex:1;font-size:13.5px;line-height:1.4;${s.tamamMi?'text-decoration:line-through;':''}">
+      <div style="flex:1;font-size:13.5px;line-height:1.4;${tamamMi?'text-decoration:line-through;':''}">
         ${escapeHtml(m.metin||'')}
-        ${s.tarih ? `<div style="font-size:11px;margin-top:2px;${gecikmisMi?'color:var(--red-danger,#dc2626);font-weight:700;':'color:var(--ink-muted);'}">📅 Son Tarih: ${formatTarih(s.tarih)}${gecikmisMi?' (gecikti)':''}</div>` : ''}
+        ${tarih ? `<div style="font-size:11px;margin-top:2px;${gecikmisMi?'color:var(--red-danger,#dc2626);font-weight:700;':'color:var(--ink-muted);'}">📅 Son Tarih: ${formatTarih(tarih)}${gecikmisMi?' (gecikti)':''}</div>` : ''}
         ${hedefEtiketi ? `<div style="font-size:11px;margin-top:2px;color:var(--brand);">${hedefEtiketi}</div>` : ''}
-        ${(yetkiVar && s.etiket) ? `<div style="font-size:11px;margin-top:2px;color:var(--brand);">${escapeHtml(s.etiket)}</div>` : ''}
-        ${checkboxKilitli ? `<div style="font-size:11px;margin-top:2px;color:var(--ink-muted);">🔒 Bu maddeyi sadece yönetici işaretleyebilir</div>` : ''}
+        ${bagliEtiketi ? `<div style="font-size:11px;margin-top:2px;color:var(--brand);">${escapeHtml(bagliEtiketi)}</div>` : ''}
       </div>
       <label style="flex-shrink:0;display:flex;align-items:center;">
-        <input type="checkbox" ${s.tamamMi?'checked':''} ${checkboxKilitli?'disabled':''} onchange="_klMaddeIsaretle('${m.id}', this.checked${kayitIdParam})" style="width:22px;height:22px;accent-color:var(--brand);">
+        <input type="checkbox" ${tamamMi?'checked':''} onchange="_klMaddeIsaretle('${m.id}', this.checked)" style="width:22px;height:22px;accent-color:var(--brand);">
       </label>
-      ${(yetkiVar && ilkGosterim) ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeDuzenleModalAc('${liste.id}','${m.id}')" style="flex-shrink:0;color:var(--brand);padding:4px 8px;" title="Düzenle">✏️</button>` : ''}
-      ${(yetkiVar && ilkGosterim) ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeSilOnay('${liste.id}','${m.id}')" style="flex-shrink:0;color:#c0392b;padding:4px 8px;" title="Sil">✕</button>` : ''}
+      ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeDuzenleModalAc('${liste.id}','${m.id}')" style="flex-shrink:0;color:var(--brand);padding:4px 8px;" title="Düzenle">✏️</button>` : ''}
+      ${yetkiVar ? `<button class="btn btn-ghost btn-sm" onclick="_klMaddeSilOnay('${liste.id}','${m.id}')" style="flex-shrink:0;color:#c0392b;padding:4px 8px;" title="Sil">✕</button>` : ''}
     </div>`;
   }).join('') || '<p class="empty-state">Bu listede henüz madde yok.</p>';
 }
-function _klMaddeIsaretle(maddeId, isaretli, kayitId){
+function _klMaddeIsaretle(maddeId, isaretli){
   const liste = kontrolListeleri.find(l=>l.id===_klAcikListeId);
   const madde = liste && (liste.maddeler||[]).find(m=>m.id===maddeId);
   if(madde && madde.baglıEvrak){
-    // Bağlı madde: gerçek kaynak Çizelgeler'deki kayıt — burada YAZILMAZ,
-    // doğrudan o kaydın kontrolü güncellenir (tek gerçek kaynak). Madde
-    // birden fazla kayda bağlıysa, o satırın kendi kayitId'si kullanılır.
-    _klBagliEvrakToggle(madde.baglıEvrak.tip, kayitId, madde.baglıEvrak.kontrolIndex, isaretli)
-      .then(()=>_klDetayCiz())
-      .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); _klDetayCiz(); });
-    return;
-  }
-  if(madde && madde.ogretmenTikAtar===false){
-    // "Sadece yönetici işaretler" bağımsız madde — kişiye özel değil,
-    // tamamlanma durumu doğrudan maddenin kendi alanında tutulur.
-    if (!(typeof duzenleyebilir==='function' && duzenleyebilir('kontrolListeleri'))){ toast('Bu maddeyi sadece yönetici işaretleyebilir.'); _klDetayCiz(); return; }
-    const maddeler = (liste.maddeler||[]).map(mm => mm.id===maddeId ? { ...mm, tamamMi:isaretli } : mm);
-    KontrolListeleriService.listeGuncelle(_klAcikListeId, { maddeler })
-      .then(()=>_klDetayCiz())
+    // Bağlı madde: gerçek kaynak Çizelgeler'deki kayıt(lar) — burada
+    // YAZILMAZ, doğrudan o kayıtların kontrolü güncellenir (tek gerçek
+    // kaynak). DÜZELTME: sıradan bir öğretmen bu TEK maddeyi işaretlerken
+    // SADECE KENDİ kaydı etkilenir (başkalarının tikini değiştirmez) —
+    // yönetici/düzenleme yetkisi olan biri işaretlerse (ör. "hepsi teslim
+    // etti" demek istiyorsa) TÜMÜ birlikte işaretlenir.
+    const kayitIdler = madde.baglıEvrak.kayitIdler || (madde.baglıEvrak.kayitId?[madde.baglıEvrak.kayitId]:[]);
+    const bagliKayitlar = kayitIdler.map(id=>(cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean);
+    const yetkiVar = typeof duzenleyebilir==='function' && duzenleyebilir('kontrolListeleri');
+    const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+    const kendiKayit = ben ? bagliKayitlar.find(k=>_klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip,k).includes(ben.id)) : null;
+    const islem = (!yetkiVar && kendiKayit)
+      ? _klBagliEvrakToggle(madde.baglıEvrak.tip, kendiKayit.id, madde.baglıEvrak.kontrolIndex, isaretli)
+      : _klBagliEvrakToggleCoklu(madde.baglıEvrak.tip, kayitIdler, madde.baglıEvrak.kontrolIndex, isaretli);
+    islem.then(()=>_klDetayCiz())
       .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); _klDetayCiz(); });
     return;
   }
@@ -584,23 +511,17 @@ function _klYazdir(listeId){
     ? okulBilgileriAyari.okulAdi : 'Koruk İlk-Ortaokulu';
   const tarih = new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
   const maddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
-  // Bağlı maddeler (kayıt başına) satıra açılır — böylece birden fazla
-  // kayda bağlı bir madde de gerçek tamamlanma durumuyla yazdırılır.
-  // Kayıt/öğretmen adı yazdırmada GÖSTERİLMEZ — sadece madde metni ve tik.
-  const satirVerileriHam = [];
-  maddeler.forEach(m => _klMaddeSatirlariUret(m).forEach(s => satirVerileriHam.push({ madde:m, ...s })));
-  const satirVerileri = _klSatirlariTarihSirala(satirVerileriHam);
-  const toplam = satirVerileri.length;
-  const tamam = satirVerileri.filter(s=>s.tamamMi).length;
+  const toplam = maddeler.length;
+  const tamam = maddeler.filter(m=>_klTamamlanan.has(m.id)).length;
 
-  const satirlar = satirVerileri.map((s,i) => {
-    const m = s.madde;
+  const satirlar = maddeler.map((m,i) => {
+    const tamamMi = _klTamamlanan.has(m.id);
     return `
       <div class="kl-yzd-satir" style="border-left-color:${m.renk||'#0A7A7A'};">
         <span class="kl-yzd-no">${i+1}</span>
         <span class="kl-yzd-ikon">${m.ikon||'📌'}</span>
-        <span class="kl-yzd-metin${s.tamamMi?' tamam':''}">${escapeHtml(m.metin||'')}</span>
-        <span class="kl-yzd-kutu">${s.tamamMi?'☑':'☐'}</span>
+        <span class="kl-yzd-metin${tamamMi?' tamam':''}">${escapeHtml(m.metin||'')}</span>
+        <span class="kl-yzd-kutu">${tamamMi?'☑':'☐'}</span>
       </div>`;
   }).join('') || '<p style="color:#777;">Bu listede henüz madde yok.</p>';
 
@@ -711,6 +632,16 @@ function _klBagliKayitEtiketi(tip, kayit){
   if(tip==='rehberlik'||tip==='maarifRapor') return `${ogAdi}${kayit.sinif?' ('+kayit.sinif+')':''}`;
   return kayit.id;
 }
+/* YENİ: Çoklu kayıt seçim kutucuklarının HTML'ini üretir (checkbox liste). */
+function _klBagliKayitSeciciIcerik(tip, seciliIdler){
+  const kayitlar = (cizelgeVerileri[tip]||[]);
+  if(!kayitlar.length) return '<p class="empty-state" style="margin:6px 0;">Bu türde henüz kayıt yok.</p>';
+  return kayitlar.map(k=>`<label class="ogr-cb-row"><input type="checkbox" value="${k.id}" ${seciliIdler.includes(k.id)?'checked':''}><span>${escapeHtml(_klBagliKayitEtiketi(tip,k))}</span></label>`).join('');
+}
+/* Formda işaretlenmiş kayıt id'lerini toplar (sorumluOgretmenSecili ile aynı desen). */
+function _klBagliKayitSecili(){
+  return Array.from(document.querySelectorAll('#f_klMBagliKayitId input[type=checkbox]:checked')).map(el=>el.value);
+}
 function _klBagliKayitOgretmenIdleri(tip, kayit){
   if(!kayit) return [];
   if(tip==='sosyalKulupler') return kayit.ogretmenIdler||[];
@@ -739,11 +670,23 @@ function _klBagliEvrakTarihi(tip, kayit, kontrolIndex){
   if(tip==='maarifRapor') return otomatikAy((typeof MAARIF_KONTROLLER!=='undefined'?MAARIF_KONTROLLER:[])[kontrolIndex]);
   return null;
 }
-/* Bağlı maddenin tamamlanma durumu — gerçek kaydın kendi kontrolleri. */
+/* YENİ: Birden fazla kayda bağlı bir madde için EN ERKEN (en acil) tarihi
+   döndürür — admin özet görünümünde tek bir tarih göstermek için. */
+function _klBagliEvrakTarihiCoklu(tip, kayitlar, kontrolIndex){
+  const tarihler = kayitlar.map(k=>_klBagliEvrakTarihi(tip,k,kontrolIndex)).filter(Boolean).sort();
+  return tarihler[0] || null;
+}
+/* Bağlı maddenin tamamlanma durumu — gerçek kaydın kendi kontrolleri.
+   Birden fazla kayda bağlıysa, HEPSİ tamamlanmışsa "tamamlandı" sayılır. */
 function _klBagliEvrakTamamMi(tip, kayit, kontrolIndex){
   return !!(kayit && (kayit.kontroller||[])[kontrolIndex]);
 }
-/* Bağlı maddeyi işaretlemek = gerçek kaydın kontrolünü güncellemek. */
+function _klBagliEvrakTamamMiCoklu(tip, kayitlar, kontrolIndex){
+  if(!kayitlar.length) return false;
+  return kayitlar.every(k=>_klBagliEvrakTamamMi(tip,k,kontrolIndex));
+}
+/* Bağlı maddeyi işaretlemek = gerçek kayıt(lar)ın kontrolünü güncellemek.
+   Birden fazla kayıt bağlıysa HEPSİNE aynı değer uygulanır (toplu işlem). */
 function _klBagliEvrakToggle(tip, kayitId, kontrolIndex, deger){
   const kayit = (cizelgeVerileri[tip]||[]).find(k=>k.id===kayitId);
   if(!kayit) return Promise.reject(new Error('Bağlı kayıt bulunamadı (silinmiş olabilir).'));
@@ -752,13 +695,17 @@ function _klBagliEvrakToggle(tip, kayitId, kontrolIndex, deger){
   kontroller[kontrolIndex] = deger;
   return CizelgelerService.kontrolToggle(tip, kayitId, kontroller);
 }
-/* Form içindeki bağımlı seçiciler (tip → kayıt → dönem/ay) — kaskad. */
+function _klBagliEvrakToggleCoklu(tip, kayitIdler, kontrolIndex, deger){
+  return Promise.all((kayitIdler||[]).map(id=>_klBagliEvrakToggle(tip, id, kontrolIndex, deger)));
+}
+/* Form içindeki bağımlı seçiciler (tip → kayıt(lar) + dönem/ay birlikte,
+   ikisi de sadece TİPE bağlı olduğu için tek adımda dolduruluyor). */
 function _klBagliTipDegisti(selectEl){
   const tip = selectEl.value;
   const kayitKutu = document.getElementById('f_klMBagliKayitKutu');
   const donemKutu = document.getElementById('f_klMBagliDonemKutu');
   const bagimsizAlanlar = document.getElementById('f_klMBagimsizAlanlar');
-  const kayitListesi = document.getElementById('f_klMBagliKayitListesi');
+  const kayitKapsayici = document.getElementById('f_klMBagliKayitId');
   const donemSelect = document.getElementById('f_klMBagliKontrolIndex');
   if(!tip){
     if(kayitKutu) kayitKutu.style.display='none';
@@ -769,29 +716,11 @@ function _klBagliTipDegisti(selectEl){
   if(kayitKutu) kayitKutu.style.display='';
   if(donemKutu) donemKutu.style.display='';
   if(bagimsizAlanlar) bagimsizAlanlar.style.display='none';
-  if(kayitListesi) kayitListesi.innerHTML = _klBagliKayitSeciciHtml(tip, []);
+  if(kayitKapsayici) kayitKapsayici.innerHTML = _klBagliKayitSeciciIcerik(tip, []);
   if(donemSelect){
-    donemSelect.disabled = true;
-    donemSelect.innerHTML = '<option value="">— Önce kayıt seçin —</option>';
+    const etiketler = (KL_BAGLI_EVRAK_TIPLERI[tip]||{}).kontrolEtiketleri || [];
+    donemSelect.innerHTML = '<option value="">— Seçiniz —</option>' + etiketler.map((e,i)=>`<option value="${i}">${escapeHtml(e)}</option>`).join('');
   }
-}
-/* Checkbox listesindeki HERHANGİ bir kayıt işaretlenip kaldırıldığında
-   tetiklenir (bkz. _klBagliKayitSeciciHtml). En az bir kayıt seçiliyse
-   dönem/ay seçiciyi açar, mevcut seçimi korumaya çalışır. */
-function _klBagliKayitDegisti(){
-  const tip = document.getElementById('f_klMBagliTip').value;
-  const donemSelect = document.getElementById('f_klMBagliKontrolIndex');
-  if(!donemSelect) return;
-  const seciliVarMi = _klBagliKayitSeciliIdler().length > 0;
-  if(!seciliVarMi){
-    donemSelect.disabled = true;
-    donemSelect.innerHTML = '<option value="">— Önce kayıt seçin —</option>';
-    return;
-  }
-  const mevcutDeger = donemSelect.value;
-  const etiketler = (KL_BAGLI_EVRAK_TIPLERI[tip]||{}).kontrolEtiketleri || [];
-  donemSelect.disabled = false;
-  donemSelect.innerHTML = '<option value="">— Seçiniz —</option>' + etiketler.map((e,i)=>`<option value="${i}" ${String(i)===mevcutDeger?'selected':''}>${escapeHtml(e)}</option>`).join('');
 }
 function _klListeSilOnay(listeId){
   const liste = kontrolListeleri.find(l=>l.id===listeId);
@@ -802,19 +731,18 @@ function _klListeSilOnay(listeId){
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function _klMaddeEkleModalAc(listeId){
-  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '', '', 'herkes', [], null, true);
+  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '', '', 'herkes', [], null);
   modalAc('➕ Yeni Madde', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
     const bgTip = document.getElementById('f_klMBagliTip').value;
     let baglıEvrak = null;
     if(bgTip){
-      const bgKayitIdler = _klBagliKayitSeciliIdler();
+      const bgKayitIdler = _klBagliKayitSecili();
       const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
       if(!bgKayitIdler.length || bgDonem===''){ toast('Bağlı evrak için en az bir kayıt ve dönem/ay seçmelisiniz.'); return; }
       baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndex:parseInt(bgDonem) };
     }
-    const ogretmenTikAtar = baglıEvrak ? true : document.getElementById('f_klMOgretmenTikAtar').checked;
     const liste = kontrolListeleri.find(l=>l.id===listeId);
     const maddeler = (liste.maddeler||[]).slice();
     maddeler.push({
@@ -823,7 +751,7 @@ function _klMaddeEkleModalAc(listeId){
       tarih: baglıEvrak ? null : (document.getElementById('f_klMTarih').value||null),
       hedefTip: baglıEvrak ? 'herkes' : document.getElementById('f_klMHedefTip').value,
       hedefOgretmenIdler: baglıEvrak ? [] : _sorumluOgretmenSecili('f_klMHedefOgr'),
-      baglıEvrak, ogretmenTikAtar, tamamMi:false,
+      baglıEvrak,
     });
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
@@ -835,7 +763,7 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
   if (!liste) return;
   const madde = (liste.maddeler||[]).find(m=>m.id===maddeId);
   if (!madde) return;
-  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin, madde.tarih, madde.hedefTip, madde.hedefOgretmenIdler, madde.baglıEvrak, madde.ogretmenTikAtar);
+  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin, madde.tarih, madde.hedefTip, madde.hedefOgretmenIdler, madde.baglıEvrak);
   modalAc('✏️ Maddeyi Düzenle', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
@@ -844,7 +772,7 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
     const bgTip = document.getElementById('f_klMBagliTip').value;
     let baglıEvrak = null;
     if(bgTip){
-      const bgKayitIdler = _klBagliKayitSeciliIdler();
+      const bgKayitIdler = _klBagliKayitSecili();
       const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
       if(!bgKayitIdler.length || bgDonem===''){ toast('Bağlı evrak için en az bir kayıt ve dönem/ay seçmelisiniz.'); return; }
       baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndex:parseInt(bgDonem) };
@@ -852,8 +780,7 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
     const tarih = baglıEvrak ? null : (document.getElementById('f_klMTarih').value||null);
     const hedefTip = baglıEvrak ? 'herkes' : document.getElementById('f_klMHedefTip').value;
     const hedefOgretmenIdler = baglıEvrak ? [] : _sorumluOgretmenSecili('f_klMHedefOgr');
-    const ogretmenTikAtar = baglıEvrak ? true : document.getElementById('f_klMOgretmenTikAtar').checked;
-    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin, tarih, hedefTip, hedefOgretmenIdler, baglıEvrak, ogretmenTikAtar } : m);
+    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin, tarih, hedefTip, hedefOgretmenIdler, baglıEvrak } : m);
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
