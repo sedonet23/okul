@@ -37,7 +37,12 @@ const KullaniciYonetimiService = {
      yapmasını engellemek için. */
   kullaniciKaydet(uid, veri, kendiUid){
     if(!this._yetkiKontrol()) return Promise.reject(new Error('yetkisiz'));
-    if(uid === kendiUid && !veri.aktif) return Promise.reject(new Error('kendini-pasif-yapamaz'));
+    // DÜZELTME: eskiden "!veri.aktif" kontrol ediliyordu — bu, 'aktif'
+    // alanının HİÇ gönderilmediği kısmi güncellemelerde (ör. sadece
+    // depolamaMuaf değiştirirken) 'undefined' olduğu için yanlışlıkla
+    // "kendini pasif yapıyor" sanıp engelliyordu. Artık sadece 'aktif'
+    // alanı AÇIKÇA false olarak gönderildiğinde engelleniyor.
+    if(uid === kendiUid && veri.aktif === false) return Promise.reject(new Error('kendini-pasif-yapamaz'));
     return KullaniciYonetimiRepository.kullaniciGuncelle(uid, veri);
   },
   /* kendiUid: kendi hesabını silemesin diye (kilitli kalır). */
