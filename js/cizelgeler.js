@@ -255,35 +255,63 @@ function _renderSosyalKulupler(el,veri){
    DEĞİŞTİRMEZ (sadece doldurulan alanlar güncellenir).
    ================================================================ */
 function _cizelgeTarihTopluEtiket(tip, kayit){
+  if(tip==='sosyalKulupler') return kayit.ad || '—';
   const ogAdi = _ogretmenAdi(kayit.ogretmenId);
-  if(tip==='sok') return `${ogAdi}${kayit.sinif?' — '+kayit.sinif:''}`;
+  if(tip==='sok' || tip==='rehberlik') return `${ogAdi}${kayit.sinif?' — '+kayit.sinif:''}`;
   return `${ogAdi}${kayit.brans?' — '+kayit.brans:''}${kayit.sinif?' ('+kayit.sinif+')':''}`;
 }
+/* Her çizelge tipinin toplu ayarlanabilecek tarih alanları farklı:
+   Zümre/ŞÖK 3 dönem tarihi (tarih1/2/3), Rehberlik tek yıllık plan tarihi,
+   BEP iki tarih (yıllık ders planı + BEP planı), Sosyal Kulüpler iki tarih
+   (yıllık plan + toplum hizmeti planı). */
+const CIZELGE_TARIH_TOPLU_ALANLAR = {
+  zumre: [
+    {key:'tarih1', etiket:'1. Dönem Son Tarihi'},
+    {key:'tarih2', etiket:'2. Dönem Son Tarihi'},
+    {key:'tarih3', etiket:'Yıl Sonu Son Tarihi'}
+  ],
+  sok: [
+    {key:'tarih1', etiket:'1. Dönem Son Tarihi'},
+    {key:'tarih2', etiket:'2. Dönem Son Tarihi'},
+    {key:'tarih3', etiket:'Yıl Sonu Son Tarihi'}
+  ],
+  rehberlik: [
+    {key:'yillikPlanTarihi', etiket:'Yıllık Çalışma Planı Son Tarihi'}
+  ],
+  bepPlani: [
+    {key:'yillikDersPlaniTarihi', etiket:'Yıllık Ders Planı Son Tarihi'},
+    {key:'bepPlaniTarihi',        etiket:'BEP Planı Son Tarihi'}
+  ],
+  sosyalKulupler: [
+    {key:'yillikPlanTarihi',      etiket:'Yıllık Plan Son Tarihi'},
+    {key:'toplumHizmetiTarihi',   etiket:'Toplum Hizmeti Planı Son Tarihi'}
+  ]
+};
 function _cizelgeTarihToplu(tip){
+  const alanlar = CIZELGE_TARIH_TOPLU_ALANLAR[tip];
+  if(!alanlar){ toast('Bu tür için toplu tarih ayarlama desteklenmiyor.'); return; }
   const kayitlar = cizelgeVerileri[tip] || [];
   if(!kayitlar.length){ toast('Bu türde henüz kayıt yok.'); return; }
+  const inputlarHtml = `<div class="form-row" style="flex-wrap:wrap;">${alanlar.map(a=>
+    `<div class="form-group"><label>${escapeHtml(a.etiket)}</label><input type="date" id="f_ctb_${a.key}"></div>`
+  ).join('')}</div>`;
   const body = `
     <p style="font-size:13px;color:var(--ink-muted);margin-bottom:10px;">Aşağıda girdiğiniz tarihler, işaretlediğiniz TÜM kayıtlara aynı anda uygulanır. Boş bıraktığınız bir tarih o kayıtlardaki mevcut değeri değiştirmez.</p>
-    <div class="form-row">
-      <div class="form-group"><label>1. Dönem Son Tarihi</label><input type="date" id="f_ctbTarih1"></div>
-      <div class="form-group"><label>2. Dönem Son Tarihi</label><input type="date" id="f_ctbTarih2"></div>
-    </div>
-    <div class="form-group"><label>Yıl Sonu Son Tarihi</label><input type="date" id="f_ctbTarih3"></div>
+    ${inputlarHtml}
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:8px;font-weight:400;"><input type="checkbox" id="f_ctbHepsi" checked onchange="_cizelgeTarihTopluHepsiToggle(this)"> Tümünü seç (${kayitlar.length} kayıt)</label>
       <div id="f_ctbKayitlar" class="ogr-checkbox-liste">${kayitlar.map(k=>`<label class="ogr-cb-row"><input type="checkbox" value="${k.id}" checked><span>${escapeHtml(_cizelgeTarihTopluEtiket(tip,k))}</span></label>`).join('')}</div>
     </div>`;
   modalAc('📅 Tarihleri Toplu Ayarla', body, () => {
-    const t1 = document.getElementById('f_ctbTarih1').value;
-    const t2 = document.getElementById('f_ctbTarih2').value;
-    const t3 = document.getElementById('f_ctbTarih3').value;
-    if(!t1 && !t2 && !t3){ toast('En az bir tarih girin.'); return; }
+    const veri = {};
+    let doluVarMi = false;
+    alanlar.forEach(a=>{
+      const v = document.getElementById(`f_ctb_${a.key}`).value;
+      if(v){ veri[a.key] = v; doluVarMi = true; }
+    });
+    if(!doluVarMi){ toast('En az bir tarih girin.'); return; }
     const seciliIdler = Array.from(document.querySelectorAll('#f_ctbKayitlar input[type=checkbox]:checked')).map(el=>el.value);
     if(!seciliIdler.length){ toast('En az bir kayıt seçin.'); return; }
-    const veri = {};
-    if(t1) veri.tarih1 = t1;
-    if(t2) veri.tarih2 = t2;
-    if(t3) veri.tarih3 = t3;
     Promise.all(seciliIdler.map(id=>CizelgelerService.kayitKaydet(tip, id, veri)))
       .then(()=>toast(`${seciliIdler.length} kayıt güncellendi.`))
       .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
