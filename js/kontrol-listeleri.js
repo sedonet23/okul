@@ -192,9 +192,15 @@ function _klSecimYap(btn){
     }
   });
 }
-function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih){
+function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevcutHedefTip, mevcutHedefOgretmenIdler, mevcutBagliEvrak){
   const ikon = mevcutIkon || '📌';
   const renk = mevcutRenk || KL_RENK_PAKETI[0];
+  const hedefTip = mevcutHedefTip || 'herkes';
+  const bgTip = mevcutBagliEvrak ? mevcutBagliEvrak.tip : '';
+  const bgKayitId = mevcutBagliEvrak ? mevcutBagliEvrak.kayitId : '';
+  const bgKontrolIndex = mevcutBagliEvrak ? mevcutBagliEvrak.kontrolIndex : '';
+  const bgKayitlarHtml = bgTip ? (cizelgeVerileri[bgTip]||[]).map(k=>`<option value="${k.id}" ${k.id===bgKayitId?'selected':''}>${escapeHtml(_klBagliKayitEtiketi(bgTip,k))}</option>`).join('') : '';
+  const bgDonemHtml = bgTip ? (KL_BAGLI_EVRAK_TIPLERI[bgTip].kontrolEtiketleri||[]).map((e,i)=>`<option value="${i}" ${i===bgKontrolIndex?'selected':''}>${escapeHtml(e)}</option>`).join('') : '';
   return `
     <input type="hidden" id="f_klMIkon" value="${ikon}">
     <input type="hidden" id="f_klMRenk" value="${renk}">
@@ -209,7 +215,41 @@ function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih){
     </div>
     <div class="form-group"><label>Renk Seç</label>${_klSeciciGridHtml('f_klMRenk','renk',renk)}</div>
     <div class="form-group"><label>Madde Metni</label><textarea id="f_klMMetin" rows="3" placeholder="Yapılacak işin açıklaması">${escapeHtml(mevcutMetin||'')}</textarea></div>
-    <div class="form-group"><label>Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)</label><input type="date" id="f_klMTarih" value="${mevcutTarih||''}"></div>
+
+    <div class="form-group"><label>Bağlı Evrak (opsiyonel)</label>
+      <select id="f_klMBagliTip" onchange="_klBagliTipDegisti(this)">
+        <option value="">— Bağımsız madde (kendi tarihini/hedefini aşağıdan girin) —</option>
+        ${Object.entries(KL_BAGLI_EVRAK_TIPLERI).map(([k,v])=>`<option value="${k}" ${k===bgTip?'selected':''}>${v.ad}</option>`).join('')}
+      </select>
+      <p style="font-size:11px;color:var(--ink-muted);margin-top:4px;">Seçilirse tarih ve tik otomatik o kayıttan alınır — Çizelgeler'den işaretlenince burası da, buradan işaretlenince Çizelgeler de otomatik güncellenir.</p>
+    </div>
+    <div class="form-group" id="f_klMBagliKayitKutu" style="display:${bgTip?'':'none'};">
+      <label>Hangi Kayıt?</label>
+      <select id="f_klMBagliKayitId" onchange="_klBagliKayitDegisti(this)" ${bgTip?'':'disabled'}>
+        <option value="">— Seçiniz —</option>${bgKayitlarHtml}
+      </select>
+    </div>
+    <div class="form-group" id="f_klMBagliDonemKutu" style="display:${bgTip?'':'none'};">
+      <label>Hangi Dönem / Ay?</label>
+      <select id="f_klMBagliKontrolIndex" ${bgKayitId?'':'disabled'}>
+        <option value="">— Seçiniz —</option>${bgDonemHtml}
+      </select>
+    </div>
+
+    <div id="f_klMBagimsizAlanlar" style="display:${bgTip?'none':''};">
+      <div class="form-group"><label>Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)</label><input type="date" id="f_klMTarih" value="${mevcutTarih||''}"></div>
+      <div class="form-group"><label>Bu madde kimi ilgilendiriyor?</label>
+        <select id="f_klMHedefTip" onchange="document.getElementById('f_klMHedefOzelKutu').style.display = this.value==='ozel' ? '' : 'none';">
+          <option value="herkes" ${hedefTip==='herkes'?'selected':''}>Herkes (tüm öğretmenler)</option>
+          <option value="ilkokul" ${hedefTip==='ilkokul'?'selected':''}>Sadece İlkokul öğretmenleri</option>
+          <option value="ortaokul" ${hedefTip==='ortaokul'?'selected':''}>Sadece Ortaokul öğretmenleri</option>
+          <option value="ozel" ${hedefTip==='ozel'?'selected':''}>Belirli öğretmen(ler)</option>
+        </select>
+      </div>
+      <div id="f_klMHedefOzelKutu" style="display:${hedefTip==='ozel'?'':'none'};">
+        ${sorumluOgretmenSeciciHtml(mevcutHedefOgretmenIdler||[], 'f_klMHedefOgr')}
+      </div>
+    </div>
   `;
 }
 
@@ -332,13 +372,44 @@ function _klDetayKapat(geriDonme){
   if (typeof _pullToRefreshAyarla === 'function') _pullToRefreshAyarla(true);
   if (geriDonme !== false) kontrolListeleriAc(); // liste-listesi ekranına dön (sadece kullanıcı "Geri" derse)
 }
+/* YENİ: Her maddenin kendi hedef kitlesi olabilir — Herkes / İlkokul /
+   Ortaokul / Belirli Öğretmenler (bkz. _klMaddeFormBody). Admin (yetkiVar)
+   yönetebilmek için HER ZAMAN tüm maddeleri görür; sıradan bir öğretmen
+   ise sadece kendisini ilgilendiren maddeleri görür/işaretleyebilir. */
+function _klMaddeHedefEtiketi(m){
+  if(!m.hedefTip || m.hedefTip==='herkes') return '';
+  if(m.hedefTip==='ilkokul') return '🧒 İlkokul';
+  if(m.hedefTip==='ortaokul') return '🎓 Ortaokul';
+  if(m.hedefTip==='ozel') return '👤 ' + (typeof _ogretmenAdlari==='function' ? _ogretmenAdlari(m.hedefOgretmenIdler||[]) : 'Belirli Öğretmenler');
+  return '';
+}
+function _klMaddeBenimleIlgiliMi(m){
+  if(m.baglıEvrak){
+    const kayit = (cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===m.baglıEvrak.kayitId);
+    const idler = _klBagliKayitOgretmenIdleri(m.baglıEvrak.tip, kayit);
+    const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+    if(!ben) return true;
+    return idler.includes(ben.id);
+  }
+  if(!m.hedefTip || m.hedefTip==='herkes') return true;
+  const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
+  if(!ben) return true; // öğretmen bağlantısı olmayan hesaplar (yönetici vb.) kısıtlanmaz
+  if(m.hedefTip==='ilkokul') return typeof kademeFiiliListesi==='function' && kademeFiiliListesi(ben).includes('ilkokul');
+  if(m.hedefTip==='ortaokul') return typeof kademeFiiliListesi==='function' && kademeFiiliListesi(ben).includes('ortaokul');
+  if(m.hedefTip==='ozel') return (m.hedefOgretmenIdler||[]).includes(ben.id);
+  return true;
+}
+
 function _klDetayCiz(){
   const liste = kontrolListeleri.find(l=>l.id===_klAcikListeId);
   const govde = document.getElementById('klDetayGovde');
   const ozetEl = document.getElementById('klDetayOzet');
   if (!liste || !govde) return;
   const yetkiVar = typeof duzenleyebilir==='function' && duzenleyebilir('kontrolListeleri');
-  const maddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
+  const tumMaddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
+  // Admin yönetim için hepsini görür; sıradan öğretmen sadece kendisiyle
+  // ilgili maddeleri görür.
+  const maddeler = yetkiVar ? tumMaddeler : tumMaddeler.filter(_klMaddeBenimleIlgiliMi);
 
   if (ozetEl){
     const toplam = maddeler.length;
@@ -346,16 +417,27 @@ function _klDetayCiz(){
     ozetEl.innerHTML = toplam ? `<div style="font-size:12.5px;font-weight:700;color:var(--brand);">${tamam} / ${toplam} tamamlandı</div>` : '';
   }
 
+  if(!maddeler.length){
+    govde.innerHTML = '<p class="empty-state">Bu listede sizinle ilgili bir madde yok.</p>';
+    return;
+  }
+
   govde.innerHTML = maddeler.map((m,i) => {
-    const tamamMi = _klTamamlanan.has(m.id);
-    const gecikmisMi = !tamamMi && m.tarih && new Date(m.tarih) < new Date(todayISO());
+    const bagliKayit = m.baglıEvrak ? (cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===m.baglıEvrak.kayitId) : null;
+    const tamamMi = m.baglıEvrak ? _klBagliEvrakTamamMi(m.baglıEvrak.tip, bagliKayit, m.baglıEvrak.kontrolIndex) : _klTamamlanan.has(m.id);
+    const tarih = m.baglıEvrak ? _klBagliEvrakTarihi(m.baglıEvrak.tip, bagliKayit, m.baglıEvrak.kontrolIndex) : m.tarih;
+    const gecikmisMi = !tamamMi && tarih && new Date(tarih) < new Date(todayISO());
+    const hedefEtiketi = yetkiVar ? _klMaddeHedefEtiketi(m) : '';
+    const bagliEtiketi = (yetkiVar && m.baglıEvrak) ? `🔗 ${KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].ad} — ${_klBagliKayitEtiketi(m.baglıEvrak.tip, bagliKayit)} (${(KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].kontrolEtiketleri||[])[m.baglıEvrak.kontrolIndex]||''})` : '';
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;border-left:5px solid ${m.renk||'var(--brand)'};${tamamMi?'opacity:.55;':''}">
       <div style="width:36px;height:36px;border-radius:50%;background:${m.renk||'var(--brand)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
       <div style="font-size:22px;flex-shrink:0;">${m.ikon||'📌'}</div>
       <div style="flex:1;font-size:13.5px;line-height:1.4;${tamamMi?'text-decoration:line-through;':''}">
         ${escapeHtml(m.metin||'')}
-        ${m.tarih ? `<div style="font-size:11px;margin-top:2px;${gecikmisMi?'color:var(--red-danger,#dc2626);font-weight:700;':'color:var(--ink-muted);'}">📅 Son Tarih: ${formatTarih(m.tarih)}${gecikmisMi?' (gecikti)':''}</div>` : ''}
+        ${tarih ? `<div style="font-size:11px;margin-top:2px;${gecikmisMi?'color:var(--red-danger,#dc2626);font-weight:700;':'color:var(--ink-muted);'}">📅 Son Tarih: ${formatTarih(tarih)}${gecikmisMi?' (gecikti)':''}</div>` : ''}
+        ${hedefEtiketi ? `<div style="font-size:11px;margin-top:2px;color:var(--brand);">${hedefEtiketi}</div>` : ''}
+        ${bagliEtiketi ? `<div style="font-size:11px;margin-top:2px;color:var(--brand);">${escapeHtml(bagliEtiketi)}</div>` : ''}
       </div>
       <label style="flex-shrink:0;display:flex;align-items:center;">
         <input type="checkbox" ${tamamMi?'checked':''} onchange="_klMaddeIsaretle('${m.id}', this.checked)" style="width:22px;height:22px;accent-color:var(--brand);">
@@ -366,6 +448,16 @@ function _klDetayCiz(){
   }).join('') || '<p class="empty-state">Bu listede henüz madde yok.</p>';
 }
 function _klMaddeIsaretle(maddeId, isaretli){
+  const liste = kontrolListeleri.find(l=>l.id===_klAcikListeId);
+  const madde = liste && (liste.maddeler||[]).find(m=>m.id===maddeId);
+  if(madde && madde.baglıEvrak){
+    // Bağlı madde: gerçek kaynak Çizelgeler'deki kayıt — burada YAZILMAZ,
+    // doğrudan o kaydın kontrolü güncellenir (tek gerçek kaynak).
+    _klBagliEvrakToggle(madde.baglıEvrak.tip, madde.baglıEvrak.kayitId, madde.baglıEvrak.kontrolIndex, isaretli)
+      .then(()=>_klDetayCiz())
+      .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); _klDetayCiz(); });
+    return;
+  }
   const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
   if (!ben) return;
   if (isaretli) _klTamamlanan.add(maddeId); else _klTamamlanan.delete(maddeId);
@@ -480,6 +572,110 @@ function kontrolListesiOrnekIceAktar(){
     sira: kontrolListeleri.length, maddeler,
   }).then(()=>toast('"Yıl Sonu İşlemleri" listesi eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
+/* ================================================================
+   BAĞLI EVRAK — YENİ: bir kontrol listesi maddesi, Çizelgeler modülündeki
+   gerçek bir kayda (Zümre/ŞÖK/Yıllık-BEP/Sosyal Kulüp/Rehberlik/Maarif)
+   bağlanabilir. Bağlı bir maddenin tarihi ve tamamlanma durumu KENDİ
+   alanlarından DEĞİL, doğrudan bağlı olduğu kayıttan okunur — tek bir
+   gerçek kaynak (single source of truth): öğretmen ister Kontrol
+   Listesi'nden ister Zümre/ŞÖK ekranından işaretlesin, ikisi de aynı
+   kayda yazdığı için otomatik senkron olur, aynı işi iki kere
+   tiklemeye gerek kalmaz.
+   ================================================================ */
+const KL_BAGLI_EVRAK_TIPLERI = {
+  zumre:          { ad:'Zümre',              kontrolEtiketleri: ['1. Dönem','2. Dönem','Yıl Sonu'] },
+  sok:            { ad:'ŞÖK',                kontrolEtiketleri: ['1. Dönem','2. Dönem','Yıl Sonu'] },
+  bepPlani:       { ad:'Yıllık / BEP Planı', kontrolEtiketleri: (typeof BEP_KONTROLLER!=='undefined'?BEP_KONTROLLER:['Yıllık Ders Planı','BEP Planı']) },
+  sosyalKulupler: { ad:'Sosyal Kulüp',       kontrolEtiketleri: (typeof KULUP_KONTROLLER!=='undefined'?KULUP_KONTROLLER:[]) },
+  rehberlik:      { ad:'Rehberlik',          kontrolEtiketleri: (typeof REHBERLIK_KONTROLLER!=='undefined'?REHBERLIK_KONTROLLER:[]) },
+  maarifRapor:    { ad:'Maarif Model',       kontrolEtiketleri: (typeof MAARIF_KONTROLLER!=='undefined'?MAARIF_KONTROLLER:[]) },
+};
+function _klBagliKayitEtiketi(tip, kayit){
+  if(!kayit) return '(silinmiş kayıt)';
+  const ogAdi = kayit.ogretmenId && typeof _ogretmenAdi==='function' ? _ogretmenAdi(kayit.ogretmenId) : '';
+  if(tip==='sosyalKulupler') return kayit.ad || '(isimsiz kulüp)';
+  if(tip==='zumre') return `${ogAdi}${kayit.brans?' — '+kayit.brans:''}${kayit.sinif?' ('+kayit.sinif+')':''}`;
+  if(tip==='sok') return `${ogAdi}${kayit.sinif?' — '+kayit.sinif:''}`;
+  if(tip==='bepPlani') return `${ogAdi}${kayit.brans?' — '+kayit.brans:''}${kayit.sinif?' ('+kayit.sinif+')':''}`;
+  if(tip==='rehberlik'||tip==='maarifRapor') return `${ogAdi}${kayit.sinif?' ('+kayit.sinif+')':''}`;
+  return kayit.id;
+}
+function _klBagliKayitOgretmenIdleri(tip, kayit){
+  if(!kayit) return [];
+  if(tip==='sosyalKulupler') return kayit.ogretmenIdler||[];
+  return kayit.ogretmenId ? [kayit.ogretmenId] : [];
+}
+/* Bağlı bir maddenin ilgili kontrol index'ine denk gelen SON TARİHİNİ
+   hesaplar: dönem/tek-seferlik alanlar varsa doğrudan oradan, aylık
+   kontroller içinse otomatik ay hesaplamasına düşer (bkz. js/hatirlatmalar.js
+   _htOtomatikAyTarihi — Eylül raporu Ekim'in ilk haftasında gibi). */
+function _klBagliEvrakTarihi(tip, kayit, kontrolIndex){
+  if(!kayit) return null;
+  const otomatikAy = (ayKisaAdi) => (typeof _htOtomatikAyTarihi==='function') ? _htOtomatikAyTarihi(ayKisaAdi) : null;
+  if(tip==='zumre'||tip==='sok') return kayit['tarih'+(kontrolIndex+1)] || null;
+  if(tip==='bepPlani') return kontrolIndex===0 ? (kayit.yillikDersPlaniTarihi||null) : (kayit.bepPlaniTarihi||null);
+  if(tip==='sosyalKulupler'){
+    if(kontrolIndex===0) return kayit.yillikPlanTarihi||null;
+    if(kontrolIndex===1) return kayit.toplumHizmetiTarihi||null;
+    if(kontrolIndex>=2 && kontrolIndex<=10) return otomatikAy(['Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'][kontrolIndex-2]);
+    return null; // Sene Sonu Rap. (index 11) — otomatik tarihi yok
+  }
+  if(tip==='rehberlik'){
+    if(kontrolIndex===0) return kayit.yillikPlanTarihi||null;
+    if(kontrolIndex>=1 && kontrolIndex<=9) return otomatikAy(['Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'][kontrolIndex-1]);
+    return null;
+  }
+  if(tip==='maarifRapor') return otomatikAy((typeof MAARIF_KONTROLLER!=='undefined'?MAARIF_KONTROLLER:[])[kontrolIndex]);
+  return null;
+}
+/* Bağlı maddenin tamamlanma durumu — gerçek kaydın kendi kontrolleri. */
+function _klBagliEvrakTamamMi(tip, kayit, kontrolIndex){
+  return !!(kayit && (kayit.kontroller||[])[kontrolIndex]);
+}
+/* Bağlı maddeyi işaretlemek = gerçek kaydın kontrolünü güncellemek. */
+function _klBagliEvrakToggle(tip, kayitId, kontrolIndex, deger){
+  const kayit = (cizelgeVerileri[tip]||[]).find(k=>k.id===kayitId);
+  if(!kayit) return Promise.reject(new Error('Bağlı kayıt bulunamadı (silinmiş olabilir).'));
+  const kontroller = (kayit.kontroller||[]).slice();
+  while(kontroller.length <= kontrolIndex) kontroller.push(false);
+  kontroller[kontrolIndex] = deger;
+  return CizelgelerService.kontrolToggle(tip, kayitId, kontroller);
+}
+/* Form içindeki bağımlı seçiciler (tip → kayıt → dönem/ay) — kaskad. */
+function _klBagliTipDegisti(selectEl){
+  const tip = selectEl.value;
+  const kayitKutu = document.getElementById('f_klMBagliKayitKutu');
+  const donemKutu = document.getElementById('f_klMBagliDonemKutu');
+  const bagimsizAlanlar = document.getElementById('f_klMBagimsizAlanlar');
+  const kayitSelect = document.getElementById('f_klMBagliKayitId');
+  const donemSelect = document.getElementById('f_klMBagliKontrolIndex');
+  if(!tip){
+    if(kayitKutu) kayitKutu.style.display='none';
+    if(donemKutu) donemKutu.style.display='none';
+    if(bagimsizAlanlar) bagimsizAlanlar.style.display='';
+    return;
+  }
+  if(kayitKutu) kayitKutu.style.display='';
+  if(donemKutu) donemKutu.style.display='';
+  if(bagimsizAlanlar) bagimsizAlanlar.style.display='none';
+  const kayitlar = (cizelgeVerileri[tip]||[]);
+  if(kayitSelect){
+    kayitSelect.disabled = false;
+    kayitSelect.innerHTML = '<option value="">— Seçiniz —</option>' + kayitlar.map(k=>`<option value="${k.id}">${escapeHtml(_klBagliKayitEtiketi(tip,k))}</option>`).join('');
+  }
+  if(donemSelect){
+    donemSelect.disabled = true;
+    donemSelect.innerHTML = '<option value="">— Önce kayıt seçin —</option>';
+  }
+}
+function _klBagliKayitDegisti(selectEl){
+  const tip = document.getElementById('f_klMBagliTip').value;
+  const donemSelect = document.getElementById('f_klMBagliKontrolIndex');
+  if(!donemSelect) return;
+  const etiketler = (KL_BAGLI_EVRAK_TIPLERI[tip]||{}).kontrolEtiketleri || [];
+  donemSelect.disabled = false;
+  donemSelect.innerHTML = '<option value="">— Seçiniz —</option>' + etiketler.map((e,i)=>`<option value="${i}">${escapeHtml(e)}</option>`).join('');
+}
 function _klListeSilOnay(listeId){
   const liste = kontrolListeleri.find(l=>l.id===listeId);
   if (!liste) return;
@@ -489,13 +685,28 @@ function _klListeSilOnay(listeId){
     .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
 }
 function _klMaddeEkleModalAc(listeId){
-  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '', '');
+  const body = _klMaddeFormBody('📌', KL_RENK_PAKETI[0], '', '', 'herkes', [], null);
   modalAc('➕ Yeni Madde', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
+    const bgTip = document.getElementById('f_klMBagliTip').value;
+    let baglıEvrak = null;
+    if(bgTip){
+      const bgKayitId = document.getElementById('f_klMBagliKayitId').value;
+      const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
+      if(!bgKayitId || bgDonem===''){ toast('Bağlı evrak için kayıt ve dönem/ay seçmelisiniz.'); return; }
+      baglıEvrak = { tip:bgTip, kayitId:bgKayitId, kontrolIndex:parseInt(bgDonem) };
+    }
     const liste = kontrolListeleri.find(l=>l.id===listeId);
     const maddeler = (liste.maddeler||[]).slice();
-    maddeler.push({ id:_klMaddeIdUret(), sira:maddeler.length, ikon:document.getElementById('f_klMIkon').value.trim()||'📌', renk:document.getElementById('f_klMRenk').value, metin, tarih:document.getElementById('f_klMTarih').value||null });
+    maddeler.push({
+      id:_klMaddeIdUret(), sira:maddeler.length, ikon:document.getElementById('f_klMIkon').value.trim()||'📌',
+      renk:document.getElementById('f_klMRenk').value, metin,
+      tarih: baglıEvrak ? null : (document.getElementById('f_klMTarih').value||null),
+      hedefTip: baglıEvrak ? 'herkes' : document.getElementById('f_klMHedefTip').value,
+      hedefOgretmenIdler: baglıEvrak ? [] : _sorumluOgretmenSecili('f_klMHedefOgr'),
+      baglıEvrak,
+    });
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde eklendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
@@ -506,14 +717,24 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
   if (!liste) return;
   const madde = (liste.maddeler||[]).find(m=>m.id===maddeId);
   if (!madde) return;
-  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin, madde.tarih);
+  const body = _klMaddeFormBody(madde.ikon, madde.renk, madde.metin, madde.tarih, madde.hedefTip, madde.hedefOgretmenIdler, madde.baglıEvrak);
   modalAc('✏️ Maddeyi Düzenle', body, () => {
     const metin = document.getElementById('f_klMMetin').value.trim();
     if (!metin){ toast('Madde metni zorunludur.'); return; }
     const ikon = document.getElementById('f_klMIkon').value.trim()||'📌';
     const renk = document.getElementById('f_klMRenk').value;
-    const tarih = document.getElementById('f_klMTarih').value||null;
-    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin, tarih } : m);
+    const bgTip = document.getElementById('f_klMBagliTip').value;
+    let baglıEvrak = null;
+    if(bgTip){
+      const bgKayitId = document.getElementById('f_klMBagliKayitId').value;
+      const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
+      if(!bgKayitId || bgDonem===''){ toast('Bağlı evrak için kayıt ve dönem/ay seçmelisiniz.'); return; }
+      baglıEvrak = { tip:bgTip, kayitId:bgKayitId, kontrolIndex:parseInt(bgDonem) };
+    }
+    const tarih = baglıEvrak ? null : (document.getElementById('f_klMTarih').value||null);
+    const hedefTip = baglıEvrak ? 'herkes' : document.getElementById('f_klMHedefTip').value;
+    const hedefOgretmenIdler = baglıEvrak ? [] : _sorumluOgretmenSecili('f_klMHedefOgr');
+    const maddeler = (liste.maddeler||[]).map(m => m.id===maddeId ? { ...m, ikon, renk, metin, tarih, hedefTip, hedefOgretmenIdler, baglıEvrak } : m);
     KontrolListeleriService.listeGuncelle(listeId, { maddeler })
       .then(()=>toast('Madde güncellendi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();

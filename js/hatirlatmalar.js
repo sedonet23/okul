@@ -83,6 +83,18 @@ function _htSonrakiAyIlkHaftasiISO(yil, ayIndex0){
   if(sonrakiAy > 11){ sonrakiAy = 0; sonrakiYil += 1; }
   return `${sonrakiYil}-${String(sonrakiAy+1).padStart(2,'0')}-07`;
 }
+/* YENİ: Kontrol Listeleri'ndeki "Bağlı Evrak" özelliği (bkz.
+   js/kontrol-listeleri.js _klBagliEvrakTarihi), bir ayın kısa adından
+   (ör. 'Eki') otomatik hesaplanan son teslim tarihini bu fonksiyonla alır
+   — aylık taramadaki (_htAylikTaramalar) mantığın AYNISI, dışa açılmış hali. */
+function _htOtomatikAyTarihi(ayKisaAdi){
+  const su = new Date();
+  const ayIndex0 = HT_AY_KISA_ADLARI.indexOf(ayKisaAdi);
+  if(ayIndex0 === -1) return null;
+  let aday = _htSonrakiAyIlkHaftasiISO(su.getFullYear(), ayIndex0);
+  if(new Date(aday) > su){ aday = _htSonrakiAyIlkHaftasiISO(su.getFullYear()-1, ayIndex0); }
+  return aday;
+}
 
 /* ---------- Aylık çizelge türleri (Kulüp/Rehberlik/Maarif) ---------- */
 const HT_AYLIK_TIP_AYARI = {
@@ -230,24 +242,55 @@ function _htSinavTaramalari(ogretmenId, gunSayisi){
 }
 
 /* ---------- Kontrol Listeleri (ASENKRON — her liste için ayrı bir tamamlama okuması gerekir) ----------
-   DÜZELTME: Tarih artık LİSTE seviyesinde değil, her MADDENİN kendi
-   "tarih" alanında (bkz. js/kontrol-listeleri.js _klMaddeFormBody) —
-   Sedat'ın isteğiyle liste bazlı tarih kaldırıldı. Bu yüzden her liste
-   için tamamlama kaydı bir kez okunur, sonra o listenin İÇİNDEKİ her
-   maddenin kendi tarihine göre ayrı ayrı değerlendirilir. */
+   DÜZELTME 1: Tarih artık LİSTE seviyesinde değil, her MADDENİN kendi
+   "tarih" alanında (bkz. js/kontrol-listeleri.js _klMaddeFormBody).
+   DÜZELTME 2: Her maddenin kendi HEDEF kitlesi var (herkes/ilkokul/
+   ortaokul/belirli öğretmenler, madde.hedefTip + hedefOgretmenIdler).
+   DÜZELTME 3: Bir madde, Çizelgeler'deki gerçek bir kayda "Bağlı Evrak"
+   olarak bağlanabilir (madde.baglıEvrak — bkz. js/kontrol-listeleri.js
+   KL_BAGLI_EVRAK_TIPLERI) — bu durumda tarih/tamamlanma/hedef KENDİ
+   alanlarından değil, doğrudan bağlı kayıttan okunur (tek gerçek kaynak). */
+function _htMaddeBuOgretmeniIlgilendiriyorMu(madde, ogretmenId){
+  if(madde.baglıEvrak){
+    const kayit = (cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===madde.baglıEvrak.kayitId);
+    const idler = (typeof _klBagliKayitOgretmenIdleri==='function') ? _klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip, kayit) : [];
+    return idler.includes(ogretmenId);
+  }
+  if(!madde.hedefTip || madde.hedefTip==='herkes') return true;
+  if(madde.hedefTip==='ozel') return (madde.hedefOgretmenIdler||[]).includes(ogretmenId);
+  // ilkokul / ortaokul
+  const ogretmen = (typeof ogretmenler!=='undefined'?ogretmenler:[]).find(o=>o.id===ogretmenId);
+  if(!ogretmen || typeof kademeFiiliListesi!=='function') return true; // belirlenemiyorsa kısıtlama yok
+  return kademeFiiliListesi(ogretmen).includes(madde.hedefTip);
+}
 async function _htKontrolListesiTaramalari(ogretmenId, gunSayisi){
   const sonuc = [];
   const listeler = (typeof kontrolListeleri!=='undefined'?kontrolListeleri:[])
-    .filter(l => l.yayinda !== false && (l.maddeler||[]).some(m=>m.tarih));
+    .filter(l => l.yayinda !== false && (l.maddeler||[]).some(m=>m.tarih || m.baglıEvrak));
   for(const liste of listeler){
-    let tamamlanan;
-    try{
-      const doc = await KontrolListeleriService.tamamlamaGetir(ogretmenId, liste.id);
-      tamamlanan = new Set((doc.exists && doc.data().tamamlananMaddeIdler) || []);
-    }catch(e){ console.warn('Kontrol listesi taraması başarısız:', liste.ad, e); continue; }
+    let tamamlanan = new Set();
+    // Bağımsız (baglıEvrak'sız) maddeler için kişinin kendi tamamlama
+    // kaydı gerekiyor — bağlı maddeler bu okumaya ihtiyaç duymaz, onlar
+    // doğrudan kayıttan okunur (aşağıda).
+    if((liste.maddeler||[]).some(m=>!m.baglıEvrak && m.tarih)){
+      try{
+        const doc = await KontrolListeleriService.tamamlamaGetir(ogretmenId, liste.id);
+        tamamlanan = new Set((doc.exists && doc.data().tamamlananMaddeIdler) || []);
+      }catch(e){ console.warn('Kontrol listesi taraması başarısız:', liste.ad, e); continue; }
+    }
     (liste.maddeler||[]).forEach(madde=>{
-      if(!madde.tarih || tamamlanan.has(madde.id)) return;
-      const fark = _htGunFarki(madde.tarih);
+      if(!_htMaddeBuOgretmeniIlgilendiriyorMu(madde, ogretmenId)) return;
+      let tarih, tamamMi;
+      if(madde.baglıEvrak){
+        const kayit = (cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===madde.baglıEvrak.kayitId);
+        tarih = (typeof _klBagliEvrakTarihi==='function') ? _klBagliEvrakTarihi(madde.baglıEvrak.tip, kayit, madde.baglıEvrak.kontrolIndex) : null;
+        tamamMi = (typeof _klBagliEvrakTamamMi==='function') ? _klBagliEvrakTamamMi(madde.baglıEvrak.tip, kayit, madde.baglıEvrak.kontrolIndex) : false;
+      } else {
+        tarih = madde.tarih;
+        tamamMi = tamamlanan.has(madde.id);
+      }
+      if(!tarih || tamamMi) return;
+      const fark = _htGunFarki(tarih);
       if(fark > gunSayisi) return;
       sonuc.push({
         kaynak:'kontrolListesi', baslik:`Kontrol Listesi: ${liste.ad}`, altBaslik:madde.metin||'',

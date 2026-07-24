@@ -57,6 +57,7 @@ const DONEM_ETIKETLER=['1. Dönem','2. Dönem','Yıl Sonu'];
 const KULUP_KONTROLLER=['Yıllık Plan','Toplum Hizm. Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','Sene Sonu Rap.'];
 const REHBERLIK_KONTROLLER=['Yıllık Çalışma Planı','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz','1.Dönem Sonu Rap.','Sene Sonu Rap.'];
 const BEP_KONTROLLER=['Yıllık Ders Planı','BEP Planı'];
+const MAARIF_KONTROLLER=['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
 const AYLAR_TR=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 
 function _donemTikleriHtml(tip,id,k3){
@@ -458,7 +459,7 @@ function _maarifModal(id){
 
 function _renderMaarifMatris(el,veri){
   if(!veri.length){el.innerHTML='<p class="empty-state">Henüz kayıt eklenmedi.</p>';return;}
-  const AYLAR=['Eyl','Eki','Kas','Ara','Oca','Şub','Mar','Nis','May','Haz'];
+  const AYLAR=MAARIF_KONTROLLER;
   const gruplar={};
   veri.forEach(k=>{if(!k.ogretmenId)return;if(!gruplar[k.ogretmenId])gruplar[k.ogretmenId]=[];gruplar[k.ogretmenId].push(k);});
   if(!Object.keys(gruplar).length){el.innerHTML='<p class="empty-state">Öğretmen atanmış kayıt yok.</p>';return;}
