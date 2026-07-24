@@ -662,13 +662,30 @@ function hataGoster(err){ console.error(err); toast('Veri hatası: '+err.message
    tarafı tekrar etkinleştirir; iç içe kapatma/açma çağrıları dengeli
    olduğu sürece bir üst panelin durumu asla erken bozulmaz. */
 let _pullToRefreshDerinlik = 0;
+let _pullToRefreshBekleyenZamanlayici = null;
 function _pullToRefreshAyarla(enabled){
   if(enabled){
     _pullToRefreshDerinlik = Math.max(0, _pullToRefreshDerinlik - 1);
-    if(_pullToRefreshDerinlik > 0) return; // hâlâ en az bir üst panel/modal açık — gerçekten açma
   } else {
     _pullToRefreshDerinlik++;
   }
+  // DÜZELTME (kök sebep #2): Bir ekrandan diğerine geçerken (ör. Kontrol
+  // Listesi liste→detay: _klListeyeGit() önce kontrolListeleriKapat()'ı
+  // sonra _klDetayAc()'yı ÇAĞIRIR) derinlik 1→0→1 gibi anlık bir gidip
+  // gelme yaşıyordu. Native köprü çağrısı asenkron olduğu için, bu iki
+  // mesaj (aç, sonra hemen kapat) native tarafa AYRI AYRI ulaşabiliyor —
+  // tam o anda kullanıcının parmağı ekrandaysa, aradaki kısacık "açık"
+  // anını yakalayıp yenileme jestini tetikleyebiliyordu. Çözüm: native'e
+  // gönderimi bir sonraki mikro-görev turuna ERTELE — aynı senkron akış
+  // içinde art arda gelen aç/kapa çağrıları böylece native'e HİÇ gitmez,
+  // sadece son (gerçek) durum gönderilir.
+  if(_pullToRefreshBekleyenZamanlayici) clearTimeout(_pullToRefreshBekleyenZamanlayici);
+  _pullToRefreshBekleyenZamanlayici = setTimeout(()=>{
+    _pullToRefreshBekleyenZamanlayici = null;
+    _pullToRefreshNativeGonder(_pullToRefreshDerinlik === 0);
+  }, 0);
+}
+function _pullToRefreshNativeGonder(enabled){
   try{
     if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
        && window.Capacitor.Plugins && window.Capacitor.Plugins.PullToRefreshPlugin){
