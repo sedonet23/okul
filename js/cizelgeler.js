@@ -116,6 +116,10 @@ function sosyalKulupModalAc(id){
     <div class="form-group"><label>Kulüp Adı</label><input id="f_kulupAdi" value="${k?escapeHtml(k.ad):''}"></div>
     <div class="form-group"><label>Danışman Öğretmenler</label>${_ogretmenListesiHtml(k?k.ogretmenIdler||[]:[],'f_kulupOgr')}</div>
     <div class="form-group"><label>Bu Kulübü Seçebilecek Sınıflar</label>${_sinifListesiHtml(k?k.sinifIdler||[]:[],'f_kulupSinif')}</div>
+    <div class="form-row">
+      <div class="form-group"><label>Yıllık Plan Son Tarihi (opsiyonel)</label><input type="date" id="f_kulupYillikPlanTarihi" value="${k?k.yillikPlanTarihi||'':''}"></div>
+      <div class="form-group"><label>Toplum Hizmeti Planı Son Tarihi (opsiyonel)</label><input type="date" id="f_kulupToplumHizmetiTarihi" value="${k?k.toplumHizmetiTarihi||'':''}"></div>
+    </div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px;">
       <label style="margin:0;">Aktif Kulüp</label>
       <input type="checkbox" id="f_aktif" style="width:auto;" ${!k||k.aktif!==false?'checked':''}>
@@ -123,7 +127,11 @@ function sosyalKulupModalAc(id){
   modalAc(k?'Kulüp Düzenle':'Yeni Kulüp',body,()=>{
     const ad=document.getElementById('f_kulupAdi').value.trim();
     if(!ad){toast('Kulüp adı zorunludur.');return;}
-    CizelgelerService.kayitKaydet('sosyalKulupler',k?k.id:null,{ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),sinifIdler:_secilenIdler('f_kulupSinif'),aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)})
+    CizelgelerService.kayitKaydet('sosyalKulupler',k?k.id:null,{
+      ad,ogretmenIdler:_secilenIdler('f_kulupOgr'),sinifIdler:_secilenIdler('f_kulupSinif'),
+      yillikPlanTarihi:document.getElementById('f_kulupYillikPlanTarihi').value||null,
+      toplumHizmetiTarihi:document.getElementById('f_kulupToplumHizmetiTarihi').value||null,
+      aktif:document.getElementById('f_aktif').checked,kontroller:k?(k.kontroller||Array(12).fill(false)):Array(12).fill(false)})
       .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     modalKapat();
   },k?()=>{if(confirm('Bu kulübü silmek istiyor musunuz?')){CizelgelerService.kayitSil('sosyalKulupler',k.id).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });modalKapat();}}:null);
@@ -244,20 +252,26 @@ const CIZELGE_META={
       {key:'ogretmenId', etiket:'Öğretmen',         tip:'ogretmen'},
       {key:'brans',      etiket:'Branş/Ders',        tip:'brans'},
       {key:'sinif',      etiket:'Sınıf (opsiyonel)', tip:'sinif', opsiyonel:true},
-      {key:'tarih',      etiket:'Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)', tip:'tarih', opsiyonel:true},
+      {key:'tarih1',     etiket:'1. Dönem Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
+      {key:'tarih2',     etiket:'2. Dönem Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
+      {key:'tarih3',     etiket:'Yıl Sonu Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
       {key:'aciklama',   etiket:'Notlar',             tip:'textarea', opsiyonel:true}
     ],
-    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
+    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu'],
+    kontrolTarihAlanlari: ['tarih1','tarih2','tarih3']
   },
   sok: { baslik:'ŞÖK – Şube Öğretmenler Kurulu',
     alanlar:[
       {key:'ogretmenId', etiket:'Öğretmen', tip:'ogretmen'},
       {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
       {key:'konu',       etiket:'Konu',     tip:'metin'},
-      {key:'tarih',      etiket:'Son Tarih (opsiyonel — hatırlatma sistemine dahil edilir)', tip:'tarih', opsiyonel:true},
+      {key:'tarih1',     etiket:'1. Dönem Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
+      {key:'tarih2',     etiket:'2. Dönem Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
+      {key:'tarih3',     etiket:'Yıl Sonu Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
       {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
     ],
-    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu']
+    kontroller: ['1. Dönem','2. Dönem','Yıl Sonu'],
+    kontrolTarihAlanlari: ['tarih1','tarih2','tarih3']
   },
   bepPlani: { baslik:'Yıllık / BEP Planları',
     _ozel: true, /* özel modal: _bepModal */
@@ -267,6 +281,7 @@ const CIZELGE_META={
     alanlar:[
       {key:'ogretmenId', etiket:'Öğretmen', tip:'ogretmen'},
       {key:'sinif',      etiket:'Sınıf',    tip:'sinif'},
+      {key:'yillikPlanTarihi', etiket:'Yıllık Çalışma Planı Son Tarihi (opsiyonel)', tip:'tarih', opsiyonel:true},
       {key:'aciklama',   etiket:'Notlar',   tip:'textarea', opsiyonel:true}
     ],
     kontroller: REHBERLIK_KONTROLLER
@@ -374,26 +389,32 @@ function _bepModal(id){
       <select id="f_brans"><option value="">— Seçiniz —</option>${(typeof bransListesi!=='undefined'?[...bransListesi].sort((a,b)=>(a.ad||'').localeCompare(b.ad||'','tr')):[]).map(b=>`<option value="${escapeHtml(b.ad)}" ${b.ad===(kayit?kayit.brans||'':'')?'selected':''}>${escapeHtml(b.ad)}</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>Sınıflar <span style="font-size:11px;color:var(--ink-muted);">(opsiyonel — her sınıf ayrı kayıt)</span></label>${sinifSecimHtml}</div>
+    <div class="form-row">
+      <div class="form-group"><label>Yıllık Ders Planı Son Tarihi (opsiyonel)</label><input type="date" id="f_yillikDersPlaniTarihi" value="${kayit?kayit.yillikDersPlaniTarihi||'':''}"></div>
+      <div class="form-group"><label>BEP Planı Son Tarihi (opsiyonel)</label><input type="date" id="f_bepPlaniTarihi" value="${kayit?kayit.bepPlaniTarihi||'':''}"></div>
+    </div>
     <div class="form-group"><label>Notlar</label><textarea id="f_aciklama" rows="2">${escapeHtml(kayit?kayit.aciklama||'':'')}</textarea></div>`;
   modalAc(kayit?'Yıllık / BEP Planı — Düzenle':'Yıllık / BEP Planı — Yeni Kayıt',body,()=>{
     const ogretmenId=document.getElementById('f_ogretmenId').value;
     const brans=document.getElementById('f_brans').value;
     const aciklama=document.getElementById('f_aciklama').value.trim();
+    const yillikDersPlaniTarihi=document.getElementById('f_yillikDersPlaniTarihi').value||null;
+    const bepPlaniTarihi=document.getElementById('f_bepPlaniTarihi').value||null;
     if(!ogretmenId){toast('Öğretmen seçiniz.');return;}
     if(!brans){toast('Branş seçiniz.');return;}
     const seciliSinifler=_secilenIdler('f_sinifler');
     if(kayit){
       // Düzenleme: sınıf değişmişse tek kayıt güncelle
       const yeniSinif = seciliSinifler[0]||kayit.sinif||'';
-      CizelgelerService.kayitKaydet('bepPlani',kayit.id,{ogretmenId,brans,sinif:yeniSinif,aciklama,kontroller:kayit.kontroller||[false,false]})
+      CizelgelerService.kayitKaydet('bepPlani',kayit.id,{ogretmenId,brans,sinif:yeniSinif,aciklama,yillikDersPlaniTarihi,bepPlaniTarihi,kontroller:kayit.kontroller||[false,false]})
         .then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
     } else {
       if(!seciliSinifler.length){
         // Sınıf seçilmemişse sınıfsız tek kayıt
-        CizelgelerService.kayitKaydet('bepPlani',null,{ogretmenId,brans,sinif:'',aciklama,kontroller:[false,false]})
+        CizelgelerService.kayitKaydet('bepPlani',null,{ogretmenId,brans,sinif:'',aciklama,yillikDersPlaniTarihi,bepPlaniTarihi,kontroller:[false,false]})
           .then(()=>toast('Kayıt oluşturuldu.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
       } else {
-        CizelgelerService.cokluKayitOlustur('bepPlani',{ogretmenId,brans,aciklama,kontroller:[false,false]},'sinif',seciliSinifler)
+        CizelgelerService.cokluKayitOlustur('bepPlani',{ogretmenId,brans,aciklama,yillikDersPlaniTarihi,bepPlaniTarihi,kontroller:[false,false]},'sinif',seciliSinifler)
           .then(n=>toast(`${n} sınıf için kayıt oluşturuldu.`)).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
       }
     }

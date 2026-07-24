@@ -2,20 +2,25 @@
    js/hatirlatmalar.js
    HATIRLATMA SİSTEMİ — giriş yapan öğretmene, son tarihi yaklaşan/geçmiş
    ve HENÜZ TAMAMLANMAMIŞ işlerini/evraklarını uygulama her açıldığında
-   bir pop-up ile hatırlatır. 10 kaynak taranır:
+   bir pop-up ile hatırlatır. Kaynaklar:
 
      1. Görevler          (sorumluOgretmenIdler, sonTarih, durum)
      2. Evrak Takibi      (sorumluOgretmenIdler, tarih, durum)
      3. Nöbet             (bugünkü atama, defterDolduruldu)
-     4. Sosyal Kulüp      (aylık tik, ogretmenIdler)
-     5. Rehberlik         (aylık tik, ogretmenId)
-     6. Maarif Model      (aylık tik, ogretmenId)
-     7. Zümre / ŞÖK       (kendi kaydındaki "tarih" alanı, 3 dönem tiki)
-     8. Belirli Gün/Hafta (tarihBaslangic, ogretmenIdler, kontroller[0])
-     9. Kontrol Listeleri (her MADDENİN kendi tarihi, yayinda, her
-                           öğretmenin kendi tamamlama kaydı — BEP/Yıllık
-                           Plan gibi tarihi olmayan diğer işler için kullanılır)
-    10. Yazılı Sınav      (ogretmenId, tarih — yaklaşan sınav hatırlatması)
+     4. Sosyal Kulüp      (aylık tik — Ekim-Haziran; + Yıllık Plan ve
+                           Toplum Hizmeti Planı için ayrı tek seferlik tarih)
+     5. Rehberlik         (aylık tik; + Yıllık Çalışma Planı için ayrı tarih)
+     6. Maarif Model      (aylık tik — Eylül-Haziran)
+     7. Zümre / ŞÖK       (1.Dönem/2.Dönem/Yıl Sonu — HER BİRİNİN kendi tarihi)
+     8. BEP Planı         (Yıllık Ders Planı + BEP Planı — ayrı ayrı tarih)
+     9. Belirli Gün/Hafta (tarihBaslangic, ogretmenIdler, kontroller[0])
+    10. Kontrol Listeleri (her MADDENİN kendi tarihi, yayinda, her
+                           öğretmenin kendi tamamlama kaydı)
+    11. Yazılı Sınav      (ogretmenId, tarih — yaklaşan sınav hatırlatması)
+
+   AYLIK RAPORLAR İÇİN TESLİM MANTIĞI: bir ayın raporu, BİR SONRAKİ ayın
+   ilk haftasına (7'sine) kadar teslim edilebilir kabul edilir (örn. Eylül
+   raporu Ekim'in ilk haftasında) — bkz. _htSonrakiAyIlkHaftasiISO().
 
    Tamamlanma HER ZAMAN kendi modülünde işaretlenir (bu dosya hiçbir
    yerde "tamamlandı" YAZMAZ) — bir madde tamamlanınca bir sonraki
@@ -69,9 +74,14 @@ function _htGunFarki(hedefISO){
   const hedef = new Date(hedefISO + 'T00:00:00');
   return Math.round((hedef - bugun) / (1000*60*60*24));
 }
-function _htAyinSonuISO(yil, ayIndex0){
-  const sonGun = new Date(yil, ayIndex0+1, 0).getDate();
-  return `${yil}-${String(ayIndex0+1).padStart(2,'0')}-${String(sonGun).padStart(2,'0')}`;
+function _htSonrakiAyIlkHaftasiISO(yil, ayIndex0){
+  // DÜZELTME: Önceden "o ayın son günü" kullanılıyordu. Sedat'ın isteğiyle
+  // artık her ayın raporu, BİR SONRAKİ ayın ilk haftasına kadar teslim
+  // edilebiliyor (örn. Eylül raporu Ekim'in ilk haftasında) — bu yüzden
+  // son tarih, bir sonraki ayın 7'si olarak kabul ediliyor.
+  let sonrakiAy = ayIndex0 + 1, sonrakiYil = yil;
+  if(sonrakiAy > 11){ sonrakiAy = 0; sonrakiYil += 1; }
+  return `${sonrakiYil}-${String(sonrakiAy+1).padStart(2,'0')}-07`;
 }
 
 /* ---------- Aylık çizelge türleri (Kulüp/Rehberlik/Maarif) ---------- */
@@ -103,8 +113,8 @@ function _htAylikTaramalar(ogretmenId, gunSayisi){
         // Okul yılı Eylül-Haziran arası sürer; Eylül-Aralık cari takvim
         // yılında, Ocak-Haziran BİR SONRAKİ takvim yılındadır. Bugüne en
         // yakın GEÇMİŞ veya bugünkü karşılığı seçilir.
-        let aday = _htAyinSonuISO(su.getFullYear(), ayIndex0);
-        if(new Date(aday) > su){ aday = _htAyinSonuISO(su.getFullYear()-1, ayIndex0); }
+        let aday = _htSonrakiAyIlkHaftasiISO(su.getFullYear(), ayIndex0);
+        if(new Date(aday) > su){ aday = _htSonrakiAyIlkHaftasiISO(su.getFullYear()-1, ayIndex0); }
         // Aday hâlâ çok eskideyse (>400 gün önce) muhtemelen alakasız bir
         // önceki okul yılına ait — atla.
         const fark = _htGunFarki(aday);
@@ -130,25 +140,57 @@ function _htBelirliGunTaramalari(ogretmenId, gunSayisi){
     .filter(x => x.gunFarki <= gunSayisi);
 }
 
-/* ---------- Zümre / ŞÖK — YENİ: kendi kayıtlarındaki "tarih" alanı
-   (Sedat'ın isteğiyle Kontrol Listeleri yerine doğrudan bu ekranlara
-   eklendi, bkz. js/cizelgeler.js CIZELGE_META). Kaydın 3 dönem tikinden
-   (1.Dönem/2.Dönem/Yıl Sonu) HEPSİ işaretlenmemişse ve tarih yaklaşıyorsa/
-   geçtiyse hatırlatma üretir. ---------- */
+/* ---------- Zümre / ŞÖK — YENİ: kendi kayıtlarındaki 3 AYRI dönem tarihi
+   (tarih1/tarih2/tarih3 — 1.Dönem/2.Dönem/Yıl Sonu, bkz. js/cizelgeler.js
+   CIZELGE_META). Her dönem kendi tarihine göre AYRI AYRI değerlendirilir;
+   sadece o dönemin tiki işaretlenmemişse ve o dönemin kendi tarihi
+   yaklaşıyorsa/geçtiyse hatırlatma üretir. ---------- */
 const HT_ZUMRE_SOK_ADLARI = { zumre:'Zümre Toplantısı', sok:'ŞÖK' };
+const HT_DONEM_ALAN_ADLARI = ['tarih1','tarih2','tarih3'];
+const HT_DONEM_ETIKETLERI = ['1. Dönem','2. Dönem','Yıl Sonu'];
 function _htZumreSokTaramalari(ogretmenId, gunSayisi){
   const sonuc = [];
   ['zumre','sok'].forEach(tip=>{
     (cizelgeVerileri[tip] || []).forEach(kayit=>{
-      if(kayit.ogretmenId !== ogretmenId || !kayit.tarih) return;
-      const hepsiTamamMi = (kayit.kontroller||[]).filter(Boolean).length >= 3;
-      if(hepsiTamamMi) return;
-      const fark = _htGunFarki(kayit.tarih);
-      if(fark > gunSayisi) return;
-      sonuc.push({
-        kaynak:tip, baslik:`${HT_ZUMRE_SOK_ADLARI[tip]}: ${kayit.brans||kayit.konu||kayit.sinif||''}`.trim(),
-        altBaslik:kayit.sinif&&kayit.brans?kayit.sinif:'', gunFarki:fark, git: ()=>{ if(typeof sekmeAc==='function') sekmeAc(tip); }
+      if(kayit.ogretmenId !== ogretmenId) return;
+      HT_DONEM_ALAN_ADLARI.forEach((alan, i)=>{
+        const tarih = kayit[alan];
+        if(!tarih || (kayit.kontroller||[])[i]) return; // tarih girilmemiş ya da zaten tiklenmiş
+        const fark = _htGunFarki(tarih);
+        if(fark > gunSayisi) return;
+        sonuc.push({
+          kaynak:tip, baslik:`${HT_ZUMRE_SOK_ADLARI[tip]} — ${HT_DONEM_ETIKETLERI[i]}: ${kayit.brans||kayit.konu||kayit.sinif||''}`.trim(),
+          altBaslik:kayit.sinif&&kayit.brans?kayit.sinif:'', gunFarki:fark, git: ()=>{ if(typeof sekmeAc==='function') sekmeAc(tip); }
+        });
       });
+    });
+  });
+  return sonuc;
+}
+
+/* ---------- Tek seferlik planlar — Sosyal Kulüp (Yıllık Plan, Toplum
+   Hizmeti), Rehberlik (Yıllık Çalışma Planı), BEP (Yıllık Ders Planı, BEP
+   Planı). Her biri kendi kaydındaki tek bir tarih alanı + kendi kontrol
+   index'ine (kontroller dizisindeki konumuna) göre değerlendirilir. ---------- */
+const HT_TEK_SEFERLIK_AYARI = [
+  { tip:'sosyalKulupler', alan:'yillikPlanTarihi',      kontrolIndex:0, ad:'Sosyal Kulüp — Yıllık Plan',          ogretmenAlani:'ogretmenIdler' },
+  { tip:'sosyalKulupler', alan:'toplumHizmetiTarihi',   kontrolIndex:1, ad:'Sosyal Kulüp — Toplum Hizmeti Planı', ogretmenAlani:'ogretmenIdler' },
+  { tip:'rehberlik',      alan:'yillikPlanTarihi',      kontrolIndex:0, ad:'Rehberlik — Yıllık Çalışma Planı',    ogretmenAlani:'ogretmenId' },
+  { tip:'bepPlani',       alan:'yillikDersPlaniTarihi', kontrolIndex:0, ad:'Yıllık Ders Planı',                   ogretmenAlani:'ogretmenId' },
+  { tip:'bepPlani',       alan:'bepPlaniTarihi',        kontrolIndex:1, ad:'BEP Planı',                          ogretmenAlani:'ogretmenId' },
+];
+function _htTekSeferlikTaramalari(ogretmenId, gunSayisi){
+  const sonuc = [];
+  HT_TEK_SEFERLIK_AYARI.forEach(ayar=>{
+    (cizelgeVerileri[ayar.tip] || []).forEach(kayit=>{
+      const idlerAlaniDizi = ayar.ogretmenAlani === 'ogretmenIdler';
+      const buOgretmeninMi = idlerAlaniDizi ? (kayit[ayar.ogretmenAlani]||[]).includes(ogretmenId) : kayit[ayar.ogretmenAlani] === ogretmenId;
+      if(!buOgretmeninMi) return;
+      const tarih = kayit[ayar.alan];
+      if(!tarih || (kayit.kontroller||[])[ayar.kontrolIndex]) return;
+      const fark = _htGunFarki(tarih);
+      if(fark > gunSayisi) return;
+      sonuc.push({ kaynak:ayar.tip, baslik:ayar.ad, altBaslik:kayit.ad||kayit.brans||kayit.sinif||'', gunFarki:fark, git: ()=>{ if(typeof sekmeAc==='function') sekmeAc(ayar.tip); } });
     });
   });
   return sonuc;
@@ -227,6 +269,7 @@ async function hatirlatmalariTopla(){
     ..._htNobetTaramalari(ben.id),
     ..._htAylikTaramalar(ben.id, gunSayisi),
     ..._htZumreSokTaramalari(ben.id, gunSayisi),
+    ..._htTekSeferlikTaramalari(ben.id, gunSayisi),
     ..._htBelirliGunTaramalari(ben.id, gunSayisi),
     ..._htSinavTaramalari(ben.id, gunSayisi),
   ];
