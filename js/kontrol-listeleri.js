@@ -340,7 +340,7 @@ function _klDetayAc(listeId){
   ov.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg-sidebar);color:var(--ink-on-dark);position:sticky;top:0;z-index:2;gap:6px;">
       <button class="btn btn-ghost btn-sm" onclick="_klDetayKapat()" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;font-weight:700;">← Geri</button>
-      <div style="font-weight:700;font-size:13px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(liste.ad)}</div>
+      <div id="klDetayBaslik" style="font-weight:700;font-size:13px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(liste.ad)}</div>
       <button class="btn btn-ghost btn-sm" onclick="_klYazdir('${listeId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Yazdır">🖨️</button>
       ${yetkiVar ? `
         <button class="btn btn-ghost btn-sm" onclick="_klOzetGosterModalAc('${listeId}')" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.40);color:#fff;" title="Tamamlama özeti">📊</button>
@@ -406,6 +406,8 @@ function _klDetayCiz(){
   const ozetEl = document.getElementById('klDetayOzet');
   if (!liste || !govde) return;
   const yetkiVar = typeof duzenleyebilir==='function' && duzenleyebilir('kontrolListeleri');
+  const baslikEl = document.getElementById('klDetayBaslik');
+  if(baslikEl) baslikEl.textContent = liste.ad; // liste adı Ayarlar'dan değiştirilmiş olabilir — üstteki başlık da tazelenir
   const tumMaddeler = (liste.maddeler||[]).slice().sort((a,b)=>a.sira-b.sira);
   // Admin yönetim için hepsini görür; sıradan öğretmen sadece kendisiyle
   // ilgili maddeleri görür.
@@ -553,10 +555,14 @@ function _klAyarlarModalAc(listeId){
   const liste = kontrolListeleri.find(l=>l.id===listeId);
   if(!liste) return;
   const body = `
+    <div class="form-group"><label>Liste Adı</label><input id="f_klAd2" value="${escapeHtml(liste.ad||'')}"></div>
     <div class="form-group"><label>Açıklama</label><input id="f_klAciklama2" value="${escapeHtml(liste.aciklama||'')}"></div>
     <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:400;"><input type="checkbox" id="f_klYayinda2" ${liste.yayinda?'checked':''}> Diğer kullanıcılara açık (kapatırsanız sadece siz görürsünüz — taslağa döner)</label></div>`;
   modalAc('⚙️ Liste Ayarları', body, () => {
+    const ad = document.getElementById('f_klAd2').value.trim();
+    if(!ad){ toast('Liste adı zorunludur.'); return; }
     KontrolListeleriService.listeGuncelle(listeId, {
+      ad,
       aciklama: document.getElementById('f_klAciklama2').value.trim(),
       yayinda: document.getElementById('f_klYayinda2').checked,
     }).then(()=>toast('Kaydedildi.')).catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
