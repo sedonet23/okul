@@ -290,10 +290,11 @@ async function _htKontrolListesiTaramalari(ogretmenId, gunSayisi){
         // değil, sadece KENDİ bağlı kaydına göre değerlendirilir (biri
         // teslim etmemiş diye başkasına da hatırlatma gitmemeli).
         const kayitIdler = madde.baglıEvrak.kayitIdler || (madde.baglıEvrak.kayitId?[madde.baglıEvrak.kayitId]:[]);
+        const kontrolIndexler = madde.baglıEvrak.kontrolIndexler || (madde.baglıEvrak.kontrolIndex!==undefined?[madde.baglıEvrak.kontrolIndex]:[]);
         const kendiKayit = kayitIdler.map(id=>(cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean)
           .find(k=>(typeof _klBagliKayitOgretmenIdleri==='function'?_klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip,k):[]).includes(ogretmenId));
-        tarih = (typeof _klBagliEvrakTarihi==='function') ? _klBagliEvrakTarihi(madde.baglıEvrak.tip, kendiKayit, madde.baglıEvrak.kontrolIndex) : null;
-        tamamMi = (typeof _klBagliEvrakTamamMi==='function') ? _klBagliEvrakTamamMi(madde.baglıEvrak.tip, kendiKayit, madde.baglıEvrak.kontrolIndex) : false;
+        tarih = (typeof _klBagliEvrakTarihi==='function') ? _klBagliEvrakTarihi(madde.baglıEvrak.tip, kendiKayit, kontrolIndexler) : null;
+        tamamMi = (typeof _klBagliEvrakTamamMi==='function') ? _klBagliEvrakTamamMi(madde.baglıEvrak.tip, kendiKayit, kontrolIndexler) : false;
       } else {
         tarih = madde.tarih;
         tamamMi = tamamlanan.has(madde.id);

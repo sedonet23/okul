@@ -202,9 +202,12 @@ function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevc
   // öğretmenin/kaydın aynı dönemine birden bağlanabilsin diye (bkz.
   // kayitIdler dizisi, eski tekil kayitId'nin yerine geçti).
   const bgKayitIdler = mevcutBagliEvrak ? (mevcutBagliEvrak.kayitIdler || (mevcutBagliEvrak.kayitId?[mevcutBagliEvrak.kayitId]:[])) : [];
-  const bgKontrolIndex = mevcutBagliEvrak ? mevcutBagliEvrak.kontrolIndex : '';
+  // DÜZELTME: "Hangi Dönem/Ay?" de artık TEKLİ değil ÇOKLU seçim (onay
+  // kutuları) — tek bir madde aynı anda birden fazla döneme/aya (ör.
+  // "Yıllık Plan" + "Toplum Hizm. Planı") birden bağlanabilsin diye.
+  const bgKontrolIndexler = mevcutBagliEvrak ? (mevcutBagliEvrak.kontrolIndexler || (mevcutBagliEvrak.kontrolIndex!==undefined?[mevcutBagliEvrak.kontrolIndex]:[])) : [];
   const bgKayitCheckboxHtml = bgTip ? _klBagliKayitSeciciIcerik(bgTip, bgKayitIdler) : '';
-  const bgDonemHtml = bgTip ? (KL_BAGLI_EVRAK_TIPLERI[bgTip].kontrolEtiketleri||[]).map((e,i)=>`<option value="${i}" ${i===bgKontrolIndex?'selected':''}>${escapeHtml(e)}</option>`).join('') : '';
+  const bgDonemCheckboxHtml = bgTip ? _klBagliDonemSeciciIcerik(bgTip, bgKontrolIndexler) : '';
   return `
     <input type="hidden" id="f_klMIkon" value="${ikon}">
     <input type="hidden" id="f_klMRenk" value="${renk}">
@@ -232,10 +235,8 @@ function _klMaddeFormBody(mevcutIkon, mevcutRenk, mevcutMetin, mevcutTarih, mevc
       <div id="f_klMBagliKayitId" class="ogr-checkbox-liste">${bgKayitCheckboxHtml}</div>
     </div>
     <div class="form-group" id="f_klMBagliDonemKutu" style="display:${bgTip?'':'none'};">
-      <label>Hangi Dönem / Ay?</label>
-      <select id="f_klMBagliKontrolIndex">
-        <option value="">— Seçiniz —</option>${bgDonemHtml}
-      </select>
+      <label>Hangi Dönem / Ay? <span style="font-size:11px;color:var(--ink-muted);font-weight:400;">(birden fazla seçilebilir)</span></label>
+      <div id="f_klMBagliKontrolIndex" class="ogr-checkbox-liste">${bgDonemCheckboxHtml}</div>
     </div>
 
     <div id="f_klMBagimsizAlanlar" style="display:${bgTip?'none':''};">
@@ -430,6 +431,7 @@ function _klDetayCiz(){
   const _klBenimOgretmenim = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
   govde.innerHTML = maddeler.map((m,i) => {
     const bgKayitIdler = m.baglıEvrak ? (m.baglıEvrak.kayitIdler || (m.baglıEvrak.kayitId?[m.baglıEvrak.kayitId]:[])) : [];
+    const bgKontrolIndexler = m.baglıEvrak ? (m.baglıEvrak.kontrolIndexler || (m.baglıEvrak.kontrolIndex!==undefined?[m.baglıEvrak.kontrolIndex]:[])) : [];
     const bagliKayitlar = m.baglıEvrak ? bgKayitIdler.map(id=>(cizelgeVerileri[m.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean) : [];
     // DÜZELTME: Sıradan bir öğretmen (yetkiVar=false) için bu TEK maddenin
     // görünen durumu KENDİ kaydına göre olur, aggregate (hepsi mi tamam)
@@ -437,15 +439,16 @@ function _klDetayCiz(){
     const kendiKayit = (m.baglıEvrak && _klBenimOgretmenim) ? bagliKayitlar.find(k=>_klBagliKayitOgretmenIdleri(m.baglıEvrak.tip,k).includes(_klBenimOgretmenim.id)) : null;
     const kendiGoruntuMu = m.baglıEvrak && !yetkiVar && kendiKayit;
     const tamamMi = m.baglıEvrak
-      ? (kendiGoruntuMu ? _klBagliEvrakTamamMi(m.baglıEvrak.tip, kendiKayit, m.baglıEvrak.kontrolIndex) : _klBagliEvrakTamamMiCoklu(m.baglıEvrak.tip, bagliKayitlar, m.baglıEvrak.kontrolIndex))
+      ? (kendiGoruntuMu ? _klBagliEvrakTamamMi(m.baglıEvrak.tip, kendiKayit, bgKontrolIndexler) : _klBagliEvrakTamamMiCoklu(m.baglıEvrak.tip, bagliKayitlar, bgKontrolIndexler))
       : _klTamamlanan.has(m.id);
     const tarih = m.baglıEvrak
-      ? (kendiGoruntuMu ? _klBagliEvrakTarihi(m.baglıEvrak.tip, kendiKayit, m.baglıEvrak.kontrolIndex) : _klBagliEvrakTarihiCoklu(m.baglıEvrak.tip, bagliKayitlar, m.baglıEvrak.kontrolIndex))
+      ? (kendiGoruntuMu ? _klBagliEvrakTarihi(m.baglıEvrak.tip, kendiKayit, bgKontrolIndexler) : _klBagliEvrakTarihiCoklu(m.baglıEvrak.tip, bagliKayitlar, bgKontrolIndexler))
       : m.tarih;
     const gecikmisMi = !tamamMi && tarih && new Date(tarih) < new Date(todayISO());
     const hedefEtiketi = yetkiVar ? _klMaddeHedefEtiketi(m) : '';
-    const tamamlananSayisi = m.baglıEvrak ? bagliKayitlar.filter(k=>_klBagliEvrakTamamMi(m.baglıEvrak.tip,k,m.baglıEvrak.kontrolIndex)).length : 0;
-    const bagliEtiketi = (yetkiVar && m.baglıEvrak) ? `🔗 ${KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].ad} — ${bagliKayitlar.map(k=>_klBagliKayitEtiketi(m.baglıEvrak.tip,k)).join(', ')} (${(KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].kontrolEtiketleri||[])[m.baglıEvrak.kontrolIndex]||''}) — ${tamamlananSayisi}/${bagliKayitlar.length} tamamlandı` : '';
+    const tamamlananSayisi = m.baglıEvrak ? bagliKayitlar.filter(k=>_klBagliEvrakTamamMi(m.baglıEvrak.tip,k,bgKontrolIndexler)).length : 0;
+    const donemEtiketleri = m.baglıEvrak ? bgKontrolIndexler.map(idx=>(KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].kontrolEtiketleri||[])[idx]).filter(Boolean).join(' + ') : '';
+    const bagliEtiketi = (yetkiVar && m.baglıEvrak) ? `🔗 ${KL_BAGLI_EVRAK_TIPLERI[m.baglıEvrak.tip].ad} — ${bagliKayitlar.map(k=>_klBagliKayitEtiketi(m.baglıEvrak.tip,k)).join(', ')} (${donemEtiketleri}) — ${tamamlananSayisi}/${bagliKayitlar.length} tamamlandı` : '';
     return `
     <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px;border-left:5px solid ${m.renk||'var(--brand)'};${tamamMi?'opacity:.55;':''}">
       <div style="width:36px;height:36px;border-radius:50%;background:${m.renk||'var(--brand)'};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;">${i+1}</div>
@@ -475,13 +478,14 @@ function _klMaddeIsaretle(maddeId, isaretli){
     // yönetici/düzenleme yetkisi olan biri işaretlerse (ör. "hepsi teslim
     // etti" demek istiyorsa) TÜMÜ birlikte işaretlenir.
     const kayitIdler = madde.baglıEvrak.kayitIdler || (madde.baglıEvrak.kayitId?[madde.baglıEvrak.kayitId]:[]);
+    const kontrolIndexler = madde.baglıEvrak.kontrolIndexler || (madde.baglıEvrak.kontrolIndex!==undefined?[madde.baglıEvrak.kontrolIndex]:[]);
     const bagliKayitlar = kayitIdler.map(id=>(cizelgeVerileri[madde.baglıEvrak.tip]||[]).find(k=>k.id===id)).filter(Boolean);
     const yetkiVar = typeof duzenleyebilir==='function' && duzenleyebilir('kontrolListeleri');
     const ben = (typeof bagliOgretmenimGetir==='function') ? bagliOgretmenimGetir() : null;
     const kendiKayit = ben ? bagliKayitlar.find(k=>_klBagliKayitOgretmenIdleri(madde.baglıEvrak.tip,k).includes(ben.id)) : null;
     const islem = (!yetkiVar && kendiKayit)
-      ? _klBagliEvrakToggle(madde.baglıEvrak.tip, kendiKayit.id, madde.baglıEvrak.kontrolIndex, isaretli)
-      : _klBagliEvrakToggleCoklu(madde.baglıEvrak.tip, kayitIdler, madde.baglıEvrak.kontrolIndex, isaretli);
+      ? _klBagliEvrakToggle(madde.baglıEvrak.tip, kendiKayit.id, kontrolIndexler, isaretli)
+      : _klBagliEvrakToggleCoklu(madde.baglıEvrak.tip, kayitIdler, kontrolIndexler, isaretli);
     islem.then(()=>_klDetayCiz())
       .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); _klDetayCiz(); });
     return;
@@ -642,16 +646,25 @@ function _klBagliKayitSeciciIcerik(tip, seciliIdler){
 function _klBagliKayitSecili(){
   return Array.from(document.querySelectorAll('#f_klMBagliKayitId input[type=checkbox]:checked')).map(el=>el.value);
 }
+/* YENİ: "Hangi Dönem/Ay?" için çoklu seçim kutucuklarının HTML'ini üretir. */
+function _klBagliDonemSeciciIcerik(tip, seciliIndexler){
+  const etiketler = (KL_BAGLI_EVRAK_TIPLERI[tip]||{}).kontrolEtiketleri || [];
+  if(!etiketler.length) return '<p class="empty-state" style="margin:6px 0;">Bu türde dönem/ay tanımı yok.</p>';
+  return etiketler.map((e,i)=>`<label class="ogr-cb-row"><input type="checkbox" value="${i}" ${seciliIndexler.includes(i)?'checked':''}><span>${escapeHtml(e)}</span></label>`).join('');
+}
+function _klBagliDonemSecili(){
+  return Array.from(document.querySelectorAll('#f_klMBagliKontrolIndex input[type=checkbox]:checked')).map(el=>parseInt(el.value));
+}
 function _klBagliKayitOgretmenIdleri(tip, kayit){
   if(!kayit) return [];
   if(tip==='sosyalKulupler') return kayit.ogretmenIdler||[];
   return kayit.ogretmenId ? [kayit.ogretmenId] : [];
 }
-/* Bağlı bir maddenin ilgili kontrol index'ine denk gelen SON TARİHİNİ
-   hesaplar: dönem/tek-seferlik alanlar varsa doğrudan oradan, aylık
-   kontroller içinse otomatik ay hesaplamasına düşer (bkz. js/hatirlatmalar.js
-   _htOtomatikAyTarihi — Eylül raporu Ekim'in ilk haftasında gibi). */
-function _klBagliEvrakTarihi(tip, kayit, kontrolIndex){
+/* Bağlı bir maddenin İLGİLİ TEK BİR kontrol index'ine denk gelen SON
+   TARİHİNİ hesaplar: dönem/tek-seferlik alanlar varsa doğrudan oradan,
+   aylık kontroller içinse otomatik ay hesaplamasına düşer (bkz.
+   js/hatirlatmalar.js _htOtomatikAyTarihi). */
+function _klBagliEvrakTekTarih(tip, kayit, kontrolIndex){
   if(!kayit) return null;
   const otomatikAy = (ayKisaAdi) => (typeof _htOtomatikAyTarihi==='function') ? _htOtomatikAyTarihi(ayKisaAdi) : null;
   if(tip==='zumre'||tip==='sok') return kayit['tarih'+(kontrolIndex+1)] || null;
@@ -670,33 +683,43 @@ function _klBagliEvrakTarihi(tip, kayit, kontrolIndex){
   if(tip==='maarifRapor') return otomatikAy((typeof MAARIF_KONTROLLER!=='undefined'?MAARIF_KONTROLLER:[])[kontrolIndex]);
   return null;
 }
+/* YENİ: Bir kayıt BİRDEN FAZLA döneme/aya (kontrolIndexler dizisi)
+   bağlıysa, EN ERKEN (en acil) tarihi döndürür. */
+function _klBagliEvrakTarihi(tip, kayit, kontrolIndexler){
+  if(!kayit) return null;
+  const tarihler = (kontrolIndexler||[]).map(i=>_klBagliEvrakTekTarih(tip,kayit,i)).filter(Boolean).sort();
+  return tarihler[0] || null;
+}
 /* YENİ: Birden fazla kayda bağlı bir madde için EN ERKEN (en acil) tarihi
    döndürür — admin özet görünümünde tek bir tarih göstermek için. */
-function _klBagliEvrakTarihiCoklu(tip, kayitlar, kontrolIndex){
-  const tarihler = kayitlar.map(k=>_klBagliEvrakTarihi(tip,k,kontrolIndex)).filter(Boolean).sort();
+function _klBagliEvrakTarihiCoklu(tip, kayitlar, kontrolIndexler){
+  const tarihler = kayitlar.map(k=>_klBagliEvrakTarihi(tip,k,kontrolIndexler)).filter(Boolean).sort();
   return tarihler[0] || null;
 }
 /* Bağlı maddenin tamamlanma durumu — gerçek kaydın kendi kontrolleri.
-   Birden fazla kayda bağlıysa, HEPSİ tamamlanmışsa "tamamlandı" sayılır. */
-function _klBagliEvrakTamamMi(tip, kayit, kontrolIndex){
-  return !!(kayit && (kayit.kontroller||[])[kontrolIndex]);
+   Birden fazla döneme/aya bağlıysa HEPSİ tamamlanmışsa "tamamlandı" sayılır. */
+function _klBagliEvrakTamamMi(tip, kayit, kontrolIndexler){
+  if(!kayit || !(kontrolIndexler||[]).length) return false;
+  return kontrolIndexler.every(i=>!!(kayit.kontroller||[])[i]);
 }
-function _klBagliEvrakTamamMiCoklu(tip, kayitlar, kontrolIndex){
+function _klBagliEvrakTamamMiCoklu(tip, kayitlar, kontrolIndexler){
   if(!kayitlar.length) return false;
-  return kayitlar.every(k=>_klBagliEvrakTamamMi(tip,k,kontrolIndex));
+  return kayitlar.every(k=>_klBagliEvrakTamamMi(tip,k,kontrolIndexler));
 }
 /* Bağlı maddeyi işaretlemek = gerçek kayıt(lar)ın kontrolünü güncellemek.
-   Birden fazla kayıt bağlıysa HEPSİNE aynı değer uygulanır (toplu işlem). */
-function _klBagliEvrakToggle(tip, kayitId, kontrolIndex, deger){
+   Birden fazla kayıt/dönem bağlıysa HEPSİNE aynı değer uygulanır (toplu işlem). */
+function _klBagliEvrakToggle(tip, kayitId, kontrolIndexler, deger){
   const kayit = (cizelgeVerileri[tip]||[]).find(k=>k.id===kayitId);
   if(!kayit) return Promise.reject(new Error('Bağlı kayıt bulunamadı (silinmiş olabilir).'));
   const kontroller = (kayit.kontroller||[]).slice();
-  while(kontroller.length <= kontrolIndex) kontroller.push(false);
-  kontroller[kontrolIndex] = deger;
+  (kontrolIndexler||[]).forEach(i=>{
+    while(kontroller.length <= i) kontroller.push(false);
+    kontroller[i] = deger;
+  });
   return CizelgelerService.kontrolToggle(tip, kayitId, kontroller);
 }
-function _klBagliEvrakToggleCoklu(tip, kayitIdler, kontrolIndex, deger){
-  return Promise.all((kayitIdler||[]).map(id=>_klBagliEvrakToggle(tip, id, kontrolIndex, deger)));
+function _klBagliEvrakToggleCoklu(tip, kayitIdler, kontrolIndexler, deger){
+  return Promise.all((kayitIdler||[]).map(id=>_klBagliEvrakToggle(tip, id, kontrolIndexler, deger)));
 }
 /* Form içindeki bağımlı seçiciler (tip → kayıt(lar) + dönem/ay birlikte,
    ikisi de sadece TİPE bağlı olduğu için tek adımda dolduruluyor). */
@@ -706,7 +729,7 @@ function _klBagliTipDegisti(selectEl){
   const donemKutu = document.getElementById('f_klMBagliDonemKutu');
   const bagimsizAlanlar = document.getElementById('f_klMBagimsizAlanlar');
   const kayitKapsayici = document.getElementById('f_klMBagliKayitId');
-  const donemSelect = document.getElementById('f_klMBagliKontrolIndex');
+  const donemKapsayici = document.getElementById('f_klMBagliKontrolIndex');
   if(!tip){
     if(kayitKutu) kayitKutu.style.display='none';
     if(donemKutu) donemKutu.style.display='none';
@@ -717,10 +740,7 @@ function _klBagliTipDegisti(selectEl){
   if(donemKutu) donemKutu.style.display='';
   if(bagimsizAlanlar) bagimsizAlanlar.style.display='none';
   if(kayitKapsayici) kayitKapsayici.innerHTML = _klBagliKayitSeciciIcerik(tip, []);
-  if(donemSelect){
-    const etiketler = (KL_BAGLI_EVRAK_TIPLERI[tip]||{}).kontrolEtiketleri || [];
-    donemSelect.innerHTML = '<option value="">— Seçiniz —</option>' + etiketler.map((e,i)=>`<option value="${i}">${escapeHtml(e)}</option>`).join('');
-  }
+  if(donemKapsayici) donemKapsayici.innerHTML = _klBagliDonemSeciciIcerik(tip, []);
 }
 function _klListeSilOnay(listeId){
   const liste = kontrolListeleri.find(l=>l.id===listeId);
@@ -739,9 +759,9 @@ function _klMaddeEkleModalAc(listeId){
     let baglıEvrak = null;
     if(bgTip){
       const bgKayitIdler = _klBagliKayitSecili();
-      const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
-      if(!bgKayitIdler.length || bgDonem===''){ toast('Bağlı evrak için en az bir kayıt ve dönem/ay seçmelisiniz.'); return; }
-      baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndex:parseInt(bgDonem) };
+      const bgDonemler = _klBagliDonemSecili();
+      if(!bgKayitIdler.length || !bgDonemler.length){ toast('Bağlı evrak için en az bir kayıt ve en az bir dönem/ay seçmelisiniz.'); return; }
+      baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndexler:bgDonemler };
     }
     const liste = kontrolListeleri.find(l=>l.id===listeId);
     const maddeler = (liste.maddeler||[]).slice();
@@ -773,9 +793,9 @@ function _klMaddeDuzenleModalAc(listeId, maddeId){
     let baglıEvrak = null;
     if(bgTip){
       const bgKayitIdler = _klBagliKayitSecili();
-      const bgDonem = document.getElementById('f_klMBagliKontrolIndex').value;
-      if(!bgKayitIdler.length || bgDonem===''){ toast('Bağlı evrak için en az bir kayıt ve dönem/ay seçmelisiniz.'); return; }
-      baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndex:parseInt(bgDonem) };
+      const bgDonemler = _klBagliDonemSecili();
+      if(!bgKayitIdler.length || !bgDonemler.length){ toast('Bağlı evrak için en az bir kayıt ve en az bir dönem/ay seçmelisiniz.'); return; }
+      baglıEvrak = { tip:bgTip, kayitIdler:bgKayitIdler, kontrolIndexler:bgDonemler };
     }
     const tarih = baglıEvrak ? null : (document.getElementById('f_klMTarih').value||null);
     const hedefTip = baglıEvrak ? 'herkes' : document.getElementById('f_klMHedefTip').value;
