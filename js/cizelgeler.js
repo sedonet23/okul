@@ -247,6 +247,53 @@ function _renderSosyalKulupler(el,veri){
 /* ================================================================
    DÖNEM TABLOSU — Zümre, ŞÖK, Yıllık/BEP, Rehberlik
    ================================================================ */
+/* ================================================================
+   YENİ: Tarihleri Toplu Ayarla — Zümre/ŞÖK'te her kayda tek tek Düzenle'ye
+   girip 3 tarihi (1.Dönem/2.Dönem/Yıl Sonu) ayrı ayrı girmek yerine, tek
+   bir yerden tarihleri girip işaretlediğiniz TÜM kayıtlara aynı anda
+   uygulamak için. Boş bırakılan bir tarih, o kayıtlardaki mevcut değeri
+   DEĞİŞTİRMEZ (sadece doldurulan alanlar güncellenir).
+   ================================================================ */
+function _cizelgeTarihTopluEtiket(tip, kayit){
+  const ogAdi = _ogretmenAdi(kayit.ogretmenId);
+  if(tip==='sok') return `${ogAdi}${kayit.sinif?' — '+kayit.sinif:''}`;
+  return `${ogAdi}${kayit.brans?' — '+kayit.brans:''}${kayit.sinif?' ('+kayit.sinif+')':''}`;
+}
+function _cizelgeTarihToplu(tip){
+  const kayitlar = cizelgeVerileri[tip] || [];
+  if(!kayitlar.length){ toast('Bu türde henüz kayıt yok.'); return; }
+  const body = `
+    <p style="font-size:13px;color:var(--ink-muted);margin-bottom:10px;">Aşağıda girdiğiniz tarihler, işaretlediğiniz TÜM kayıtlara aynı anda uygulanır. Boş bıraktığınız bir tarih o kayıtlardaki mevcut değeri değiştirmez.</p>
+    <div class="form-row">
+      <div class="form-group"><label>1. Dönem Son Tarihi</label><input type="date" id="f_ctbTarih1"></div>
+      <div class="form-group"><label>2. Dönem Son Tarihi</label><input type="date" id="f_ctbTarih2"></div>
+    </div>
+    <div class="form-group"><label>Yıl Sonu Son Tarihi</label><input type="date" id="f_ctbTarih3"></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:400;"><input type="checkbox" id="f_ctbHepsi" checked onchange="_cizelgeTarihTopluHepsiToggle(this)"> Tümünü seç (${kayitlar.length} kayıt)</label>
+      <div id="f_ctbKayitlar" class="ogr-checkbox-liste">${kayitlar.map(k=>`<label class="ogr-cb-row"><input type="checkbox" value="${k.id}" checked><span>${escapeHtml(_cizelgeTarihTopluEtiket(tip,k))}</span></label>`).join('')}</div>
+    </div>`;
+  modalAc('📅 Tarihleri Toplu Ayarla', body, () => {
+    const t1 = document.getElementById('f_ctbTarih1').value;
+    const t2 = document.getElementById('f_ctbTarih2').value;
+    const t3 = document.getElementById('f_ctbTarih3').value;
+    if(!t1 && !t2 && !t3){ toast('En az bir tarih girin.'); return; }
+    const seciliIdler = Array.from(document.querySelectorAll('#f_ctbKayitlar input[type=checkbox]:checked')).map(el=>el.value);
+    if(!seciliIdler.length){ toast('En az bir kayıt seçin.'); return; }
+    const veri = {};
+    if(t1) veri.tarih1 = t1;
+    if(t2) veri.tarih2 = t2;
+    if(t3) veri.tarih3 = t3;
+    Promise.all(seciliIdler.map(id=>CizelgelerService.kayitKaydet(tip, id, veri)))
+      .then(()=>toast(`${seciliIdler.length} kayıt güncellendi.`))
+      .catch(err=>{ if(err.message!=='yetkisiz') toast('Hata: '+err.message); });
+    modalKapat();
+  });
+}
+function _cizelgeTarihTopluHepsiToggle(checkboxEl){
+  document.querySelectorAll('#f_ctbKayitlar input[type=checkbox]').forEach(cb=>cb.checked = checkboxEl.checked);
+}
+
 const CIZELGE_META={
   zumre:    { baslik:'Zümre Toplantıları',
     alanlar:[
